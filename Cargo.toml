@@ -16,6 +16,9 @@ pgo = []
 # Feature for enabling C library exports.
 c-exports = []
 
+[dependencies]
+rstest = "0.23.0"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dev-dependencies]
 criterion = "0.5.1"

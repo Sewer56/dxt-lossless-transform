@@ -18,7 +18,7 @@ To setup code coverage for this project. Login into [Codecov][codecov] and add t
 
 If you don't have a `docs/Reloaded` folder, you might need to add it manually as submodule:
 
-```
+```ignore
 git submodule add https://github.com/Reloaded-Project/Reloaded.MkDocsMaterial.Themes.R2.git docs/Reloaded
 ```
 

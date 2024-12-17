@@ -44,6 +44,6 @@ panic = "abort"
 
 # Benchmark Stuff
 [[bench]]
-name = "my_benchmark"
-path = "benches/my_benchmark/main.rs"
+name = "dxt1_shuffle"
+path = "benches/dxt1_shuffle/main.rs"
 harness = false

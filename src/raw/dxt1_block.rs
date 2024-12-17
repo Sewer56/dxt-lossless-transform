@@ -49,20 +49,21 @@ use std::arch::asm;
 ///
 /// # Safety
 ///
-/// The buffer at 'input' and 'output' should be divisible by 8 and equal in length.
-#[inline(always)]
-pub unsafe fn transform_64bit_portable(input: &[u8], output: &mut [u8]) {
-    debug_assert!(input.len() % 8 == 0);
-    debug_assert!(output.len() % 8 == 0);
-    debug_assert!(input.len() == output.len());
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len must be divisible by 8
+/// - pointers must be properly aligned for u64/u32 access
+#[inline(never)]
+pub unsafe fn transform_64bit_portable(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 8 == 0);
 
     unsafe {
-        let max_ptr = input.as_ptr().add(input.len()) as *mut u64;
-        let mut input_ptr = input.as_ptr() as *mut u64;
+        let max_ptr = input_ptr.add(len) as *mut u64;
+        let mut input_ptr = input_ptr as *mut u64;
 
         // Split output into color and index sections
-        let mut colours_ptr = output.as_mut_ptr() as *mut u32;
-        let mut indices_ptr = output.as_mut_ptr().add(input.len() / 2) as *mut u32;
+        let mut colours_ptr = output_ptr as *mut u32;
+        let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
 
         while input_ptr < max_ptr {
             let curr = *input_ptr;
@@ -82,15 +83,78 @@ pub unsafe fn transform_64bit_portable(input: &[u8], output: &mut [u8]) {
     }
 }
 
+/// Transform into separated color/index format preserving byte order
+///
 /// # Safety
 ///
-/// The buffer at 'input' and 'output' should be divisible by 8 and equal in length.
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len must be divisible by 8
+/// - pointers must be properly aligned for u64/u32 access
+#[inline(never)]
+pub unsafe fn transform_64bit_portable_unroll(
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+) {
+    debug_assert!(len % 8 == 0);
+
+    unsafe {
+        let max_ptr = input_ptr.add(len) as *mut u64;
+        let mut input_ptr = input_ptr as *mut u64;
+
+        // Split output into color and index sections
+        let mut colours_ptr = output_ptr as *mut u32;
+        let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
+
+        while input_ptr.add(3) < max_ptr {
+            // Load 4 blocks at once
+            let curr1 = *input_ptr;
+            let curr2 = *input_ptr.add(1);
+            let curr3 = *input_ptr.add(2);
+            let curr4 = *input_ptr.add(3);
+
+            // Split into colours and indices
+            let color1 = curr1 as u32;
+            let color2 = curr2 as u32;
+            let color3 = curr3 as u32;
+            let color4 = curr4 as u32;
+
+            // Store all colors
+            *colours_ptr = color1;
+            *colours_ptr.add(1) = color2;
+            *colours_ptr.add(2) = color3;
+            *colours_ptr.add(3) = color4;
+
+            let index1 = (curr1 >> 32) as u32;
+            let index2 = (curr2 >> 32) as u32;
+            let index3 = (curr3 >> 32) as u32;
+            let index4 = (curr4 >> 32) as u32;
+
+            // Store all indices
+            *indices_ptr = index1;
+            *indices_ptr.add(1) = index2;
+            *indices_ptr.add(2) = index3;
+            *indices_ptr.add(3) = index4;
+
+            // Update pointers
+            input_ptr = input_ptr.add(4);
+            colours_ptr = colours_ptr.add(4);
+            indices_ptr = indices_ptr.add(4);
+        }
+    }
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len must be divisible by 8
+/// - pointers must be properly aligned for SSE operations
 #[cfg(target_arch = "x86_64")]
-#[inline(always)]
-pub unsafe fn transform_64bit_sse2(input: &[u8], output: &mut [u8]) {
-    debug_assert!(input.len() % 8 == 0);
-    debug_assert!(output.len() % 8 == 0);
-    debug_assert!(input.len() == output.len());
+#[inline(never)]
+pub unsafe fn transform_64bit_sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 8 == 0);
 
     unsafe {
         asm!(
@@ -106,89 +170,66 @@ pub unsafe fn transform_64bit_sse2(input: &[u8], output: &mut [u8]) {
 
             // Store pointers in preserved registers
             "mov r12, {src}",     // src
-            "mov r13, {dst}",     // colors (first half of output)
-            "mov r14, {dst}",     // indices (second half of output)
+            "mov r13, {dst}",     // dst for colors
+            "mov r14, {dst}",     // dst for indices
             "add r14, {len_half}", // indices start halfway through output
 
             // Align the loop's instruction address to 16 bytes
             ".p2align 4",
             "2:",  // Local label for loop
-            // Load 16 blocks (128 bytes)
-            "movupd xmm0,  [r12]",
-            "movupd xmm1,  [r12 + 16]",
-            "movupd xmm2,  [r12 + 32]",
-            "movupd xmm3,  [r12 + 48]",
-            "movupd xmm4,  [r12 + 64]",
-            "movupd xmm5,  [r12 + 80]",
-            "movupd xmm6,  [r12 + 96]",
-            "movupd xmm7,  [r12 + 112]",
-            "movupd xmm8,  [r12 + 128]",
-            "movupd xmm9,  [r12 + 144]",
-            "movupd xmm10, [r12 + 160]",
-            "movupd xmm11, [r12 + 176]",
-            "movupd xmm12, [r12 + 192]",
-            "movupd xmm13, [r12 + 208]",
-            "movupd xmm14, [r12 + 224]",
-            "movupd xmm15, [r12 + 240]",
 
-            // Shuffle all in-place to separate colors and indices
-            "pshufd xmm0,  xmm0,  0xD8",  // 11011000b - reorganize for color/index split
-            "pshufd xmm1,  xmm1,  0xD8",
-            "pshufd xmm2,  xmm2,  0xD8",
-            "pshufd xmm3,  xmm3,  0xD8",
-            "pshufd xmm4,  xmm4,  0xD8",
-            "pshufd xmm5,  xmm5,  0xD8",
-            "pshufd xmm6,  xmm6,  0xD8",
-            "pshufd xmm7,  xmm7,  0xD8",
-            "pshufd xmm8,  xmm8,  0xD8",
-            "pshufd xmm9,  xmm9,  0xD8",
-            "pshufd xmm10, xmm10, 0xD8",
-            "pshufd xmm11, xmm11, 0xD8",
-            "pshufd xmm12, xmm12, 0xD8",
-            "pshufd xmm13, xmm13, 0xD8",
-            "pshufd xmm14, xmm14, 0xD8",
-            "pshufd xmm15, xmm15, 0xD8",
+            // Load 8 blocks (128 bytes)
+            "movdqa xmm0, [r12]",
+            "movdqa xmm1, [r12 + 16]",
+            "movdqa xmm2, [r12 + 32]",
+            "movdqa xmm3, [r12 + 48]",
+            "movdqa xmm4, [r12 + 64]",
+            "movdqa xmm5, [r12 + 80]",
+            "movdqa xmm6, [r12 + 96]",
+            "movdqa xmm7, [r12 + 112]",
 
-            // Store colors (lower halves)
-            "movupd [r13],      xmm0",
-            "movupd [r13 + 16], xmm1",
-            "movupd [r13 + 32], xmm2",
-            "movupd [r13 + 48], xmm3",
-            "movupd [r13 + 64], xmm4",
-            "movupd [r13 + 80], xmm5",
-            "movupd [r13 + 96], xmm6",
-            "movupd [r13 + 112], xmm7",
-            "movupd [r13 + 128], xmm8",
-            "movupd [r13 + 144], xmm9",
-            "movupd [r13 + 160], xmm10",
-            "movupd [r13 + 176], xmm11",
-            "movupd [r13 + 192], xmm12",
-            "movupd [r13 + 208], xmm13",
-            "movupd [r13 + 224], xmm14",
-            "movupd [r13 + 240], xmm15",
+            // Shuffle all to separate colors and indices
+            "pshufd xmm0, xmm0, 0xD8",
+            "pshufd xmm1, xmm1, 0xD8",
+            "pshufd xmm2, xmm2, 0xD8",
+            "pshufd xmm3, xmm3, 0xD8",
+            "pshufd xmm4, xmm4, 0xD8",
+            "pshufd xmm5, xmm5, 0xD8",
+            "pshufd xmm6, xmm6, 0xD8",
+            "pshufd xmm7, xmm7, 0xD8",
 
-            // Store indices (upper halves)
-            "movupd [r14],      xmm0",
-            "movupd [r14 + 16], xmm1",
-            "movupd [r14 + 32], xmm2",
-            "movupd [r14 + 48], xmm3",
-            "movupd [r14 + 64], xmm4",
-            "movupd [r14 + 80], xmm5",
-            "movupd [r14 + 96], xmm6",
-            "movupd [r14 + 112], xmm7",
-            "movupd [r14 + 128], xmm8",
-            "movupd [r14 + 144], xmm9",
-            "movupd [r14 + 160], xmm10",
-            "movupd [r14 + 176], xmm11",
-            "movupd [r14 + 192], xmm12",
-            "movupd [r14 + 208], xmm13",
-            "movupd [r14 + 224], xmm14",
-            "movupd [r14 + 240], xmm15",
+            // Copy registers for reorganization
+            "movdqa xmm8, xmm0",
+            "movdqa xmm9, xmm2",
+            "movdqa xmm10, xmm4",
+            "movdqa xmm11, xmm6",
+
+            // Reorganize all pairs into colors/indices
+            "punpckhqdq xmm0, xmm1",     // indices 0,1
+            "punpcklqdq xmm8, xmm1",     // colors 0,1
+            "punpckhqdq xmm2, xmm3",     // indices 2,3
+            "punpcklqdq xmm9, xmm3",     // colors 2,3
+            "punpckhqdq xmm4, xmm5",     // indices 4,5
+            "punpcklqdq xmm10, xmm5",    // colors 4,5
+            "punpckhqdq xmm6, xmm7",     // indices 6,7
+            "punpcklqdq xmm11, xmm7",    // colors 6,7
+
+            // Store colors
+            "movdqa [r13],      xmm8",
+            "movdqa [r13 + 16], xmm9",
+            "movdqa [r13 + 32], xmm10",
+            "movdqa [r13 + 48], xmm11",
+
+            // Store indices
+            "movdqa [r14],      xmm0",
+            "movdqa [r14 + 16], xmm2",
+            "movdqa [r14 + 32], xmm4",
+            "movdqa [r14 + 48], xmm6",
 
             // Update pointers
-            "add r12, 256",  // src += 16 * 16
-            "add r13, 256",  // colors_ptr += 16 * 16
-            "add r14, 256",  // indices_ptr += 16 * 16
+            "add r12, 128",  // src += 8 * 16
+            "add r13, 64",   // colors_ptr += 8 * 8
+            "add r14, 64",   // indices_ptr += 8 * 8
 
             // Compare against end address and loop if not done
             "cmp r12, rbx",
@@ -200,15 +241,14 @@ pub unsafe fn transform_64bit_sse2(input: &[u8], output: &mut [u8]) {
             "pop r12",
             "pop rbx",
 
-            src = in(reg) input.as_ptr(),
-            dst = in(reg) output.as_mut_ptr(),
-            len = in(reg) input.len(),
-            len_half = in(reg) input.len() / 2,
+            src = in(reg) input_ptr,
+            dst = in(reg) output_ptr,
+            len = in(reg) len,
+            len_half = in(reg) len / 2,
             options(nostack)
         );
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -217,12 +257,19 @@ mod tests {
     enum Method {
         CpuPortable64,
         Sse2,
+        //Avx2,
     }
 
     fn transform(method: Method, input: &[u8], output: &mut [u8]) {
-        match method {
-            Method::CpuPortable64 => unsafe { transform_64bit_portable(input, output) },
-            Method::Sse2 => unsafe { transform_64bit_sse2(input, output) },
+        unsafe {
+            match method {
+                Method::CpuPortable64 => {
+                    transform_64bit_portable(input.as_ptr(), output.as_mut_ptr(), input.len())
+                }
+                Method::Sse2 => {
+                    transform_64bit_sse2(input.as_ptr(), output.as_mut_ptr(), input.len())
+                }
+            }
         }
     }
 
@@ -300,4 +347,30 @@ mod tests {
             num_blocks
         );
     }
+
+    /*
+    #[cfg(target_arch = "x86_64")]
+    #[rstest]
+    #[case::one_unroll(64)] // 512 bytes - tests single unroll iteration
+    #[case::many_unrolls(512)] // 4KB - tests 8 unroll iterations
+    fn test_avx2_against_portable(#[case] num_blocks: usize) {
+        let input = generate_test_data(num_blocks);
+        let mut output_portable = vec![0u8; input.len()];
+        let mut output_avx = vec![0u8; input.len()];
+
+        // Run both implementations
+        transform(Method::CpuPortable64, &input, &mut output_portable);
+        transform(Method::Avx2, &input, &mut output_avx);
+
+        // Compare results
+        assert_eq!(
+            output_portable, output_avx,
+            "AVX2 and portable implementations produced different results for {} blocks.\n\
+             First differing block will have predictable values:\n\
+             Colors: Sequential 1-4 + (block_num * 4)\n\
+             Indices: Sequential 128-131 + (block_num * 4)",
+            num_blocks
+        );
+    }
+    */
 }

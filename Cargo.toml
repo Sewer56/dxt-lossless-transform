@@ -1,0 +1,46 @@
+[package]
+name = "dxt-lossless-transform"
+version = "0.1.0"
+edition = "2021"
+description = "Fast lossless transforms for DDS files that improve their compression ratio."
+repository = "https://github.com/Sewer56/dxt-lossless-transform"
+license-file = "LICENSE"
+include = ["src/**/*"]
+readme = "README.MD"
+
+[features]
+default = ["std"]
+std = []
+# See README.md for more information on using Profile-Guided Optimization.
+pgo = []
+# Feature for enabling C library exports.
+c-exports = []
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dev-dependencies]
+criterion = "0.5.1"
+
+[target.'cfg(unix)'.dev-dependencies]
+pprof = { version = "0.12", features = ["flamegraph", "criterion"] }
+
+# Profile Build
+[profile.profile]
+inherits = "release"
+debug = true
+codegen-units = 1
+lto = true
+strip = false  # No stripping!!
+
+# Optimized Release Build
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true  # Automatically strip symbols from the binary.
+panic = "abort"
+
+
+# Benchmark Stuff
+[[bench]]
+name = "my_benchmark"
+path = "benches/my_benchmark/main.rs"
+harness = false

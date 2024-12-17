@@ -1,0 +1,66 @@
+site_name: Reloaded MkDocs Theme
+site_url: https://github.com/Sewer56/dxt-lossless-transform
+
+repo_name: Sewer56/dxt-lossless-transform
+repo_url: https://github.com/Sewer56/dxt-lossless-transform
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Sewer56
+    # - icon: fontawesome/brands/twitter
+    #  link: https://twitter.com/thesewer56?lang=en-GB
+
+extra_css:
+  - Reloaded/Stylesheets/extra.css
+
+markdown_extensions:
+  - admonition
+  - tables
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tasklist
+  - def_list
+  - meta
+  - md_in_html
+  - attr_list
+  - footnotes
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+theme:
+  name: material
+  palette:
+    scheme: reloaded3-slate
+  features:
+    - navigation.instant
+
+plugins:
+  - search
+  - exclude-unused-files:
+      file_types_to_check: [ "psd", "7z", "kra" ]
+      file_types_override_mode: append
+      enabled: true
+  - exclude:
+      # Exclude the Theme's own files.
+      glob:
+        - Reloaded/Pages/testing-zone.md
+        - Reloaded/Pages/index.md
+        - Reloaded/docs/*
+        - Reloaded/Readme.md
+        - Reloaded/LICENSE
+        - Reloaded/mkdocs.yml
+
+nav:
+  - Home: index.md
+  - Contributing: contributing.md
+  - License: Reloaded/Pages/license.md
+  - How to Document: Reloaded/Pages/contributing.md

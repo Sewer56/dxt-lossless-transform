@@ -1,0 +1,33 @@
+name: Auto Changelog
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  generate_and_upload_changelog:
+    runs-on: ubuntu-latest 
+    permissions: 
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          
+      - name: Generate changelog
+        uses: Reloaded-Project/devops-changelog@v1
+        with:
+          output: CHANGELOG.md
+          unreleased: false
+          upload-artifact: true
+          upload-release: true
+          template: keepachangelog
+          override-starting-version: true
+          hide-credit: true
+          is-release: ${{ startsWith(github.ref, 'refs/tags/') }}
+          release-tag: ${{ github.ref_name }}

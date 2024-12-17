@@ -1,0 +1,4 @@
+
+[submodule "docs/Reloaded"]
+	path = docs/Reloaded
+	url = https://github.com/Reloaded-Project/Reloaded.MkDocsMaterial.Themes.R2.git

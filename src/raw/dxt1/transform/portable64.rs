@@ -31,6 +31,7 @@ pub unsafe fn shift(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 
         while input_ptr < max_ptr {
             let curr = *input_ptr;
+            input_ptr = input_ptr.add(1);
 
             // Split into colours (lower 4 bytes) and indices (upper 4 bytes)
             let color_value = curr as u32;
@@ -38,10 +39,8 @@ pub unsafe fn shift(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 
             // Store colours and indices to their respective halves
             *colours_ptr = color_value;
-            *indices_ptr = index_value;
-
-            input_ptr = input_ptr.add(1);
             colours_ptr = colours_ptr.add(1);
+            *indices_ptr = index_value;
             indices_ptr = indices_ptr.add(1);
         }
     }
@@ -69,25 +68,22 @@ pub unsafe fn shift_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usi
             // Load 2 blocks at once
             let curr1 = *input_ptr;
             let curr2 = *input_ptr.add(1);
+            input_ptr = input_ptr.add(2);
 
             // Split into colours and indices
             let color1 = curr1 as u32;
             let color2 = curr2 as u32;
+            let index1 = (curr1 >> 32) as u32;
+            let index2 = (curr2 >> 32) as u32;
 
             // Store all colors
             *colours_ptr = color1;
             *colours_ptr.add(1) = color2;
-
-            let index1 = (curr1 >> 32) as u32;
-            let index2 = (curr2 >> 32) as u32;
+            colours_ptr = colours_ptr.add(2);
 
             // Store all indices
             *indices_ptr = index1;
             *indices_ptr.add(1) = index2;
-
-            // Update pointers
-            input_ptr = input_ptr.add(2);
-            colours_ptr = colours_ptr.add(2);
             indices_ptr = indices_ptr.add(2);
         }
     }
@@ -117,33 +113,30 @@ pub unsafe fn shift_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usi
             let curr2 = *input_ptr.add(1);
             let curr3 = *input_ptr.add(2);
             let curr4 = *input_ptr.add(3);
+            input_ptr = input_ptr.add(4);
 
             // Split into colours and indices
             let color1 = curr1 as u32;
             let color2 = curr2 as u32;
             let color3 = curr3 as u32;
             let color4 = curr4 as u32;
+            let index1 = (curr1 >> 32) as u32;
+            let index2 = (curr2 >> 32) as u32;
+            let index3 = (curr3 >> 32) as u32;
+            let index4 = (curr4 >> 32) as u32;
 
             // Store all colors
             *colours_ptr = color1;
             *colours_ptr.add(1) = color2;
             *colours_ptr.add(2) = color3;
             *colours_ptr.add(3) = color4;
-
-            let index1 = (curr1 >> 32) as u32;
-            let index2 = (curr2 >> 32) as u32;
-            let index3 = (curr3 >> 32) as u32;
-            let index4 = (curr4 >> 32) as u32;
+            colours_ptr = colours_ptr.add(4);
 
             // Store all indices
             *indices_ptr = index1;
             *indices_ptr.add(1) = index2;
             *indices_ptr.add(2) = index3;
             *indices_ptr.add(3) = index4;
-
-            // Update pointers
-            input_ptr = input_ptr.add(4);
-            colours_ptr = colours_ptr.add(4);
             indices_ptr = indices_ptr.add(4);
         }
     }
@@ -177,6 +170,7 @@ pub unsafe fn shift_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usi
             let curr6 = *input_ptr.add(5);
             let curr7 = *input_ptr.add(6);
             let curr8 = *input_ptr.add(7);
+            input_ptr = input_ptr.add(8);
 
             // Split into colours and indices
             let color1 = curr1 as u32;
@@ -188,6 +182,15 @@ pub unsafe fn shift_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usi
             let color7 = curr7 as u32;
             let color8 = curr8 as u32;
 
+            let index1 = (curr1 >> 32) as u32;
+            let index2 = (curr2 >> 32) as u32;
+            let index3 = (curr3 >> 32) as u32;
+            let index4 = (curr4 >> 32) as u32;
+            let index5 = (curr5 >> 32) as u32;
+            let index6 = (curr6 >> 32) as u32;
+            let index7 = (curr7 >> 32) as u32;
+            let index8 = (curr8 >> 32) as u32;
+
             // Store all colors
             *colours_ptr = color1;
             *colours_ptr.add(1) = color2;
@@ -197,15 +200,7 @@ pub unsafe fn shift_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usi
             *colours_ptr.add(5) = color6;
             *colours_ptr.add(6) = color7;
             *colours_ptr.add(7) = color8;
-
-            let index1 = (curr1 >> 32) as u32;
-            let index2 = (curr2 >> 32) as u32;
-            let index3 = (curr3 >> 32) as u32;
-            let index4 = (curr4 >> 32) as u32;
-            let index5 = (curr5 >> 32) as u32;
-            let index6 = (curr6 >> 32) as u32;
-            let index7 = (curr7 >> 32) as u32;
-            let index8 = (curr8 >> 32) as u32;
+            colours_ptr = colours_ptr.add(8);
 
             // Store all indices
             *indices_ptr = index1;
@@ -216,10 +211,6 @@ pub unsafe fn shift_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usi
             *indices_ptr.add(5) = index6;
             *indices_ptr.add(6) = index7;
             *indices_ptr.add(7) = index8;
-
-            // Update pointers
-            input_ptr = input_ptr.add(8);
-            colours_ptr = colours_ptr.add(8);
             indices_ptr = indices_ptr.add(8);
         }
     }

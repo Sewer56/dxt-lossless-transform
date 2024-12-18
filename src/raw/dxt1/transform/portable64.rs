@@ -246,7 +246,7 @@ mod tests {
         let mut output_test = vec![0u8; input.len()];
 
         // Generate reference output
-        transform_with_reference_implementation(&input, &mut output_expected);
+        transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
         // Test each SSE2 implementation variant
         let implementations: [(&str, TransformFn); 5] = [

@@ -286,7 +286,7 @@ mod tests {
         let mut output_test = allocate_align_64(input.len());
 
         // Generate reference output
-        transform_with_reference_implementation(&input, output_expected.as_mut_slice());
+        transform_with_reference_implementation(input.as_slice(), output_expected.as_mut_slice());
 
         // Test each SSE2 implementation variant
         let implementations: [(&str, TransformFn); 4] = [

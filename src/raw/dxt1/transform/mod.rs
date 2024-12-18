@@ -9,6 +9,10 @@ pub use sse2::*;
 
 #[cfg(test)]
 mod tests {
+    use safe_allocator_api::RawAlloc;
+
+    use crate::raw::dxt1::testutils::allocate_align_64;
+
     use super::*;
 
     /// Transforms the input data using a good known reference implementation.
@@ -17,25 +21,26 @@ mod tests {
     }
 
     // Helper to generate test data of specified size (in blocks)
-    pub(crate) fn generate_dxt1_test_data(num_blocks: usize) -> Vec<u8> {
-        let mut data = Vec::with_capacity(num_blocks * 8);
+    pub(crate) fn generate_dxt1_test_data(num_blocks: usize) -> RawAlloc {
+        let mut data = allocate_align_64(num_blocks * 8);
+        let data_ptr = data.as_mut_ptr();
 
-        for i in 0..num_blocks {
+        for block_idx in 0..num_blocks {
             // Colors: Sequential bytes 1-64 (ensuring no overlap with indices)
-            data.extend_from_slice(&[
-                (1 + i * 4) as u8,
-                (2 + i * 4) as u8,
-                (3 + i * 4) as u8,
-                (4 + i * 4) as u8,
-            ]);
+            unsafe {
+                *data_ptr.add(block_idx * 4) = (1 + block_idx * 4) as u8;
+                *data_ptr.add(block_idx * 4 + 1) = (2 + block_idx * 4) as u8;
+                *data_ptr.add(block_idx * 4 + 2) = (3 + block_idx * 4) as u8;
+                *data_ptr.add(block_idx * 4 + 3) = (4 + block_idx * 4) as u8;
+            }
 
             // Indices: Sequential bytes 128-191 (well separated from colors)
-            data.extend_from_slice(&[
-                (128 + i * 4) as u8,
-                (129 + i * 4) as u8,
-                (130 + i * 4) as u8,
-                (131 + i * 4) as u8,
-            ]);
+            unsafe {
+                *data_ptr.add(block_idx * 4 + 4) = (128 + block_idx * 4) as u8;
+                *data_ptr.add(block_idx * 4 + 5) = (129 + block_idx * 4) as u8;
+                *data_ptr.add(block_idx * 4 + 6) = (130 + block_idx * 4) as u8;
+                *data_ptr.add(block_idx * 4 + 7) = (131 + block_idx * 4) as u8;
+            }
         }
         data
     }

@@ -44,6 +44,6 @@ panic = "abort"
 
 # Benchmark Stuff
 [[bench]]
-name = "dxt1_shuffle"
-path = "benches/dxt1_shuffle/main.rs"
+name = "dxt1_transform"
+path = "benches/dxt1_transform/main.rs"
 harness = false

@@ -71,12 +71,12 @@ pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len
 
             // Reorganize all pairs into colors/indices
             "punpckhqdq xmm0, xmm1",     // indices 0,1
-            "punpcklqdq xmm8, xmm1",     // colors 0,1
             "punpckhqdq xmm2, xmm3",     // indices 2,3
-            "punpcklqdq xmm9, xmm3",     // colors 2,3
             "punpckhqdq xmm4, xmm5",     // indices 4,5
-            "punpcklqdq xmm10, xmm5",    // colors 4,5
             "punpckhqdq xmm6, xmm7",     // indices 6,7
+            "punpcklqdq xmm8, xmm1",     // colors 0,1
+            "punpcklqdq xmm9, xmm3",     // colors 2,3
+            "punpcklqdq xmm10, xmm5",    // colors 4,5
             "punpcklqdq xmm11, xmm7",    // colors 6,7
 
             // Store colors
@@ -161,8 +161,8 @@ pub unsafe fn punpckhqdq_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len
 
             // Reorganize pairs
             "punpckhqdq xmm0, xmm1",     // indices 0,1
-            "punpcklqdq xmm4, xmm1",     // colors 0,1
             "punpckhqdq xmm2, xmm3",     // indices 2,3
+            "punpcklqdq xmm4, xmm1",     // colors 0,1
             "punpcklqdq xmm5, xmm3",     // colors 2,3
 
             // Store colors and indices
@@ -233,8 +233,8 @@ pub unsafe fn punpckhqdq_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len
             "movdqa xmm2, xmm0",
 
             // Reorganize pair
-            "punpckhqdq xmm0, xmm1",     // indices
             "punpcklqdq xmm2, xmm1",     // colors
+            "punpckhqdq xmm0, xmm1",     // indices
 
             // Store colors and indices
             "movdqa [r13], xmm2",

@@ -22,9 +22,10 @@ rstest = "0.23.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dev-dependencies]
 criterion = "0.5.1"
+safe-allocator-api = "0.3.0"
 
 [target.'cfg(unix)'.dev-dependencies]
-pprof = { version = "0.12", features = ["flamegraph", "criterion"] }
+pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
 
 # Profile Build
 [profile.profile]

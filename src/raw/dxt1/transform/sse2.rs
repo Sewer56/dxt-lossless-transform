@@ -268,6 +268,7 @@ pub unsafe fn punpckhqdq_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len
 mod tests {
 
     use super::*;
+    use crate::raw::dxt1::testutils::allocate_align_64;
     use crate::raw::transform::tests::*;
     use rstest::rstest;
 
@@ -281,11 +282,11 @@ mod tests {
     #[case::large(1024)] // 8KB - large dataset
     fn test_sse2_implementations(#[case] num_blocks: usize) {
         let input = generate_dxt1_test_data(num_blocks);
-        let mut output_expected = vec![0u8; input.len()];
-        let mut output_test = vec![0u8; input.len()];
+        let mut output_expected = allocate_align_64(input.len());
+        let mut output_test = allocate_align_64(input.len());
 
         // Generate reference output
-        transform_with_reference_implementation(&input, &mut output_expected);
+        transform_with_reference_implementation(&input, output_expected.as_mut_slice());
 
         // Test each SSE2 implementation variant
         let implementations: [(&str, TransformFn); 4] = [
@@ -297,7 +298,7 @@ mod tests {
 
         for (impl_name, implementation) in implementations {
             // Clear the output buffer
-            output_test.fill(0);
+            output_test.as_mut_slice().fill(0);
 
             // Run the implementation
             unsafe {
@@ -306,12 +307,14 @@ mod tests {
 
             // Compare results
             assert_eq!(
-                output_expected, output_test,
+                output_expected.as_slice(),
+                output_test.as_slice(),
                 "{} implementation produced different results than reference for {} blocks.\n\
                 First differing block will have predictable values:\n\
                 Colors: Sequential 1-4 + (block_num * 4)\n\
                 Indices: Sequential 128-131 + (block_num * 4)",
-                impl_name, num_blocks
+                impl_name,
+                num_blocks
             );
         }
     }

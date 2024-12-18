@@ -1,6 +1,9 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use core::alloc::Layout;
 
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use dxt_lossless_transform::raw::*;
+use safe_allocator_api::RawAlloc;
+
 #[cfg(not(target_os = "windows"))]
 use pprof::criterion::{Output, PProfProfiler};
 
@@ -28,6 +31,12 @@ fn generate_test_data(num_blocks: usize) -> Vec<u8> {
     data
 }
 
+pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
+    // Create a new allocation of 1024 bytes
+    let layout = Layout::from_size_align(num_bytes, 64).unwrap();
+    RawAlloc::new(layout).unwrap()
+}
+
 fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("DXT1 Transform Implementations");
 
@@ -35,7 +44,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     // 16384 = 512x512
     for size in [16384].iter() {
         let input = generate_test_data(*size);
-        let mut output = vec![0u8; input.len()];
+        let mut output = allocate_align_64(input.len());
 
         group.throughput(criterion::Throughput::Bytes(*size as u64));
 

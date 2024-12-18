@@ -1,6 +1,9 @@
 pub mod portable64;
 pub use portable64::*;
 
+pub mod portable32;
+pub use portable32::*;
+
 #[cfg(target_arch = "x86_64")]
 #[cfg(target_feature = "sse2")]
 pub mod sse2;

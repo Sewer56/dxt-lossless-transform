@@ -56,9 +56,17 @@ fn criterion_benchmark(c: &mut Criterion) {
                 portable as unsafe fn(*const u8, *mut u8, usize),
             ),
             ("portable64 shift no-unroll", shift),
+            ("portable64 shift_with_count no-unroll", shift_with_count),
+            ("portable32 no-unroll", u32),
             ("portable64 shift unroll-2", shift_unroll_2),
+            ("portable64 shift_with_count unroll-2", shift_unroll_2),
+            ("portable32 unroll-2", u32_unroll_2),
             ("portable64 shift unroll-4", shift_unroll_4),
+            ("portable64 shift_with_count unroll-4", shift_unroll_4),
+            ("portable32 unroll-4", u32_unroll_4),
             ("portable64 shift unroll-8", shift_unroll_8),
+            ("portable64 shift_with_count unroll-8", shift_unroll_8),
+            ("portable32 unroll-8", u32_unroll_8),
         ];
 
         for (name, implementation) in portable_impls.iter() {

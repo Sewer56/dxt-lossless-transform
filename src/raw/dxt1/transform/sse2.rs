@@ -8,7 +8,7 @@ use std::arch::asm;
 /// - pointers must be properly aligned for SSE operations
 #[inline(always)]
 pub unsafe fn sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    punpckhqdq_unroll_8(input_ptr, output_ptr, len);
+    punpckhqdq_unroll_4(input_ptr, output_ptr, len);
 }
 
 /// # Safety
@@ -18,6 +18,7 @@ pub unsafe fn sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 /// - pointers must be properly aligned for SSE operations
 /// - len is at least divisible by 128
 #[inline(never)]
+#[cfg(target_arch = "x86_64")]
 pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 128 == 0);
 
@@ -52,6 +53,7 @@ pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len
             "movdqa xmm5, [r12 + 80]",
             "movdqa xmm6, [r12 + 96]",
             "movdqa xmm7, [r12 + 112]",
+            "add r12, 128",  // src += 8 * 16
 
             // Shuffle all to separate colors and indices
             "pshufd xmm0, xmm0, 0xD8",
@@ -92,7 +94,6 @@ pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len
             "movdqa [r14 + 48], xmm6",
 
             // Update pointers
-            "add r12, 128",  // src += 8 * 16
             "add r13, 64",   // colors_ptr += 8 * 8
             "add r14, 64",   // indices_ptr += 8 * 8
 
@@ -148,6 +149,7 @@ pub unsafe fn punpckhqdq_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len
             "movdqa xmm1, [r12 + 16]",
             "movdqa xmm2, [r12 + 32]",
             "movdqa xmm3, [r12 + 48]",
+            "add r12, 64",   // src += 4 * 16
 
             // Shuffle all
             "pshufd xmm0, xmm0, 0xD8",
@@ -172,7 +174,6 @@ pub unsafe fn punpckhqdq_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len
             "movdqa [r14 + 16], xmm2",
 
             // Update pointers
-            "add r12, 64",   // src += 4 * 16
             "add r13, 32",   // colors_ptr += 4 * 8
             "add r14, 32",   // indices_ptr += 4 * 8
 
@@ -224,6 +225,7 @@ pub unsafe fn punpckhqdq_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len
             // Load 2 blocks (32 bytes)
             "movdqa xmm0, [r12]",
             "movdqa xmm1, [r12 + 16]",
+            "add r12, 32",   // src += 2 * 16
 
             // Shuffle both
             "pshufd xmm0, xmm0, 0xD8",
@@ -241,7 +243,6 @@ pub unsafe fn punpckhqdq_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len
             "movdqa [r14], xmm0",
 
             // Update pointers
-            "add r12, 32",   // src += 2 * 16
             "add r13, 16",   // colors_ptr += 2 * 8
             "add r14, 16",   // indices_ptr += 2 * 8
 
@@ -287,12 +288,7 @@ mod tests {
         transform_with_reference_implementation(input.as_slice(), output_expected.as_mut_slice());
 
         // Test each SSE2 implementation variant
-        let implementations: [(&str, TransformFn); 4] = [
-            ("SSE2 (auto-selected)", sse2),
-            ("SSE2 punpckhqdq unroll-8", punpckhqdq_unroll_8),
-            ("SSE2 punpckhqdq unroll-4", punpckhqdq_unroll_4),
-            ("SSE2 punpckhqdq unroll-2", punpckhqdq_unroll_2),
-        ];
+        let implementations = get_implementations();
 
         for (impl_name, implementation) in implementations {
             // Clear the output buffer
@@ -315,5 +311,24 @@ mod tests {
                 num_blocks
             );
         }
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    pub fn get_implementations<'a>() -> [(&'a str, TransformFn); 4] {
+        [
+            ("SSE2 (auto-selected)", sse2),
+            ("SSE2 punpckhqdq unroll-8", punpckhqdq_unroll_8),
+            ("SSE2 punpckhqdq unroll-4", punpckhqdq_unroll_4),
+            ("SSE2 punpckhqdq unroll-2", punpckhqdq_unroll_2),
+        ]
+    }
+
+    #[cfg(not(target_arch = "x86_64"))]
+    pub fn get_implementations<'a>() -> [(&'a str, TransformFn); 3] {
+        [
+            ("SSE2 (auto-selected)", sse2),
+            ("SSE2 punpckhqdq unroll-4", punpckhqdq_unroll_4),
+            ("SSE2 punpckhqdq unroll-2", punpckhqdq_unroll_2),
+        ]
     }
 }

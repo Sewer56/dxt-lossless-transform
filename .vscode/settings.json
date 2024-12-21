@@ -9,5 +9,9 @@
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "always",
     "lldb.dereferencePointers": true,
-    "lldb.consoleMode": "commands"
+    "lldb.consoleMode": "commands",
+    "rust-analyzer.server.extraEnv": {
+        // Enable AVX2 in code editor.
+        "RUSTFLAGS": "-Ctarget-feature=+avx2"
+    },
 }

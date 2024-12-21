@@ -1,0 +1,3 @@
+# Uncomment to enable AVX2 testing in IDE.
+# [build]
+# rustflags = ["-C", "target-feature=+avx2"] 

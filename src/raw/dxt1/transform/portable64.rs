@@ -8,6 +8,7 @@
 /// - pointers must be properly aligned for u64/u32 access
 #[inline(always)]
 pub unsafe fn portable(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    // Delegate call to best known implementation based on benchmarks.
     shift(input_ptr, output_ptr, len);
 }
 

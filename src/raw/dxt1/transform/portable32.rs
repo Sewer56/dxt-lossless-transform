@@ -20,12 +20,12 @@ pub unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
             // Split into colours (lower 4 bytes) and indices (upper 4 bytes)
             let color_value = *(input_ptr as *const u32);
             let index_value = *(input_ptr.add(4) as *const u32);
+            input_ptr = input_ptr.add(8);
 
             // Store colours and indices to their respective halves
             *colours_ptr = color_value;
             *indices_ptr = index_value;
 
-            input_ptr = input_ptr.add(8);
             colours_ptr = colours_ptr.add(1);
             indices_ptr = indices_ptr.add(1);
         }
@@ -57,6 +57,7 @@ pub unsafe fn u32_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize
             // Process next 8 bytes
             let color_value2 = *(input_ptr.add(8) as *const u32);
             let index_value2 = *(input_ptr.add(12) as *const u32);
+            input_ptr = input_ptr.add(16);
 
             // Store to respective sections
             *colours_ptr = color_value1;
@@ -65,7 +66,6 @@ pub unsafe fn u32_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize
             *(colours_ptr.add(1)) = color_value2;
             *(indices_ptr.add(1)) = index_value2;
 
-            input_ptr = input_ptr.add(16);
             colours_ptr = colours_ptr.add(2);
             indices_ptr = indices_ptr.add(2);
         }
@@ -102,6 +102,7 @@ pub unsafe fn u32_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 
             let color_value4 = *(input_ptr.add(24) as *const u32);
             let index_value4 = *(input_ptr.add(28) as *const u32);
+            input_ptr = input_ptr.add(32);
 
             // Store all values
             *colours_ptr = color_value1;
@@ -116,7 +117,6 @@ pub unsafe fn u32_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize
             *(colours_ptr.add(3)) = color_value4;
             *(indices_ptr.add(3)) = index_value4;
 
-            input_ptr = input_ptr.add(32);
             colours_ptr = colours_ptr.add(4);
             indices_ptr = indices_ptr.add(4);
         }
@@ -165,6 +165,7 @@ pub unsafe fn u32_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 
             let color_value8 = *(input_ptr.add(56) as *const u32);
             let index_value8 = *(input_ptr.add(60) as *const u32);
+            input_ptr = input_ptr.add(64);
 
             // Store all values
             *colours_ptr = color_value1;
@@ -191,7 +192,6 @@ pub unsafe fn u32_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize
             *(colours_ptr.add(7)) = color_value8;
             *(indices_ptr.add(7)) = index_value8;
 
-            input_ptr = input_ptr.add(64);
             colours_ptr = colours_ptr.add(8);
             indices_ptr = indices_ptr.add(8);
         }

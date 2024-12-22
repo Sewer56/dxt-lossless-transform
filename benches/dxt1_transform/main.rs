@@ -49,25 +49,9 @@ fn criterion_benchmark(c: &mut Criterion) {
     let size = 16384; // 512x512 px = 16384 blocks
     let input = generate_test_data(size);
     let mut output = allocate_align_64(input.len());
-    let important_benches_only = true; // Set to false to enable extra benches, unrolls, etc.
+    let important_benches_only = false; // Set to false to enable extra benches, unrolls, etc.
 
     group.throughput(criterion::Throughput::Bytes(size as u64));
-
-    // Run all portable benchmarks
-    portable32::run_benchmarks(
-        &mut group,
-        &input,
-        &mut output,
-        size,
-        important_benches_only,
-    );
-    portable64::run_benchmarks(
-        &mut group,
-        &input,
-        &mut output,
-        size,
-        important_benches_only,
-    );
 
     // Run architecture-specific benchmarks
     #[cfg(target_arch = "x86_64")]
@@ -93,6 +77,22 @@ fn criterion_benchmark(c: &mut Criterion) {
             );
         }
     }
+
+    // Run all portable benchmarks
+    portable32::run_benchmarks(
+        &mut group,
+        &input,
+        &mut output,
+        size,
+        important_benches_only,
+    );
+    portable64::run_benchmarks(
+        &mut group,
+        &input,
+        &mut output,
+        size,
+        important_benches_only,
+    );
 
     group.finish();
 

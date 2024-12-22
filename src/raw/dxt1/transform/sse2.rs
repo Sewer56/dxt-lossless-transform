@@ -248,6 +248,238 @@ pub unsafe fn punpckhqdq_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len
     }
 }
 
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len is at least divisible by 32
+/// - pointers must be properly aligned for SSE operations
+#[inline(never)]
+pub unsafe fn shufps_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 32 == 0);
+
+    unsafe {
+        asm!(
+            "push rbx",
+            "push r12",
+            "push r13",
+            "push r14",
+
+            "mov rbx, {src}",
+            "add rbx, {len}",
+
+            "mov r12, {src}",
+            "mov r13, {dst}",
+            "mov r14, {dst}",
+            "add r14, {len_half}",
+
+            // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
+            // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
+            ".p2align 5",
+            "2:",
+
+            // Load 2 blocks (32 bytes)
+            "movdqa xmm0, [r12]",
+            "movdqa xmm1, [r12 + 16]",
+            "add r12, 32",   // src += 2 * 16
+
+            // Shuffle to separate colors and indices
+            "movaps xmm2, xmm0",
+            "shufps xmm2, xmm1, 0x88",    // Colors (0b10001000)
+            "shufps xmm0, xmm1, 0xDD",    // Indices (0b11011101)
+
+            // Store colors and indices
+            "movdqa [r13], xmm2",
+            "movdqa [r14], xmm0",
+
+            // Update pointers
+            "add r13, 16",   // colors_ptr += 2 * 8
+            "add r14, 16",   // indices_ptr += 2 * 8
+
+            "cmp r12, rbx",
+            "jb 2b",
+
+            "pop r14",
+            "pop r13",
+            "pop r12",
+            "pop rbx",
+
+            src = in(reg) input_ptr,
+            dst = in(reg) output_ptr,
+            len = in(reg) len,
+            len_half = in(reg) len / 2,
+        );
+    }
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len is at least divisible by 64
+/// - pointers must be properly aligned for SSE operations
+#[inline(never)]
+pub unsafe fn shufps_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 64 == 0);
+
+    unsafe {
+        asm!(
+            "push rbx",
+            "push r12",
+            "push r13",
+            "push r14",
+
+            "mov rbx, {src}",
+            "add rbx, {len}",
+
+            "mov r12, {src}",
+            "mov r13, {dst}",
+            "mov r14, {dst}",
+            "add r14, {len_half}",
+
+            // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
+            // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
+            ".p2align 5",
+            "2:",
+
+            // Load 4 blocks (64 bytes)
+            "movdqa xmm0, [r12]",
+            "movdqa xmm1, [r12 + 16]",
+            "movdqa xmm2, [r12 + 32]",
+            "movdqa xmm3, [r12 + 48]",
+            "add r12, 64",   // src += 4 * 16
+
+            // First pair shuffle
+            "movaps xmm4, xmm0",
+            "shufps xmm4, xmm1, 0x88",    // Colors (0b10001000)
+            "shufps xmm0, xmm1, 0xDD",    // Indices (0b11011101)
+
+            // Second pair shuffle
+            "movaps xmm5, xmm2",
+            "shufps xmm5, xmm3, 0x88",    // Colors (0b10001000)
+            "shufps xmm2, xmm3, 0xDD",    // Indices (0b11011101)
+
+            // Store colors and indices
+            "movdqa [r13], xmm4",
+            "movdqa [r13 + 16], xmm5",
+            "movdqa [r14], xmm0",
+            "movdqa [r14 + 16], xmm2",
+
+            // Update pointers
+            "add r13, 32",   // colors_ptr += 4 * 8
+            "add r14, 32",   // indices_ptr += 4 * 8
+
+            "cmp r12, rbx",
+            "jb 2b",
+
+            "pop r14",
+            "pop r13",
+            "pop r12",
+            "pop rbx",
+
+            src = in(reg) input_ptr,
+            dst = in(reg) output_ptr,
+            len = in(reg) len,
+            len_half = in(reg) len / 2,
+        );
+    }
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len is at least divisible by 128
+/// - pointers must be properly aligned for SSE operations
+#[inline(never)]
+pub unsafe fn shufps_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 128 == 0);
+
+    unsafe {
+        asm!(
+            "push rbx",
+            "push r12",
+            "push r13",
+            "push r14",
+
+            "mov rbx, {src}",
+            "add rbx, {len}",
+
+            "mov r12, {src}",
+            "mov r13, {dst}",
+            "mov r14, {dst}",
+            "add r14, {len_half}",
+
+            // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
+            // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
+            ".p2align 5",
+            "2:",
+
+            // Load first 4 blocks (64 bytes)
+            "movdqa xmm0, [r12]",
+            "movdqa xmm1, [r12 + 16]",
+            "movdqa xmm2, [r12 + 32]",
+            "movdqa xmm3, [r12 + 48]",
+
+            // Load second 4 blocks (64 bytes)
+            "movdqa xmm4, [r12 + 64]",
+            "movdqa xmm5, [r12 + 80]",
+            "movdqa xmm6, [r12 + 96]",
+            "movdqa xmm7, [r12 + 112]",
+            "add r12, 128",  // src += 8 * 16
+
+            // First pair shuffle
+            "movaps xmm8, xmm0",
+            "shufps xmm8, xmm1, 0x88",    // Colors (0b10001000)
+            "shufps xmm0, xmm1, 0xDD",    // Indices (0b11011101)
+
+            // Second pair shuffle
+            "movaps xmm9, xmm2",
+            "shufps xmm9, xmm3, 0x88",    // Colors (0b10001000)
+            "shufps xmm2, xmm3, 0xDD",    // Indices (0b11011101)
+
+            // Third pair shuffle
+            "movaps xmm10, xmm4",
+            "shufps xmm10, xmm5, 0x88",   // Colors (0b10001000)
+            "shufps xmm4, xmm5, 0xDD",    // Indices (0b11011101)
+
+            // Fourth pair shuffle
+            "movaps xmm11, xmm6",
+            "shufps xmm11, xmm7, 0x88",   // Colors (0b10001000)
+            "shufps xmm6, xmm7, 0xDD",    // Indices (0b11011101)
+
+            // Store colors
+            "movdqa [r13], xmm8",
+            "movdqa [r13 + 16], xmm9",
+            "movdqa [r13 + 32], xmm10",
+            "movdqa [r13 + 48], xmm11",
+
+            // Store indices
+            "movdqa [r14], xmm0",
+            "movdqa [r14 + 16], xmm2",
+            "movdqa [r14 + 32], xmm4",
+            "movdqa [r14 + 48], xmm6",
+
+            // Update pointers
+            "add r13, 64",   // colors_ptr += 8 * 8
+            "add r14, 64",   // indices_ptr += 8 * 8
+
+            "cmp r12, rbx",
+            "jb 2b",
+
+            "pop r14",
+            "pop r13",
+            "pop r12",
+            "pop rbx",
+
+            src = in(reg) input_ptr,
+            dst = in(reg) output_ptr,
+            len = in(reg) len,
+            len_half = in(reg) len / 2,
+        );
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -299,19 +531,24 @@ mod tests {
     }
 
     #[cfg(target_arch = "x86_64")]
-    pub fn get_implementations<'a>() -> [(&'a str, TransformFn); 3] {
+    pub fn get_implementations<'a>() -> [(&'a str, TransformFn); 6] {
         [
             ("SSE2 punpckhqdq unroll-8", punpckhqdq_unroll_8),
             ("SSE2 punpckhqdq unroll-4", punpckhqdq_unroll_4),
             ("SSE2 punpckhqdq unroll-2", punpckhqdq_unroll_2),
+            ("SSE2 shuffle unroll-2", shufps_unroll_2),
+            ("SSE2 shuffle unroll-4", shufps_unroll_4),
+            ("SSE2 shuffle unroll-8", shufps_unroll_8),
         ]
     }
 
     #[cfg(not(target_arch = "x86_64"))]
-    pub fn get_implementations<'a>() -> [(&'a str, TransformFn); 2] {
+    pub fn get_implementations<'a>() -> [(&'a str, TransformFn); 4] {
         [
             ("SSE2 punpckhqdq unroll-4", punpckhqdq_unroll_4),
             ("SSE2 punpckhqdq unroll-2", punpckhqdq_unroll_2),
+            ("SSE2 shuffle unroll-2", shufps_unroll_2),
+            ("SSE2 shuffle unroll-4", shufps_unroll_4),
         ]
     }
 }

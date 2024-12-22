@@ -4,17 +4,6 @@ use std::arch::asm;
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 8
-/// - pointers must be properly aligned for SSE operations
-#[inline(always)]
-pub unsafe fn sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    punpckhqdq_unroll_4(input_ptr, output_ptr, len);
-}
-
-/// # Safety
-///
-/// - input_ptr must be valid for reads of len bytes
-/// - output_ptr must be valid for writes of len bytes
 /// - pointers must be properly aligned for SSE operations
 /// - len is at least divisible by 128
 #[inline(never)]
@@ -110,7 +99,6 @@ pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len
             dst = in(reg) output_ptr,
             len = in(reg) len,
             len_half = in(reg) len / 2,
-            options(nostack)
         );
     }
 }
@@ -188,7 +176,6 @@ pub unsafe fn punpckhqdq_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len
             dst = in(reg) output_ptr,
             len = in(reg) len,
             len_half = in(reg) len / 2,
-            options(nostack)
         );
     }
 }
@@ -257,7 +244,6 @@ pub unsafe fn punpckhqdq_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len
             dst = in(reg) output_ptr,
             len = in(reg) len,
             len_half = in(reg) len / 2,
-            options(nostack)
         );
     }
 }
@@ -313,9 +299,8 @@ mod tests {
     }
 
     #[cfg(target_arch = "x86_64")]
-    pub fn get_implementations<'a>() -> [(&'a str, TransformFn); 4] {
+    pub fn get_implementations<'a>() -> [(&'a str, TransformFn); 3] {
         [
-            ("SSE2 (auto-selected)", sse2),
             ("SSE2 punpckhqdq unroll-8", punpckhqdq_unroll_8),
             ("SSE2 punpckhqdq unroll-4", punpckhqdq_unroll_4),
             ("SSE2 punpckhqdq unroll-2", punpckhqdq_unroll_2),
@@ -323,9 +308,8 @@ mod tests {
     }
 
     #[cfg(not(target_arch = "x86_64"))]
-    pub fn get_implementations<'a>() -> [(&'a str, TransformFn); 3] {
+    pub fn get_implementations<'a>() -> [(&'a str, TransformFn); 2] {
         [
-            ("SSE2 (auto-selected)", sse2),
             ("SSE2 punpckhqdq unroll-4", punpckhqdq_unroll_4),
             ("SSE2 punpckhqdq unroll-2", punpckhqdq_unroll_2),
         ]

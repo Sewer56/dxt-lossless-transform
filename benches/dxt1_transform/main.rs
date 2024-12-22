@@ -1,227 +1,95 @@
 use core::alloc::Layout;
-
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use dxt_lossless_transform::raw::*;
+use criterion::{criterion_group, criterion_main, Criterion};
 use safe_allocator_api::RawAlloc;
 
 #[cfg(not(target_os = "windows"))]
 use pprof::criterion::{Output, PProfProfiler};
 
-// Helper to generate test data with predictable patterns
-fn generate_test_data(num_blocks: usize) -> RawAlloc {
-    let mut data = allocate_align_64(num_blocks * 8);
-    let data_ptr = data.as_mut_ptr();
-
-    for block_idx in 0..num_blocks {
-        // Colors: Sequential bytes 1-64 (ensuring no overlap with indices)
-        unsafe {
-            *data_ptr.add(block_idx * 4) = (1 + block_idx * 4) as u8;
-            *data_ptr.add(block_idx * 4 + 1) = (2 + block_idx * 4) as u8;
-            *data_ptr.add(block_idx * 4 + 2) = (3 + block_idx * 4) as u8;
-            *data_ptr.add(block_idx * 4 + 3) = (4 + block_idx * 4) as u8;
-        }
-
-        // Indices: Sequential bytes 128-191 (well separated from colors)
-        unsafe {
-            *data_ptr.add(block_idx * 4 + 4) = (128 + block_idx * 4) as u8;
-            *data_ptr.add(block_idx * 4 + 5) = (129 + block_idx * 4) as u8;
-            *data_ptr.add(block_idx * 4 + 6) = (130 + block_idx * 4) as u8;
-            *data_ptr.add(block_idx * 4 + 7) = (131 + block_idx * 4) as u8;
-        }
-    }
-    data
-}
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+mod avx2;
+mod portable32;
+mod portable64;
+#[cfg(target_arch = "x86_64")]
+mod sse2;
 
 pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
-    // Create a new allocation of 1024 bytes
     let layout = Layout::from_size_align(num_bytes, 64).unwrap();
     RawAlloc::new(layout).unwrap()
 }
 
+// Helper to generate test data with predictable patterns
+pub(crate) fn generate_test_data(num_blocks: usize) -> RawAlloc {
+    let mut data = allocate_align_64(num_blocks * 8);
+    let mut data_ptr = data.as_mut_ptr();
+
+    let mut color_byte = 0_u8;
+    let mut index_byte = 128_u8;
+    unsafe {
+        for _ in 0..num_blocks {
+            *data_ptr = color_byte.wrapping_add(0);
+            *data_ptr.add(1) = color_byte.wrapping_add(1);
+            *data_ptr.add(2) = color_byte.wrapping_add(2);
+            *data_ptr.add(3) = color_byte.wrapping_add(3);
+            color_byte = color_byte.wrapping_add(4);
+
+            *data_ptr.add(4) = index_byte.wrapping_add(0);
+            *data_ptr.add(5) = index_byte.wrapping_add(1);
+            *data_ptr.add(6) = index_byte.wrapping_add(2);
+            *data_ptr.add(7) = index_byte.wrapping_add(3);
+            index_byte = index_byte.wrapping_add(4);
+            data_ptr = data_ptr.add(8);
+        }
+    }
+
+    data
+}
+
 fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("DXT1 Transform Implementations");
-
-    // Test different sizes
-    // 16384 = 512x512
-    let size = 16384;
+    let size = 16384; // 512x512 px = 16384 blocks
     let input = generate_test_data(size);
     let mut output = allocate_align_64(input.len());
+    let important_benches_only = true; // Set to false to enable extra benches, unrolls, etc.
 
     group.throughput(criterion::Throughput::Bytes(size as u64));
 
-    // Benchmark portable implementations
-    let portable_impls = [
-        (
-            "portable64 (auto)",
-            portable as unsafe fn(*const u8, *mut u8, usize),
-        ),
-        ("portable64 shift no-unroll", shift),
-        ("portable64 shift_with_count no-unroll", shift_with_count),
-        ("portable32 no-unroll", u32),
-        ("portable64 shift unroll-2", shift_unroll_2),
-        (
-            "portable64 shift_with_count unroll-2",
-            shift_with_count_unroll_2,
-        ),
-        ("portable32 unroll-2", u32_unroll_2),
-        ("portable64 shift unroll-4", shift_unroll_4),
-        (
-            "portable64 shift_with_count unroll-4",
-            shift_with_count_unroll_4,
-        ),
-        ("portable32 unroll-4", u32_unroll_4),
-        ("portable64 shift unroll-8", shift_unroll_8),
-        (
-            "portable64 shift_with_count unroll-8",
-            shift_with_count_unroll_8,
-        ),
-        ("portable32 unroll-8", u32_unroll_8),
-    ];
+    // Run all portable benchmarks
+    portable32::run_benchmarks(
+        &mut group,
+        &input,
+        &mut output,
+        size,
+        important_benches_only,
+    );
+    portable64::run_benchmarks(
+        &mut group,
+        &input,
+        &mut output,
+        size,
+        important_benches_only,
+    );
 
-    for (name, implementation) in portable_impls.iter() {
-        group.bench_with_input(
-            BenchmarkId::new(name.to_owned(), size),
-            &size,
-            |b, &_size| {
-                b.iter(|| unsafe {
-                    implementation(
-                        black_box(input.as_ptr()),
-                        black_box(output.as_mut_ptr()),
-                        black_box(input.len()),
-                    )
-                });
-            },
-        );
-    }
-
-    // Benchmark SSE2 implementations
+    // Run architecture-specific benchmarks
     #[cfg(target_arch = "x86_64")]
     {
-        // Note: The functions below are implemented using pure assembly.
-        // Calling them via function pointer can have issues in benches.
         if is_x86_feature_detected!("sse2") {
-            // Auto-selected SSE2
-            group.bench_with_input(BenchmarkId::new("sse2 (auto)", size), &size, |b, &_size| {
-                b.iter(|| unsafe {
-                    sse2(
-                        black_box(input.as_ptr()),
-                        black_box(output.as_mut_ptr()),
-                        black_box(input.len()),
-                    )
-                });
-            });
-
-            // Unroll-2 variant
-            group.bench_with_input(
-                BenchmarkId::new("sse2 unroll-2", size),
-                &size,
-                |b, &_size| {
-                    b.iter(|| unsafe {
-                        punpckhqdq_unroll_2(
-                            black_box(input.as_ptr()),
-                            black_box(output.as_mut_ptr()),
-                            black_box(input.len()),
-                        )
-                    });
-                },
-            );
-
-            // Unroll-4 variant
-            group.bench_with_input(
-                BenchmarkId::new("sse2 unroll-4", size),
-                &size,
-                |b, &_size| {
-                    b.iter(|| unsafe {
-                        punpckhqdq_unroll_4(
-                            black_box(input.as_ptr()),
-                            black_box(output.as_mut_ptr()),
-                            black_box(input.len()),
-                        )
-                    });
-                },
-            );
-
-            // Unroll-8 variant
-            group.bench_with_input(
-                BenchmarkId::new("sse2 unroll-8", size),
-                &size,
-                |b, &_size| {
-                    b.iter(|| unsafe {
-                        punpckhqdq_unroll_8(
-                            black_box(input.as_ptr()),
-                            black_box(output.as_mut_ptr()),
-                            black_box(input.len()),
-                        )
-                    });
-                },
+            sse2::run_benchmarks(
+                &mut group,
+                &input,
+                &mut output,
+                size,
+                important_benches_only,
             );
         }
 
         if is_x86_feature_detected!("avx2") {
-            group.bench_with_input(BenchmarkId::new("avx2_gather", size), &size, |b, &_size| {
-                b.iter(|| unsafe {
-                    gather(
-                        black_box(input.as_ptr()),
-                        black_box(output.as_mut_ptr()),
-                        black_box(input.len()),
-                    )
-                });
-            });
-
-            group.bench_with_input(
-                BenchmarkId::new("avx2_gather_unroll_4", size),
-                &size,
-                |b, &_size| {
-                    b.iter(|| unsafe {
-                        gather(
-                            black_box(input.as_ptr()),
-                            black_box(output.as_mut_ptr()),
-                            black_box(input.len()),
-                        )
-                    });
-                },
-            );
-
-            group.bench_with_input(
-                BenchmarkId::new("avx2_permute", size),
-                &size,
-                |b, &_size| {
-                    b.iter(|| unsafe {
-                        permute(
-                            black_box(input.as_ptr()),
-                            black_box(output.as_mut_ptr()),
-                            black_box(input.len()),
-                        )
-                    });
-                },
-            );
-
-            group.bench_with_input(
-                BenchmarkId::new("avx2_permute_unroll_2", size),
-                &size,
-                |b, &_size| {
-                    b.iter(|| unsafe {
-                        permute_unroll_2(
-                            black_box(input.as_ptr()),
-                            black_box(output.as_mut_ptr()),
-                            black_box(input.len()),
-                        )
-                    });
-                },
-            );
-
-            group.bench_with_input(
-                BenchmarkId::new("avx2_permute_unroll_4", size),
-                &size,
-                |b, &_size| {
-                    b.iter(|| unsafe {
-                        permute_unroll_4(
-                            black_box(input.as_ptr()),
-                            black_box(output.as_mut_ptr()),
-                            black_box(input.len()),
-                        )
-                    });
-                },
+            #[cfg(target_feature = "avx2")]
+            avx2::run_benchmarks(
+                &mut group,
+                &input,
+                &mut output,
+                size,
+                important_benches_only,
             );
         }
     }

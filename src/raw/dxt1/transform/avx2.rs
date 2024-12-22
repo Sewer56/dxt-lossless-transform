@@ -90,7 +90,6 @@ pub unsafe fn permute(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
             len_half = in(reg) len / 2,
             // Load address of permutation indices
             perm = in(reg) &[0, 2, 4, 6, 1, 3, 5, 7u32],
-            options(nostack)
         );
     }
 }
@@ -168,7 +167,6 @@ pub unsafe fn permute_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: u
             len = in(reg) len,
             len_half = in(reg) len / 2,
             perm = in(reg) &[0, 2, 4, 6, 1, 3, 5, 7u32],
-            options(nostack)
         );
     }
 }
@@ -262,7 +260,6 @@ pub unsafe fn permute_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: u
             len = in(reg) len,
             len_half = in(reg) len / 2,
             perm = in(reg) &[0, 2, 4, 6, 1, 3, 5, 7u32],
-            options(nostack)
         );
     }
 }
@@ -336,7 +333,6 @@ pub unsafe fn gather(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
             color_idx = in(reg) &[0, 2, 4, 6, 8, 10, 12, 14u32],
             // Indices for gathering block indices (1, 3, 5, 7, 9, 11, 13, 15)
             index_idx = in(reg) &[1, 3, 5, 7, 9, 11, 13, 15u32],
-            options(nostack)
         );
     }
 }
@@ -430,7 +426,256 @@ pub unsafe fn gather_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: us
             color_idx = in(reg) &[0, 2, 4, 6, 8, 10, 12, 14u32],
             // Indices for gathering block indices (1, 3, 5, 7, 9, 11, 13, 15)
             index_idx = in(reg) &[1, 3, 5, 7, 9, 11, 13, 15u32],
-            options(nostack)
+        );
+    }
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len must be divisible by 64 (for two AVX2 registers worth of data)
+/// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
+#[inline(never)]
+pub unsafe fn shuffle_permute(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 64 == 0);
+
+    unsafe {
+        asm!(
+            // Preserve non-volatile registers we'll use
+            "push rbx",
+            "push r12",
+            "push r13",
+            "push r14",
+
+            // Calculate end address
+            "mov rbx, {src}",
+            "add rbx, {len}",  // end = src + len
+
+            // Store pointers in preserved registers
+            "mov r12, {src}",     // src
+            "mov r13, {dst}",     // dst for colors
+            "mov r14, {dst}",     // dst for indices
+            "add r14, {len_half}", // indices start halfway through output
+
+            // Align the loop's instruction address to 32 bytes for AVX2
+            ".p2align 5",
+            "2:",
+
+            // Load 64 bytes (8 blocks) into YMM0 and YMM1
+            "vmovdqa ymm0, [r12]",
+            "vmovdqa ymm1, [r12 + 32]",
+            "add r12, 64",
+
+            // Shuffle within each register
+            "vshufps ymm2, ymm0, ymm1, 136",  // colors (0b10001000)
+            "vshufps ymm3, ymm0, ymm1, 221",  // indices (0b11011101)
+
+            // Permute to get final ordering
+            "vpermpd ymm2, ymm2, 216",  // arrange colors (0b11011000)
+            "vpermpd ymm3, ymm3, 216",  // arrange indices (0b11011000)
+
+            // Store results
+            "vmovdqa [r13], ymm2",      // Store colors
+            "vmovdqa [r14], ymm3",      // Store indices
+
+            // Update pointers
+            "add r13, 32",   // colors_ptr += 32
+            "add r14, 32",   // indices_ptr += 32
+
+            // Compare against end address and loop if not done
+            "cmp r12, rbx",
+            "jb 2b",
+
+            // Restore preserved registers
+            "pop r14",
+            "pop r13",
+            "pop r12",
+            "pop rbx",
+
+            // Clear YMM registers
+            "vzeroupper",
+
+            src = in(reg) input_ptr,
+            dst = in(reg) output_ptr,
+            len = in(reg) len,
+            len_half = in(reg) len / 2,
+        );
+    }
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len must be divisible by 128 (for four AVX2 registers worth of data)
+/// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
+#[inline(never)]
+pub unsafe fn shuffle_permute_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 128 == 0);
+
+    unsafe {
+        asm!(
+            // Preserve non-volatile registers we'll use
+            "push rbx",
+            "push r12",
+            "push r13",
+            "push r14",
+
+            // Calculate end address
+            "mov rbx, {src}",
+            "add rbx, {len}",  // end = src + len
+
+            // Store pointers in preserved registers
+            "mov r12, {src}",     // src
+            "mov r13, {dst}",     // dst for colors
+            "mov r14, {dst}",     // dst for indices
+            "add r14, {len_half}", // indices start halfway through output
+
+            // Align the loop's instruction address to 32 bytes for AVX2
+            ".p2align 5",
+            "2:",
+
+            // First 64 bytes
+            "vmovdqa ymm0, [r12]",
+            "vmovdqa ymm1, [r12 + 32]",
+            "vshufps ymm2, ymm0, ymm1, 136",
+            "vshufps ymm3, ymm0, ymm1, 221",
+            "vpermpd ymm2, ymm2, 216",
+            "vpermpd ymm3, ymm3, 216",
+            "vmovdqa [r13], ymm2",
+            "vmovdqa [r14], ymm3",
+
+            // Second 64 bytes
+            "vmovdqa ymm4, [r12 + 64]",
+            "vmovdqa ymm5, [r12 + 96]",
+            "vshufps ymm6, ymm4, ymm5, 136",
+            "vshufps ymm7, ymm4, ymm5, 221",
+            "vpermpd ymm6, ymm6, 216",
+            "vpermpd ymm7, ymm7, 216",
+            "vmovdqa [r13 + 32], ymm6",
+            "vmovdqa [r14 + 32], ymm7",
+
+            // Update pointers
+            "add r12, 128",  // src += 128
+            "add r13, 64",   // colors_ptr += 64
+            "add r14, 64",   // indices_ptr += 64
+
+            // Compare against end address and loop if not done
+            "cmp r12, rbx",
+            "jb 2b",
+
+            // Restore preserved registers
+            "pop r14",
+            "pop r13",
+            "pop r12",
+            "pop rbx",
+
+            // Clear YMM registers
+            "vzeroupper",
+
+            src = in(reg) input_ptr,
+            dst = in(reg) output_ptr,
+            len = in(reg) len,
+            len_half = in(reg) len / 2,
+        );
+    }
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len must be divisible by 256 (for eight AVX2 registers worth of data)
+/// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
+#[inline(never)]
+pub unsafe fn shuffle_permute_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 256 == 0);
+
+    unsafe {
+        asm!(
+            // Preserve non-volatile registers we'll use
+            "push rbx",
+            "push r12",
+            "push r13",
+            "push r14",
+
+            // Calculate end address
+            "mov rbx, {src}",
+            "add rbx, {len}",  // end = src + len
+
+            // Store pointers in preserved registers
+            "mov r12, {src}",     // src
+            "mov r13, {dst}",     // dst for colors
+            "mov r14, {dst}",     // dst for indices
+            "add r14, {len_half}", // indices start halfway through output
+
+            // Align the loop's instruction address to 32 bytes for AVX2
+            ".p2align 5",
+            "2:",
+
+            // First 64 bytes
+            "vmovdqa ymm0, [r12]",
+            "vmovdqa ymm1, [r12 + 32]",
+            "vshufps ymm2, ymm0, ymm1, 136",
+            "vshufps ymm3, ymm0, ymm1, 221",
+            "vpermpd ymm2, ymm2, 216",
+            "vpermpd ymm3, ymm3, 216",
+            "vmovdqa [r13], ymm2",
+            "vmovdqa [r14], ymm3",
+
+            // Second 64 bytes
+            "vmovdqa ymm4, [r12 + 64]",
+            "vmovdqa ymm5, [r12 + 96]",
+            "vshufps ymm6, ymm4, ymm5, 136",
+            "vshufps ymm7, ymm4, ymm5, 221",
+            "vpermpd ymm6, ymm6, 216",
+            "vpermpd ymm7, ymm7, 216",
+            "vmovdqa [r13 + 32], ymm6",
+            "vmovdqa [r14 + 32], ymm7",
+
+            // Third 64 bytes
+            "vmovdqa ymm8, [r12 + 128]",
+            "vmovdqa ymm9, [r12 + 160]",
+            "vshufps ymm10, ymm8, ymm9, 136",
+            "vshufps ymm11, ymm8, ymm9, 221",
+            "vpermpd ymm10, ymm10, 216",
+            "vpermpd ymm11, ymm11, 216",
+            "vmovdqa [r13 + 64], ymm10",
+            "vmovdqa [r14 + 64], ymm11",
+
+            // Fourth 64 bytes
+            "vmovdqa ymm12, [r12 + 192]",
+            "vmovdqa ymm13, [r12 + 224]",
+            "vshufps ymm14, ymm12, ymm13, 136",
+            "vshufps ymm15, ymm12, ymm13, 221",
+            "vpermpd ymm14, ymm14, 216",
+            "vpermpd ymm15, ymm15, 216",
+            "vmovdqa [r13 + 96], ymm14",
+            "vmovdqa [r14 + 96], ymm15",
+
+            // Update pointers
+            "add r12, 256",  // src += 256
+            "add r13, 128",  // colors_ptr += 128
+            "add r14, 128",  // indices_ptr += 128
+
+            // Compare against end address and loop if not done
+            "cmp r12, rbx",
+            "jb 2b",
+
+            // Restore preserved registers
+            "pop r14",
+            "pop r13",
+            "pop r12",
+            "pop rbx",
+
+            // Clear YMM registers
+            "vzeroupper",
+
+            src = in(reg) input_ptr,
+            dst = in(reg) output_ptr,
+            len = in(reg) len,
+            len_half = in(reg) len / 2,
         );
     }
 }
@@ -444,19 +689,28 @@ mod tests {
 
     type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
 
-    fn get_implementations() -> [(PermuteFn, &'static str); 4] {
+    fn get_implementations() -> [(PermuteFn, &'static str); 7] {
         [
-            (permute as PermuteFn, "basic"),
-            (permute_unroll_2 as PermuteFn, "unroll 2"),
-            (permute_unroll_4 as PermuteFn, "unroll 4"),
+            (shuffle_permute as PermuteFn, "shuffle_permute"),
+            (
+                shuffle_permute_unroll_2 as PermuteFn,
+                "shuffle_permute unroll 2",
+            ),
+            (
+                shuffle_permute_unroll_4 as PermuteFn,
+                "shuffle_permute unroll 4",
+            ),
+            (permute as PermuteFn, "permute"),
+            (permute_unroll_2 as PermuteFn, "permute unroll 2"),
+            (permute_unroll_4 as PermuteFn, "permute unroll 4"),
             (gather as PermuteFn, "gather"),
         ]
     }
 
     #[rstest]
     #[case::min_size(32)] // 256 bytes - minimum size for unroll-4
-                          //#[case::many_unrolls(512)] // 4KB - tests multiple unroll iterations
-                          //#[case::large(2048)] // 16KB - large dataset
+    #[case::many_unrolls(512)] // 4KB - tests multiple unroll iterations
+    #[case::large(2048)] // 16KB - large dataset
     fn test_avx2_implementations(#[case] num_blocks: usize) {
         let input = generate_dxt1_test_data(num_blocks);
         let mut output_expected = allocate_align_64(input.len());

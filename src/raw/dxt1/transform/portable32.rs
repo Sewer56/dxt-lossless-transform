@@ -222,8 +222,8 @@ mod tests {
         transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
         // Test each SSE2 implementation variant
-        let implementations: [(&str, TransformFn); 4] = [
-            ("u32 no-unroll", u32),
+        let implementations = [
+            ("u32 no-unroll", u32 as TransformFn),
             ("u32 unroll-2", u32_unroll_2),
             ("u32 unroll-4", u32_unroll_4),
             ("u32 unroll-8", u32_unroll_8),

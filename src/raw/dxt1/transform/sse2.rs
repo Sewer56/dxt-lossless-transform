@@ -74,15 +74,13 @@ pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len
             "movdqa [r13 + 16], xmm9",
             "movdqa [r13 + 32], xmm10",
             "movdqa [r13 + 48], xmm11",
+            "add r13, 64",   // colors_ptr += 8 * 8
 
             // Store indices
             "movdqa [r14],      xmm0",
             "movdqa [r14 + 16], xmm2",
             "movdqa [r14 + 32], xmm4",
             "movdqa [r14 + 48], xmm6",
-
-            // Update pointers
-            "add r13, 64",   // colors_ptr += 8 * 8
             "add r14, 64",   // indices_ptr += 8 * 8
 
             // Compare against end address and loop if not done
@@ -124,8 +122,8 @@ pub unsafe fn punpckhqdq_unroll_4(
             "add {end}, {src_ptr}", // end = src + len
 
             // Calculate second destination pointer
-            "mov {tmp}, {dst_ptr}",
-            "add {tmp}, {len_half}",
+            "mov {indices_ptr}, {colors_ptr}",
+            "add {indices_ptr}, {len_half}",
 
             // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
             // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
@@ -156,23 +154,21 @@ pub unsafe fn punpckhqdq_unroll_4(
             "punpcklqdq xmm5, xmm3",     // colors 2,3
 
             // Store colors and indices
-            "movdqa [{dst_ptr}],      xmm4",
-            "movdqa [{dst_ptr} + 16], xmm5",
-            "movdqa [{tmp}],      xmm0",
-            "movdqa [{tmp} + 16], xmm2",
-
-            // Update pointers
-            "add {dst_ptr}, 32",   // colors_ptr += 4 * 8
-            "add {tmp}, 32",   // indices_ptr += 4 * 8
+            "movdqa [{colors_ptr}],      xmm4",
+            "movdqa [{colors_ptr} + 16], xmm5",
+            "add {colors_ptr}, 32",   // colors_ptr += 4 * 8
+            "movdqa [{indices_ptr}],      xmm0",
+            "movdqa [{indices_ptr} + 16], xmm2",
+            "add {indices_ptr}, 32",   // indices_ptr += 4 * 8
 
             "cmp {src_ptr}, {end}",
             "jb 2b",
 
             src_ptr = inout(reg) input_ptr,
-            dst_ptr = inout(reg) output_ptr,
+            colors_ptr = inout(reg) output_ptr,
             len_half = in(reg) len / 2,
             end = inout(reg) len,
-            tmp = out(reg) _,
+            indices_ptr = out(reg) _,
             // If this option is not used then the stack pointer is guaranteed to be suitably aligned
             // (according to the target ABI) for a function call.
             // We're not doing function call, so using 'nostack' here is appropriate and saves 2 instructions.
@@ -202,8 +198,8 @@ pub unsafe fn punpckhqdq_unroll_2(
             "add {end}, {src_ptr}", // end = src + len
 
             // Calculate second destination pointer
-            "mov {tmp}, {dst_ptr}",
-            "add {tmp}, {len_half}",
+            "mov {indices_ptr}, {colors_ptr}",
+            "add {indices_ptr}, {len_half}",
 
             // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
             // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
@@ -227,21 +223,19 @@ pub unsafe fn punpckhqdq_unroll_2(
             "punpckhqdq xmm0, xmm1",     // indices
 
             // Store colors and indices
-            "movdqa [{dst_ptr}], xmm2",
-            "movdqa [{tmp}], xmm0",
-
-            // Update pointers
-            "add {dst_ptr}, 16",   // colors_ptr += 2 * 8
-            "add {tmp}, 16",   // indices_ptr += 2 * 8
+            "movdqa [{colors_ptr}], xmm2",
+            "add {colors_ptr}, 16",   // colors_ptr += 2 * 8
+            "movdqa [{indices_ptr}], xmm0",
+            "add {indices_ptr}, 16",   // indices_ptr += 2 * 8
 
             "cmp {src_ptr}, {end}",
             "jb 2b",
 
             src_ptr = inout(reg) input_ptr,
-            dst_ptr = inout(reg) output_ptr,
+            colors_ptr = inout(reg) output_ptr,
             len_half = in(reg) len / 2,
             end = inout(reg) len,
-            tmp = out(reg) _,
+            indices_ptr = out(reg) _,
             // If this option is not used then the stack pointer is guaranteed to be suitably aligned
             // (according to the target ABI) for a function call.
             // We're not doing function call, so using 'nostack' here is appropriate and saves 2 instructions.
@@ -266,8 +260,8 @@ pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             "add {end}, {src_ptr}", // end = src + len
 
             // Calculate second destination pointer
-            "mov {tmp}, {dst_ptr}",
-            "add {tmp}, {len_half}",
+            "mov {indices_ptr}, {colors_ptr}",
+            "add {indices_ptr}, {len_half}",
 
             // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
             // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
@@ -285,21 +279,19 @@ pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             "shufps xmm0, xmm1, 0xDD",    // Indices (0b11011101)
 
             // Store colors and indices
-            "movdqa [{dst_ptr}], xmm2",
-            "movdqa [{tmp}], xmm0",
-
-            // Update pointers
-            "add {dst_ptr}, 16",   // colors_ptr += 2 * 8
-            "add {tmp}, 16",   // indices_ptr += 2 * 8
+            "movdqa [{colors_ptr}], xmm2",
+            "add {colors_ptr}, 16",   // colors_ptr += 2 * 8
+            "movdqa [{indices_ptr}], xmm0",
+            "add {indices_ptr}, 16",   // indices_ptr += 2 * 8
 
             "cmp {src_ptr}, {end}",
             "jb 2b",
 
             src_ptr = inout(reg) input_ptr,
-            dst_ptr = inout(reg) output_ptr,
+            colors_ptr = inout(reg) output_ptr,
             len_half = in(reg) len / 2,
             end = inout(reg) len,
-            tmp = out(reg) _,
+            indices_ptr = out(reg) _,
             // If this option is not used then the stack pointer is guaranteed to be suitably aligned
             // (according to the target ABI) for a function call.
             // We're not doing function call, so using 'nostack' here is appropriate and saves 2 instructions.
@@ -325,8 +317,8 @@ pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             "add {end}, {src_ptr}", // end = src + len
 
             // Calculate second destination pointer
-            "mov {tmp}, {dst_ptr}",
-            "add {tmp}, {len_half}",
+            "mov {indices_ptr}, {colors_ptr}",
+            "add {indices_ptr}, {len_half}",
 
             // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
             // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
@@ -351,23 +343,21 @@ pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             "shufps xmm2, xmm3, 0xDD",    // Indices (0b11011101)
 
             // Store colors and indices
-            "movdqa [{dst_ptr}], xmm4",
-            "movdqa [{dst_ptr} + 16], xmm5",
-            "movdqa [{tmp}], xmm0",
-            "movdqa [{tmp} + 16], xmm2",
-
-            // Update pointers
-            "add {dst_ptr}, 32",   // colors_ptr += 4 * 8
-            "add {tmp}, 32",   // indices_ptr += 4 * 8
+            "movdqa [{colors_ptr}], xmm4",
+            "movdqa [{colors_ptr} + 16], xmm5",
+            "add {colors_ptr}, 32",   // colors_ptr += 4 * 8
+            "movdqa [{indices_ptr}], xmm0",
+            "movdqa [{indices_ptr} + 16], xmm2",
+            "add {indices_ptr}, 32",   // indices_ptr += 4 * 8
 
             "cmp {src_ptr}, {end}",
             "jb 2b",
 
             src_ptr = inout(reg) input_ptr,
-            dst_ptr = inout(reg) output_ptr,
+            colors_ptr = inout(reg) output_ptr,
             len_half = in(reg) len / 2,
             end = inout(reg) len,
-            tmp = out(reg) _,
+            indices_ptr = out(reg) _,
             // If this option is not used then the stack pointer is guaranteed to be suitably aligned
             // (according to the target ABI) for a function call.
             // We're not doing function call, so using 'nostack' here is appropriate and saves 2 instructions.
@@ -444,15 +434,13 @@ pub unsafe fn shufps_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: us
             "movdqa [r13 + 16], xmm9",
             "movdqa [r13 + 32], xmm10",
             "movdqa [r13 + 48], xmm11",
+            "add r13, 64",   // colors_ptr += 8 * 8
 
             // Store indices
             "movdqa [r14], xmm0",
             "movdqa [r14 + 16], xmm2",
             "movdqa [r14 + 32], xmm4",
             "movdqa [r14 + 48], xmm6",
-
-            // Update pointers
-            "add r13, 64",   // colors_ptr += 8 * 8
             "add r14, 64",   // indices_ptr += 8 * 8
 
             "cmp r12, rbx",

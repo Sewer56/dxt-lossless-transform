@@ -5,11 +5,12 @@ use safe_allocator_api::RawAlloc;
 #[cfg(not(target_os = "windows"))]
 use pprof::criterion::{Output, PProfProfiler};
 
-#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[cfg(target_feature = "avx2")]
 mod avx2;
 mod portable32;
 mod portable64;
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod sse2;
 
 pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
@@ -54,7 +55,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     group.throughput(criterion::Throughput::Bytes(size as u64));
 
     // Run architecture-specific benchmarks
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
         if is_x86_feature_detected!("sse2") {
             sse2::run_benchmarks(

@@ -12,6 +12,7 @@ fn bench_avx2_gather(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut 
     });
 }
 
+#[cfg(target_arch = "x86_64")]
 fn bench_avx2_gather_unroll_4(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
         gather_unroll_4(
@@ -46,6 +47,7 @@ fn bench_avx2_permute_unroll_2(
     });
 }
 
+#[cfg(target_arch = "x86_64")]
 fn bench_avx2_permute_unroll_4(
     b: &mut criterion::Bencher,
     input: &RawAlloc,
@@ -84,6 +86,7 @@ fn bench_avx2_shuffle_permute_unroll_2(
     });
 }
 
+#[cfg(target_arch = "x86_64")]
 fn bench_avx2_shuffle_permute_unroll_4(
     b: &mut criterion::Bencher,
     input: &RawAlloc,
@@ -105,22 +108,44 @@ pub(crate) fn run_benchmarks(
     size: usize,
     important_benches_only: bool,
 ) {
+    // Fastest shuffle_permute
+    #[cfg(target_arch = "x86_64")]
     group.bench_with_input(
         BenchmarkId::new("avx2 shuffle_permute unroll 4", size),
         &size,
         |b, _| bench_avx2_shuffle_permute_unroll_4(b, input, output),
     );
 
+    #[cfg(target_arch = "x86")]
+    group.bench_with_input(
+        BenchmarkId::new("avx2 shuffle_permute unroll 2", size),
+        &size,
+        |b, _| bench_avx2_shuffle_permute_unroll_2(b, input, output),
+    );
+
+    // Gather is slow so I don't care for x86
+
+    #[cfg(target_arch = "x86_64")]
     group.bench_with_input(
         BenchmarkId::new("avx2 gather unroll 4", size),
         &size,
         |b, _| bench_avx2_gather_unroll_4(b, input, output),
     );
 
+    // Fastest permute
+
+    #[cfg(target_arch = "x86_64")]
     group.bench_with_input(
         BenchmarkId::new("avx2 permute unroll 4", size),
         &size,
         |b, _| bench_avx2_permute_unroll_4(b, input, output),
+    );
+
+    #[cfg(target_arch = "x86")]
+    group.bench_with_input(
+        BenchmarkId::new("avx2 permute unroll 2", size),
+        &size,
+        |b, _| bench_avx2_permute_unroll_2(b, input, output),
     );
 
     if !important_benches_only {
@@ -134,16 +159,20 @@ pub(crate) fn run_benchmarks(
             |b, _| bench_avx2_shuffle_permute(b, input, output),
         );
 
+        group.bench_with_input(BenchmarkId::new("avx2 permute", size), &size, |b, _| {
+            bench_avx2_permute(b, input, output)
+        });
+
+        // Unroll-2 is used on x86 by default as fastest impl, so it's skipped there.
+
+        #[cfg(not(target_arch = "x86"))]
         group.bench_with_input(
             BenchmarkId::new("avx2 shuffle_permute unroll 2", size),
             &size,
             |b, _| bench_avx2_shuffle_permute_unroll_2(b, input, output),
         );
 
-        group.bench_with_input(BenchmarkId::new("avx2 permute", size), &size, |b, _| {
-            bench_avx2_permute(b, input, output)
-        });
-
+        #[cfg(not(target_arch = "x86"))]
         group.bench_with_input(
             BenchmarkId::new("avx2 permute unroll 2", size),
             &size,

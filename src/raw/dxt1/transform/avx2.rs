@@ -638,7 +638,7 @@ mod tests {
         ]
     }
 
-    #[cfg(not(target_arch = "x86_64"))]
+    #[cfg(target_arch = "x86")]
     fn get_implementations() -> [(PermuteFn, &'static str); 5] {
         [
             (shuffle_permute as PermuteFn, "shuffle_permute"),

@@ -521,7 +521,7 @@ mod tests {
         ]
     }
 
-    #[cfg(not(target_arch = "x86_64"))]
+    #[cfg(target_arch = "x86")]
     pub fn get_implementations<'a>() -> [(&'a str, TransformFn); 4] {
         [
             ("SSE2 punpckhqdq unroll-4", punpckhqdq_unroll_4),

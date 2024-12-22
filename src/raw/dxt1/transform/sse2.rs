@@ -6,7 +6,7 @@ use std::arch::asm;
 /// - output_ptr must be valid for writes of len bytes
 /// - pointers must be properly aligned for SSE operations
 /// - len is at least divisible by 128
-#[inline(never)]
+#[cfg(target_arch = "x86_64")]
 pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 128 == 0);
 
@@ -110,33 +110,34 @@ pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len
 /// - len is at least divisible by 64
 /// - pointers must be properly aligned for SSE operations
 #[inline(never)]
-pub unsafe fn punpckhqdq_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+#[allow(unused_assignments)]
+pub unsafe fn punpckhqdq_unroll_4(
+    mut input_ptr: *const u8,
+    mut output_ptr: *mut u8,
+    mut len: usize,
+) {
     debug_assert!(len % 64 == 0);
 
     unsafe {
         asm!(
-            "push rbx",
-            "push r12",
-            "push r13",
-            "push r14",
+            // Calculate end address
+            "add {end}, {src_ptr}", // end = src + len
 
-            "mov rbx, {src}",
-            "add rbx, {len}",
+            // Calculate second destination pointer
+            "mov {tmp}, {dst_ptr}",
+            "add {tmp}, {len_half}",
 
-            "mov r12, {src}",
-            "mov r13, {dst}",
-            "mov r14, {dst}",
-            "add r14, {len_half}",
-
-            ".p2align 4",
+            // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
+            // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
+            ".p2align 5",
             "2:",
 
             // Load 8 blocks (64 bytes)
-            "movdqa xmm0, [r12]",
-            "movdqa xmm1, [r12 + 16]",
-            "movdqa xmm2, [r12 + 32]",
-            "movdqa xmm3, [r12 + 48]",
-            "add r12, 64",   // src += 4 * 16
+            "movdqa xmm0, [{src_ptr}]",
+            "movdqa xmm1, [{src_ptr} + 16]",
+            "movdqa xmm2, [{src_ptr} + 32]",
+            "movdqa xmm3, [{src_ptr} + 48]",
+            "add {src_ptr}, 64",   // src += 4 * 16
 
             // Shuffle all
             "pshufd xmm0, xmm0, 0xD8",
@@ -155,27 +156,27 @@ pub unsafe fn punpckhqdq_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len
             "punpcklqdq xmm5, xmm3",     // colors 2,3
 
             // Store colors and indices
-            "movdqa [r13],      xmm4",
-            "movdqa [r13 + 16], xmm5",
-            "movdqa [r14],      xmm0",
-            "movdqa [r14 + 16], xmm2",
+            "movdqa [{dst_ptr}],      xmm4",
+            "movdqa [{dst_ptr} + 16], xmm5",
+            "movdqa [{tmp}],      xmm0",
+            "movdqa [{tmp} + 16], xmm2",
 
             // Update pointers
-            "add r13, 32",   // colors_ptr += 4 * 8
-            "add r14, 32",   // indices_ptr += 4 * 8
+            "add {dst_ptr}, 32",   // colors_ptr += 4 * 8
+            "add {tmp}, 32",   // indices_ptr += 4 * 8
 
-            "cmp r12, rbx",
+            "cmp {src_ptr}, {end}",
             "jb 2b",
 
-            "pop r14",
-            "pop r13",
-            "pop r12",
-            "pop rbx",
-
-            src = in(reg) input_ptr,
-            dst = in(reg) output_ptr,
-            len = in(reg) len,
+            src_ptr = inout(reg) input_ptr,
+            dst_ptr = inout(reg) output_ptr,
             len_half = in(reg) len / 2,
+            end = inout(reg) len,
+            tmp = out(reg) _,
+            // If this option is not used then the stack pointer is guaranteed to be suitably aligned
+            // (according to the target ABI) for a function call.
+            // We're not doing function call, so using 'nostack' here is appropriate and saves 2 instructions.
+            options(nostack)
         );
     }
 }
@@ -187,31 +188,32 @@ pub unsafe fn punpckhqdq_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len
 /// - len is at least divisible by 32
 /// - pointers must be properly aligned for SSE operations
 #[inline(never)]
-pub unsafe fn punpckhqdq_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+#[allow(unused_assignments)]
+pub unsafe fn punpckhqdq_unroll_2(
+    mut input_ptr: *const u8,
+    mut output_ptr: *mut u8,
+    mut len: usize,
+) {
     debug_assert!(len % 32 == 0);
 
     unsafe {
         asm!(
-            "push rbx",
-            "push r12",
-            "push r13",
-            "push r14",
+            // Calculate end address
+            "add {end}, {src_ptr}", // end = src + len
 
-            "mov rbx, {src}",
-            "add rbx, {len}",
+            // Calculate second destination pointer
+            "mov {tmp}, {dst_ptr}",
+            "add {tmp}, {len_half}",
 
-            "mov r12, {src}",
-            "mov r13, {dst}",
-            "mov r14, {dst}",
-            "add r14, {len_half}",
-
-            ".p2align 4",
+            // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
+            // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
+            ".p2align 5",
             "2:",
 
             // Load 4 blocks (32 bytes)
-            "movdqa xmm0, [r12]",
-            "movdqa xmm1, [r12 + 16]",
-            "add r12, 32",   // src += 2 * 16
+            "movdqa xmm0, [{src_ptr}]",
+            "movdqa xmm1, [{src_ptr} + 16]",
+            "add {src_ptr}, 32",   // src += 2 * 16
 
             // Shuffle both
             "pshufd xmm0, xmm0, 0xD8",
@@ -225,25 +227,25 @@ pub unsafe fn punpckhqdq_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len
             "punpckhqdq xmm0, xmm1",     // indices
 
             // Store colors and indices
-            "movdqa [r13], xmm2",
-            "movdqa [r14], xmm0",
+            "movdqa [{dst_ptr}], xmm2",
+            "movdqa [{tmp}], xmm0",
 
             // Update pointers
-            "add r13, 16",   // colors_ptr += 2 * 8
-            "add r14, 16",   // indices_ptr += 2 * 8
+            "add {dst_ptr}, 16",   // colors_ptr += 2 * 8
+            "add {tmp}, 16",   // indices_ptr += 2 * 8
 
-            "cmp r12, rbx",
+            "cmp {src_ptr}, {end}",
             "jb 2b",
 
-            "pop r14",
-            "pop r13",
-            "pop r12",
-            "pop rbx",
-
-            src = in(reg) input_ptr,
-            dst = in(reg) output_ptr,
-            len = in(reg) len,
+            src_ptr = inout(reg) input_ptr,
+            dst_ptr = inout(reg) output_ptr,
             len_half = in(reg) len / 2,
+            end = inout(reg) len,
+            tmp = out(reg) _,
+            // If this option is not used then the stack pointer is guaranteed to be suitably aligned
+            // (according to the target ABI) for a function call.
+            // We're not doing function call, so using 'nostack' here is appropriate and saves 2 instructions.
+            options(nostack)
         );
     }
 }
@@ -254,24 +256,18 @@ pub unsafe fn punpckhqdq_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len
 /// - output_ptr must be valid for writes of len bytes
 /// - len is at least divisible by 32
 /// - pointers must be properly aligned for SSE operations
-#[inline(never)]
-pub unsafe fn shufps_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+#[allow(unused_assignments)]
+pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
     debug_assert!(len % 32 == 0);
 
     unsafe {
         asm!(
-            "push rbx",
-            "push r12",
-            "push r13",
-            "push r14",
+            // Calculate end address
+            "add {end}, {src_ptr}", // end = src + len
 
-            "mov rbx, {src}",
-            "add rbx, {len}",
-
-            "mov r12, {src}",
-            "mov r13, {dst}",
-            "mov r14, {dst}",
-            "add r14, {len_half}",
+            // Calculate second destination pointer
+            "mov {tmp}, {dst_ptr}",
+            "add {tmp}, {len_half}",
 
             // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
             // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
@@ -279,9 +275,9 @@ pub unsafe fn shufps_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: us
             "2:",
 
             // Load 2 blocks (32 bytes)
-            "movdqa xmm0, [r12]",
-            "movdqa xmm1, [r12 + 16]",
-            "add r12, 32",   // src += 2 * 16
+            "movdqa xmm0, [{src_ptr}]",
+            "movdqa xmm1, [{src_ptr} + 16]",
+            "add {src_ptr}, 32",   // src += 2 * 16
 
             // Shuffle to separate colors and indices
             "movaps xmm2, xmm0",
@@ -289,25 +285,25 @@ pub unsafe fn shufps_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: us
             "shufps xmm0, xmm1, 0xDD",    // Indices (0b11011101)
 
             // Store colors and indices
-            "movdqa [r13], xmm2",
-            "movdqa [r14], xmm0",
+            "movdqa [{dst_ptr}], xmm2",
+            "movdqa [{tmp}], xmm0",
 
             // Update pointers
-            "add r13, 16",   // colors_ptr += 2 * 8
-            "add r14, 16",   // indices_ptr += 2 * 8
+            "add {dst_ptr}, 16",   // colors_ptr += 2 * 8
+            "add {tmp}, 16",   // indices_ptr += 2 * 8
 
-            "cmp r12, rbx",
+            "cmp {src_ptr}, {end}",
             "jb 2b",
 
-            "pop r14",
-            "pop r13",
-            "pop r12",
-            "pop rbx",
-
-            src = in(reg) input_ptr,
-            dst = in(reg) output_ptr,
-            len = in(reg) len,
+            src_ptr = inout(reg) input_ptr,
+            dst_ptr = inout(reg) output_ptr,
             len_half = in(reg) len / 2,
+            end = inout(reg) len,
+            tmp = out(reg) _,
+            // If this option is not used then the stack pointer is guaranteed to be suitably aligned
+            // (according to the target ABI) for a function call.
+            // We're not doing function call, so using 'nostack' here is appropriate and saves 2 instructions.
+            options(nostack)
         );
     }
 }
@@ -319,23 +315,18 @@ pub unsafe fn shufps_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: us
 /// - len is at least divisible by 64
 /// - pointers must be properly aligned for SSE operations
 #[inline(never)]
-pub unsafe fn shufps_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+#[allow(unused_assignments)]
+pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
     debug_assert!(len % 64 == 0);
 
     unsafe {
         asm!(
-            "push rbx",
-            "push r12",
-            "push r13",
-            "push r14",
+            // Calculate end address
+            "add {end}, {src_ptr}", // end = src + len
 
-            "mov rbx, {src}",
-            "add rbx, {len}",
-
-            "mov r12, {src}",
-            "mov r13, {dst}",
-            "mov r14, {dst}",
-            "add r14, {len_half}",
+            // Calculate second destination pointer
+            "mov {tmp}, {dst_ptr}",
+            "add {tmp}, {len_half}",
 
             // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
             // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
@@ -343,11 +334,11 @@ pub unsafe fn shufps_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: us
             "2:",
 
             // Load 4 blocks (64 bytes)
-            "movdqa xmm0, [r12]",
-            "movdqa xmm1, [r12 + 16]",
-            "movdqa xmm2, [r12 + 32]",
-            "movdqa xmm3, [r12 + 48]",
-            "add r12, 64",   // src += 4 * 16
+            "movdqa xmm0, [{src_ptr}]",
+            "movdqa xmm1, [{src_ptr} + 16]",
+            "movdqa xmm2, [{src_ptr} + 32]",
+            "movdqa xmm3, [{src_ptr} + 48]",
+            "add {src_ptr}, 64",   // src += 4 * 16
 
             // First pair shuffle
             "movaps xmm4, xmm0",
@@ -360,27 +351,27 @@ pub unsafe fn shufps_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: us
             "shufps xmm2, xmm3, 0xDD",    // Indices (0b11011101)
 
             // Store colors and indices
-            "movdqa [r13], xmm4",
-            "movdqa [r13 + 16], xmm5",
-            "movdqa [r14], xmm0",
-            "movdqa [r14 + 16], xmm2",
+            "movdqa [{dst_ptr}], xmm4",
+            "movdqa [{dst_ptr} + 16], xmm5",
+            "movdqa [{tmp}], xmm0",
+            "movdqa [{tmp} + 16], xmm2",
 
             // Update pointers
-            "add r13, 32",   // colors_ptr += 4 * 8
-            "add r14, 32",   // indices_ptr += 4 * 8
+            "add {dst_ptr}, 32",   // colors_ptr += 4 * 8
+            "add {tmp}, 32",   // indices_ptr += 4 * 8
 
-            "cmp r12, rbx",
+            "cmp {src_ptr}, {end}",
             "jb 2b",
 
-            "pop r14",
-            "pop r13",
-            "pop r12",
-            "pop rbx",
-
-            src = in(reg) input_ptr,
-            dst = in(reg) output_ptr,
-            len = in(reg) len,
+            src_ptr = inout(reg) input_ptr,
+            dst_ptr = inout(reg) output_ptr,
             len_half = in(reg) len / 2,
+            end = inout(reg) len,
+            tmp = out(reg) _,
+            // If this option is not used then the stack pointer is guaranteed to be suitably aligned
+            // (according to the target ABI) for a function call.
+            // We're not doing function call, so using 'nostack' here is appropriate and saves 2 instructions.
+            options(nostack)
         );
     }
 }
@@ -391,7 +382,7 @@ pub unsafe fn shufps_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: us
 /// - output_ptr must be valid for writes of len bytes
 /// - len is at least divisible by 128
 /// - pointers must be properly aligned for SSE operations
-#[inline(never)]
+#[cfg(target_arch = "x86_64")]
 pub unsafe fn shufps_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 128 == 0);
 

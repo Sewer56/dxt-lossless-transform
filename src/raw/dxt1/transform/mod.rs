@@ -10,10 +10,10 @@ pub mod sse2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub use sse2::*;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx2;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub use avx2::*;
 
 #[cfg(test)]

@@ -18,7 +18,6 @@ pub unsafe fn sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 /// - pointers must be properly aligned for SSE operations
 /// - len is at least divisible by 128
 #[inline(never)]
-#[cfg(target_arch = "x86_64")]
 pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 128 == 0);
 

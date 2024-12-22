@@ -4,14 +4,19 @@ pub use portable64::*;
 pub mod portable32;
 pub use portable32::*;
 
+#[cfg(target_arch = "x86_64")]
 #[cfg(target_feature = "sse2")]
 pub mod sse2;
 
+#[cfg(target_arch = "x86_64")]
 #[cfg(target_feature = "sse2")]
 pub use sse2::*;
+
+#[cfg(target_arch = "x86_64")]
 #[cfg(target_feature = "avx2")]
 pub mod avx2;
 
+#[cfg(target_arch = "x86_64")]
 #[cfg(target_feature = "avx2")]
 pub use avx2::*;
 

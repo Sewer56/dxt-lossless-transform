@@ -59,13 +59,22 @@ fn criterion_benchmark(c: &mut Criterion) {
         ("portable64 shift_with_count no-unroll", shift_with_count),
         ("portable32 no-unroll", u32),
         ("portable64 shift unroll-2", shift_unroll_2),
-        ("portable64 shift_with_count unroll-2", shift_unroll_2),
+        (
+            "portable64 shift_with_count unroll-2",
+            shift_with_count_unroll_2,
+        ),
         ("portable32 unroll-2", u32_unroll_2),
         ("portable64 shift unroll-4", shift_unroll_4),
-        ("portable64 shift_with_count unroll-4", shift_unroll_4),
+        (
+            "portable64 shift_with_count unroll-4",
+            shift_with_count_unroll_4,
+        ),
         ("portable32 unroll-4", u32_unroll_4),
         ("portable64 shift unroll-8", shift_unroll_8),
-        ("portable64 shift_with_count unroll-8", shift_unroll_8),
+        (
+            "portable64 shift_with_count unroll-8",
+            shift_with_count_unroll_8,
+        ),
         ("portable32 unroll-8", u32_unroll_8),
     ];
 
@@ -149,13 +158,36 @@ fn criterion_benchmark(c: &mut Criterion) {
         }
 
         if is_x86_feature_detected!("avx2") {
-            // Auto-selected AVX2
+            group.bench_with_input(BenchmarkId::new("avx2_gather", size), &size, |b, &_size| {
+                b.iter(|| unsafe {
+                    gather(
+                        black_box(input.as_ptr()),
+                        black_box(output.as_mut_ptr()),
+                        black_box(input.len()),
+                    )
+                });
+            });
+
+            group.bench_with_input(
+                BenchmarkId::new("avx2_gather_unroll_4", size),
+                &size,
+                |b, &_size| {
+                    b.iter(|| unsafe {
+                        gather(
+                            black_box(input.as_ptr()),
+                            black_box(output.as_mut_ptr()),
+                            black_box(input.len()),
+                        )
+                    });
+                },
+            );
+
             group.bench_with_input(
                 BenchmarkId::new("avx2_permute", size),
                 &size,
                 |b, &_size| {
                     b.iter(|| unsafe {
-                        avx2_permute(
+                        permute(
                             black_box(input.as_ptr()),
                             black_box(output.as_mut_ptr()),
                             black_box(input.len()),
@@ -169,7 +201,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 &size,
                 |b, &_size| {
                     b.iter(|| unsafe {
-                        avx2_permute_unroll_2(
+                        permute_unroll_2(
                             black_box(input.as_ptr()),
                             black_box(output.as_mut_ptr()),
                             black_box(input.len()),
@@ -183,7 +215,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 &size,
                 |b, &_size| {
                     b.iter(|| unsafe {
-                        avx2_permute_unroll_4(
+                        permute_unroll_4(
                             black_box(input.as_ptr()),
                             black_box(output.as_mut_ptr()),
                             black_box(input.len()),

@@ -43,39 +43,102 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     // Test different sizes
     // 16384 = 512x512
-    for size in [16384].iter() {
-        let input = generate_test_data(*size);
-        let mut output = allocate_align_64(input.len());
+    let size = 16384;
+    let input = generate_test_data(size);
+    let mut output = allocate_align_64(input.len());
 
-        group.throughput(criterion::Throughput::Bytes(*size as u64));
+    group.throughput(criterion::Throughput::Bytes(size as u64));
 
-        // Benchmark portable implementations
-        let portable_impls = [
-            (
-                "portable64 (auto)",
-                portable as unsafe fn(*const u8, *mut u8, usize),
-            ),
-            ("portable64 shift no-unroll", shift),
-            ("portable64 shift_with_count no-unroll", shift_with_count),
-            ("portable32 no-unroll", u32),
-            ("portable64 shift unroll-2", shift_unroll_2),
-            ("portable64 shift_with_count unroll-2", shift_unroll_2),
-            ("portable32 unroll-2", u32_unroll_2),
-            ("portable64 shift unroll-4", shift_unroll_4),
-            ("portable64 shift_with_count unroll-4", shift_unroll_4),
-            ("portable32 unroll-4", u32_unroll_4),
-            ("portable64 shift unroll-8", shift_unroll_8),
-            ("portable64 shift_with_count unroll-8", shift_unroll_8),
-            ("portable32 unroll-8", u32_unroll_8),
-        ];
+    // Benchmark portable implementations
+    let portable_impls = [
+        (
+            "portable64 (auto)",
+            portable as unsafe fn(*const u8, *mut u8, usize),
+        ),
+        ("portable64 shift no-unroll", shift),
+        ("portable64 shift_with_count no-unroll", shift_with_count),
+        ("portable32 no-unroll", u32),
+        ("portable64 shift unroll-2", shift_unroll_2),
+        ("portable64 shift_with_count unroll-2", shift_unroll_2),
+        ("portable32 unroll-2", u32_unroll_2),
+        ("portable64 shift unroll-4", shift_unroll_4),
+        ("portable64 shift_with_count unroll-4", shift_unroll_4),
+        ("portable32 unroll-4", u32_unroll_4),
+        ("portable64 shift unroll-8", shift_unroll_8),
+        ("portable64 shift_with_count unroll-8", shift_unroll_8),
+        ("portable32 unroll-8", u32_unroll_8),
+    ];
 
-        for (name, implementation) in portable_impls.iter() {
+    for (name, implementation) in portable_impls.iter() {
+        group.bench_with_input(
+            BenchmarkId::new(name.to_owned(), size),
+            &size,
+            |b, &_size| {
+                b.iter(|| unsafe {
+                    implementation(
+                        black_box(input.as_ptr()),
+                        black_box(output.as_mut_ptr()),
+                        black_box(input.len()),
+                    )
+                });
+            },
+        );
+    }
+
+    // Benchmark SSE2 implementations
+    #[cfg(target_arch = "x86_64")]
+    {
+        // Note: The functions below are implemented using pure assembly.
+        // Calling them via function pointer can have issues in benches.
+        if is_x86_feature_detected!("sse2") {
+            // Auto-selected SSE2
+            group.bench_with_input(BenchmarkId::new("sse2 (auto)", size), &size, |b, &_size| {
+                b.iter(|| unsafe {
+                    sse2(
+                        black_box(input.as_ptr()),
+                        black_box(output.as_mut_ptr()),
+                        black_box(input.len()),
+                    )
+                });
+            });
+
+            // Unroll-2 variant
             group.bench_with_input(
-                BenchmarkId::new(name.to_owned(), size),
+                BenchmarkId::new("sse2 unroll-2", size),
                 &size,
                 |b, &_size| {
                     b.iter(|| unsafe {
-                        implementation(
+                        punpckhqdq_unroll_2(
+                            black_box(input.as_ptr()),
+                            black_box(output.as_mut_ptr()),
+                            black_box(input.len()),
+                        )
+                    });
+                },
+            );
+
+            // Unroll-4 variant
+            group.bench_with_input(
+                BenchmarkId::new("sse2 unroll-4", size),
+                &size,
+                |b, &_size| {
+                    b.iter(|| unsafe {
+                        punpckhqdq_unroll_4(
+                            black_box(input.as_ptr()),
+                            black_box(output.as_mut_ptr()),
+                            black_box(input.len()),
+                        )
+                    });
+                },
+            );
+
+            // Unroll-8 variant
+            group.bench_with_input(
+                BenchmarkId::new("sse2 unroll-8", size),
+                &size,
+                |b, &_size| {
+                    b.iter(|| unsafe {
+                        punpckhqdq_unroll_8(
                             black_box(input.as_ptr()),
                             black_box(output.as_mut_ptr()),
                             black_box(input.len()),
@@ -85,72 +148,49 @@ fn criterion_benchmark(c: &mut Criterion) {
             );
         }
 
-        // Benchmark SSE2 implementations
-        #[cfg(target_arch = "x86_64")]
-        {
-            // Note: The functions below are implemented using pure assembly.
-            // Calling them via function pointer can have issues in benches.
-            if is_x86_feature_detected!("sse2") {
-                // Auto-selected SSE2
-                group.bench_with_input(
-                    BenchmarkId::new("sse2 (auto)", size),
-                    &size,
-                    |b, &_size| {
-                        b.iter(|| unsafe {
-                            sse2(
-                                black_box(input.as_ptr()),
-                                black_box(output.as_mut_ptr()),
-                                black_box(input.len()),
-                            )
-                        });
-                    },
-                );
+        if is_x86_feature_detected!("avx2") {
+            // Auto-selected AVX2
+            group.bench_with_input(
+                BenchmarkId::new("avx2_permute", size),
+                &size,
+                |b, &_size| {
+                    b.iter(|| unsafe {
+                        avx2_permute(
+                            black_box(input.as_ptr()),
+                            black_box(output.as_mut_ptr()),
+                            black_box(input.len()),
+                        )
+                    });
+                },
+            );
 
-                // Unroll-2 variant
-                group.bench_with_input(
-                    BenchmarkId::new("sse2 unroll-2", size),
-                    &size,
-                    |b, &_size| {
-                        b.iter(|| unsafe {
-                            punpckhqdq_unroll_2(
-                                black_box(input.as_ptr()),
-                                black_box(output.as_mut_ptr()),
-                                black_box(input.len()),
-                            )
-                        });
-                    },
-                );
+            group.bench_with_input(
+                BenchmarkId::new("avx2_permute_unroll_2", size),
+                &size,
+                |b, &_size| {
+                    b.iter(|| unsafe {
+                        avx2_permute_unroll_2(
+                            black_box(input.as_ptr()),
+                            black_box(output.as_mut_ptr()),
+                            black_box(input.len()),
+                        )
+                    });
+                },
+            );
 
-                // Unroll-4 variant
-                group.bench_with_input(
-                    BenchmarkId::new("sse2 unroll-4", size),
-                    &size,
-                    |b, &_size| {
-                        b.iter(|| unsafe {
-                            punpckhqdq_unroll_4(
-                                black_box(input.as_ptr()),
-                                black_box(output.as_mut_ptr()),
-                                black_box(input.len()),
-                            )
-                        });
-                    },
-                );
-
-                // Unroll-8 variant
-                group.bench_with_input(
-                    BenchmarkId::new("sse2 unroll-8", size),
-                    &size,
-                    |b, &_size| {
-                        b.iter(|| unsafe {
-                            punpckhqdq_unroll_8(
-                                black_box(input.as_ptr()),
-                                black_box(output.as_mut_ptr()),
-                                black_box(input.len()),
-                            )
-                        });
-                    },
-                );
-            }
+            group.bench_with_input(
+                BenchmarkId::new("avx2_permute_unroll_4", size),
+                &size,
+                |b, &_size| {
+                    b.iter(|| unsafe {
+                        avx2_permute_unroll_4(
+                            black_box(input.as_ptr()),
+                            black_box(output.as_mut_ptr()),
+                            black_box(input.len()),
+                        )
+                    });
+                },
+            );
         }
     }
 

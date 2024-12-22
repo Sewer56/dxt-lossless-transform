@@ -44,7 +44,7 @@ pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len
             ".p2align 4",
             "2:",  // Local label for loop
 
-            // Load 8 blocks (128 bytes)
+            // Load 16 blocks (128 bytes)
             "movdqa xmm0, [r12]",
             "movdqa xmm1, [r12 + 16]",
             "movdqa xmm2, [r12 + 32]",
@@ -144,7 +144,7 @@ pub unsafe fn punpckhqdq_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len
             ".p2align 4",
             "2:",
 
-            // Load 4 blocks (64 bytes)
+            // Load 8 blocks (64 bytes)
             "movdqa xmm0, [r12]",
             "movdqa xmm1, [r12 + 16]",
             "movdqa xmm2, [r12 + 32]",
@@ -222,7 +222,7 @@ pub unsafe fn punpckhqdq_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len
             ".p2align 4",
             "2:",
 
-            // Load 2 blocks (32 bytes)
+            // Load 4 blocks (32 bytes)
             "movdqa xmm0, [r12]",
             "movdqa xmm1, [r12 + 16]",
             "add r12, 32",   // src += 2 * 16

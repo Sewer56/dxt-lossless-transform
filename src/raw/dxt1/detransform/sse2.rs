@@ -21,19 +21,19 @@ pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
             ".p2align 5",
             "2:",
             // Load colors and indices (16 bytes each)
-            "movdqu xmm0, [{colors_ptr}]",    // colors
+            "movdqu {xmm0}, [{colors_ptr}]",    // colors
             "add {colors_ptr}, 16",
-            "movdqu xmm1, [{indices_ptr}]",   // indices
+            "movdqu {xmm1}, [{indices_ptr}]",   // indices
             "add {indices_ptr}, 16",
 
             // Interleave the 32-bit values
-            "movaps xmm2, xmm0",
-            "unpcklps xmm0, xmm1",    // Low half: color0,index0,color1,index1
-            "unpckhps xmm2, xmm1",    // High half: color2,index2,color3,index3
+            "movaps {xmm2}, {xmm0}",
+            "unpcklps {xmm0}, {xmm1}",    // Low half: color0,index0,color1,index1
+            "unpckhps {xmm2}, {xmm1}",    // High half: color2,index2,color3,index3
 
             // Store the results
-            "movdqu [{dst_ptr}], xmm0",
-            "movdqu [{dst_ptr} + 16], xmm2",
+            "movdqu [{dst_ptr}], {xmm0}",
+            "movdqu [{dst_ptr} + 16], {xmm2}",
             "add {dst_ptr}, 32",
 
             // Continue if we haven't reached the end
@@ -45,6 +45,9 @@ pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
             dst_ptr = inout(reg) output_ptr,
             len_half = in(reg) len / 2,
             end = out(reg) _,
+            xmm0 = out(xmm_reg) _,
+            xmm1 = out(xmm_reg) _,
+            xmm2 = out(xmm_reg) _,
             options(nostack)
         );
     }

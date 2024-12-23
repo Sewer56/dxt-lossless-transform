@@ -130,34 +130,34 @@ pub unsafe fn punpckhqdq_unroll_4(
             "2:",
 
             // Load 8 blocks (64 bytes)
-            "movdqa xmm0, [{src_ptr}]",
-            "movdqa xmm1, [{src_ptr} + 16]",
-            "movdqa xmm2, [{src_ptr} + 32]",
-            "movdqa xmm3, [{src_ptr} + 48]",
+            "movdqa {xmm0}, [{src_ptr}]",
+            "movdqa {xmm1}, [{src_ptr} + 16]",
+            "movdqa {xmm2}, [{src_ptr} + 32]",
+            "movdqa {xmm3}, [{src_ptr} + 48]",
             "add {src_ptr}, 64",   // src += 4 * 16
 
             // Shuffle all
-            "pshufd xmm0, xmm0, 0xD8",
-            "pshufd xmm1, xmm1, 0xD8",
-            "pshufd xmm2, xmm2, 0xD8",
-            "pshufd xmm3, xmm3, 0xD8",
+            "pshufd {xmm0}, {xmm0}, 0xD8",
+            "pshufd {xmm1}, {xmm1}, 0xD8",
+            "pshufd {xmm2}, {xmm2}, 0xD8",
+            "pshufd {xmm3}, {xmm3}, 0xD8",
 
             // Copy registers
-            "movdqa xmm4, xmm0",
-            "movdqa xmm5, xmm2",
+            "movdqa {xmm4}, {xmm0}",
+            "movdqa {xmm5}, {xmm2}",
 
             // Reorganize pairs
-            "punpckhqdq xmm0, xmm1",     // indices 0,1
-            "punpckhqdq xmm2, xmm3",     // indices 2,3
-            "punpcklqdq xmm4, xmm1",     // colors 0,1
-            "punpcklqdq xmm5, xmm3",     // colors 2,3
+            "punpckhqdq {xmm0}, {xmm1}",     // indices 0,1
+            "punpckhqdq {xmm2}, {xmm3}",     // indices 2,3
+            "punpcklqdq {xmm4}, {xmm1}",     // colors 0,1
+            "punpcklqdq {xmm5}, {xmm3}",     // colors 2,3
 
             // Store colors and indices
-            "movdqa [{colors_ptr}],      xmm4",
-            "movdqa [{colors_ptr} + 16], xmm5",
+            "movdqa [{colors_ptr}],      {xmm4}",
+            "movdqa [{colors_ptr} + 16], {xmm5}",
             "add {colors_ptr}, 32",   // colors_ptr += 4 * 8
-            "movdqa [{indices_ptr}],      xmm0",
-            "movdqa [{indices_ptr} + 16], xmm2",
+            "movdqa [{indices_ptr}],      {xmm0}",
+            "movdqa [{indices_ptr} + 16], {xmm2}",
             "add {indices_ptr}, 32",   // indices_ptr += 4 * 8
 
             "cmp {src_ptr}, {end}",
@@ -168,9 +168,12 @@ pub unsafe fn punpckhqdq_unroll_4(
             len_half = in(reg) len / 2,
             end = inout(reg) len,
             indices_ptr = out(reg) _,
-            // If this option is not used then the stack pointer is guaranteed to be suitably aligned
-            // (according to the target ABI) for a function call.
-            // We're not doing function call, so using 'nostack' here is appropriate and saves 2 instructions.
+            xmm0 = out(xmm_reg) _,
+            xmm1 = out(xmm_reg) _,
+            xmm2 = out(xmm_reg) _,
+            xmm3 = out(xmm_reg) _,
+            xmm4 = out(xmm_reg) _,
+            xmm5 = out(xmm_reg) _,
             options(nostack)
         );
     }
@@ -205,25 +208,25 @@ pub unsafe fn punpckhqdq_unroll_2(
             "2:",
 
             // Load 4 blocks (32 bytes)
-            "movdqa xmm0, [{src_ptr}]",
-            "movdqa xmm1, [{src_ptr} + 16]",
+            "movdqa {xmm0}, [{src_ptr}]",
+            "movdqa {xmm1}, [{src_ptr} + 16]",
             "add {src_ptr}, 32",   // src += 2 * 16
 
             // Shuffle both
-            "pshufd xmm0, xmm0, 0xD8",
-            "pshufd xmm1, xmm1, 0xD8",
+            "pshufd {xmm0}, {xmm0}, 0xD8",
+            "pshufd {xmm1}, {xmm1}, 0xD8",
 
             // Copy first register
-            "movdqa xmm2, xmm0",
+            "movdqa {xmm2}, {xmm0}",
 
             // Reorganize pair
-            "punpcklqdq xmm2, xmm1",     // colors
-            "punpckhqdq xmm0, xmm1",     // indices
+            "punpcklqdq {xmm2}, {xmm1}",     // colors
+            "punpckhqdq {xmm0}, {xmm1}",     // indices
 
             // Store colors and indices
-            "movdqa [{colors_ptr}], xmm2",
+            "movdqa [{colors_ptr}], {xmm2}",
             "add {colors_ptr}, 16",   // colors_ptr += 2 * 8
-            "movdqa [{indices_ptr}], xmm0",
+            "movdqa [{indices_ptr}], {xmm0}",
             "add {indices_ptr}, 16",   // indices_ptr += 2 * 8
 
             "cmp {src_ptr}, {end}",
@@ -234,9 +237,9 @@ pub unsafe fn punpckhqdq_unroll_2(
             len_half = in(reg) len / 2,
             end = inout(reg) len,
             indices_ptr = out(reg) _,
-            // If this option is not used then the stack pointer is guaranteed to be suitably aligned
-            // (according to the target ABI) for a function call.
-            // We're not doing function call, so using 'nostack' here is appropriate and saves 2 instructions.
+            xmm0 = out(xmm_reg) _,
+            xmm1 = out(xmm_reg) _,
+            xmm2 = out(xmm_reg) _,
             options(nostack)
         );
     }
@@ -267,19 +270,19 @@ pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             "2:",
 
             // Load 2 blocks (32 bytes)
-            "movdqa xmm0, [{src_ptr}]",
-            "movdqa xmm1, [{src_ptr} + 16]",
+            "movdqa {xmm0}, [{src_ptr}]",
+            "movdqa {xmm1}, [{src_ptr} + 16]",
             "add {src_ptr}, 32",   // src += 2 * 16
 
             // Shuffle to separate colors and indices
-            "movaps xmm2, xmm0",
-            "shufps xmm2, xmm1, 0x88",    // Colors (0b10001000)
-            "shufps xmm0, xmm1, 0xDD",    // Indices (0b11011101)
+            "movaps {xmm2}, {xmm0}",
+            "shufps {xmm2}, {xmm1}, 0x88",    // Colors (0b10001000)
+            "shufps {xmm0}, {xmm1}, 0xDD",    // Indices (0b11011101)
 
             // Store colors and indices
-            "movdqa [{colors_ptr}], xmm2",
+            "movdqa [{colors_ptr}], {xmm2}",
             "add {colors_ptr}, 16",   // colors_ptr += 2 * 8
-            "movdqa [{indices_ptr}], xmm0",
+            "movdqa [{indices_ptr}], {xmm0}",
             "add {indices_ptr}, 16",   // indices_ptr += 2 * 8
 
             "cmp {src_ptr}, {end}",
@@ -290,9 +293,9 @@ pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             len_half = in(reg) len / 2,
             end = inout(reg) len,
             indices_ptr = out(reg) _,
-            // If this option is not used then the stack pointer is guaranteed to be suitably aligned
-            // (according to the target ABI) for a function call.
-            // We're not doing function call, so using 'nostack' here is appropriate and saves 2 instructions.
+            xmm0 = out(xmm_reg) _,
+            xmm1 = out(xmm_reg) _,
+            xmm2 = out(xmm_reg) _,
             options(nostack)
         );
     }
@@ -305,6 +308,7 @@ pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8,
 /// - len is at least divisible by 64
 /// - pointers must be properly aligned for SSE operations
 #[allow(unused_assignments)]
+#[no_mangle]
 pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
     debug_assert!(len % 64 == 0);
 
@@ -323,28 +327,28 @@ pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             "2:",
 
             // Load 4 blocks (64 bytes)
-            "movdqa xmm0, [{src_ptr}]",
-            "movdqa xmm1, [{src_ptr} + 16]",
-            "movdqa xmm2, [{src_ptr} + 32]",
-            "movdqa xmm3, [{src_ptr} + 48]",
+            "movdqa {xmm0}, [{src_ptr}]",
+            "movdqa {xmm1}, [{src_ptr} + 16]",
+            "movdqa {xmm2}, [{src_ptr} + 32]",
+            "movdqa {xmm3}, [{src_ptr} + 48]",
             "add {src_ptr}, 64",   // src += 4 * 16
 
             // First pair shuffle
-            "movaps xmm4, xmm0",
-            "shufps xmm4, xmm1, 0x88",    // Colors (0b10001000)
-            "shufps xmm0, xmm1, 0xDD",    // Indices (0b11011101)
+            "movaps {xmm4}, {xmm0}",
+            "shufps {xmm4}, {xmm1}, 0x88",    // Colors (0b10001000)
+            "shufps {xmm0}, {xmm1}, 0xDD",    // Indices (0b11011101)
 
             // Second pair shuffle
-            "movaps xmm5, xmm2",
-            "shufps xmm5, xmm3, 0x88",    // Colors (0b10001000)
-            "shufps xmm2, xmm3, 0xDD",    // Indices (0b11011101)
+            "movaps {xmm5}, {xmm2}",
+            "shufps {xmm5}, {xmm3}, 0x88",    // Colors (0b10001000)
+            "shufps {xmm2}, {xmm3}, 0xDD",    // Indices (0b11011101)
 
             // Store colors and indices
-            "movdqa [{colors_ptr}], xmm4",
-            "movdqa [{colors_ptr} + 16], xmm5",
+            "movdqa [{colors_ptr}], {xmm4}",
+            "movdqa [{colors_ptr} + 16], {xmm5}",
             "add {colors_ptr}, 32",   // colors_ptr += 4 * 8
-            "movdqa [{indices_ptr}], xmm0",
-            "movdqa [{indices_ptr} + 16], xmm2",
+            "movdqa [{indices_ptr}], {xmm0}",
+            "movdqa [{indices_ptr} + 16], {xmm2}",
             "add {indices_ptr}, 32",   // indices_ptr += 4 * 8
 
             "cmp {src_ptr}, {end}",
@@ -355,9 +359,12 @@ pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             len_half = in(reg) len / 2,
             end = inout(reg) len,
             indices_ptr = out(reg) _,
-            // If this option is not used then the stack pointer is guaranteed to be suitably aligned
-            // (according to the target ABI) for a function call.
-            // We're not doing function call, so using 'nostack' here is appropriate and saves 2 instructions.
+            xmm0 = out(xmm_reg) _,
+            xmm1 = out(xmm_reg) _,
+            xmm2 = out(xmm_reg) _,
+            xmm3 = out(xmm_reg) _,
+            xmm4 = out(xmm_reg) _,
+            xmm5 = out(xmm_reg) _,
             options(nostack)
         );
     }

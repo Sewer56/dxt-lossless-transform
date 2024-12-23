@@ -19,7 +19,7 @@ pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len
 
             // Load permutation indices for vpermd (group colors/indices)
             // Colors go to low lane (0,1,2,3), indices to high lane (4,5,6,7)
-            "vmovdqu ymm0, [{perm}]",
+            "vmovdqu {ymm0}, [{perm}]",
 
             // Align the loop's instruction address to 32 bytes for AVX2
             // This isn't strictly needed, but more modern processors fetch + execute instructions in
@@ -29,21 +29,21 @@ pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len
             "2:",
 
             // Load 64 bytes
-            "vmovdqa ymm1, [{src_ptr}]",
-            "vmovdqa ymm2, [{src_ptr} + 32]",
+            "vmovdqa {ymm1}, [{src_ptr}]",
+            "vmovdqa {ymm2}, [{src_ptr} + 32]",
             "add {src_ptr}, 64",  // src += 64
 
             // Use vpermd to group colors/indices
-            "vpermd ymm3, ymm0, ymm1",
-            "vpermd ymm4, ymm0, ymm2",
+            "vpermd {ymm3}, {ymm0}, {ymm1}",
+            "vpermd {ymm4}, {ymm0}, {ymm2}",
 
             // Use vperm2i128 to get all colors in one register and all indices in another
-            "vperm2i128 ymm5, ymm3, ymm4, 0x20",  // get all colors
-            "vperm2i128 ymm6, ymm3, ymm4, 0x31",  // get all indices
+            "vperm2i128 {ymm5}, {ymm3}, {ymm4}, 0x20",  // get all colors
+            "vperm2i128 {ymm6}, {ymm3}, {ymm4}, 0x31",  // get all indices
 
             // Store results
-            "vmovdqa [{colors_ptr}], ymm5",
-            "vmovdqa [{indices_ptr}], ymm6",
+            "vmovdqa [{colors_ptr}], {ymm5}",
+            "vmovdqa [{indices_ptr}], {ymm6}",
 
             // Update pointers
             "add {colors_ptr}, 32",
@@ -53,15 +53,19 @@ pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len
             "cmp {src_ptr}, {end}",
             "jb 2b",
 
-            // Clear YMM registers
-            "vzeroupper",
-
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
             len_half = in(reg) len / 2,
             end = inout(reg) len,
             indices_ptr = out(reg) _,
             perm = in(reg) &[0, 2, 4, 6, 1, 3, 5, 7u32],
+            ymm0 = out(ymm_reg) _,
+            ymm1 = out(ymm_reg) _,
+            ymm2 = out(ymm_reg) _,
+            ymm3 = out(ymm_reg) _,
+            ymm4 = out(ymm_reg) _,
+            ymm5 = out(ymm_reg) _,
+            ymm6 = out(ymm_reg) _,
             options(nostack)
         );
     }
@@ -86,7 +90,7 @@ pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8
 
             // Load permutation indices for vpermd (group colors/indices)
             // Colors go to low lane (0,1,2,3), indices to high lane (4,5,6,7)
-            "vmovdqu ymm0, [{perm}]",
+            "vmovdqu {ymm0}, [{perm}]",
 
             // Align the loop's instruction address to 32 bytes for AVX2
             // This isn't strictly needed, but more modern processors fetch + execute instructions in
@@ -96,38 +100,35 @@ pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8
             "2:",
 
             // Load all inputs first to utilize memory pipeline
-            "vmovdqa ymm1, [{src_ptr}]",
-            "vmovdqa ymm2, [{src_ptr} + 32]",
-            "vmovdqa ymm3, [{src_ptr} + 64]",
-            "vmovdqa ymm4, [{src_ptr} + 96]",
+            "vmovdqa {ymm1}, [{src_ptr}]",
+            "vmovdqa {ymm2}, [{src_ptr} + 32]",
+            "vmovdqa {ymm3}, [{src_ptr} + 64]",
+            "vmovdqa {ymm4}, [{src_ptr} + 96]",
             "add {src_ptr}, 128",  // src += 128
 
             // Use vpermd to group colors in low lane and indices in high lane
-            "vpermd ymm5, ymm0, ymm1",
-            "vpermd ymm6, ymm0, ymm2",
-            "vpermd ymm1, ymm0, ymm3",  // second block (reuse ymm1/2)
-            "vpermd ymm2, ymm0, ymm4",
+            "vpermd {ymm5}, {ymm0}, {ymm1}",
+            "vpermd {ymm6}, {ymm0}, {ymm2}",
+            "vpermd {ymm1}, {ymm0}, {ymm3}",  // second block (reuse ymm1/2)
+            "vpermd {ymm2}, {ymm0}, {ymm4}",
 
             // Do all vperm2i128 operations
-            "vperm2i128 ymm3, ymm5, ymm6, 0x20",  // all colors
-            "vperm2i128 ymm4, ymm5, ymm6, 0x31",  // all indices
-            "vperm2i128 ymm5, ymm1, ymm2, 0x20",  // all colors
-            "vperm2i128 ymm6, ymm1, ymm2, 0x31",  // all indices
+            "vperm2i128 {ymm3}, {ymm5}, {ymm6}, 0x20",  // all colors
+            "vperm2i128 {ymm4}, {ymm5}, {ymm6}, 0x31",  // all indices
+            "vperm2i128 {ymm5}, {ymm1}, {ymm2}, 0x20",  // all colors
+            "vperm2i128 {ymm6}, {ymm1}, {ymm2}, 0x31",  // all indices
 
             // Store all results
-            "vmovdqa [{colors_ptr}], ymm3",      // Store all colors
-            "vmovdqa [{colors_ptr} + 32], ymm5",
+            "vmovdqa [{colors_ptr}], {ymm3}",      // Store all colors
+            "vmovdqa [{colors_ptr} + 32], {ymm5}",
             "add {colors_ptr}, 64",
-            "vmovdqa [{indices_ptr}], ymm4",      // Store all indices
-            "vmovdqa [{indices_ptr} + 32], ymm6",
+            "vmovdqa [{indices_ptr}], {ymm4}",      // Store all indices
+            "vmovdqa [{indices_ptr} + 32], {ymm6}",
             "add {indices_ptr}, 64",
 
             // Compare against end address and loop if not done
             "cmp {src_ptr}, {end}",
             "jb 2b",
-
-            // Clear YMM registers
-            "vzeroupper",
 
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
@@ -135,6 +136,13 @@ pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8
             end = inout(reg) len,
             indices_ptr = out(reg) _,
             perm = in(reg) &[0, 2, 4, 6, 1, 3, 5, 7u32],
+            ymm0 = out(ymm_reg) _,
+            ymm1 = out(ymm_reg) _,
+            ymm2 = out(ymm_reg) _,
+            ymm3 = out(ymm_reg) _,
+            ymm4 = out(ymm_reg) _,
+            ymm5 = out(ymm_reg) _,
+            ymm6 = out(ymm_reg) _,
             options(nostack)
         );
     }
@@ -216,9 +224,6 @@ pub unsafe fn permute_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8
             "cmp {src_ptr}, {end}",
             "jb 2b",
 
-            // Clear YMM registers
-            "vzeroupper",
-
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
             len_half = in(reg) len / 2,
@@ -248,8 +253,8 @@ pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len:
             "add {indices_ptr}, {len_half}",
 
             // Load gather indices into lower ymm registers
-            "vmovdqu ymm0, [{color_idx}]",  // for colors (0,2,4,6,8,10,12,14)
-            "vmovdqu ymm1, [{index_idx}]",  // for indices (1,3,5,7,9,11,13,15)
+            "vmovdqu {ymm0}, [{color_idx}]",  // for colors (0,2,4,6,8,10,12,14)
+            "vmovdqu {ymm1}, [{index_idx}]",  // for indices (1,3,5,7,9,11,13,15)
 
             // Align the loop's instruction address to 32 bytes for AVX2
             // This isn't strictly needed, but more modern processors fetch + execute instructions in
@@ -259,26 +264,23 @@ pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len:
             "2:",
 
             // Gather colors using even indices
-            "vpcmpeqd ymm2, ymm2, ymm2",
-            "vpgatherdd ymm3, [{src_ptr} + ymm0 * 4], ymm2",  // scale = 4 for 32-bit elements
+            "vpcmpeqd {ymm2}, {ymm2}, {ymm2}",
+            "vpgatherdd {ymm3}, [{src_ptr} + {ymm0} * 4], {ymm2}",  // scale = 4 for 32-bit elements
 
             // Gather indices using odd indices
-            "vpcmpeqd ymm2, ymm2, ymm2",
-            "vpgatherdd ymm4, [{src_ptr} + ymm1 * 4], ymm2",  // scale = 4 for 32-bit elements
+            "vpcmpeqd {ymm2}, {ymm2}, {ymm2}",
+            "vpgatherdd {ymm4}, [{src_ptr} + {ymm1} * 4], {ymm2}",  // scale = 4 for 32-bit elements
             "add {src_ptr}, 64",   // src += 64
 
             // Store results
-            "vmovdqa [{colors_ptr}], ymm3",
+            "vmovdqa [{colors_ptr}], {ymm3}",
             "add {colors_ptr}, 32",
-            "vmovdqa [{indices_ptr}], ymm4",
+            "vmovdqa [{indices_ptr}], {ymm4}",
             "add {indices_ptr}, 32",
 
             // Compare against end address and loop if not done
             "cmp {src_ptr}, {end}",
             "jb 2b",
-
-            // Clear YMM registers
-            "vzeroupper",
 
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
@@ -287,6 +289,11 @@ pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len:
             indices_ptr = out(reg) _,
             color_idx = in(reg) &[0, 2, 4, 6, 8, 10, 12, 14u32],
             index_idx = in(reg) &[1, 3, 5, 7, 9, 11, 13, 15u32],
+            ymm0 = out(ymm_reg) _,
+            ymm1 = out(ymm_reg) _,
+            ymm2 = out(ymm_reg) _,
+            ymm3 = out(ymm_reg) _,
+            ymm4 = out(ymm_reg) _,
             options(nostack)
         );
     }
@@ -374,9 +381,6 @@ pub unsafe fn gather_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: us
             "pop r12",
             "pop rbx",
 
-            // Clear YMM registers
-            "vzeroupper",
-
             src = in(reg) input_ptr,
             dst = in(reg) output_ptr,
             len = in(reg) len,
@@ -414,38 +418,39 @@ pub unsafe fn shuffle_permute(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             "2:",
 
             // Load 64 bytes
-            "vmovdqa ymm0, [{src_ptr}]",
-            "vmovdqa ymm1, [{src_ptr} + 32]",
+            "vmovdqa {ymm0}, [{src_ptr}]",
+            "vmovdqa {ymm1}, [{src_ptr} + 32]",
 
             // Update source pointer early
             "add {src_ptr}, 64",  // src += 64
 
             // Do shuffles
-            "vshufps ymm2, ymm0, ymm1, 136",  // colors (0b10001000)
-            "vshufps ymm3, ymm0, ymm1, 221",  // indices (0b11011101)
+            "vshufps {ymm2}, {ymm0}, {ymm1}, 136",  // colors (0b10001000)
+            "vshufps {ymm3}, {ymm0}, {ymm1}, 221",  // indices (0b11011101)
 
             // Do permutes
-            "vpermpd ymm2, ymm2, 216",  // arrange colors (0b11011000)
-            "vpermpd ymm3, ymm3, 216",  // arrange indices (0b11011000)
+            "vpermpd {ymm2}, {ymm2}, 216",  // arrange colors (0b11011000)
+            "vpermpd {ymm3}, {ymm3}, 216",  // arrange indices (0b11011000)
 
             // Store results
-            "vmovdqa [{colors_ptr}], ymm2",  // Store colors
+            "vmovdqa [{colors_ptr}], {ymm2}",  // Store colors
             "add {colors_ptr}, 32",  // colors_ptr += 32
-            "vmovdqa [{indices_ptr}], ymm3",      // Store indices
+            "vmovdqa [{indices_ptr}], {ymm3}",      // Store indices
             "add {indices_ptr}, 32",      // indices_ptr += 32
 
             // Compare against end address and loop if not done
             "cmp {src_ptr}, {end}",
             "jb 2b",
 
-            // Clear YMM registers
-            "vzeroupper",
-
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
             len_half = in(reg) len / 2,
             end = inout(reg) len,
             indices_ptr = out(reg) _,
+            ymm0 = out(ymm_reg) _,
+            ymm1 = out(ymm_reg) _,
+            ymm2 = out(ymm_reg) _,
+            ymm3 = out(ymm_reg) _,
             options(nostack)
         );
     }
@@ -480,31 +485,31 @@ pub unsafe fn shuffle_permute_unroll_2(
             "2:",
 
             // Load all 128 bytes first to utilize memory pipeline
-            "vmovdqa ymm0, [{src_ptr}]",
-            "vmovdqa ymm1, [{src_ptr} + 32]",
-            "vmovdqa ymm4, [{src_ptr} + 64]",
-            "vmovdqa ymm5, [{src_ptr} + 96]",
+            "vmovdqa {ymm0}, [{src_ptr}]",
+            "vmovdqa {ymm1}, [{src_ptr} + 32]",
+            "vmovdqa {ymm4}, [{src_ptr} + 64]",
+            "vmovdqa {ymm5}, [{src_ptr} + 96]",
             "add {src_ptr}, 128",  // src += 128
 
             // Do all shuffles together to utilize shuffle units
-            "vshufps ymm2, ymm0, ymm1, 136",  // colors (0b10001000)
-            "vshufps ymm3, ymm0, ymm1, 221",  // indices (0b11011101)
-            "vshufps ymm6, ymm4, ymm5, 136",  // colors (0b10001000)
-            "vshufps ymm7, ymm4, ymm5, 221",  // indices (0b11011101)
+            "vshufps {ymm2}, {ymm0}, {ymm1}, 136",  // colors (0b10001000)
+            "vshufps {ymm3}, {ymm0}, {ymm1}, 221",  // indices (0b11011101)
+            "vshufps {ymm6}, {ymm4}, {ymm5}, 136",  // colors (0b10001000)
+            "vshufps {ymm7}, {ymm4}, {ymm5}, 221",  // indices (0b11011101)
 
             // Group permutes together
-            "vpermpd ymm2, ymm2, 216",  // arrange colors (0b11011000)
-            "vpermpd ymm3, ymm3, 216",  // arrange indices (0b11011000)
-            "vpermpd ymm6, ymm6, 216",  // arrange colors (0b11011000)
-            "vpermpd ymm7, ymm7, 216",  // arrange indices (0b11011000)
+            "vpermpd {ymm2}, {ymm2}, 216",  // arrange colors (0b11011000)
+            "vpermpd {ymm3}, {ymm3}, 216",  // arrange indices (0b11011000)
+            "vpermpd {ymm6}, {ymm6}, 216",  // arrange colors (0b11011000)
+            "vpermpd {ymm7}, {ymm7}, 216",  // arrange indices (0b11011000)
 
             // Store all results together to utilize store pipeline
-            "vmovdqa [{colors_ptr}], ymm2",      // Store colors
-            "vmovdqa [{colors_ptr} + 32], ymm6",  // Store colors
+            "vmovdqa [{colors_ptr}], {ymm2}",      // Store colors
+            "vmovdqa [{colors_ptr} + 32], {ymm6}",  // Store colors
             "add {colors_ptr}, 64",   // colors_ptr += 64
 
-            "vmovdqa [{indices_ptr}], ymm3",      // Store indices
-            "vmovdqa [{indices_ptr} + 32], ymm7",  // Store indices
+            "vmovdqa [{indices_ptr}], {ymm3}",      // Store indices
+            "vmovdqa [{indices_ptr} + 32], {ymm7}",  // Store indices
             "add {indices_ptr}, 64",   // indices_ptr += 64
 
             // Compare against end address and loop if not done
@@ -519,6 +524,14 @@ pub unsafe fn shuffle_permute_unroll_2(
             len_half = in(reg) len / 2,
             end = inout(reg) len,
             indices_ptr = out(reg) _,
+            ymm0 = out(ymm_reg) _,
+            ymm1 = out(ymm_reg) _,
+            ymm2 = out(ymm_reg) _,
+            ymm3 = out(ymm_reg) _,
+            ymm4 = out(ymm_reg) _,
+            ymm5 = out(ymm_reg) _,
+            ymm6 = out(ymm_reg) _,
+            ymm7 = out(ymm_reg) _,
             options(nostack)
         );
     }
@@ -554,63 +567,76 @@ pub unsafe fn shuffle_permute_unroll_4(
             "2:",
 
             // Load all 256 bytes in sequence to maximize memory throughput
-            "vmovdqa ymm0, [{src_ptr}]",
-            "vmovdqa ymm1, [{src_ptr} + 32]",
-            "vmovdqa ymm4, [{src_ptr} + 64]",
-            "vmovdqa ymm5, [{src_ptr} + 96]",
-            "vmovdqa ymm8, [{src_ptr} + 128]",
-            "vmovdqa ymm9, [{src_ptr} + 160]",
-            "vmovdqa ymm12, [{src_ptr} + 192]",
-            "vmovdqa ymm13, [{src_ptr} + 224]",
+            "vmovdqa {ymm0}, [{src_ptr}]",
+            "vmovdqa {ymm1}, [{src_ptr} + 32]",
+            "vmovdqa {ymm4}, [{src_ptr} + 64]",
+            "vmovdqa {ymm5}, [{src_ptr} + 96]",
+            "vmovdqa {ymm8}, [{src_ptr} + 128]",
+            "vmovdqa {ymm9}, [{src_ptr} + 160]",
+            "vmovdqa {ymm12}, [{src_ptr} + 192]",
+            "vmovdqa {ymm13}, [{src_ptr} + 224]",
             "add {src_ptr}, 256",  // src += 256
 
             // Group all shuffles together to better utilize shuffle units
-            "vshufps ymm2, ymm0, ymm1, 136",   // colors block 1
-            "vshufps ymm3, ymm0, ymm1, 221",   // indices block 1
-            "vshufps ymm6, ymm4, ymm5, 136",   // colors block 2
-            "vshufps ymm7, ymm4, ymm5, 221",   // indices block 2
-            "vshufps ymm10, ymm8, ymm9, 136",  // colors block 3
-            "vshufps ymm11, ymm8, ymm9, 221",  // indices block 3
-            "vshufps ymm14, ymm12, ymm13, 136", // colors block 4
-            "vshufps ymm15, ymm12, ymm13, 221", // indices block 4
+            "vshufps {ymm2}, {ymm0}, {ymm1}, 136",   // colors block 1
+            "vshufps {ymm3}, {ymm0}, {ymm1}, 221",   // indices block 1
+            "vshufps {ymm6}, {ymm4}, {ymm5}, 136",   // colors block 2
+            "vshufps {ymm7}, {ymm4}, {ymm5}, 221",   // indices block 2
+            "vshufps {ymm10}, {ymm8}, {ymm9}, 136",  // colors block 3
+            "vshufps {ymm11}, {ymm8}, {ymm9}, 221",  // indices block 3
+            "vshufps {ymm14}, {ymm12}, {ymm13}, 136", // colors block 4
+            "vshufps {ymm15}, {ymm12}, {ymm13}, 221", // indices block 4
 
             // Group permutes together
-            "vpermpd ymm2, ymm2, 216",   // arrange colors block 1
-            "vpermpd ymm3, ymm3, 216",   // arrange indices block 1
-            "vpermpd ymm6, ymm6, 216",   // arrange colors block 2
-            "vpermpd ymm7, ymm7, 216",   // arrange indices block 2
-            "vpermpd ymm10, ymm10, 216", // arrange colors block 3
-            "vpermpd ymm11, ymm11, 216", // arrange indices block 3
-            "vpermpd ymm14, ymm14, 216", // arrange colors block 4
-            "vpermpd ymm15, ymm15, 216", // arrange indices block 4
+            "vpermpd {ymm2}, {ymm2}, 216",   // arrange colors block 1
+            "vpermpd {ymm3}, {ymm3}, 216",   // arrange indices block 1
+            "vpermpd {ymm6}, {ymm6}, 216",   // arrange colors block 2
+            "vpermpd {ymm7}, {ymm7}, 216",   // arrange indices block 2
+            "vpermpd {ymm10}, {ymm10}, 216", // arrange colors block 3
+            "vpermpd {ymm11}, {ymm11}, 216", // arrange indices block 3
+            "vpermpd {ymm14}, {ymm14}, 216", // arrange colors block 4
+            "vpermpd {ymm15}, {ymm15}, 216", // arrange indices block 4
 
             // Group all stores together to maximize store throughput
             // Store colors
-            "vmovdqa [{colors_ptr}], ymm2",
-            "vmovdqa [{colors_ptr} + 32], ymm6",
-            "vmovdqa [{colors_ptr} + 64], ymm10",
-            "vmovdqa [{colors_ptr} + 96], ymm14",
+            "vmovdqa [{colors_ptr}], {ymm2}",
+            "vmovdqa [{colors_ptr} + 32], {ymm6}",
+            "vmovdqa [{colors_ptr} + 64], {ymm10}",
+            "vmovdqa [{colors_ptr} + 96], {ymm14}",
             "add {colors_ptr}, 128",  // colors_ptr += 128
 
             // Store indices
-            "vmovdqa [{indices_ptr}], ymm3",
-            "vmovdqa [{indices_ptr} + 32], ymm7",
-            "vmovdqa [{indices_ptr} + 64], ymm11",
-            "vmovdqa [{indices_ptr} + 96], ymm15",
+            "vmovdqa [{indices_ptr}], {ymm3}",
+            "vmovdqa [{indices_ptr} + 32], {ymm7}",
+            "vmovdqa [{indices_ptr} + 64], {ymm11}",
+            "vmovdqa [{indices_ptr} + 96], {ymm15}",
             "add {indices_ptr}, 128",  // indices_ptr += 128
 
             // Compare against end address and loop if not done
             "cmp {src_ptr}, {end}",
             "jb 2b",
 
-            // Clear YMM registers
-            "vzeroupper",
-
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
             len_half = in(reg) len / 2,
             end = inout(reg) len,
             indices_ptr = out(reg) _,
+            ymm0 = out(ymm_reg) _,
+            ymm1 = out(ymm_reg) _,
+            ymm2 = out(ymm_reg) _,
+            ymm3 = out(ymm_reg) _,
+            ymm4 = out(ymm_reg) _,
+            ymm5 = out(ymm_reg) _,
+            ymm6 = out(ymm_reg) _,
+            ymm7 = out(ymm_reg) _,
+            ymm8 = out(ymm_reg) _,
+            ymm9 = out(ymm_reg) _,
+            ymm10 = out(ymm_reg) _,
+            ymm11 = out(ymm_reg) _,
+            ymm12 = out(ymm_reg) _,
+            ymm13 = out(ymm_reg) _,
+            ymm14 = out(ymm_reg) _,
+            ymm15 = out(ymm_reg) _,
             options(nostack)
         );
     }

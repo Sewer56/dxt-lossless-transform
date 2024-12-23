@@ -43,8 +43,8 @@
  * or outputting it all to a single buffer. Outputting all to single buffer is faster.
  */
 
+pub mod detransform;
 pub mod transform;
-pub use transform::*;
 
 #[cfg(test)]
 mod testutils {

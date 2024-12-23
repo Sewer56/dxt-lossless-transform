@@ -17,7 +17,7 @@ pub mod avx2;
 pub use avx2::*;
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
 
     use super::*;
     use crate::raw::dxt1::testutils::allocate_align_64;

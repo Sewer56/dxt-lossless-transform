@@ -308,7 +308,6 @@ pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8,
 /// - len is at least divisible by 64
 /// - pointers must be properly aligned for SSE operations
 #[allow(unused_assignments)]
-#[no_mangle]
 pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
     debug_assert!(len % 64 == 0);
 

@@ -516,9 +516,6 @@ pub unsafe fn shuffle_permute_unroll_2(
             "cmp {src_ptr}, {end}",
             "jb 2b",
 
-            // Clear YMM registers
-            "vzeroupper",
-
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
             len_half = in(reg) len / 2,

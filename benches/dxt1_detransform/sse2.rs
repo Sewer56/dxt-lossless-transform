@@ -1,5 +1,5 @@
 use criterion::*;
-use dxt_lossless_transform::raw::detransform::*;
+use dxt_lossless_transform::raw::detransform::sse2::*;
 use safe_allocator_api::RawAlloc;
 
 fn bench_unpck(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
@@ -40,7 +40,6 @@ pub(crate) fn run_benchmarks(
     size: usize,
     important_benches_only: bool,
 ) {
-    #[cfg(target_arch = "x86")]
     group.bench_with_input(
         BenchmarkId::new("sse2 unpck unroll 2", size),
         &size,
@@ -58,12 +57,5 @@ pub(crate) fn run_benchmarks(
         group.bench_with_input(BenchmarkId::new("sse2 unpck", size), &size, |b, _| {
             bench_unpck(b, input, output)
         });
-
-        #[cfg(not(target_arch = "x86"))]
-        group.bench_with_input(
-            BenchmarkId::new("sse2 unpck unroll 2", size),
-            &size,
-            |b, _| bench_unpck_unroll_2(b, input, output),
-        );
     }
 }

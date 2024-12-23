@@ -8,6 +8,9 @@ license-file = "LICENSE"
 include = ["src/**/*"]
 readme = "README.MD"
 
+[lib]
+bench = false
+
 [features]
 default = ["std"]
 std = []
@@ -53,3 +56,6 @@ harness = false
 name = "dxt1_detransform"
 path = "benches/dxt1_detransform/main.rs"
 harness = false
+
+[workspace.package.metadata.criterion]
+measurement_time = 10

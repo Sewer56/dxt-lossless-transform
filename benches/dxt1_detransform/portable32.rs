@@ -55,23 +55,23 @@ pub(crate) fn run_benchmarks(
         |b, _| bench_portable32(b, input, output),
     );
 
+    group.bench_with_input(
+        BenchmarkId::new("portable32 unroll-4", size),
+        &size,
+        |b, _| bench_portable32_unroll_4(b, input, output),
+    );
+
+    group.bench_with_input(
+        BenchmarkId::new("portable32 unroll-8", size),
+        &size,
+        |b, _| bench_portable32_unroll_8(b, input, output),
+    );
+
     if !important_benches_only {
         group.bench_with_input(
             BenchmarkId::new("portable32 unroll-2", size),
             &size,
             |b, _| bench_portable32_unroll_2(b, input, output),
-        );
-
-        group.bench_with_input(
-            BenchmarkId::new("portable32 unroll-4", size),
-            &size,
-            |b, _| bench_portable32_unroll_4(b, input, output),
-        );
-
-        group.bench_with_input(
-            BenchmarkId::new("portable32 unroll-8", size),
-            &size,
-            |b, _| bench_portable32_unroll_8(b, input, output),
         );
     }
 }

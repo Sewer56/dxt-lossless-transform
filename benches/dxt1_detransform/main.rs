@@ -1,4 +1,4 @@
-use core::alloc::Layout;
+use core::{alloc::Layout, time::Duration};
 use criterion::{criterion_group, criterion_main, Criterion};
 use safe_allocator_api::RawAlloc;
 
@@ -41,13 +41,15 @@ pub(crate) fn generate_test_data(num_blocks: usize) -> RawAlloc {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let mut group = c.benchmark_group("DXT1 Transform Implementations");
+    let mut group = c.benchmark_group("DXT1 Untransform Implementations");
     let size = 16384; // 512x512 px = 16384 blocks
     let input = generate_test_data(size);
     let mut output = allocate_align_64(input.len());
-    let important_benches_only = false; // Set to false to enable extra benches, unrolls, etc.
+    let important_benches_only = true; // Set to false to enable extra benches, unrolls, etc.
 
     group.throughput(criterion::Throughput::Bytes(size as u64));
+    group.warm_up_time(Duration::from_secs(10));
+    group.measurement_time(Duration::from_secs(30));
 
     // Run architecture-specific benchmarks
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]

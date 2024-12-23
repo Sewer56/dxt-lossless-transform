@@ -5,7 +5,7 @@ pub use portable32::*;
 pub mod sse2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use sse2::*;
+pub mod avx2;
 
 #[cfg(test)]
 mod tests {

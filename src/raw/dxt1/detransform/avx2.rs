@@ -140,7 +140,6 @@ pub unsafe fn unpck_detransform_unroll_2(
 /// Note: This function requires x86_64 due to the number of registers used
 #[cfg(target_arch = "x86_64")]
 #[allow(unused_assignments)]
-#[no_mangle]
 pub unsafe fn unpck_detransform_unroll_4(
     mut input_ptr: *const u8,
     mut output_ptr: *mut u8,

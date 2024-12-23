@@ -107,7 +107,6 @@ pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len
 /// - output_ptr must be valid for writes of len bytes
 /// - len is at least divisible by 64
 /// - pointers must be properly aligned for SSE operations
-#[inline(never)]
 #[allow(unused_assignments)]
 pub unsafe fn punpckhqdq_unroll_4(
     mut input_ptr: *const u8,
@@ -183,7 +182,6 @@ pub unsafe fn punpckhqdq_unroll_4(
 /// - output_ptr must be valid for writes of len bytes
 /// - len is at least divisible by 32
 /// - pointers must be properly aligned for SSE operations
-#[inline(never)]
 #[allow(unused_assignments)]
 pub unsafe fn punpckhqdq_unroll_2(
     mut input_ptr: *const u8,
@@ -306,7 +304,6 @@ pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8,
 /// - output_ptr must be valid for writes of len bytes
 /// - len is at least divisible by 64
 /// - pointers must be properly aligned for SSE operations
-#[inline(never)]
 #[allow(unused_assignments)]
 pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
     debug_assert!(len % 64 == 0);

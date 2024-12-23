@@ -48,3 +48,8 @@ panic = "abort"
 name = "dxt1_transform"
 path = "benches/dxt1_transform/main.rs"
 harness = false
+
+[[bench]]
+name = "dxt1_detransform"
+path = "benches/dxt1_detransform/main.rs"
+harness = false

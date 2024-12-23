@@ -14,14 +14,17 @@ pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len
         asm!(
             // Calculate end address
             "add {end}, {src_ptr}",  // end = src + len
-
-            // Calculate second destination pointer
             "mov {indices_ptr}, {colors_ptr}",
             "add {indices_ptr}, {len_half}",
 
-            // Load permutation indices into low register
+            // Load permutation indices for vpermd (group colors/indices)
+            // Colors go to low lane (0,1,2,3), indices to high lane (4,5,6,7)
             "vmovdqu ymm0, [{perm}]",
 
+            // Align the loop's instruction address to 32 bytes for AVX2
+            // This isn't strictly needed, but more modern processors fetch + execute instructions in
+            // 32-byte chunks, as opposed to older ones in 16-byte chunks. Therefore, we can safely-ish
+            // assume a processor with AVX2 will be one of those.
             ".p2align 5",
             "2:",
 
@@ -78,14 +81,17 @@ pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8
         asm!(
             // Calculate end address
             "add {end}, {src_ptr}",  // end = src + len
-
-            // Calculate second destination pointer
             "mov {indices_ptr}, {colors_ptr}",
             "add {indices_ptr}, {len_half}",
 
-            // Load permutation indices into low register
+            // Load permutation indices for vpermd (group colors/indices)
+            // Colors go to low lane (0,1,2,3), indices to high lane (4,5,6,7)
             "vmovdqu ymm0, [{perm}]",
 
+            // Align the loop's instruction address to 32 bytes for AVX2
+            // This isn't strictly needed, but more modern processors fetch + execute instructions in
+            // 32-byte chunks, as opposed to older ones in 16-byte chunks. Therefore, we can safely-ish
+            // assume a processor with AVX2 will be one of those.
             ".p2align 5",
             "2:",
 
@@ -96,17 +102,17 @@ pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8
             "vmovdqa ymm4, [{src_ptr} + 96]",
             "add {src_ptr}, 128",  // src += 128
 
-            // Do all vpermd operations
-            "vpermd ymm5, ymm0, ymm1",  // first block
+            // Use vpermd to group colors in low lane and indices in high lane
+            "vpermd ymm5, ymm0, ymm1",
             "vpermd ymm6, ymm0, ymm2",
             "vpermd ymm1, ymm0, ymm3",  // second block (reuse ymm1/2)
             "vpermd ymm2, ymm0, ymm4",
 
             // Do all vperm2i128 operations
-            "vperm2i128 ymm3, ymm5, ymm6, 0x20",  // all colors first block
-            "vperm2i128 ymm4, ymm5, ymm6, 0x31",  // all indices first block
-            "vperm2i128 ymm5, ymm1, ymm2, 0x20",  // all colors second block
-            "vperm2i128 ymm6, ymm1, ymm2, 0x31",  // all indices second block
+            "vperm2i128 ymm3, ymm5, ymm6, 0x20",  // all colors
+            "vperm2i128 ymm4, ymm5, ymm6, 0x31",  // all indices
+            "vperm2i128 ymm5, ymm1, ymm2, 0x20",  // all colors
+            "vperm2i128 ymm6, ymm1, ymm2, 0x31",  // all indices
 
             // Store all results
             "vmovdqa [{colors_ptr}], ymm3",      // Store all colors
@@ -149,15 +155,16 @@ pub unsafe fn permute_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8
         asm!(
             // Calculate end address
             "add {end}, {src_ptr}",  // end = src + len
-
-            // Calculate second destination pointer
             "mov {indices_ptr}, {colors_ptr}",
             "add {indices_ptr}, {len_half}",
 
             // Load permutation indices for vpermd
             "vmovdqu ymm15, [{perm}]",
 
-            // Align the loop's instruction address to 32 bytes
+            // Align the loop's instruction address to 32 bytes for AVX2
+            // This isn't strictly needed, but more modern processors fetch + execute instructions in
+            // 32-byte chunks, as opposed to older ones in 16-byte chunks. Therefore, we can safely-ish
+            // assume a processor with AVX2 will be one of those.
             ".p2align 5",
             "2:",
 
@@ -172,7 +179,7 @@ pub unsafe fn permute_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8
             "vmovdqa ymm13, [{src_ptr} + 224]",
             "add {src_ptr}, 256",  // src += 256
 
-            // Do all vpermd operations
+            // Use vpermd to group colors in low lane and indices in high lane
             "vpermd ymm2, ymm15, ymm0",
             "vpermd ymm3, ymm15, ymm1",
             "vpermd ymm6, ymm15, ymm4",
@@ -183,14 +190,14 @@ pub unsafe fn permute_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8
             "vpermd ymm0, ymm15, ymm13",
 
             // Do all vperm2i128 operations
-            "vperm2i128 ymm1, ymm2, ymm3, 0x20",
-            "vperm2i128 ymm2, ymm2, ymm3, 0x31",
-            "vperm2i128 ymm3, ymm6, ymm7, 0x20",
-            "vperm2i128 ymm4, ymm6, ymm7, 0x31",
-            "vperm2i128 ymm5, ymm10, ymm11, 0x20",
-            "vperm2i128 ymm6, ymm10, ymm11, 0x31",
-            "vperm2i128 ymm7, ymm14, ymm0, 0x20",
-            "vperm2i128 ymm8, ymm14, ymm0, 0x31",
+            "vperm2i128 ymm1, ymm2, ymm3, 0x20", // all colors
+            "vperm2i128 ymm2, ymm2, ymm3, 0x31", // all indices
+            "vperm2i128 ymm3, ymm6, ymm7, 0x20", // all colors
+            "vperm2i128 ymm4, ymm6, ymm7, 0x31", // all indices
+            "vperm2i128 ymm5, ymm10, ymm11, 0x20", // all colors
+            "vperm2i128 ymm6, ymm10, ymm11, 0x31", // all indices
+            "vperm2i128 ymm7, ymm14, ymm0, 0x20", // all colors
+            "vperm2i128 ymm8, ymm14, ymm0, 0x31", // all indices
 
             // Store all results
             "vmovdqa [{colors_ptr}], ymm1",
@@ -237,8 +244,6 @@ pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len:
         asm!(
             // Calculate end address
             "add {end}, {src_ptr}",  // end = src + len
-
-            // Calculate second destination pointer
             "mov {indices_ptr}, {colors_ptr}",
             "add {indices_ptr}, {len_half}",
 
@@ -246,6 +251,10 @@ pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len:
             "vmovdqu ymm0, [{color_idx}]",  // for colors (0,2,4,6,8,10,12,14)
             "vmovdqu ymm1, [{index_idx}]",  // for indices (1,3,5,7,9,11,13,15)
 
+            // Align the loop's instruction address to 32 bytes for AVX2
+            // This isn't strictly needed, but more modern processors fetch + execute instructions in
+            // 32-byte chunks, as opposed to older ones in 16-byte chunks. Therefore, we can safely-ish
+            // assume a processor with AVX2 will be one of those.
             ".p2align 5",
             "2:",
 
@@ -313,6 +322,10 @@ pub unsafe fn gather_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: us
             // Load gather indices for block indices (every odd index)
             "vmovdqu ymm14, [{index_idx}]",
 
+            // Align the loop's instruction address to 32 bytes for AVX2
+            // This isn't strictly needed, but more modern processors fetch + execute instructions in
+            // 32-byte chunks, as opposed to older ones in 16-byte chunks. Therefore, we can safely-ish
+            // assume a processor with AVX2 will be one of those.
             ".p2align 5",
             "2:",
 
@@ -390,8 +403,6 @@ pub unsafe fn shuffle_permute(mut input_ptr: *const u8, mut output_ptr: *mut u8,
         asm!(
             // Calculate end address
             "add {end}, {src_ptr}", // end = src + len
-
-            // Calculate second destination pointer
             "mov {indices_ptr}, {colors_ptr}",
             "add {indices_ptr}, {len_half}",
 
@@ -458,8 +469,6 @@ pub unsafe fn shuffle_permute_unroll_2(
         asm!(
             // Calculate end address
             "add {end}, {src_ptr}", // end = src + len
-
-            // Calculate second destination pointer
             "mov {indices_ptr}, {colors_ptr}",
             "add {indices_ptr}, {len_half}",
 
@@ -534,8 +543,6 @@ pub unsafe fn shuffle_permute_unroll_4(
         asm!(
             // Calculate end address
             "add {end}, {src_ptr}", // end = src + len
-
-            // Calculate second destination pointer
             "mov {indices_ptr}, {colors_ptr}",
             "add {indices_ptr}, {len_half}",
 

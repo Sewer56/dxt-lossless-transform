@@ -4,6 +4,7 @@
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
 /// - pointers must be properly aligned for u64/u32 access
+#[no_mangle]
 pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
 
@@ -197,6 +198,7 @@ mod tests {
         name: &'static str,
         func: DetransformFn,
         min_blocks: usize,
+        many_blocks: usize,
     }
 
     #[rstest]
@@ -205,6 +207,7 @@ mod tests {
             name: "no_unroll",
             func: u32_detransform,
             min_blocks: 1,
+            many_blocks: 1024,
         }
     )]
     #[case::unroll_2(
@@ -212,6 +215,7 @@ mod tests {
             name: "unroll_2",
             func: u32_detransform_unroll_2,
             min_blocks: 2,
+            many_blocks: 1024,
         }
     )]
     #[case::unroll_4(
@@ -219,6 +223,7 @@ mod tests {
             name: "unroll_4",
             func: u32_detransform_unroll_4,
             min_blocks: 4,
+            many_blocks: 1024,
         }
     )]
     #[case::unroll_8(
@@ -226,10 +231,18 @@ mod tests {
             name: "unroll_8",
             func: u32_detransform_unroll_8,
             min_blocks: 8,
+            many_blocks: 1024,
         }
     )]
     fn test_detransform(#[case] test_case: TestCase) {
-        let &num_blocks = &test_case.min_blocks;
+        // Test with minimum blocks
+        test_blocks(&test_case, test_case.min_blocks);
+
+        // Test with many blocks
+        test_blocks(&test_case, test_case.many_blocks);
+    }
+
+    fn test_blocks(test_case: &TestCase, num_blocks: usize) {
         let original = generate_dxt1_test_data(num_blocks);
         let mut transformed = vec![0u8; original.len()];
         let mut reconstructed = vec![0u8; original.len()];

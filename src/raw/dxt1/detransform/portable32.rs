@@ -42,33 +42,31 @@ pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
 pub unsafe fn u32_detransform_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
-    unsafe {
-        let mut colours_ptr = input_ptr as *const u32;
-        let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
-        let max_input = input_ptr.add(len) as *const u32;
+    let mut colours_ptr = input_ptr as *const u32;
+    let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
+    let max_input = input_ptr.add(len) as *const u32;
 
-        let mut output_ptr = output_ptr;
+    let mut output_ptr = output_ptr;
 
-        while indices_ptr < max_input {
-            // Load indices first and advance pointer immediately
-            let index_value1 = *indices_ptr;
-            let index_value2 = *indices_ptr.add(1);
-            indices_ptr = indices_ptr.add(2);
+    while indices_ptr < max_input {
+        // Load indices first and advance pointer immediately
+        let index_value1 = *indices_ptr;
+        let index_value2 = *indices_ptr.add(1);
+        indices_ptr = indices_ptr.add(2);
 
-            // Load colors after indices
-            let color_value1 = *colours_ptr;
-            let color_value2 = *colours_ptr.add(1);
-            colours_ptr = colours_ptr.add(2);
+        // Load colors after indices
+        let color_value1 = *colours_ptr;
+        let color_value2 = *colours_ptr.add(1);
+        colours_ptr = colours_ptr.add(2);
 
-            // Write interleaved values to output
-            *(output_ptr as *mut u32) = color_value1;
-            *(output_ptr.add(4) as *mut u32) = index_value1;
+        // Write interleaved values to output
+        *(output_ptr as *mut u32) = color_value1;
+        *(output_ptr.add(4) as *mut u32) = index_value1;
 
-            *(output_ptr.add(8) as *mut u32) = color_value2;
-            *(output_ptr.add(12) as *mut u32) = index_value2;
+        *(output_ptr.add(8) as *mut u32) = color_value2;
+        *(output_ptr.add(12) as *mut u32) = index_value2;
 
-            output_ptr = output_ptr.add(16);
-        }
+        output_ptr = output_ptr.add(16);
     }
 }
 
@@ -81,43 +79,41 @@ pub unsafe fn u32_detransform_unroll_2(input_ptr: *const u8, output_ptr: *mut u8
 pub unsafe fn u32_detransform_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 32 == 0);
 
-    unsafe {
-        let mut colours_ptr = input_ptr as *const u32;
-        let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
-        let max_input = input_ptr.add(len) as *const u32;
+    let mut colours_ptr = input_ptr as *const u32;
+    let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
+    let max_input = input_ptr.add(len) as *const u32;
 
-        let mut output_ptr = output_ptr;
+    let mut output_ptr = output_ptr;
 
-        while indices_ptr < max_input {
-            // Load all indices first and advance pointer immediately
-            let index_value1 = *indices_ptr;
-            let index_value2 = *indices_ptr.add(1);
-            let index_value3 = *indices_ptr.add(2);
-            let index_value4 = *indices_ptr.add(3);
-            indices_ptr = indices_ptr.add(4);
+    while indices_ptr < max_input {
+        // Load all indices first and advance pointer immediately
+        let index_value1 = *indices_ptr;
+        let index_value2 = *indices_ptr.add(1);
+        let index_value3 = *indices_ptr.add(2);
+        let index_value4 = *indices_ptr.add(3);
+        indices_ptr = indices_ptr.add(4);
 
-            // Load all colors after indices
-            let color_value1 = *colours_ptr;
-            let color_value2 = *colours_ptr.add(1);
-            let color_value3 = *colours_ptr.add(2);
-            let color_value4 = *colours_ptr.add(3);
-            colours_ptr = colours_ptr.add(4);
+        // Load all colors after indices
+        let color_value1 = *colours_ptr;
+        let color_value2 = *colours_ptr.add(1);
+        let color_value3 = *colours_ptr.add(2);
+        let color_value4 = *colours_ptr.add(3);
+        colours_ptr = colours_ptr.add(4);
 
-            // Write all values to output in order
-            *(output_ptr as *mut u32) = color_value1;
-            *(output_ptr.add(4) as *mut u32) = index_value1;
+        // Write all values to output in order
+        *(output_ptr as *mut u32) = color_value1;
+        *(output_ptr.add(4) as *mut u32) = index_value1;
 
-            *(output_ptr.add(8) as *mut u32) = color_value2;
-            *(output_ptr.add(12) as *mut u32) = index_value2;
+        *(output_ptr.add(8) as *mut u32) = color_value2;
+        *(output_ptr.add(12) as *mut u32) = index_value2;
 
-            *(output_ptr.add(16) as *mut u32) = color_value3;
-            *(output_ptr.add(20) as *mut u32) = index_value3;
+        *(output_ptr.add(16) as *mut u32) = color_value3;
+        *(output_ptr.add(20) as *mut u32) = index_value3;
 
-            *(output_ptr.add(24) as *mut u32) = color_value4;
-            *(output_ptr.add(28) as *mut u32) = index_value4;
+        *(output_ptr.add(24) as *mut u32) = color_value4;
+        *(output_ptr.add(28) as *mut u32) = index_value4;
 
-            output_ptr = output_ptr.add(32);
-        }
+        output_ptr = output_ptr.add(32);
     }
 }
 
@@ -130,63 +126,61 @@ pub unsafe fn u32_detransform_unroll_4(input_ptr: *const u8, output_ptr: *mut u8
 pub unsafe fn u32_detransform_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 64 == 0);
 
-    unsafe {
-        let mut colours_ptr = input_ptr as *const u32;
-        let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
-        let max_input = input_ptr.add(len) as *const u32;
+    let mut colours_ptr = input_ptr as *const u32;
+    let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
+    let max_input = input_ptr.add(len) as *const u32;
 
-        let mut output_ptr = output_ptr;
+    let mut output_ptr = output_ptr;
 
-        while indices_ptr < max_input {
-            // Load all indices first and advance pointer immediately
-            let index_value1 = *indices_ptr;
-            let index_value2 = *indices_ptr.add(1);
-            let index_value3 = *indices_ptr.add(2);
-            let index_value4 = *indices_ptr.add(3);
-            let index_value5 = *indices_ptr.add(4);
-            let index_value6 = *indices_ptr.add(5);
-            let index_value7 = *indices_ptr.add(6);
-            let index_value8 = *indices_ptr.add(7);
-            indices_ptr = indices_ptr.add(8);
+    while indices_ptr < max_input {
+        // Load all indices first and advance pointer immediately
+        let index_value1 = *indices_ptr;
+        let index_value2 = *indices_ptr.add(1);
+        let index_value3 = *indices_ptr.add(2);
+        let index_value4 = *indices_ptr.add(3);
+        let index_value5 = *indices_ptr.add(4);
+        let index_value6 = *indices_ptr.add(5);
+        let index_value7 = *indices_ptr.add(6);
+        let index_value8 = *indices_ptr.add(7);
+        indices_ptr = indices_ptr.add(8);
 
-            // Load all colors after indices
-            let color_value1 = *colours_ptr;
-            let color_value2 = *colours_ptr.add(1);
-            let color_value3 = *colours_ptr.add(2);
-            let color_value4 = *colours_ptr.add(3);
-            let color_value5 = *colours_ptr.add(4);
-            let color_value6 = *colours_ptr.add(5);
-            let color_value7 = *colours_ptr.add(6);
-            let color_value8 = *colours_ptr.add(7);
-            colours_ptr = colours_ptr.add(8);
+        // Load all colors after indices
+        let color_value1 = *colours_ptr;
+        let color_value2 = *colours_ptr.add(1);
+        let color_value3 = *colours_ptr.add(2);
+        let color_value4 = *colours_ptr.add(3);
+        let color_value5 = *colours_ptr.add(4);
+        let color_value6 = *colours_ptr.add(5);
+        let color_value7 = *colours_ptr.add(6);
+        let color_value8 = *colours_ptr.add(7);
+        colours_ptr = colours_ptr.add(8);
 
-            // Write all values to output in order
-            *(output_ptr as *mut u32) = color_value1;
-            *(output_ptr.add(4) as *mut u32) = index_value1;
+        // Write all values to output in order
+        *(output_ptr as *mut u32) = color_value1;
+        *(output_ptr.add(4) as *mut u32) = index_value1;
 
-            *(output_ptr.add(8) as *mut u32) = color_value2;
-            *(output_ptr.add(12) as *mut u32) = index_value2;
+        *(output_ptr.add(8) as *mut u32) = color_value2;
+        *(output_ptr.add(12) as *mut u32) = index_value2;
 
-            *(output_ptr.add(16) as *mut u32) = color_value3;
-            *(output_ptr.add(20) as *mut u32) = index_value3;
+        *(output_ptr.add(16) as *mut u32) = color_value3;
+        *(output_ptr.add(20) as *mut u32) = index_value3;
 
-            *(output_ptr.add(24) as *mut u32) = color_value4;
-            *(output_ptr.add(28) as *mut u32) = index_value4;
+        *(output_ptr.add(24) as *mut u32) = color_value4;
+        *(output_ptr.add(28) as *mut u32) = index_value4;
 
-            *(output_ptr.add(32) as *mut u32) = color_value5;
-            *(output_ptr.add(36) as *mut u32) = index_value5;
+        *(output_ptr.add(32) as *mut u32) = color_value5;
+        *(output_ptr.add(36) as *mut u32) = index_value5;
 
-            *(output_ptr.add(40) as *mut u32) = color_value6;
-            *(output_ptr.add(44) as *mut u32) = index_value6;
+        *(output_ptr.add(40) as *mut u32) = color_value6;
+        *(output_ptr.add(44) as *mut u32) = index_value6;
 
-            *(output_ptr.add(48) as *mut u32) = color_value7;
-            *(output_ptr.add(52) as *mut u32) = index_value7;
+        *(output_ptr.add(48) as *mut u32) = color_value7;
+        *(output_ptr.add(52) as *mut u32) = index_value7;
 
-            *(output_ptr.add(56) as *mut u32) = color_value8;
-            *(output_ptr.add(60) as *mut u32) = index_value8;
+        *(output_ptr.add(56) as *mut u32) = color_value8;
+        *(output_ptr.add(60) as *mut u32) = index_value8;
 
-            output_ptr = output_ptr.add(64);
-        }
+        output_ptr = output_ptr.add(64);
     }
 }
 

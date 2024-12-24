@@ -1,0 +1,44 @@
+[package]
+name = "dxt-lossless-transform"
+version = "0.1.0"
+edition = "2021"
+description = "Fast lossless transforms for DDS files that improve their compression ratio."
+repository = "https://github.com/Sewer56/dxt-lossless-transform"
+license-file = "LICENSE"
+include = ["src/**/*"]
+readme = "README.MD"
+
+[lib]
+bench = false
+
+[features]
+default = ["std"]
+std = []
+# See README.md for more information on using Profile-Guided Optimization.
+pgo = []
+# Feature for enabling C library exports.
+c-exports = []
+# Use CPU features selected at compile time.
+no-runtime-cpu-detection = []
+
+[dependencies]
+rstest = "0.23.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dev-dependencies]
+criterion = "0.5.1"
+safe-allocator-api = "0.3.0"
+
+[target.'cfg(unix)'.dev-dependencies]
+pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
+
+# Benchmark Stuff
+[[bench]]
+name = "dxt1_transform"
+path = "benches/dxt1_transform/main.rs"
+harness = false
+
+[[bench]]
+name = "dxt1_detransform"
+path = "benches/dxt1_detransform/main.rs"
+harness = false

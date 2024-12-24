@@ -30,6 +30,10 @@ jobs:
           # Common Apple Targets
           - { os: macos-13, target: x86_64-apple-darwin, use-cross: false }
           - { os: macos-14, target: aarch64-apple-darwin, use-cross: false }
+          # Big Endian (64-bit)
+          - { os: ubuntu-latest, target: powerpc64-unknown-linux-gnu, use-cross: true }
+          # Big Endian (32-bit)
+          - { os: ubuntu-latest, target: powerpc-unknown-linux-gnu, use-cross: true }
 
     runs-on: ${{ matrix.os }}
 

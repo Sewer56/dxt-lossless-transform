@@ -337,23 +337,22 @@ pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             "movdqa {xmm3}, [{src_ptr} + 48]",
             "add {src_ptr}, 64",   // src += 4 * 16
 
-            // First pair shuffle
             "movaps {xmm4}, {xmm0}",
-            "shufps {xmm4}, {xmm1}, 0x88",    // Colors (0b10001000)
-            "shufps {xmm0}, {xmm1}, 0xDD",    // Indices (0b11011101)
-
-            // Second pair shuffle
             "movaps {xmm5}, {xmm2}",
-            "shufps {xmm5}, {xmm3}, 0x88",    // Colors (0b10001000)
+
+            // Shuffle the pairs to rearrange
+            "shufps {xmm0}, {xmm1}, 0xDD",    // Indices (0b11011101)
             "shufps {xmm2}, {xmm3}, 0xDD",    // Indices (0b11011101)
+            "shufps {xmm4}, {xmm1}, 0x88",    // Colors (0b10001000)
+            "shufps {xmm5}, {xmm3}, 0x88",    // Colors (0b10001000)
 
             // Store colors and indices
-            "movdqa [{colors_ptr}], {xmm4}",
-            "movdqa [{colors_ptr} + 16], {xmm5}",
-            "add {colors_ptr}, 32",   // colors_ptr += 4 * 8
             "movdqa [{indices_ptr}], {xmm0}",
             "movdqa [{indices_ptr} + 16], {xmm2}",
             "add {indices_ptr}, 32",   // indices_ptr += 4 * 8
+            "movdqa [{colors_ptr}], {xmm4}",
+            "movdqa [{colors_ptr} + 16], {xmm5}",
+            "add {colors_ptr}, 32",   // colors_ptr += 4 * 8
 
             "cmp {src_ptr}, {end}",
             "jb 2b",

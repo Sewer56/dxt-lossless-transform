@@ -46,16 +46,16 @@ pub(crate) fn run_benchmarks(
         |b, _| bench_unpck_unroll_2(b, input, output),
     );
 
-    #[cfg(target_arch = "x86_64")]
-    group.bench_with_input(
-        BenchmarkId::new("avx2 unpck unroll 4", size),
-        &size,
-        |b, _| bench_unpck_unroll_4(b, input, output),
-    );
-
     if !important_benches_only {
         group.bench_with_input(BenchmarkId::new("avx2 unpck", size), &size, |b, _| {
             bench_unpck(b, input, output)
         });
+
+        #[cfg(target_arch = "x86_64")]
+        group.bench_with_input(
+            BenchmarkId::new("avx2 unpck unroll 4", size),
+            &size,
+            |b, _| bench_unpck_unroll_4(b, input, output),
+        );
     }
 }

@@ -56,16 +56,8 @@ unsafe fn transform_dxt1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
         let sse2 = std::is_x86_feature_detected!("sse2");
 
         if avx2 && len % 256 == 0 {
-            #[cfg(target_arch = "x86_64")]
-            {
-                transform::shuffle_permute_unroll_4(input_ptr, output_ptr, len);
-                return;
-            }
-            #[cfg(target_arch = "x86")]
-            {
-                transform::shuffle_permute_unroll_2(input_ptr, output_ptr, len);
-                return;
-            }
+            transform::shuffle_permute_unroll_2(input_ptr, output_ptr, len);
+            return;
         }
 
         if sse2 && len % 64 == 0 {
@@ -78,16 +70,8 @@ unsafe fn transform_dxt1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
     {
         #[cfg(target_feature = "avx2")]
         if len % 256 == 0 {
-            #[cfg(target_arch = "x86_64")]
-            {
-                transform::shuffle_permute_unroll_4(input_ptr, output_ptr, len);
-                return;
-            }
-            #[cfg(target_arch = "x86")]
-            {
-                transform::shuffle_permute_unroll_2(input_ptr, output_ptr, len);
-                return;
-            }
+            transform::shuffle_permute_unroll_2(input_ptr, output_ptr, len);
+            return;
         }
 
         #[cfg(target_feature = "sse2")]

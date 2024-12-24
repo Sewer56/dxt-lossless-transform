@@ -4,54 +4,66 @@
 [![Docs.rs](https://docs.rs/dxt-lossless-transform/badge.svg)](https://docs.rs/dxt-lossless-transform)
 [![CI](https://github.com/Sewer56/dxt-lossless-transform/actions/workflows/rust.yml/badge.svg)](https://github.com/Sewer56/dxt-lossless-transform/actions)
 
------------------------
-
-## Additional Setup Required!!
-
-Additional setup might be required.  
-Once you do the stuff under this text, delete this section.  
-
-### Code Coverage
-To setup code coverage for this project. Login into [Codecov][codecov] and add this repository from your list of tracked repos.
-
-### Setup Documentation
-
-If you don't have a `docs/Reloaded` folder, you might need to add it manually as submodule:
-
-```ignore
-git submodule add https://github.com/Reloaded-Project/Reloaded.MkDocsMaterial.Themes.R2.git docs/Reloaded
-```
-
-After which you can follow the [Theme Documentation](https://reloaded-project.github.io/Reloaded.MkDocsMaterial.Themes.R2/Pages/contributing.html#website-live-preview) to find out how to work with the docs.
-
-Before you make your first commit to GitHub, you'll need to go to `Settings -> Pages` and set
-`Source` to `GitHub Actions` for the documentation builds to work.
-
-
-### Setup API Key (crates.io)
-
-You'll need to set up an API key to publish to `crates.io` on tag.
-
-- Go to `Settings -> Secrets -> Actions` in your repo and add environment secret named `CRATES_IO_TOKEN`.  
-- Paste your API key generated in [crates.io (Account Settings -> API Tokens)][crates-io-key].  
-
-
-
-
-### Fill in Crate Description
-
-This readme file (under the dashed line) is used for the crate description on GitHub and
-crates.io (if uploaded). Consider filling in this readme with examples for end users and any
-other useful info.
-
------------------------
+[Note: Currently in development. Only BC1 done. BC2/3/7 coming soon.]
 
 ## About
 
-Fast lossless transforms for DDS files that improve their compression ratio.
+This crates provide fast lossless transforms for DDS files that improve their compression ratio
+once compressed by external compressors.
 
-You can learn more about this project in the [dedicated documentation page][docs].
+## Example
 
+Applying filter on every BC1 DDS file of `-Skyrim 202X 10.0.1 - Landscape PART 2-2347-10-0-1-1710489616.rar`.
+
+Before:
+
+```ignore
+Tool       Size            Ratio 
+---------------------------------
+original   2.33 GiB        100.00%
+zstd 22    1.48 GiB        63.75%
+kanzi 7    1.31 GiB        56.14%
+bzip3 16m  1.30 GiB        56.02%
+7z         1.34 GiB        57.37%
+```
+
+After:
+
+```ignore
+Tool       Size            Ratio     
+----------------------------------
+original   2.33 GiB        100.00%
+zstd 22    1.35 GiB        57.91% 
+kanzi 7    1.20 GiB        51.50%
+bzip3 16m  1.20 GiB        51.41%
+7z         1.28 GiB        55.02%
+```
+
+BC2, BC3, BC7 are currently in development.
+Expect similar savings for BC2, BC3. BC7 is likely to be less effective.
+
+## Performance
+
+On a 5900X, with DDR4 3200, CL16 RAM the BC1 transform runs at approx:
+
+Transform BC1:
+
+- AVX2 (Assembly): 8.4053 GiB/s `avx2 shuffle_permute unroll 2`
+- SSE2 (Assembly): 8.4042 GiB/s `sse2 shufps unroll 4`
+- Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 8.3918 GiB/s `portable32 no-unroll`
+- Compiler v3 Unroll-8 (Rust + LLVM on `x86-64-v3`): 1.5411 GiB/s `portable32 unroll-8`
+
+Untransform BC1:
+
+- AVX2 (Assembly): 8.3298 GiB/s `avx2 unpck unroll 2`
+- SSE2 (Assembly): 8.2970 GiB/s `sse2 unpck unroll 2`
+- Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 8.3116 GiB/s `portable32 no-unroll`
+- Compiler v3 Unroll-8 (Rust + LLVM on `x86-64-v3`): 8.01 GiB/s `portable32 unroll-8`
+
+Measured on Linux with `performance` governor. Sensitive to external load and CPU temperature, therefore
+benched with 60 second warmup and 60 seconds measurement. In general, the output of LLVM is on par
+with manually written routines, however the manually written routines are smaller in code size; therefore
+more cache friendly.
 
 ## Development
 

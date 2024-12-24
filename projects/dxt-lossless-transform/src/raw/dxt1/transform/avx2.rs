@@ -432,16 +432,14 @@ pub unsafe fn shuffle_permute(mut input_ptr: *const u8, mut output_ptr: *mut u8,
 
             // Do shuffles
             "vshufps {ymm2}, {ymm0}, {ymm1}, 136",  // colors (0b10001000)
-            "vshufps {ymm3}, {ymm0}, {ymm1}, 221",  // indices (0b11011101)
-
-            // Do permutes
             "vpermpd {ymm2}, {ymm2}, 216",  // arrange colors (0b11011000)
+            "vshufps {ymm3}, {ymm0}, {ymm1}, 221",  // indices (0b11011101)
             "vpermpd {ymm3}, {ymm3}, 216",  // arrange indices (0b11011000)
 
             // Store results
             "vmovdqa [{colors_ptr}], {ymm2}",  // Store colors
-            "add {colors_ptr}, 32",  // colors_ptr += 32
             "vmovdqa [{indices_ptr}], {ymm3}",      // Store indices
+            "add {colors_ptr}, 32",  // colors_ptr += 32
             "add {indices_ptr}, 32",      // indices_ptr += 32
 
             // Compare against end address and loop if not done
@@ -500,23 +498,20 @@ pub unsafe fn shuffle_permute_unroll_2(
 
             // Do all shuffles together to utilize shuffle units
             "vshufps {ymm2}, {ymm0}, {ymm1}, 136",  // colors (0b10001000)
-            "vshufps {ymm3}, {ymm0}, {ymm1}, 221",  // indices (0b11011101)
-            "vshufps {ymm6}, {ymm4}, {ymm5}, 136",  // colors (0b10001000)
-            "vshufps {ymm7}, {ymm4}, {ymm5}, 221",  // indices (0b11011101)
-
-            // Group permutes together
             "vpermpd {ymm2}, {ymm2}, 216",  // arrange colors (0b11011000)
+            "vshufps {ymm3}, {ymm0}, {ymm1}, 221",  // indices (0b11011101)
             "vpermpd {ymm3}, {ymm3}, 216",  // arrange indices (0b11011000)
+            "vshufps {ymm6}, {ymm4}, {ymm5}, 136",  // colors (0b10001000)
             "vpermpd {ymm6}, {ymm6}, 216",  // arrange colors (0b11011000)
+            "vshufps {ymm7}, {ymm4}, {ymm5}, 221",  // indices (0b11011101)
             "vpermpd {ymm7}, {ymm7}, 216",  // arrange indices (0b11011000)
 
             // Store all results together to utilize store pipeline
             "vmovdqa [{colors_ptr}], {ymm2}",      // Store colors
-            "vmovdqa [{colors_ptr} + 32], {ymm6}",  // Store colors
-            "add {colors_ptr}, 64",   // colors_ptr += 64
-
             "vmovdqa [{indices_ptr}], {ymm3}",      // Store indices
+            "vmovdqa [{colors_ptr} + 32], {ymm6}",  // Store colors
             "vmovdqa [{indices_ptr} + 32], {ymm7}",  // Store indices
+            "add {colors_ptr}, 64",   // colors_ptr += 64
             "add {indices_ptr}, 64",   // indices_ptr += 64
 
             // Compare against end address and loop if not done
@@ -584,37 +579,33 @@ pub unsafe fn shuffle_permute_unroll_4(
 
             // Group all shuffles together to better utilize shuffle units
             "vshufps {ymm2}, {ymm0}, {ymm1}, 136",   // colors block 1
-            "vshufps {ymm3}, {ymm0}, {ymm1}, 221",   // indices block 1
-            "vshufps {ymm6}, {ymm4}, {ymm5}, 136",   // colors block 2
-            "vshufps {ymm7}, {ymm4}, {ymm5}, 221",   // indices block 2
-            "vshufps {ymm10}, {ymm8}, {ymm9}, 136",  // colors block 3
-            "vshufps {ymm11}, {ymm8}, {ymm9}, 221",  // indices block 3
-            "vshufps {ymm14}, {ymm12}, {ymm13}, 136", // colors block 4
-            "vshufps {ymm15}, {ymm12}, {ymm13}, 221", // indices block 4
-
-            // Group permutes together
             "vpermpd {ymm2}, {ymm2}, 216",   // arrange colors block 1
+            "vshufps {ymm3}, {ymm0}, {ymm1}, 221",   // indices block 1
             "vpermpd {ymm3}, {ymm3}, 216",   // arrange indices block 1
+            "vshufps {ymm6}, {ymm4}, {ymm5}, 136",   // colors block 2
             "vpermpd {ymm6}, {ymm6}, 216",   // arrange colors block 2
+            "vshufps {ymm7}, {ymm4}, {ymm5}, 221",   // indices block 2
             "vpermpd {ymm7}, {ymm7}, 216",   // arrange indices block 2
+            "vshufps {ymm10}, {ymm8}, {ymm9}, 136",  // colors block 3
             "vpermpd {ymm10}, {ymm10}, 216", // arrange colors block 3
+            "vshufps {ymm11}, {ymm8}, {ymm9}, 221",  // indices block 3
             "vpermpd {ymm11}, {ymm11}, 216", // arrange indices block 3
+            "vshufps {ymm14}, {ymm12}, {ymm13}, 136", // colors block 4
             "vpermpd {ymm14}, {ymm14}, 216", // arrange colors block 4
+            "vshufps {ymm15}, {ymm12}, {ymm13}, 221", // indices block 4
             "vpermpd {ymm15}, {ymm15}, 216", // arrange indices block 4
 
             // Group all stores together to maximize store throughput
             // Store colors
             "vmovdqa [{colors_ptr}], {ymm2}",
-            "vmovdqa [{colors_ptr} + 32], {ymm6}",
-            "vmovdqa [{colors_ptr} + 64], {ymm10}",
-            "vmovdqa [{colors_ptr} + 96], {ymm14}",
-            "add {colors_ptr}, 128",  // colors_ptr += 128
-
-            // Store indices
             "vmovdqa [{indices_ptr}], {ymm3}",
+            "vmovdqa [{colors_ptr} + 32], {ymm6}",
             "vmovdqa [{indices_ptr} + 32], {ymm7}",
+            "vmovdqa [{colors_ptr} + 64], {ymm10}",
             "vmovdqa [{indices_ptr} + 64], {ymm11}",
+            "vmovdqa [{colors_ptr} + 96], {ymm14}",
             "vmovdqa [{indices_ptr} + 96], {ymm15}",
+            "add {colors_ptr}, 128",  // colors_ptr += 128
             "add {indices_ptr}, 128",  // indices_ptr += 128
 
             // Compare against end address and loop if not done

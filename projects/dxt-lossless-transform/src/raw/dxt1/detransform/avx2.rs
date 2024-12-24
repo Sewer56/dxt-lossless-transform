@@ -94,13 +94,13 @@ pub unsafe fn unpck_detransform_unroll_2(
             "vunpckhps {ymm2}, {ymm0}, {ymm1}",      // [c2 i2 c3 i3 | c6 i6 c7 i7]
             "vunpcklps {ymm0}, {ymm0}, {ymm1}",      // [c0 i0 c1 i1 | c4 i4 c5 i5]
 
-            // Unpack second 32-byte chunk
-            "vunpckhps {ymm5}, {ymm3}, {ymm4}",      // [c10 i10 c11 i11 | c14 i14 c15 i15]
-            "vunpcklps {ymm3}, {ymm3}, {ymm4}",      // [c8 i8 c9 i9 | c12 i12 c13 i13]
-
             // Permute first chunk
             "vperm2f128 {ymm1}, {ymm0}, {ymm2}, 32", // [c0 i0 c1 i1 | c2 i2 c3 i3]
             "vperm2f128 {ymm0}, {ymm0}, {ymm2}, 49", // [c4 i4 c5 i5 | c6 i6 c7 i7]
+
+            // Unpack second 32-byte chunk
+            "vunpckhps {ymm5}, {ymm3}, {ymm4}",      // [c10 i10 c11 i11 | c14 i14 c15 i15]
+            "vunpcklps {ymm3}, {ymm3}, {ymm4}",      // [c8 i8 c9 i9 | c12 i12 c13 i13]
 
             // Permute second chunk
             "vperm2f128 {ymm4}, {ymm3}, {ymm5}, 32", // [c8 i8 c9 i9 | c10 i10 c11 i11]

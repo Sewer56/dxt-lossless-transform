@@ -82,8 +82,10 @@ pub unsafe fn unpck_detransform_unroll_2(
             // Load all colors and indices (32 bytes each)
             "movdqu {xmm0}, [{colors_ptr}]",      // colors 0
             "movdqu {xmm3}, [{colors_ptr} + 16]", // colors 1
+            "add {colors_ptr}, 32",
             "movdqu {xmm1}, [{indices_ptr}]",     // indices 0
             "movdqu {xmm4}, [{indices_ptr} + 16]", // indices 1
+            "add {indices_ptr}, 32",
 
             // Save copies for high parts
             "movaps {xmm2}, {xmm0}", // colors 0 copy
@@ -91,8 +93,8 @@ pub unsafe fn unpck_detransform_unroll_2(
 
             // Unpack all blocks
             "unpcklps {xmm0}, {xmm1}", // color0,index0,color1,index1
-            "unpckhps {xmm2}, {xmm1}", // color2,index2,color3,index3
             "unpcklps {xmm3}, {xmm4}", // color4,index4,color5,index5
+            "unpckhps {xmm2}, {xmm1}", // color2,index2,color3,index3
             "unpckhps {xmm5}, {xmm4}", // color6,index6,color7,index7
 
             // Store all results
@@ -100,10 +102,6 @@ pub unsafe fn unpck_detransform_unroll_2(
             "movdqu [{dst_ptr} + 16], {xmm2}",
             "movdqu [{dst_ptr} + 32], {xmm3}",
             "movdqu [{dst_ptr} + 48], {xmm5}",
-
-            // Update pointers
-            "add {colors_ptr}, 32",
-            "add {indices_ptr}, 32",
             "add {dst_ptr}, 64",
 
             // Continue if we haven't reached the end

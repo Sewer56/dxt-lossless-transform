@@ -34,11 +34,11 @@ pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
 
 # Benchmark Stuff
 [[bench]]
-name = "dxt1_transform"
-path = "benches/dxt1_transform/main.rs"
+name = "bc1_transform"
+path = "benches/bc1_transform/main.rs"
 harness = false
 
 [[bench]]
-name = "dxt1_detransform"
-path = "benches/dxt1_detransform/main.rs"
+name = "bc1_detransform"
+path = "benches/bc1_detransform/main.rs"
 harness = false

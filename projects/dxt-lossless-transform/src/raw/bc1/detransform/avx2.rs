@@ -238,7 +238,7 @@ pub unsafe fn unpck_detransform_unroll_4(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raw::dxt1::transform::tests::generate_dxt1_test_data;
+    use crate::raw::bc1::transform::tests::generate_dxt1_test_data;
     use crate::raw::transform;
     use rstest::rstest;
 

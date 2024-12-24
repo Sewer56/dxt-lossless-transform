@@ -20,7 +20,7 @@ pub use avx2::*;
 pub mod tests {
 
     use super::*;
-    use crate::raw::dxt1::testutils::allocate_align_64;
+    use crate::raw::bc1::testutils::allocate_align_64;
     use safe_allocator_api::RawAlloc;
 
     /// Transforms the input data using a good known reference implementation.

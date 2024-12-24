@@ -250,7 +250,7 @@ mod testutils {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raw::dxt1::transform::tests::{
+    use crate::raw::bc1::transform::tests::{
         generate_dxt1_test_data, transform_with_reference_implementation,
     };
     use rstest::rstest;

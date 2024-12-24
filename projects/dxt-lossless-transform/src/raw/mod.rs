@@ -1,2 +1,2 @@
-pub mod dxt1;
-pub use dxt1::*;
+pub mod bc1;
+pub use bc1::*;

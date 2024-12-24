@@ -1,3 +1,6 @@
+#![allow(unexpected_cfgs)]
+#![cfg(not(tarpaulin_include))]
+
 use argh::FromArgs;
 use std::str::FromStr;
 

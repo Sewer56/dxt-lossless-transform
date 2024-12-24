@@ -7,29 +7,27 @@
 pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
 
-    unsafe {
-        // Get pointers to the color, index sections, and end of data.
-        let mut colours_ptr = input_ptr as *const u32;
-        let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
-        let max_input = input_ptr.add(len) as *const u32;
+    // Get pointers to the color, index sections, and end of data.
+    let mut colours_ptr = input_ptr as *const u32;
+    let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
+    let max_input = input_ptr.add(len) as *const u32;
 
-        let mut output_ptr = output_ptr;
+    let mut output_ptr = output_ptr;
 
-        while indices_ptr < max_input {
-            // Read color and index values
-            let index_value = *indices_ptr;
-            indices_ptr = indices_ptr.add(1); // we compare this in loop condition, so eval as fast as possible.
+    while indices_ptr < max_input {
+        // Read color and index values
+        let index_value = *indices_ptr;
+        indices_ptr = indices_ptr.add(1); // we compare this in loop condition, so eval as fast as possible.
 
-            let color_value = *colours_ptr;
-            colours_ptr = colours_ptr.add(1);
+        let color_value = *colours_ptr;
+        colours_ptr = colours_ptr.add(1);
 
-            // Write interleaved values to output
-            *(output_ptr as *mut u32) = color_value;
-            *(output_ptr.add(4) as *mut u32) = index_value;
+        // Write interleaved values to output
+        *(output_ptr as *mut u32) = color_value;
+        *(output_ptr.add(4) as *mut u32) = index_value;
 
-            // Move output pointer by 8 bytes (one complete block)
-            output_ptr = output_ptr.add(8);
-        }
+        // Move output pointer by 8 bytes (one complete block)
+        output_ptr = output_ptr.add(8);
     }
 }
 

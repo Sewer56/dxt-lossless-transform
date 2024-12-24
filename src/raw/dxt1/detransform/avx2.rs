@@ -7,6 +7,7 @@ use std::arch::asm;
 /// - pointers must be properly aligned for AVX operations
 /// - len must be divisible by 64 (processes 32 bytes of input/output per iteration)
 #[allow(unused_assignments)]
+#[target_feature(enable = "avx2")]
 pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 64 == 0);
 
@@ -63,6 +64,7 @@ pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
 /// - pointers must be properly aligned for AVX operations
 /// - len must be divisible by 128 (processes 64 bytes of input/output per iteration)
 #[allow(unused_assignments)]
+#[target_feature(enable = "avx2")]
 pub unsafe fn unpck_detransform_unroll_2(
     mut input_ptr: *const u8,
     mut output_ptr: *mut u8,
@@ -140,6 +142,7 @@ pub unsafe fn unpck_detransform_unroll_2(
 /// Note: This function requires x86_64 due to the number of registers used
 #[cfg(target_arch = "x86_64")]
 #[allow(unused_assignments)]
+#[target_feature(enable = "avx2")]
 pub unsafe fn unpck_detransform_unroll_4(
     mut input_ptr: *const u8,
     mut output_ptr: *mut u8,

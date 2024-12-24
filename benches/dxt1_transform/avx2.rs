@@ -116,7 +116,6 @@ pub(crate) fn run_benchmarks(
         |b, _| bench_avx2_shuffle_permute_unroll_4(b, input, output),
     );
 
-    #[cfg(target_arch = "x86")]
     group.bench_with_input(
         BenchmarkId::new("avx2 shuffle_permute unroll 2", size),
         &size,
@@ -141,7 +140,6 @@ pub(crate) fn run_benchmarks(
         |b, _| bench_avx2_permute_unroll_4(b, input, output),
     );
 
-    #[cfg(target_arch = "x86")]
     group.bench_with_input(
         BenchmarkId::new("avx2 permute unroll 2", size),
         &size,
@@ -162,21 +160,5 @@ pub(crate) fn run_benchmarks(
         group.bench_with_input(BenchmarkId::new("avx2 permute", size), &size, |b, _| {
             bench_avx2_permute(b, input, output)
         });
-
-        // Unroll-2 is used on x86 by default as fastest impl, so it's skipped there.
-
-        #[cfg(not(target_arch = "x86"))]
-        group.bench_with_input(
-            BenchmarkId::new("avx2 shuffle_permute unroll 2", size),
-            &size,
-            |b, _| bench_avx2_shuffle_permute_unroll_2(b, input, output),
-        );
-
-        #[cfg(not(target_arch = "x86"))]
-        group.bench_with_input(
-            BenchmarkId::new("avx2 permute unroll 2", size),
-            &size,
-            |b, _| bench_avx2_permute_unroll_2(b, input, output),
-        );
     }
 }

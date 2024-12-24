@@ -18,6 +18,8 @@ std = []
 pgo = []
 # Feature for enabling C library exports.
 c-exports = []
+# Use CPU features selected at compile time.
+no-runtime-cpu-detection = []
 
 [dependencies]
 rstest = "0.23.0"
@@ -56,6 +58,3 @@ harness = false
 name = "dxt1_detransform"
 path = "benches/dxt1_detransform/main.rs"
 harness = false
-
-[workspace.package.metadata.criterion]
-measurement_time = 10

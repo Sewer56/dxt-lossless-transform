@@ -6,7 +6,6 @@ use safe_allocator_api::RawAlloc;
 use pprof::criterion::{Output, PProfProfiler};
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-#[cfg(target_feature = "avx2")]
 mod avx2;
 mod portable32;
 mod portable64;
@@ -65,7 +64,6 @@ fn criterion_benchmark(c: &mut Criterion) {
         }
 
         if is_x86_feature_detected!("avx2") {
-            #[cfg(target_feature = "avx2")]
             avx2::run_benchmarks(
                 &mut group,
                 &input,

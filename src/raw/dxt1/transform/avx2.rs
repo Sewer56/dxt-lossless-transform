@@ -7,6 +7,7 @@ use std::arch::asm;
 /// - len must be divisible by 64 (for two AVX2 registers worth of data)
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[allow(unused_assignments)]
+#[target_feature(enable = "avx2")]
 pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
     debug_assert!(len % 64 == 0);
 
@@ -78,6 +79,7 @@ pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len
 /// - len must be divisible by 128 (for four AVX2 registers worth of data)
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[allow(unused_assignments)]
+#[target_feature(enable = "avx2")]
 pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
     debug_assert!(len % 128 == 0);
 
@@ -156,6 +158,7 @@ pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx2")]
 pub unsafe fn permute_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
     debug_assert!(len % 256 == 0);
 
@@ -242,6 +245,7 @@ pub unsafe fn permute_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8
 /// - len must be divisible by 128 (for four AVX2 registers worth of data)
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[allow(unused_assignments)]
+#[target_feature(enable = "avx2")]
 pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
     debug_assert!(len % 128 == 0);
 
@@ -306,6 +310,7 @@ pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len:
 /// - len must be divisible by 256 (for eight AVX2 registers worth of data)
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx2")]
 pub unsafe fn gather_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 256 == 0);
 
@@ -400,6 +405,7 @@ pub unsafe fn gather_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: us
 /// - len must be divisible by 64 (for two AVX2 registers worth of data)
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[allow(unused_assignments)]
+#[target_feature(enable = "avx2")]
 pub unsafe fn shuffle_permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
     debug_assert!(len % 64 == 0);
 
@@ -463,6 +469,7 @@ pub unsafe fn shuffle_permute(mut input_ptr: *const u8, mut output_ptr: *mut u8,
 /// - len must be divisible by 128 (for four AVX2 registers worth of data)
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[allow(unused_assignments)]
+#[target_feature(enable = "avx2")]
 pub unsafe fn shuffle_permute_unroll_2(
     mut input_ptr: *const u8,
     mut output_ptr: *mut u8,
@@ -542,6 +549,7 @@ pub unsafe fn shuffle_permute_unroll_2(
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx2")]
 pub unsafe fn shuffle_permute_unroll_4(
     mut input_ptr: *const u8,
     mut output_ptr: *mut u8,

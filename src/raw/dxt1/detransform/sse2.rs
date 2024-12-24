@@ -7,6 +7,7 @@ use std::arch::asm;
 /// - pointers must be properly aligned for SSE operations
 /// - len must be divisible by 32
 #[allow(unused_assignments)]
+#[target_feature(enable = "sse2")]
 pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 32 == 0);
 
@@ -60,6 +61,7 @@ pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
 /// - pointers must be properly aligned for SSE operations
 /// - len must be divisible by 64 (processes 2 blocks per iteration)
 #[allow(unused_assignments)]
+#[target_feature(enable = "sse2")]
 pub unsafe fn unpck_detransform_unroll_2(
     mut input_ptr: *const u8,
     mut output_ptr: *mut u8,
@@ -132,6 +134,7 @@ pub unsafe fn unpck_detransform_unroll_2(
 /// - len must be divisible by 128 (processes 4 blocks per iteration)
 #[cfg(target_arch = "x86_64")]
 #[allow(unused_assignments)]
+#[target_feature(enable = "sse2")]
 pub unsafe fn unpck_detransform_unroll_4(
     mut input_ptr: *const u8,
     mut output_ptr: *mut u8,

@@ -686,7 +686,7 @@ mod tests {
     #[case::many_unrolls(512)] // 4KB - tests multiple unroll iterations
     #[case::large(2048)] // 16KB - large dataset
     fn test_avx2_implementations(#[case] num_blocks: usize) {
-        let input = generate_dxt1_test_data(num_blocks);
+        let input = generate_bc1_test_data(num_blocks);
         let mut output_expected = allocate_align_64(input.len());
         let mut output_test = allocate_align_64(input.len());
 

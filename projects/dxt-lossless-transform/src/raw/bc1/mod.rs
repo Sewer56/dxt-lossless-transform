@@ -1,8 +1,8 @@
 /*
- * DXT1 Block Rearrangement Optimization Explanation
+ * BC1 Block Rearrangement Optimization Explanation
  * =================================================
  *
- * Original sequential DXT1 data layout:
+ * Original sequential BC1 data layout:
  * Two 16-bit colours (4 bytes total) followed by 4 bytes of indices:
  *
  * Address: 0       4       8   8      12      16
@@ -48,7 +48,7 @@ pub mod transform;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
-unsafe fn transform_dxt1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+unsafe fn transform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         // Runtime feature detection
@@ -85,7 +85,7 @@ unsafe fn transform_dxt1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
     transform::u32(input_ptr, output_ptr, len)
 }
 
-/// Transform DXT1 data from standard interleaved format to separated color/index format.
+/// Transform BC1 data from standard interleaved format to separated color/index format.
 ///
 /// This function selects the best available implementation based on CPU features:
 /// 1. AVX2 shuffle_permute_unroll_4 on x86_64 systems
@@ -98,10 +98,9 @@ unsafe fn transform_dxt1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
-/// - input_ptr and output_ptr must be 64-byte aligned for optimal performance
-/// - pointers must be properly aligned for the operation
+/// - input_ptr and output_ptr must be 64-byte aligned (performance, and for some platforms)
 #[inline]
-pub unsafe fn transform_dxt1(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub unsafe fn transform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
     debug_assert_eq!(
         input_ptr as usize % 64,
@@ -116,7 +115,7 @@ pub unsafe fn transform_dxt1(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
-        transform_dxt1_x86(input_ptr, output_ptr, len)
+        transform_bc1_x86(input_ptr, output_ptr, len)
     }
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
@@ -127,7 +126,7 @@ pub unsafe fn transform_dxt1(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
-unsafe fn untransform_dxt1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+unsafe fn untransform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         let avx2 = std::is_x86_feature_detected!("avx2");
@@ -195,7 +194,7 @@ unsafe fn untransform_dxt1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: u
     detransform::u32_detransform(input_ptr, output_ptr, len)
 }
 
-/// Transform DXT1 data from separated color/index format back to standard interleaved format.
+/// Transform BC1 data from separated color/index format back to standard interleaved format.
 ///
 /// This function selects the best available implementation based on CPU features:
 /// 1. AVX2 unpck_detransform_unroll_4 on x86_64 systems
@@ -211,7 +210,7 @@ unsafe fn untransform_dxt1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: u
 /// - input_ptr and output_ptr must be 64-byte aligned for optimal performance
 /// - pointers must be properly aligned for the operation
 #[inline]
-pub unsafe fn untransform_dxt1(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub unsafe fn untransform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
     debug_assert_eq!(
         input_ptr as usize % 64,
@@ -226,7 +225,7 @@ pub unsafe fn untransform_dxt1(input_ptr: *const u8, output_ptr: *mut u8, len: u
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
-        untransform_dxt1_x86(input_ptr, output_ptr, len)
+        untransform_bc1_x86(input_ptr, output_ptr, len)
     }
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
@@ -251,7 +250,7 @@ mod testutils {
 mod tests {
     use super::*;
     use crate::raw::bc1::transform::tests::{
-        generate_dxt1_test_data, transform_with_reference_implementation,
+        generate_bc1_test_data, transform_with_reference_implementation,
     };
     use rstest::rstest;
     use testutils::allocate_align_64;
@@ -262,7 +261,7 @@ mod tests {
     #[case::many_unrolls(256)] // 2KB - tests multiple unroll iterations
     #[case::large(1024)] // 8KB - large dataset
     fn test_transform_untransform(#[case] num_blocks: usize) {
-        let input = generate_dxt1_test_data(num_blocks);
+        let input = generate_bc1_test_data(num_blocks);
         let mut transformed = allocate_align_64(input.len());
         let mut reconstructed = allocate_align_64(input.len());
         let mut reference = allocate_align_64(input.len());
@@ -272,16 +271,16 @@ mod tests {
 
         unsafe {
             // Test transform
-            transform_dxt1(input.as_ptr(), transformed.as_mut_ptr(), input.len());
+            transform_bc1(input.as_ptr(), transformed.as_mut_ptr(), input.len());
             assert_eq!(
                 transformed.as_slice(),
                 reference.as_slice(),
-                "transform_dxt1 produced different results than reference for {} blocks",
+                "transform_bc1 produced different results than reference for {} blocks",
                 num_blocks
             );
 
             // Test untransform
-            untransform_dxt1(
+            untransform_bc1(
                 transformed.as_ptr(),
                 reconstructed.as_mut_ptr(),
                 transformed.len(),
@@ -289,7 +288,7 @@ mod tests {
             assert_eq!(
                 reconstructed.as_slice(),
                 input.as_slice(),
-                "untransform_dxt1 failed to reconstruct original data for {} blocks",
+                "untransform_bc1 failed to reconstruct original data for {} blocks",
                 num_blocks
             );
         }

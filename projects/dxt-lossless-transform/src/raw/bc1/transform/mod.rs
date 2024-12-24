@@ -29,7 +29,7 @@ pub mod tests {
     }
 
     // Helper to generate test data of specified size (in blocks)
-    pub(crate) fn generate_dxt1_test_data(num_blocks: usize) -> RawAlloc {
+    pub(crate) fn generate_bc1_test_data(num_blocks: usize) -> RawAlloc {
         let mut data = allocate_align_64(num_blocks * 8);
         let mut data_ptr = data.as_mut_ptr();
 
@@ -81,7 +81,7 @@ pub mod tests {
     }
 
     #[test]
-    fn validate_dxt1_test_data_generator() {
+    fn validate_bc1_test_data_generator() {
         let expected: Vec<u8> = vec![
             0x00, 0x01, 0x02, 0x03, // block 1 colours
             0x80, 0x81, 0x82, 0x83, // block 1 indices
@@ -90,7 +90,7 @@ pub mod tests {
             0x08, 0x09, 0x0A, 0x0B, // block 3 colours
             0x88, 0x89, 0x8A, 0x8B, // block 3 indices
         ];
-        let output = generate_dxt1_test_data(3);
+        let output = generate_bc1_test_data(3);
         assert_eq!(output.as_slice(), expected.as_slice());
     }
 }

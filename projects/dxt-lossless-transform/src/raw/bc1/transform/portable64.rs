@@ -448,7 +448,7 @@ mod tests {
     #[case::many_unrolls(256)] // 2KB - tests multiple unroll iterations
     #[case::large(1024)] // 8KB - large dataset
     fn test_implementations(#[case] num_blocks: usize) {
-        let input = generate_dxt1_test_data(num_blocks);
+        let input = generate_bc1_test_data(num_blocks);
         let mut output_expected = vec![0u8; input.len()];
         let mut output_test = vec![0u8; input.len()];
 

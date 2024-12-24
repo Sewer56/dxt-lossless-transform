@@ -3,6 +3,7 @@ use super::{constants::*, is_dds};
 /// Defines a known data format within a DDS file; suitable for lossless transform.
 #[derive(Debug, PartialEq)]
 pub enum DdsFormat {
+    Unknown,
     /// a.k.a. DXT1
     BC1,
     /// a.k.a. DXT2/3
@@ -10,7 +11,6 @@ pub enum DdsFormat {
     /// a.k.a. DXT4/5
     BC3,
     BC7,
-    Unknown,
 }
 
 /// The information of the DDS file supplied to the reader.

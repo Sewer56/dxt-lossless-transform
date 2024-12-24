@@ -9,6 +9,7 @@ enum DdsType {
     BC1,
     BC2,
     BC3,
+    All,
 }
 
 // Implement FromStr to allow parsing from command line arguments
@@ -20,8 +21,9 @@ impl FromStr for DdsType {
             "bc1" => Ok(DdsType::BC1),
             "bc2" => Ok(DdsType::BC2),
             "bc3" => Ok(DdsType::BC3),
+            "all" => Ok(DdsType::All),
             _ => Err(format!(
-                "Invalid DDS type: {}. Valid types are: bc1, bc2, bc3",
+                "Invalid DDS type: {}. Valid types are: bc1, bc2, bc3, all",
                 s
             )),
         }
@@ -48,15 +50,15 @@ enum Commands {
 struct TransformCmd {
     /// input directory path
     #[argh(option)]
-    input: String,
+    _input: String,
 
     /// output directory path
     #[argh(option)]
-    output: String,
+    _output: String,
 
     /// filter by DDS type (bc1, bc2, bc3)
     #[argh(option)]
-    filter: Option<DdsType>,
+    _filter: Option<DdsType>,
 }
 
 #[derive(FromArgs, Debug)]
@@ -65,37 +67,25 @@ struct TransformCmd {
 struct DetransformCmd {
     /// input directory path
     #[argh(option)]
-    input: String,
+    _input: String,
 
     /// output directory path
     #[argh(option)]
-    output: String,
+    _output: String,
 
     /// filter by DDS type (bc1, bc2, bc3)
     #[argh(option)]
-    filter: Option<DdsType>,
+    _filter: Option<DdsType>,
 }
 
 fn main() {
     let top_level: TopLevel = argh::from_env();
 
     match top_level.command {
-        Commands::Transform(cmd) => {
-            println!("Transforming DDS files:");
-            println!("Input directory: {}", cmd.input);
-            println!("Output directory: {}", cmd.output);
-            if let Some(filter) = cmd.filter {
-                println!("Filtering by type: {:?}", filter);
-            }
+        Commands::Transform(_cmd) => {
             // Add transformation logic here
         }
-        Commands::Detransform(cmd) => {
-            println!("Detransforming DDS files:");
-            println!("Input directory: {}", cmd.input);
-            println!("Output directory: {}", cmd.output);
-            if let Some(filter) = cmd.filter {
-                println!("Filtering by type: {:?}", filter);
-            }
+        Commands::Detransform(_cmd) => {
             // Add detransformation logic here
         }
     }

@@ -77,36 +77,34 @@ pub unsafe fn shift(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 pub unsafe fn shift_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
-    unsafe {
-        let max_ptr = input_ptr.add(len) as *mut u64;
-        let mut input_ptr = input_ptr as *mut u64;
+    let max_ptr = input_ptr.add(len) as *mut u64;
+    let mut input_ptr = input_ptr as *mut u64;
 
-        // Split output into color and index sections
-        let mut colours_ptr = output_ptr as *mut u32;
-        let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
+    // Split output into color and index sections
+    let mut colours_ptr = output_ptr as *mut u32;
+    let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
 
-        while input_ptr.add(1) < max_ptr {
-            // Load 2 blocks at once
-            let curr1 = *input_ptr;
-            let curr2 = *input_ptr.add(1);
-            input_ptr = input_ptr.add(2);
+    while input_ptr.add(1) < max_ptr {
+        // Load 2 blocks at once
+        let curr1 = *input_ptr;
+        let curr2 = *input_ptr.add(1);
+        input_ptr = input_ptr.add(2);
 
-            // Split into colours and indices
-            let color1 = get_color(curr1);
-            let color2 = get_color(curr2);
-            let index1 = get_index(curr1);
-            let index2 = get_index(curr2);
+        // Split into colours and indices
+        let color1 = get_color(curr1);
+        let color2 = get_color(curr2);
+        let index1 = get_index(curr1);
+        let index2 = get_index(curr2);
 
-            // Store all colors
-            *colours_ptr = color1;
-            *colours_ptr.add(1) = color2;
-            colours_ptr = colours_ptr.add(2);
+        // Store all colors
+        *colours_ptr = color1;
+        *colours_ptr.add(1) = color2;
+        colours_ptr = colours_ptr.add(2);
 
-            // Store all indices
-            *indices_ptr = index1;
-            *indices_ptr.add(1) = index2;
-            indices_ptr = indices_ptr.add(2);
-        }
+        // Store all indices
+        *indices_ptr = index1;
+        *indices_ptr.add(1) = index2;
+        indices_ptr = indices_ptr.add(2);
     }
 }
 
@@ -119,46 +117,44 @@ pub unsafe fn shift_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 pub unsafe fn shift_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 32 == 0);
 
-    unsafe {
-        let max_ptr = input_ptr.add(len) as *mut u64;
-        let mut input_ptr = input_ptr as *mut u64;
+    let max_ptr = input_ptr.add(len) as *mut u64;
+    let mut input_ptr = input_ptr as *mut u64;
 
-        // Split output into color and index sections
-        let mut colours_ptr = output_ptr as *mut u32;
-        let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
+    // Split output into color and index sections
+    let mut colours_ptr = output_ptr as *mut u32;
+    let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
 
-        while input_ptr.add(3) < max_ptr {
-            // Load 4 blocks at once
-            let curr1 = *input_ptr;
-            let curr2 = *input_ptr.add(1);
-            let curr3 = *input_ptr.add(2);
-            let curr4 = *input_ptr.add(3);
-            input_ptr = input_ptr.add(4);
+    while input_ptr.add(3) < max_ptr {
+        // Load 4 blocks at once
+        let curr1 = *input_ptr;
+        let curr2 = *input_ptr.add(1);
+        let curr3 = *input_ptr.add(2);
+        let curr4 = *input_ptr.add(3);
+        input_ptr = input_ptr.add(4);
 
-            // Split into colours and indices
-            let color1 = get_color(curr1);
-            let color2 = get_color(curr2);
-            let color3 = get_color(curr3);
-            let color4 = get_color(curr4);
-            let index1 = get_index(curr1);
-            let index2 = get_index(curr2);
-            let index3 = get_index(curr3);
-            let index4 = get_index(curr4);
+        // Split into colours and indices
+        let color1 = get_color(curr1);
+        let color2 = get_color(curr2);
+        let color3 = get_color(curr3);
+        let color4 = get_color(curr4);
+        let index1 = get_index(curr1);
+        let index2 = get_index(curr2);
+        let index3 = get_index(curr3);
+        let index4 = get_index(curr4);
 
-            // Store all colors
-            *colours_ptr = color1;
-            *colours_ptr.add(1) = color2;
-            *colours_ptr.add(2) = color3;
-            *colours_ptr.add(3) = color4;
-            colours_ptr = colours_ptr.add(4);
+        // Store all colors
+        *colours_ptr = color1;
+        *colours_ptr.add(1) = color2;
+        *colours_ptr.add(2) = color3;
+        *colours_ptr.add(3) = color4;
+        colours_ptr = colours_ptr.add(4);
 
-            // Store all indices
-            *indices_ptr = index1;
-            *indices_ptr.add(1) = index2;
-            *indices_ptr.add(2) = index3;
-            *indices_ptr.add(3) = index4;
-            indices_ptr = indices_ptr.add(4);
-        }
+        // Store all indices
+        *indices_ptr = index1;
+        *indices_ptr.add(1) = index2;
+        *indices_ptr.add(2) = index3;
+        *indices_ptr.add(3) = index4;
+        indices_ptr = indices_ptr.add(4);
     }
 }
 
@@ -171,67 +167,65 @@ pub unsafe fn shift_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 pub unsafe fn shift_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 32 == 0);
 
-    unsafe {
-        let max_ptr = input_ptr.add(len) as *mut u64;
-        let mut input_ptr = input_ptr as *mut u64;
+    let max_ptr = input_ptr.add(len) as *mut u64;
+    let mut input_ptr = input_ptr as *mut u64;
 
-        // Split output into color and index sections
-        let mut colours_ptr = output_ptr as *mut u32;
-        let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
+    // Split output into color and index sections
+    let mut colours_ptr = output_ptr as *mut u32;
+    let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
 
-        while input_ptr.add(7) < max_ptr {
-            // Load 8 blocks at once
-            let curr1 = *input_ptr;
-            let curr2 = *input_ptr.add(1);
-            let curr3 = *input_ptr.add(2);
-            let curr4 = *input_ptr.add(3);
-            let curr5 = *input_ptr.add(4);
-            let curr6 = *input_ptr.add(5);
-            let curr7 = *input_ptr.add(6);
-            let curr8 = *input_ptr.add(7);
-            input_ptr = input_ptr.add(8);
+    while input_ptr.add(7) < max_ptr {
+        // Load 8 blocks at once
+        let curr1 = *input_ptr;
+        let curr2 = *input_ptr.add(1);
+        let curr3 = *input_ptr.add(2);
+        let curr4 = *input_ptr.add(3);
+        let curr5 = *input_ptr.add(4);
+        let curr6 = *input_ptr.add(5);
+        let curr7 = *input_ptr.add(6);
+        let curr8 = *input_ptr.add(7);
+        input_ptr = input_ptr.add(8);
 
-            // Split into colours and indices
-            let color1 = get_color(curr1);
-            let color2 = get_color(curr2);
-            let color3 = get_color(curr3);
-            let color4 = get_color(curr4);
-            let color5 = get_color(curr5);
-            let color6 = get_color(curr6);
-            let color7 = get_color(curr7);
-            let color8 = get_color(curr8);
+        // Split into colours and indices
+        let color1 = get_color(curr1);
+        let color2 = get_color(curr2);
+        let color3 = get_color(curr3);
+        let color4 = get_color(curr4);
+        let color5 = get_color(curr5);
+        let color6 = get_color(curr6);
+        let color7 = get_color(curr7);
+        let color8 = get_color(curr8);
 
-            let index1 = get_index(curr1);
-            let index2 = get_index(curr2);
-            let index3 = get_index(curr3);
-            let index4 = get_index(curr4);
-            let index5 = get_index(curr5);
-            let index6 = get_index(curr6);
-            let index7 = get_index(curr7);
-            let index8 = get_index(curr8);
+        let index1 = get_index(curr1);
+        let index2 = get_index(curr2);
+        let index3 = get_index(curr3);
+        let index4 = get_index(curr4);
+        let index5 = get_index(curr5);
+        let index6 = get_index(curr6);
+        let index7 = get_index(curr7);
+        let index8 = get_index(curr8);
 
-            // Store all colors
-            *colours_ptr = color1;
-            *colours_ptr.add(1) = color2;
-            *colours_ptr.add(2) = color3;
-            *colours_ptr.add(3) = color4;
-            *colours_ptr.add(4) = color5;
-            *colours_ptr.add(5) = color6;
-            *colours_ptr.add(6) = color7;
-            *colours_ptr.add(7) = color8;
-            colours_ptr = colours_ptr.add(8);
+        // Store all colors
+        *colours_ptr = color1;
+        *colours_ptr.add(1) = color2;
+        *colours_ptr.add(2) = color3;
+        *colours_ptr.add(3) = color4;
+        *colours_ptr.add(4) = color5;
+        *colours_ptr.add(5) = color6;
+        *colours_ptr.add(6) = color7;
+        *colours_ptr.add(7) = color8;
+        colours_ptr = colours_ptr.add(8);
 
-            // Store all indices
-            *indices_ptr = index1;
-            *indices_ptr.add(1) = index2;
-            *indices_ptr.add(2) = index3;
-            *indices_ptr.add(3) = index4;
-            *indices_ptr.add(4) = index5;
-            *indices_ptr.add(5) = index6;
-            *indices_ptr.add(6) = index7;
-            *indices_ptr.add(7) = index8;
-            indices_ptr = indices_ptr.add(8);
-        }
+        // Store all indices
+        *indices_ptr = index1;
+        *indices_ptr.add(1) = index2;
+        *indices_ptr.add(2) = index3;
+        *indices_ptr.add(3) = index4;
+        *indices_ptr.add(4) = index5;
+        *indices_ptr.add(5) = index6;
+        *indices_ptr.add(6) = index7;
+        *indices_ptr.add(7) = index8;
+        indices_ptr = indices_ptr.add(8);
     }
 }
 
@@ -244,30 +238,28 @@ pub unsafe fn shift_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 pub unsafe fn shift_with_count(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
 
-    unsafe {
-        let mut num_elements = len / 8;
-        let mut input_ptr = input_ptr as *mut u64;
+    let mut num_elements = len / 8;
+    let mut input_ptr = input_ptr as *mut u64;
 
-        // Split output into color and index sections
-        let mut colours_ptr = output_ptr as *mut u32;
-        let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
+    // Split output into color and index sections
+    let mut colours_ptr = output_ptr as *mut u32;
+    let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
 
-        while num_elements > 0 {
-            num_elements -= 1;
-            let curr = *input_ptr;
+    while num_elements > 0 {
+        num_elements -= 1;
+        let curr = *input_ptr;
 
-            // Split into colours (lower 4 bytes) and indices (upper 4 bytes)
-            let color_value = get_color(curr);
-            let index_value = get_index(curr);
+        // Split into colours (lower 4 bytes) and indices (upper 4 bytes)
+        let color_value = get_color(curr);
+        let index_value = get_index(curr);
 
-            // Store colours and indices to their respective halves
-            *colours_ptr = color_value;
-            *indices_ptr = index_value;
+        // Store colours and indices to their respective halves
+        *colours_ptr = color_value;
+        *indices_ptr = index_value;
 
-            input_ptr = input_ptr.add(1);
-            colours_ptr = colours_ptr.add(1);
-            indices_ptr = indices_ptr.add(1);
-        }
+        input_ptr = input_ptr.add(1);
+        colours_ptr = colours_ptr.add(1);
+        indices_ptr = indices_ptr.add(1);
     }
 }
 
@@ -280,39 +272,37 @@ pub unsafe fn shift_with_count(input_ptr: *const u8, output_ptr: *mut u8, len: u
 pub unsafe fn shift_with_count_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
-    unsafe {
-        let mut num_elements = len / 16;
-        let mut input_ptr = input_ptr as *mut u64;
-        let mut colours_ptr = output_ptr as *mut u32;
-        let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
+    let mut num_elements = len / 16;
+    let mut input_ptr = input_ptr as *mut u64;
+    let mut colours_ptr = output_ptr as *mut u32;
+    let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
 
-        while num_elements > 0 {
-            num_elements -= 1;
+    while num_elements > 0 {
+        num_elements -= 1;
 
-            // Load all values first
-            let curr1 = *input_ptr;
-            let curr2 = *input_ptr.add(1);
+        // Load all values first
+        let curr1 = *input_ptr;
+        let curr2 = *input_ptr.add(1);
 
-            // Process all colors together
-            let color1 = get_color(curr1);
-            let color2 = get_color(curr2);
+        // Process all colors together
+        let color1 = get_color(curr1);
+        let color2 = get_color(curr2);
 
-            // Store all colors together
-            *colours_ptr = color1;
-            *colours_ptr.add(1) = color2;
+        // Store all colors together
+        *colours_ptr = color1;
+        *colours_ptr.add(1) = color2;
 
-            // Process all indices together
-            let index1 = get_index(curr1);
-            let index2 = get_index(curr2);
+        // Process all indices together
+        let index1 = get_index(curr1);
+        let index2 = get_index(curr2);
 
-            // Store all indices together
-            *indices_ptr = index1;
-            *indices_ptr.add(1) = index2;
+        // Store all indices together
+        *indices_ptr = index1;
+        *indices_ptr.add(1) = index2;
 
-            input_ptr = input_ptr.add(2);
-            colours_ptr = colours_ptr.add(2);
-            indices_ptr = indices_ptr.add(2);
-        }
+        input_ptr = input_ptr.add(2);
+        colours_ptr = colours_ptr.add(2);
+        indices_ptr = indices_ptr.add(2);
     }
 }
 
@@ -325,49 +315,47 @@ pub unsafe fn shift_with_count_unroll_2(input_ptr: *const u8, output_ptr: *mut u
 pub unsafe fn shift_with_count_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 32 == 0);
 
-    unsafe {
-        let mut num_elements = len / 32;
-        let mut input_ptr = input_ptr as *mut u64;
-        let mut colours_ptr = output_ptr as *mut u32;
-        let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
+    let mut num_elements = len / 32;
+    let mut input_ptr = input_ptr as *mut u64;
+    let mut colours_ptr = output_ptr as *mut u32;
+    let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
 
-        while num_elements > 0 {
-            num_elements -= 1;
+    while num_elements > 0 {
+        num_elements -= 1;
 
-            // Load all values first
-            let curr1 = *input_ptr;
-            let curr2 = *input_ptr.add(1);
-            let curr3 = *input_ptr.add(2);
-            let curr4 = *input_ptr.add(3);
+        // Load all values first
+        let curr1 = *input_ptr;
+        let curr2 = *input_ptr.add(1);
+        let curr3 = *input_ptr.add(2);
+        let curr4 = *input_ptr.add(3);
 
-            // Process all colors together
-            let color1 = get_color(curr1);
-            let color2 = get_color(curr2);
-            let color3 = get_color(curr3);
-            let color4 = get_color(curr4);
+        // Process all colors together
+        let color1 = get_color(curr1);
+        let color2 = get_color(curr2);
+        let color3 = get_color(curr3);
+        let color4 = get_color(curr4);
 
-            // Store all colors together
-            *colours_ptr = color1;
-            *colours_ptr.add(1) = color2;
-            *colours_ptr.add(2) = color3;
-            *colours_ptr.add(3) = color4;
+        // Store all colors together
+        *colours_ptr = color1;
+        *colours_ptr.add(1) = color2;
+        *colours_ptr.add(2) = color3;
+        *colours_ptr.add(3) = color4;
 
-            // Process all indices together
-            let index1 = get_index(curr1);
-            let index2 = get_index(curr2);
-            let index3 = get_index(curr3);
-            let index4 = get_index(curr4);
+        // Process all indices together
+        let index1 = get_index(curr1);
+        let index2 = get_index(curr2);
+        let index3 = get_index(curr3);
+        let index4 = get_index(curr4);
 
-            // Store all indices together
-            *indices_ptr = index1;
-            *indices_ptr.add(1) = index2;
-            *indices_ptr.add(2) = index3;
-            *indices_ptr.add(3) = index4;
+        // Store all indices together
+        *indices_ptr = index1;
+        *indices_ptr.add(1) = index2;
+        *indices_ptr.add(2) = index3;
+        *indices_ptr.add(3) = index4;
 
-            input_ptr = input_ptr.add(4);
-            colours_ptr = colours_ptr.add(4);
-            indices_ptr = indices_ptr.add(4);
-        }
+        input_ptr = input_ptr.add(4);
+        colours_ptr = colours_ptr.add(4);
+        indices_ptr = indices_ptr.add(4);
     }
 }
 
@@ -380,69 +368,67 @@ pub unsafe fn shift_with_count_unroll_4(input_ptr: *const u8, output_ptr: *mut u
 pub unsafe fn shift_with_count_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 64 == 0);
 
-    unsafe {
-        let mut num_elements = len / 64;
-        let mut input_ptr = input_ptr as *mut u64;
-        let mut colours_ptr = output_ptr as *mut u32;
-        let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
+    let mut num_elements = len / 64;
+    let mut input_ptr = input_ptr as *mut u64;
+    let mut colours_ptr = output_ptr as *mut u32;
+    let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
 
-        while num_elements > 0 {
-            num_elements -= 1;
+    while num_elements > 0 {
+        num_elements -= 1;
 
-            // Load all values first
-            let curr1 = *input_ptr;
-            let curr2 = *input_ptr.add(1);
-            let curr3 = *input_ptr.add(2);
-            let curr4 = *input_ptr.add(3);
-            let curr5 = *input_ptr.add(4);
-            let curr6 = *input_ptr.add(5);
-            let curr7 = *input_ptr.add(6);
-            let curr8 = *input_ptr.add(7);
+        // Load all values first
+        let curr1 = *input_ptr;
+        let curr2 = *input_ptr.add(1);
+        let curr3 = *input_ptr.add(2);
+        let curr4 = *input_ptr.add(3);
+        let curr5 = *input_ptr.add(4);
+        let curr6 = *input_ptr.add(5);
+        let curr7 = *input_ptr.add(6);
+        let curr8 = *input_ptr.add(7);
 
-            // Process all colors together
-            let color1 = get_color(curr1);
-            let color2 = get_color(curr2);
-            let color3 = get_color(curr3);
-            let color4 = get_color(curr4);
-            let color5 = get_color(curr5);
-            let color6 = get_color(curr6);
-            let color7 = get_color(curr7);
-            let color8 = get_color(curr8);
+        // Process all colors together
+        let color1 = get_color(curr1);
+        let color2 = get_color(curr2);
+        let color3 = get_color(curr3);
+        let color4 = get_color(curr4);
+        let color5 = get_color(curr5);
+        let color6 = get_color(curr6);
+        let color7 = get_color(curr7);
+        let color8 = get_color(curr8);
 
-            // Store all colors together
-            *colours_ptr = color1;
-            *colours_ptr.add(1) = color2;
-            *colours_ptr.add(2) = color3;
-            *colours_ptr.add(3) = color4;
-            *colours_ptr.add(4) = color5;
-            *colours_ptr.add(5) = color6;
-            *colours_ptr.add(6) = color7;
-            *colours_ptr.add(7) = color8;
+        // Store all colors together
+        *colours_ptr = color1;
+        *colours_ptr.add(1) = color2;
+        *colours_ptr.add(2) = color3;
+        *colours_ptr.add(3) = color4;
+        *colours_ptr.add(4) = color5;
+        *colours_ptr.add(5) = color6;
+        *colours_ptr.add(6) = color7;
+        *colours_ptr.add(7) = color8;
 
-            // Process all indices together
-            let index1 = get_index(curr1);
-            let index2 = get_index(curr2);
-            let index3 = get_index(curr3);
-            let index4 = get_index(curr4);
-            let index5 = get_index(curr5);
-            let index6 = get_index(curr6);
-            let index7 = get_index(curr7);
-            let index8 = get_index(curr8);
+        // Process all indices together
+        let index1 = get_index(curr1);
+        let index2 = get_index(curr2);
+        let index3 = get_index(curr3);
+        let index4 = get_index(curr4);
+        let index5 = get_index(curr5);
+        let index6 = get_index(curr6);
+        let index7 = get_index(curr7);
+        let index8 = get_index(curr8);
 
-            // Store all indices together
-            *indices_ptr = index1;
-            *indices_ptr.add(1) = index2;
-            *indices_ptr.add(2) = index3;
-            *indices_ptr.add(3) = index4;
-            *indices_ptr.add(4) = index5;
-            *indices_ptr.add(5) = index6;
-            *indices_ptr.add(6) = index7;
-            *indices_ptr.add(7) = index8;
+        // Store all indices together
+        *indices_ptr = index1;
+        *indices_ptr.add(1) = index2;
+        *indices_ptr.add(2) = index3;
+        *indices_ptr.add(3) = index4;
+        *indices_ptr.add(4) = index5;
+        *indices_ptr.add(5) = index6;
+        *indices_ptr.add(6) = index7;
+        *indices_ptr.add(7) = index8;
 
-            input_ptr = input_ptr.add(8);
-            colours_ptr = colours_ptr.add(8);
-            indices_ptr = indices_ptr.add(8);
-        }
+        input_ptr = input_ptr.add(8);
+        colours_ptr = colours_ptr.add(8);
+        indices_ptr = indices_ptr.add(8);
     }
 }
 

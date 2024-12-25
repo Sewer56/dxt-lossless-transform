@@ -49,18 +49,21 @@ pub mod transform;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
 unsafe fn transform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    let is_32_aligned = input_ptr as usize % 32 == 0 && output_ptr as usize % 32 == 0;
+    let is_16_aligned = input_ptr as usize % 16 == 0 && output_ptr as usize % 16 == 0;
+
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         // Runtime feature detection
         let avx2 = std::is_x86_feature_detected!("avx2");
         let sse2 = std::is_x86_feature_detected!("sse2");
 
-        if avx2 && len % 256 == 0 {
+        if avx2 && len % 256 == 0 && is_32_aligned {
             transform::shuffle_permute_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
-        if sse2 && len % 64 == 0 {
+        if sse2 && len % 64 == 0 && is_16_aligned {
             transform::shufps_unroll_4(input_ptr, output_ptr, len);
             return;
         }
@@ -69,13 +72,13 @@ unsafe fn transform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
         #[cfg(target_feature = "avx2")]
-        if len % 256 == 0 {
+        if len % 256 == 0 && is_32_aligned {
             transform::shuffle_permute_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
         #[cfg(target_feature = "sse2")]
-        if len % 64 == 0 {
+        if len % 64 == 0 && is_16_aligned {
             transform::shufps_unroll_4(input_ptr, output_ptr, len);
             return;
         }
@@ -98,20 +101,10 @@ unsafe fn transform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
-/// - input_ptr and output_ptr must be 64-byte aligned (performance, and for some platforms)
+/// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
 pub unsafe fn transform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
-    debug_assert_eq!(
-        input_ptr as usize % 64,
-        0,
-        "input_ptr must be 64-byte aligned"
-    );
-    debug_assert_eq!(
-        output_ptr as usize % 64,
-        0,
-        "output_ptr must be 64-byte aligned"
-    );
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {

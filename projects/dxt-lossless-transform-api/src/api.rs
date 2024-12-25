@@ -1,3 +1,5 @@
+pub use dxt_lossless_transform_utils::dds::*;
+
 /// Transform BC1 data from standard interleaved format to separated color/index format
 /// to improve compression ratio.
 ///

@@ -16,7 +16,7 @@ pub enum DdsFormat {
 /// The information of the DDS file supplied to the reader.
 pub struct DdsInfo {
     pub format: DdsFormat,
-    pub data_offset: usize,
+    pub data_offset: u8,
 }
 
 /// Attempts to parse a the data format of a DDS file from the given pointer and length.
@@ -45,7 +45,6 @@ pub struct DdsInfo {
 ///
 /// [`is_dds`]: crate::dds::is_dds::is_dds
 #[inline]
-#[no_mangle]
 pub unsafe fn parse_dds(ptr: *const u8, len: usize) -> Option<DdsInfo> {
     if !is_dds(ptr, len) {
         return None;
@@ -93,7 +92,7 @@ pub unsafe fn parse_dds(ptr: *const u8, len: usize) -> Option<DdsInfo> {
 
     Some(DdsInfo {
         format,
-        data_offset,
+        data_offset: data_offset as u8,
     })
 }
 

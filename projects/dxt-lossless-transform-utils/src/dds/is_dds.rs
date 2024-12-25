@@ -1,6 +1,6 @@
 use super::constants::*;
 
-/// Determines if the given file represents a DDS archive.
+/// Determines if the given file represents a DDS texture.
 /// This is done by checking the 'MAGIC' header, 'DDS ' at offset 0.
 #[inline(always)]
 pub fn is_dds(ptr: *const u8, len: usize) -> bool {

@@ -1,29 +1,43 @@
 #![allow(unexpected_cfgs)]
 #![cfg(not(tarpaulin_include))]
 
+mod error;
+mod util;
 use argh::FromArgs;
-use std::str::FromStr;
+use core::error::Error;
+use dxt_lossless_transform_api::*;
+use error::TransformError;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    str::FromStr,
+    time::Instant,
+};
+use util::*;
 
 #[derive(Debug, Clone)]
-enum DdsType {
+enum DdsFilter {
     BC1,
     BC2,
     BC3,
+    BC7,
     All,
 }
 
 // Implement FromStr to allow parsing from command line arguments
-impl FromStr for DdsType {
+impl FromStr for DdsFilter {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "bc1" => Ok(DdsType::BC1),
-            "bc2" => Ok(DdsType::BC2),
-            "bc3" => Ok(DdsType::BC3),
-            "all" => Ok(DdsType::All),
+            "bc1" => Ok(DdsFilter::BC1),
+            "bc2" => Ok(DdsFilter::BC2),
+            "bc3" => Ok(DdsFilter::BC3),
+            "bc7" => Ok(DdsFilter::BC7),
+            "all" => Ok(DdsFilter::All),
             _ => Err(format!(
-                "Invalid DDS type: {}. Valid types are: bc1, bc2, bc3, all",
+                "Invalid DDS type: {}. Valid types are: bc1, bc2, bc3, bc7, all",
                 s
             )),
         }
@@ -49,16 +63,16 @@ enum Commands {
 #[argh(subcommand, name = "transform")]
 struct TransformCmd {
     /// input directory path
-    #[argh(option)]
-    _input: String,
+    #[argh(option, from_str_fn(canonicalize_cli_path))]
+    pub input: PathBuf,
 
     /// output directory path
-    #[argh(option)]
-    _output: String,
+    #[argh(option, from_str_fn(canonicalize_cli_path))]
+    pub output: PathBuf,
 
-    /// filter by DDS type (bc1, bc2, bc3)
+    /// filter by DDS type (bc1, bc2, bc3, bc7, all) [default: all]
     #[argh(option)]
-    _filter: Option<DdsType>,
+    pub filter: Option<DdsFilter>,
 }
 
 #[derive(FromArgs, Debug)]
@@ -66,27 +80,118 @@ struct TransformCmd {
 #[argh(subcommand, name = "detransform")]
 struct DetransformCmd {
     /// input directory path
-    #[argh(option)]
-    _input: String,
+    #[argh(option, from_str_fn(canonicalize_cli_path))]
+    pub input: PathBuf,
 
     /// output directory path
-    #[argh(option)]
-    _output: String,
+    #[argh(option, from_str_fn(canonicalize_cli_path))]
+    pub output: PathBuf,
 
-    /// filter by DDS type (bc1, bc2, bc3)
+    /// filter by DDS type (bc1, bc2, bc3, bc7, all) [default: all]
     #[argh(option)]
-    _filter: Option<DdsType>,
+    pub filter: Option<DdsFilter>,
 }
 
-fn main() {
+fn canonicalize_cli_path(value: &str) -> Result<PathBuf, String> {
+    let path = Path::new(value);
+
+    // If path doesn't exist, create it
+    if !path.exists() {
+        fs::create_dir_all(path).map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+
+    // Now we can canonicalize it
+    fs::canonicalize(path).map_err(|e| format!("Invalid path: {}", e))
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
     let top_level: TopLevel = argh::from_env();
 
+    let start = Instant::now();
     match top_level.command {
-        Commands::Transform(_cmd) => {
-            // Add transformation logic here
+        Commands::Transform(cmd) => {
+            let filter = cmd.filter.unwrap_or(DdsFilter::All);
+
+            // Collect all files recursively first
+            let mut entries = Vec::new();
+            find_all_files(&cmd.input, &mut entries)?;
+            println!("Found {} files to transform", entries.len());
+
+            // Process files in parallel
+            entries.par_iter().for_each(|entry| {
+                if let Err(e) = process_dir_entry(
+                    entry,
+                    &cmd.input,
+                    &cmd.output,
+                    filter.clone(),
+                    transform_format,
+                ) {
+                    eprintln!("{}", e);
+                }
+            });
         }
-        Commands::Detransform(_cmd) => {
-            // Add detransformation logic here
+        Commands::Detransform(cmd) => {
+            let filter = cmd.filter.unwrap_or(DdsFilter::All);
+
+            // Collect all files recursively first
+            let mut entries = Vec::new();
+            find_all_files(&cmd.input, &mut entries)?;
+            println!("Found {} files to detransform", entries.len());
+
+            // Process files in parallel
+            entries.par_iter().for_each(|entry| {
+                if let Err(e) = process_dir_entry(
+                    entry,
+                    &cmd.input,
+                    &cmd.output,
+                    filter.clone(),
+                    untransform_format,
+                ) {
+                    eprintln!("{}", e);
+                }
+            });
         }
     }
+
+    println!("Transform completed in {:.2?}", start.elapsed());
+    Ok(())
+}
+
+fn process_dir_entry(
+    dir_entry: &fs::DirEntry,
+    input: &Path,
+    output: &Path,
+    filter: DdsFilter,
+    transform_fn: unsafe fn(*const u8, *mut u8, usize, DdsFormat),
+) -> Result<(), TransformError> {
+    let path = dir_entry.path();
+    let relative = path.strip_prefix(input).unwrap();
+    let target_path = output.join(relative);
+
+    if let Some(parent) = target_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let source_handle = open_read_handle(path)?;
+    let source_size = get_file_size(&source_handle)? as usize;
+    let source_mapping = open_readonly_mmap(&source_handle, source_size)?;
+
+    let dds_info = unsafe { parse_dds(source_mapping.data(), source_mapping.len()) };
+    let format = check_dds_format(dds_info, filter)?;
+
+    let target_path_str = target_path.to_str().unwrap();
+    let target_handle = open_write_handle(&source_mapping, target_path_str)?;
+
+    let target_mapping = create_output_mapping(&target_handle, source_size as u64)?;
+
+    unsafe {
+        transform_fn(
+            source_mapping.data(),
+            target_mapping.data(),
+            source_size,
+            format,
+        );
+    }
+
+    Ok(())
 }

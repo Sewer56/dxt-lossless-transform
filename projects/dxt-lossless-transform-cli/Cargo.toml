@@ -6,4 +6,6 @@ edition = "2021"
 [dependencies]
 argh = "0.1.13"
 rayon = "1.10.0"
+lightweight-mmap = "0.6.0"
 dxt-lossless-transform = { path = "../dxt-lossless-transform" }
+dxt-lossless-transform-api = { path = "../dxt-lossless-transform-api" }

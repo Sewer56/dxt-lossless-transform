@@ -51,7 +51,8 @@ jobs:
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
           crate-name: "dxt-lossless-transform-cli"
-          rust-project-path: "projects/dxt-lossless-transform-cli/"
+          rust-project-path: "projects/dxt-lossless-transform-cli"
+          workspace-path: "."
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
@@ -60,7 +61,8 @@ jobs:
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
           crate-name: "dxt-lossless-transform-api"
-          rust-project-path: "projects/dxt-lossless-transform-api/"
+          rust-project-path: "projects/dxt-lossless-transform-api"
+          workspace-path: "."
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
           features: "c-exports"

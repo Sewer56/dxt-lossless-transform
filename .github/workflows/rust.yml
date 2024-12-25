@@ -68,8 +68,9 @@ jobs:
           features: "c-exports"
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Check semver
-        uses: obi1kenobi/cargo-semver-checks-action@v2
+      # Uncomment after first release.
+      # - name: Check semver
+      #   uses: obi1kenobi/cargo-semver-checks-action@v2
 
   build-c-headers:
     runs-on: ubuntu-latest

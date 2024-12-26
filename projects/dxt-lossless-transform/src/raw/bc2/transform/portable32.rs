@@ -153,15 +153,43 @@ mod tests {
     use crate::raw::bc2::transform::tests::transform_with_reference_implementation;
     use rstest::rstest;
 
-    // Define the function pointer type
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
+    struct TestCase {
+        name: &'static str,
+        func: TransformFn,
+        min_blocks: usize,
+        many_blocks: usize,
+    }
+
     #[rstest]
-    #[case::min_size(16)] // 128 bytes - minimum size for unroll-8
-    #[case::one_unroll(32)] // 256 bytes - tests double minimum size
-    #[case::many_unrolls(256)] // 2KB - tests multiple unroll iterations
-    #[case::large(1024)] // 8KB - large dataset
-    fn test_implementations(#[case] num_blocks: usize) {
+    #[case::u32(TestCase {
+        name: "u32 no-unroll",
+        func: u32,
+        min_blocks: 1, // 16 bytes, minimum size
+        many_blocks: 8,
+    })]
+    #[case::u32_unroll_2(TestCase {
+        name: "u32 unroll-2",
+        func: u32_unroll_2,
+        min_blocks: 2,
+        many_blocks: 16,
+    })]
+    #[cfg_attr(target_arch = "x86_64", case::u32_unroll_4(TestCase {
+        name: "u32 unroll-4",
+        func: u32_unroll_4,
+        min_blocks: 4,
+        many_blocks: 32,
+    }))]
+    fn test_transform(#[case] test_case: TestCase) {
+        // Test with minimum blocks
+        test_blocks(&test_case, test_case.min_blocks);
+
+        // Test with many blocks
+        test_blocks(&test_case, test_case.many_blocks);
+    }
+
+    fn test_blocks(test_case: &TestCase, num_blocks: usize) {
         let input = generate_bc2_test_data(num_blocks);
         let mut output_expected = vec![0u8; input.len()];
         let mut output_test = vec![0u8; input.len()];
@@ -169,31 +197,22 @@ mod tests {
         // Generate reference output
         transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
-        // Test each SSE2 implementation variant
-        let implementations = [
-            ("u32 no-unroll", u32 as TransformFn),
-            ("u32 unroll-2", u32_unroll_2 as TransformFn),
-            ("u32 unroll-4", u32_unroll_4 as TransformFn),
-        ];
+        // Clear the output buffer
+        output_test.fill(0);
 
-        for (impl_name, implementation) in implementations {
-            // Clear the output buffer
-            output_test.fill(0);
-
-            // Run the implementation
-            unsafe {
-                implementation(input.as_ptr(), output_test.as_mut_ptr(), input.len());
-            }
-
-            // Compare results
-            assert_eq!(
-                output_expected, output_test,
-                "{} implementation produced different results than reference for {} blocks.\n\
-                First differing block will have predictable values:\n\
-                Colors: Sequential 1-4 + (block_num * 4)\n\
-                Indices: Sequential 128-131 + (block_num * 4)",
-                impl_name, num_blocks
-            );
+        // Run the implementation
+        unsafe {
+            (test_case.func)(input.as_ptr(), output_test.as_mut_ptr(), input.len());
         }
+
+        // Compare results
+        assert_eq!(
+            output_expected, output_test,
+            "{} implementation produced different results than reference for {} blocks.\n\
+            First differing block will have predictable values:\n\
+            Colors: Sequential 1-4 + (block_num * 4)\n\
+            Indices: Sequential 128-131 + (block_num * 4)",
+            test_case.name, num_blocks
+        );
     }
 }

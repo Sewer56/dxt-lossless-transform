@@ -1,4 +1,5 @@
 pub mod portable32;
+pub use portable32::*;
 
 #[cfg(test)]
 pub mod tests {

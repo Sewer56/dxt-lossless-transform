@@ -18,8 +18,8 @@ pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let mut group = c.benchmark_group("BC1 Untransform Implementations");
-    let size = 8388608; // 4096x4096px
+    let mut group = c.benchmark_group("BC2 Transform Implementations");
+    let size = 8388608; // bc2 = 1byte/pixel, so this is 4096x2048px. Keep this size for comparison with BC1.
     let input = allocate_align_64(size);
     let mut output = allocate_align_64(input.len());
     let important_benches_only = true; // Set to false to enable extra benches, unrolls, etc.

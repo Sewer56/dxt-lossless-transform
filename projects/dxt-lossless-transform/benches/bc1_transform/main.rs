@@ -17,37 +17,10 @@ pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
     RawAlloc::new(layout).unwrap()
 }
 
-// Helper to generate test data with predictable patterns
-pub(crate) fn generate_test_data(num_blocks: usize) -> RawAlloc {
-    let mut data = allocate_align_64(num_blocks * 8);
-    let mut data_ptr = data.as_mut_ptr();
-
-    let mut color_byte = 0_u8;
-    let mut index_byte = 128_u8;
-    unsafe {
-        for _ in 0..num_blocks {
-            *data_ptr = color_byte.wrapping_add(0);
-            *data_ptr.add(1) = color_byte.wrapping_add(1);
-            *data_ptr.add(2) = color_byte.wrapping_add(2);
-            *data_ptr.add(3) = color_byte.wrapping_add(3);
-            color_byte = color_byte.wrapping_add(4);
-
-            *data_ptr.add(4) = index_byte.wrapping_add(0);
-            *data_ptr.add(5) = index_byte.wrapping_add(1);
-            *data_ptr.add(6) = index_byte.wrapping_add(2);
-            *data_ptr.add(7) = index_byte.wrapping_add(3);
-            index_byte = index_byte.wrapping_add(4);
-            data_ptr = data_ptr.add(8);
-        }
-    }
-
-    data
-}
-
 fn criterion_benchmark(c: &mut Criterion) {
-    let mut group = c.benchmark_group("DXT1 Transform Implementations");
-    let size = 16384; // 512x512 px = 16384 blocks
-    let input = generate_test_data(size);
+    let mut group = c.benchmark_group("BC1 Transform Implementations");
+    let size = 8388608; // 4096x4096px
+    let input = allocate_align_64(size);
     let mut output = allocate_align_64(input.len());
     let important_benches_only = true; // Set to false to enable extra benches, unrolls, etc.
 

@@ -60,7 +60,8 @@ Untransform BC1:
 
 Transform BC2:
 
-- SSE2 (Assembly): 53.812 GiB/s `sse2 shuffle v2`
+- SSE2 (Assembly, x86-64 only): 55.965 GiB/s `sse2 shuffle v3`
+- SSE2 (Assembly, i686): 55.407 GiB/s `sse2 shuffle v2`
 - Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 32.408 GiB/s `portable32 no-unroll`
 
 Measured on Linux with `performance` governor. 8MiB file (see: `projects/dxt-lossless-transform/benches`).

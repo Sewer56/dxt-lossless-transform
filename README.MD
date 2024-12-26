@@ -51,17 +51,16 @@ Transform BC1:
 - AVX2 (Assembly): 58.329 GiB/s `avx2 shuffle_permute unroll 2`
 - SSE2 (Assembly): 56.302 GiB/s `sse2 shufps unroll 4`
 - Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 58.163 GiB/s `portable32 no-unroll`
-- Compiler v3 Unroll-8 (Rust + LLVM on `x86-64-v3`): 12.374 GiB/s `portable32 unroll-8`
 
 Untransform BC1:
 
 - AVX2 (Assembly): 53.181 GiB/s `avx2 unpck unroll 2`
 - SSE2 (Assembly): 47.392 GiB/s `sse2 unpck unroll 2`
 - Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 53.013 GiB/s `portable32 no-unroll`
-- Compiler v3 Unroll-8 (Rust + LLVM on `x86-64-v3`): 8.01 GiB/s `46.718 GiB/s`
 
 Transform BC2:
 
+- SSE2 (Assembly): 53.812 GiB/s `sse2 shuffle v2`
 - Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 32.408 GiB/s `portable32 no-unroll`
 
 Measured on Linux with `performance` governor. 8MiB file (see: `projects/dxt-lossless-transform/benches`).

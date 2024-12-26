@@ -80,6 +80,10 @@ This project contains a CLI tool that can be used to test the transforms.
 
 Build like a regular rust project, i.e. `cargo build --release`, and find it at `./target/release/dxt-lossless-transform-cli`. 
 
+## How it Works
+
+
+
 ## Development
 
 For information on how to work with this codebase, see [README-DEV.MD](README-DEV.MD).

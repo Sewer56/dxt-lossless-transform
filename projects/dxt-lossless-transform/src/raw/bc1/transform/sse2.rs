@@ -469,10 +469,9 @@ pub unsafe fn shufps_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: us
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
-    use crate::raw::bc1::testutils::allocate_align_64;
     use crate::raw::transform::tests::*;
+    use crate::testutils::allocate_align_64;
     use rstest::rstest;
 
     // Define the function pointer type

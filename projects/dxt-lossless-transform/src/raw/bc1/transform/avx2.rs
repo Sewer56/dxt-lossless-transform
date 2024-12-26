@@ -641,8 +641,8 @@ pub unsafe fn shuffle_permute_unroll_4(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raw::bc1::testutils::allocate_align_64;
     use crate::raw::transform::tests::*;
+    use crate::testutils::allocate_align_64;
     use rstest::rstest;
 
     type PermuteFn = unsafe fn(*const u8, *mut u8, usize);

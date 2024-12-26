@@ -228,25 +228,13 @@ pub unsafe fn untransform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: us
 }
 
 #[cfg(test)]
-mod testutils {
-    use safe_allocator_api::RawAlloc;
-    use std::alloc::Layout;
-
-    pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
-        // Create a new allocation of 1024 bytes
-        let layout = Layout::from_size_align(num_bytes, 64).unwrap();
-        RawAlloc::new(layout).unwrap()
-    }
-}
-
-#[cfg(test)]
 mod tests {
     use super::*;
     use crate::raw::bc1::transform::tests::{
         generate_bc1_test_data, transform_with_reference_implementation,
     };
+    use crate::testutils::allocate_align_64;
     use rstest::rstest;
-    use testutils::allocate_align_64;
 
     #[rstest]
     #[case::min_size(32)] // 256 bytes - minimum size for most operations

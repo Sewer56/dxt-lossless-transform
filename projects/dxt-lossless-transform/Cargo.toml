@@ -8,16 +8,11 @@ license-file = "LICENSE"
 include = ["src/**/*"]
 readme = "README.MD"
 
-[lib]
-bench = false
-
 [features]
 default = ["std"]
 std = []
 # See README.md for more information on using Profile-Guided Optimization.
 pgo = []
-# Feature for enabling C library exports.
-c-exports = []
 # Use CPU features selected at compile time.
 no-runtime-cpu-detection = []
 

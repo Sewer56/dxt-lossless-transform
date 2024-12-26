@@ -20,7 +20,12 @@ members = [
     "projects/dxt-lossless-transform",
 
     # High level 'stable' API.
+    "projects/dxt-lossless-transform-api",
+
+    # Utilities around lossless transform, like parsing DDSes.
+    "projects/dxt-lossless-transform-utils",
 
     # CLI Tool
+    "projects/dxt-lossless-transform-cli",
 ]
 resolver = "2"

@@ -1,0 +1,19 @@
+[package]
+name = "dxt-lossless-transform-api"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["std"]
+# Enable use of standard library, currently a no-op.
+std = ["dxt-lossless-transform/std"]
+# Use CPU features selected at compile time.
+no-runtime-cpu-detection = ["dxt-lossless-transform/no-runtime-cpu-detection"]
+# Use CPU features selected at compile time.
+c-exports = []
+
+[dependencies]
+argh = "0.1.13"
+rayon = "1.10.0"
+dxt-lossless-transform = { path = "../dxt-lossless-transform" }
+dxt-lossless-transform-utils = { path = "../dxt-lossless-transform-utils" }

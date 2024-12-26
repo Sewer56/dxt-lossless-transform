@@ -15,7 +15,7 @@ once compressed by external compressors.
 
 Applying filter on every BC1 DDS file of `-Skyrim 202X 10.0.1 - Landscape PART 2-2347-10-0-1-1710489616.rar`.
 
-Before:
+### Before
 
 ```ignore
 Tool       Size            Ratio 
@@ -27,7 +27,7 @@ bzip3 16m  1.30 GiB        56.02%
 7z         1.34 GiB        57.37%
 ```
 
-After:
+### After
 
 ```ignore
 Tool       Size            Ratio     
@@ -61,9 +61,24 @@ Untransform BC1:
 - Compiler v3 Unroll-8 (Rust + LLVM on `x86-64-v3`): 8.01 GiB/s `portable32 unroll-8`
 
 Measured on Linux with `performance` governor. Sensitive to external load and CPU temperature, therefore
-benched with 60 second warmup and 60 seconds measurement. In general, the output of LLVM is on par
-with manually written routines, however the manually written routines are smaller in code size; therefore
-more cache friendly.
+benched with 60 second warmup and 60 seconds measurement. 
+
+In general, the output of LLVM is on par with manually written routines, however the manually
+written routines are smaller in code size; more friendly with cache, etc.
+
+## Usage
+
+This crate is not yet released.
+
+## Testing (CLI)
+
+This project contains a CLI tool that can be used to test the transforms.
+
+```
+./dxt-lossless-transform-cli transform --input textures --output textures-transformed
+```
+
+Build like a regular rust project, i.e. `cargo build --release`, and find it at `./target/release/dxt-lossless-transform-cli`. 
 
 ## Development
 

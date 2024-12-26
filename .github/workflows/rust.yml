@@ -46,23 +46,50 @@ jobs:
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
-      # Note: The GitHub Runner Images will contain an up to date Rust Stable Toolchain
-      #       thus as per recommendation of cargo-semver-checks, we're using stable here.
-      #
-      # Note to reader. If adding this to a new repo, please clear cache.
-      - name: Run cargo-semver-checks
-        if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/')
-        shell: bash
-        run: |
-          SEARCH_RESULT=$(cargo search "^dxt-lossless-transform$" --limit 1)
 
-          if echo "$SEARCH_RESULT" | grep -q "^dxt-lossless-transform "; then
-            rustup target add ${{ matrix.target }}
-            cargo install cargo-semver-checks
-            cargo semver-checks --target ${{ matrix.target }} --features c-exports
-          else
-              echo "No previous version found on crates.io. Skipping semver checks."
-          fi
+      - name: Build CLI
+        uses: Reloaded-Project/devops-rust-lightweight-binary@v1
+        with:
+          crate-name: "dxt-lossless-transform-cli"
+          rust-project-path: "projects/dxt-lossless-transform-cli"
+          workspace-path: "."
+          target: ${{ matrix.target }}
+          use-cross: ${{ matrix.use-cross }}
+          codecov-token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Build C API
+        uses: Reloaded-Project/devops-rust-lightweight-binary@v1
+        with:
+          crate-name: "dxt-lossless-transform-api"
+          rust-project-path: "projects/dxt-lossless-transform-api"
+          workspace-path: "."
+          target: ${{ matrix.target }}
+          use-cross: ${{ matrix.use-cross }}
+          features: "c-exports"
+          codecov-token: ${{ secrets.CODECOV_TOKEN }}
+
+      # Uncomment after first release.
+      # - name: Check semver
+      #   uses: obi1kenobi/cargo-semver-checks-action@v2
+
+  build-c-headers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Generate C++ bindings
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'projects/dxt-lossless-transform-api/'
+          config-file: cbindgen_cpp.toml
+          output-header-file: bindings_cpp.hpp
+      - name: Generate C bindings
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'projects/dxt-lossless-transform-api/'
+          config-file: cbindgen_c.toml
+          output-header-file: bindings_c.h
 
   publish-crate:
     permissions:

@@ -185,7 +185,7 @@ pub unsafe fn u32_detransform_unroll_8(input_ptr: *const u8, output_ptr: *mut u8
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raw::bc1::transform::tests::generate_dxt1_test_data;
+    use crate::raw::bc1::transform::tests::generate_bc1_test_data;
     use crate::raw::transform;
     use rstest::rstest;
 
@@ -240,7 +240,7 @@ mod tests {
     }
 
     fn test_blocks(test_case: &TestCase, num_blocks: usize) {
-        let original = generate_dxt1_test_data(num_blocks);
+        let original = generate_bc1_test_data(num_blocks);
         let mut transformed = vec![0u8; original.len()];
         let mut reconstructed = vec![0u8; original.len()];
 

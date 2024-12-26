@@ -1,7 +1,7 @@
 use super::{constants::*, is_dds};
 
 /// Defines a known data format within a DDS file; suitable for lossless transform.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DdsFormat {
     Unknown,
     /// a.k.a. DXT1
@@ -14,6 +14,7 @@ pub enum DdsFormat {
 }
 
 /// The information of the DDS file supplied to the reader.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DdsInfo {
     pub format: DdsFormat,
     pub data_offset: u8,

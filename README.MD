@@ -70,7 +70,15 @@ written routines are smaller in code size; more friendly with cache, etc.
 
 This crate is not yet released.
 
+## Testing (CLI)
 
+This project contains a CLI tool that can be used to test the transforms.
+
+```
+./dxt-lossless-transform-cli transform --input textures --output textures-transformed
+```
+
+Build like a regular rust project, i.e. `cargo build --release`, and find it at `./target/release/dxt-lossless-transform-cli`. 
 
 ## Development
 

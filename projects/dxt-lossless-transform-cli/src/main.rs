@@ -4,7 +4,7 @@
 mod error;
 mod util;
 use argh::FromArgs;
-use core::error::Error;
+use core::{error::Error, ops::Sub};
 use dxt_lossless_transform_api::*;
 use error::TransformError;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -177,18 +177,26 @@ fn process_dir_entry(
     let source_mapping = open_readonly_mmap(&source_handle, source_size)?;
 
     let dds_info = unsafe { parse_dds(source_mapping.data(), source_mapping.len()) };
-    let format = check_dds_format(dds_info, filter)?;
+    let (info, format) = check_dds_format(dds_info, filter)?;
 
     let target_path_str = target_path.to_str().unwrap();
     let target_handle = open_write_handle(&source_mapping, target_path_str)?;
-
     let target_mapping = create_output_mapping(&target_handle, source_size as u64)?;
+
+    // Copy DDS headers.
+    unsafe {
+        std::ptr::copy_nonoverlapping(
+            source_mapping.data(),
+            target_mapping.data(),
+            info.data_offset as usize,
+        );
+    }
 
     unsafe {
         transform_fn(
-            source_mapping.data(),
-            target_mapping.data(),
-            source_size,
+            source_mapping.data().add(info.data_offset as usize),
+            target_mapping.data().add(info.data_offset as usize),
+            source_size.sub(info.data_offset as usize),
             format,
         );
     }

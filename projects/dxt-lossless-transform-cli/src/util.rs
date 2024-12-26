@@ -54,6 +54,7 @@ pub fn find_all_files(dir: &Path, entries: &mut Vec<fs::DirEntry>) -> std::io::R
 /// # Returns
 ///
 /// A read-only file handle on success, or a [`TransformError`] if the file cannot be opened.
+#[inline(always)]
 pub fn open_read_handle(path: PathBuf) -> Result<ReadOnlyFileHandle, TransformError> {
     ReadOnlyFileHandle::open(path.to_str().unwrap())
         .map_err(|e| TransformError::MmapError(e.to_string()))
@@ -69,6 +70,7 @@ pub fn open_read_handle(path: PathBuf) -> Result<ReadOnlyFileHandle, TransformEr
 /// # Returns
 ///
 /// A memory mapping on success, or a [`TransformError`] on failure.
+#[inline(always)]
 pub fn open_readonly_mmap(
     handle: &ReadOnlyFileHandle,
     len: usize,
@@ -86,6 +88,7 @@ pub fn open_readonly_mmap(
 /// # Returns
 ///
 /// The size of the file in bytes, or a [`TransformError`] on failure.
+#[inline(always)]
 pub fn get_file_size(handle: &ReadOnlyFileHandle) -> Result<i64, TransformError> {
     handle
         .size()
@@ -102,6 +105,7 @@ pub fn get_file_size(handle: &ReadOnlyFileHandle) -> Result<i64, TransformError>
 /// # Returns
 ///
 /// A memory mapping on success, or a [`TransformError`] on failure.
+#[inline(always)]
 pub fn open_write_handle(
     source_mapping: &ReadOnlyMmap,
     target_path_str: &str,
@@ -120,6 +124,7 @@ pub fn open_write_handle(
 /// # Returns
 ///
 /// A memory mapping on success, or a [`TransformError`] on failure.
+#[inline(always)]
 pub fn create_output_mapping(
     handle: &ReadWriteFileHandle,
     size: u64,
@@ -138,10 +143,11 @@ pub fn create_output_mapping(
 /// # Returns
 ///
 /// The validated DdsFormat on success, or a TransformError if the format is invalid or unsupported.
+#[inline(always)]
 pub fn check_dds_format(
     dds_info: Option<DdsInfo>,
     filter: DdsFilter,
-) -> Result<DdsFormat, TransformError> {
+) -> Result<(DdsInfo, DdsFormat), TransformError> {
     let info = dds_info.ok_or(TransformError::InvalidDdsFile)?;
 
     if info.format == DdsFormat::Unknown {
@@ -149,9 +155,9 @@ pub fn check_dds_format(
     }
 
     match (info.format, filter) {
-        (DdsFormat::BC1, DdsFilter::BC1 | DdsFilter::All) => Ok(DdsFormat::BC1),
-        (DdsFormat::BC2, DdsFilter::BC2 | DdsFilter::All) => Ok(DdsFormat::BC2),
-        (DdsFormat::BC3, DdsFilter::BC3 | DdsFilter::All) => Ok(DdsFormat::BC3),
+        (DdsFormat::BC1, DdsFilter::BC1 | DdsFilter::All) => Ok((info, DdsFormat::BC1)),
+        (DdsFormat::BC2, DdsFilter::BC2 | DdsFilter::All) => Ok((info, DdsFormat::BC2)),
+        (DdsFormat::BC3, DdsFilter::BC3 | DdsFilter::All) => Ok((info, DdsFormat::BC3)),
         _ => Err(TransformError::UnsupportedFormat),
     }
 }

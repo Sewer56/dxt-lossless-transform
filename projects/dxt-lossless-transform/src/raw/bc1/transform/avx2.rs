@@ -641,7 +641,8 @@ pub unsafe fn shuffle_permute_unroll_4(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raw::transform::tests::*;
+    use crate::raw::bc1::transform::tests::generate_bc1_test_data;
+    use crate::raw::bc1::transform::tests::transform_with_reference_implementation;
     use crate::testutils::allocate_align_64;
     use rstest::rstest;
 

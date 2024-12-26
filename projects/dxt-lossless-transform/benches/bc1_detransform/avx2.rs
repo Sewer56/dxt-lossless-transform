@@ -1,5 +1,5 @@
 use criterion::*;
-use dxt_lossless_transform::raw::detransform::avx2::*;
+use dxt_lossless_transform::raw::bc1::detransform::avx2::*;
 use safe_allocator_api::RawAlloc;
 
 fn bench_unpck(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {

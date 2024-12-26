@@ -34,14 +34,14 @@ pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len
             "2:",  // Local label for loop
 
             // Load 16 blocks (128 bytes)
-            "movdqa xmm0, [r12]",
-            "movdqa xmm1, [r12 + 16]",
-            "movdqa xmm2, [r12 + 32]",
-            "movdqa xmm3, [r12 + 48]",
-            "movdqa xmm4, [r12 + 64]",
-            "movdqa xmm5, [r12 + 80]",
-            "movdqa xmm6, [r12 + 96]",
-            "movdqa xmm7, [r12 + 112]",
+            "movdqu xmm0, [r12]",
+            "movdqu xmm1, [r12 + 16]",
+            "movdqu xmm2, [r12 + 32]",
+            "movdqu xmm3, [r12 + 48]",
+            "movdqu xmm4, [r12 + 64]",
+            "movdqu xmm5, [r12 + 80]",
+            "movdqu xmm6, [r12 + 96]",
+            "movdqu xmm7, [r12 + 112]",
             "add r12, 128",  // src += 8 * 16
 
             // Shuffle all to separate colors and indices
@@ -55,10 +55,10 @@ pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len
             "pshufd xmm7, xmm7, 0xD8",
 
             // Copy registers for reorganization
-            "movdqa xmm8, xmm0",
-            "movdqa xmm9, xmm2",
-            "movdqa xmm10, xmm4",
-            "movdqa xmm11, xmm6",
+            "movdqu xmm8, xmm0",
+            "movdqu xmm9, xmm2",
+            "movdqu xmm10, xmm4",
+            "movdqu xmm11, xmm6",
 
             // Reorganize all pairs into colors/indices
             "punpckhqdq xmm0, xmm1",     // indices 0,1
@@ -71,17 +71,17 @@ pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len
             "punpcklqdq xmm11, xmm7",    // colors 6,7
 
             // Store colors
-            "movdqa [r13],      xmm8",
-            "movdqa [r13 + 16], xmm9",
-            "movdqa [r13 + 32], xmm10",
-            "movdqa [r13 + 48], xmm11",
+            "movdqu [r13],      xmm8",
+            "movdqu [r13 + 16], xmm9",
+            "movdqu [r13 + 32], xmm10",
+            "movdqu [r13 + 48], xmm11",
             "add r13, 64",   // colors_ptr += 8 * 8
 
             // Store indices
-            "movdqa [r14],      xmm0",
-            "movdqa [r14 + 16], xmm2",
-            "movdqa [r14 + 32], xmm4",
-            "movdqa [r14 + 48], xmm6",
+            "movdqu [r14],      xmm0",
+            "movdqu [r14 + 16], xmm2",
+            "movdqu [r14 + 32], xmm4",
+            "movdqu [r14 + 48], xmm6",
             "add r14, 64",   // indices_ptr += 8 * 8
 
             // Compare against end address and loop if not done
@@ -132,10 +132,10 @@ pub unsafe fn punpckhqdq_unroll_4(
             "2:",
 
             // Load 8 blocks (64 bytes)
-            "movdqa {xmm0}, [{src_ptr}]",
-            "movdqa {xmm1}, [{src_ptr} + 16]",
-            "movdqa {xmm2}, [{src_ptr} + 32]",
-            "movdqa {xmm3}, [{src_ptr} + 48]",
+            "movdqu {xmm0}, [{src_ptr}]",
+            "movdqu {xmm1}, [{src_ptr} + 16]",
+            "movdqu {xmm2}, [{src_ptr} + 32]",
+            "movdqu {xmm3}, [{src_ptr} + 48]",
             "add {src_ptr}, 64",   // src += 4 * 16
 
             // Shuffle all
@@ -145,8 +145,8 @@ pub unsafe fn punpckhqdq_unroll_4(
             "pshufd {xmm3}, {xmm3}, 0xD8",
 
             // Copy registers
-            "movdqa {xmm4}, {xmm0}",
-            "movdqa {xmm5}, {xmm2}",
+            "movdqu {xmm4}, {xmm0}",
+            "movdqu {xmm5}, {xmm2}",
 
             // Reorganize pairs
             "punpckhqdq {xmm0}, {xmm1}",     // indices 0,1
@@ -155,11 +155,11 @@ pub unsafe fn punpckhqdq_unroll_4(
             "punpcklqdq {xmm5}, {xmm3}",     // colors 2,3
 
             // Store colors and indices
-            "movdqa [{colors_ptr}],      {xmm4}",
-            "movdqa [{colors_ptr} + 16], {xmm5}",
+            "movdqu [{colors_ptr}],      {xmm4}",
+            "movdqu [{colors_ptr} + 16], {xmm5}",
             "add {colors_ptr}, 32",   // colors_ptr += 4 * 8
-            "movdqa [{indices_ptr}],      {xmm0}",
-            "movdqa [{indices_ptr} + 16], {xmm2}",
+            "movdqu [{indices_ptr}],      {xmm0}",
+            "movdqu [{indices_ptr} + 16], {xmm2}",
             "add {indices_ptr}, 32",   // indices_ptr += 4 * 8
 
             "cmp {src_ptr}, {end}",
@@ -211,8 +211,8 @@ pub unsafe fn punpckhqdq_unroll_2(
             "2:",
 
             // Load 4 blocks (32 bytes)
-            "movdqa {xmm0}, [{src_ptr}]",
-            "movdqa {xmm1}, [{src_ptr} + 16]",
+            "movdqu {xmm0}, [{src_ptr}]",
+            "movdqu {xmm1}, [{src_ptr} + 16]",
             "add {src_ptr}, 32",   // src += 2 * 16
 
             // Shuffle both
@@ -220,16 +220,16 @@ pub unsafe fn punpckhqdq_unroll_2(
             "pshufd {xmm1}, {xmm1}, 0xD8",
 
             // Copy first register
-            "movdqa {xmm2}, {xmm0}",
+            "movdqu {xmm2}, {xmm0}",
 
             // Reorganize pair
             "punpcklqdq {xmm2}, {xmm1}",     // colors
             "punpckhqdq {xmm0}, {xmm1}",     // indices
 
             // Store colors and indices
-            "movdqa [{colors_ptr}], {xmm2}",
+            "movdqu [{colors_ptr}], {xmm2}",
             "add {colors_ptr}, 16",   // colors_ptr += 2 * 8
-            "movdqa [{indices_ptr}], {xmm0}",
+            "movdqu [{indices_ptr}], {xmm0}",
             "add {indices_ptr}, 16",   // indices_ptr += 2 * 8
 
             "cmp {src_ptr}, {end}",
@@ -274,8 +274,8 @@ pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             "2:",
 
             // Load 2 blocks (32 bytes)
-            "movdqa {xmm0}, [{src_ptr}]",
-            "movdqa {xmm1}, [{src_ptr} + 16]",
+            "movdqu {xmm0}, [{src_ptr}]",
+            "movdqu {xmm1}, [{src_ptr} + 16]",
             "add {src_ptr}, 32",   // src += 2 * 16
 
             // Shuffle to separate colors and indices
@@ -284,9 +284,9 @@ pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             "shufps {xmm0}, {xmm1}, 0xDD",    // Indices (0b11011101)
 
             // Store colors and indices
-            "movdqa [{colors_ptr}], {xmm2}",
+            "movdqu [{colors_ptr}], {xmm2}",
             "add {colors_ptr}, 16",   // colors_ptr += 2 * 8
-            "movdqa [{indices_ptr}], {xmm0}",
+            "movdqu [{indices_ptr}], {xmm0}",
             "add {indices_ptr}, 16",   // indices_ptr += 2 * 8
 
             "cmp {src_ptr}, {end}",
@@ -331,10 +331,10 @@ pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             "2:",
 
             // Load 4 blocks (64 bytes)
-            "movdqa {xmm0}, [{src_ptr}]",
-            "movdqa {xmm1}, [{src_ptr} + 16]",
-            "movdqa {xmm2}, [{src_ptr} + 32]",
-            "movdqa {xmm3}, [{src_ptr} + 48]",
+            "movdqu {xmm0}, [{src_ptr}]",
+            "movdqu {xmm1}, [{src_ptr} + 16]",
+            "movdqu {xmm2}, [{src_ptr} + 32]",
+            "movdqu {xmm3}, [{src_ptr} + 48]",
             "add {src_ptr}, 64",   // src += 4 * 16
 
             "movaps {xmm4}, {xmm0}",
@@ -347,11 +347,11 @@ pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             "shufps {xmm5}, {xmm3}, 0x88",    // Colors (0b10001000)
 
             // Store colors and indices
-            "movdqa [{indices_ptr}], {xmm0}",
-            "movdqa [{indices_ptr} + 16], {xmm2}",
+            "movdqu [{indices_ptr}], {xmm0}",
+            "movdqu [{indices_ptr} + 16], {xmm2}",
             "add {indices_ptr}, 32",   // indices_ptr += 4 * 8
-            "movdqa [{colors_ptr}], {xmm4}",
-            "movdqa [{colors_ptr} + 16], {xmm5}",
+            "movdqu [{colors_ptr}], {xmm4}",
+            "movdqu [{colors_ptr} + 16], {xmm5}",
             "add {colors_ptr}, 32",   // colors_ptr += 4 * 8
 
             "cmp {src_ptr}, {end}",
@@ -405,16 +405,16 @@ pub unsafe fn shufps_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: us
             "2:",
 
             // Load first 4 blocks (64 bytes)
-            "movdqa xmm0, [r12]",
-            "movdqa xmm1, [r12 + 16]",
-            "movdqa xmm2, [r12 + 32]",
-            "movdqa xmm3, [r12 + 48]",
+            "movdqu xmm0, [r12]",
+            "movdqu xmm1, [r12 + 16]",
+            "movdqu xmm2, [r12 + 32]",
+            "movdqu xmm3, [r12 + 48]",
 
             // Load second 4 blocks (64 bytes)
-            "movdqa xmm4, [r12 + 64]",
-            "movdqa xmm5, [r12 + 80]",
-            "movdqa xmm6, [r12 + 96]",
-            "movdqa xmm7, [r12 + 112]",
+            "movdqu xmm4, [r12 + 64]",
+            "movdqu xmm5, [r12 + 80]",
+            "movdqu xmm6, [r12 + 96]",
+            "movdqu xmm7, [r12 + 112]",
             "add r12, 128",  // src += 8 * 16
 
             // First pair shuffle
@@ -438,17 +438,17 @@ pub unsafe fn shufps_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: us
             "shufps xmm6, xmm7, 0xDD",    // Indices (0b11011101)
 
             // Store colors
-            "movdqa [r13], xmm8",
-            "movdqa [r13 + 16], xmm9",
-            "movdqa [r13 + 32], xmm10",
-            "movdqa [r13 + 48], xmm11",
+            "movdqu [r13], xmm8",
+            "movdqu [r13 + 16], xmm9",
+            "movdqu [r13 + 32], xmm10",
+            "movdqu [r13 + 48], xmm11",
             "add r13, 64",   // colors_ptr += 8 * 8
 
             // Store indices
-            "movdqa [r14], xmm0",
-            "movdqa [r14 + 16], xmm2",
-            "movdqa [r14 + 32], xmm4",
-            "movdqa [r14 + 48], xmm6",
+            "movdqu [r14], xmm0",
+            "movdqu [r14 + 16], xmm2",
+            "movdqu [r14 + 32], xmm4",
+            "movdqu [r14 + 48], xmm6",
             "add r14, 64",   // indices_ptr += 8 * 8
 
             "cmp r12, rbx",

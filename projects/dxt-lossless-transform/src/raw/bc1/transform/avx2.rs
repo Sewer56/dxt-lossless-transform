@@ -30,8 +30,8 @@ pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len
             "2:",
 
             // Load 64 bytes
-            "vmovdqa {ymm1}, [{src_ptr}]",
-            "vmovdqa {ymm2}, [{src_ptr} + 32]",
+            "vmovdqu {ymm1}, [{src_ptr}]",
+            "vmovdqu {ymm2}, [{src_ptr} + 32]",
             "add {src_ptr}, 64",  // src += 64
 
             // Use vpermd to group colors/indices
@@ -43,8 +43,8 @@ pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len
             "vperm2i128 {ymm6}, {ymm3}, {ymm4}, 0x31",  // get all indices
 
             // Store results
-            "vmovdqa [{colors_ptr}], {ymm5}",
-            "vmovdqa [{indices_ptr}], {ymm6}",
+            "vmovdqu [{colors_ptr}], {ymm5}",
+            "vmovdqu [{indices_ptr}], {ymm6}",
 
             // Update pointers
             "add {colors_ptr}, 32",
@@ -102,10 +102,10 @@ pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8
             "2:",
 
             // Load all inputs first to utilize memory pipeline
-            "vmovdqa {ymm1}, [{src_ptr}]",
-            "vmovdqa {ymm2}, [{src_ptr} + 32]",
-            "vmovdqa {ymm3}, [{src_ptr} + 64]",
-            "vmovdqa {ymm4}, [{src_ptr} + 96]",
+            "vmovdqu {ymm1}, [{src_ptr}]",
+            "vmovdqu {ymm2}, [{src_ptr} + 32]",
+            "vmovdqu {ymm3}, [{src_ptr} + 64]",
+            "vmovdqu {ymm4}, [{src_ptr} + 96]",
             "add {src_ptr}, 128",  // src += 128
 
             // Use vpermd to group colors in low lane and indices in high lane
@@ -121,11 +121,11 @@ pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8
             "vperm2i128 {ymm6}, {ymm1}, {ymm2}, 0x31",  // all indices
 
             // Store all results
-            "vmovdqa [{colors_ptr}], {ymm3}",      // Store all colors
-            "vmovdqa [{colors_ptr} + 32], {ymm5}",
+            "vmovdqu [{colors_ptr}], {ymm3}",      // Store all colors
+            "vmovdqu [{colors_ptr} + 32], {ymm5}",
             "add {colors_ptr}, 64",
-            "vmovdqa [{indices_ptr}], {ymm4}",      // Store all indices
-            "vmovdqa [{indices_ptr} + 32], {ymm6}",
+            "vmovdqu [{indices_ptr}], {ymm4}",      // Store all indices
+            "vmovdqu [{indices_ptr} + 32], {ymm6}",
             "add {indices_ptr}, 64",
 
             // Compare against end address and loop if not done
@@ -180,14 +180,14 @@ pub unsafe fn permute_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8
             "2:",
 
             // Load 256 bytes (32 blocks)
-            "vmovdqa ymm0, [{src_ptr}]",
-            "vmovdqa ymm1, [{src_ptr} + 32]",
-            "vmovdqa ymm4, [{src_ptr} + 64]",
-            "vmovdqa ymm5, [{src_ptr} + 96]",
-            "vmovdqa ymm8, [{src_ptr} + 128]",
-            "vmovdqa ymm9, [{src_ptr} + 160]",
-            "vmovdqa ymm12, [{src_ptr} + 192]",
-            "vmovdqa ymm13, [{src_ptr} + 224]",
+            "vmovdqu ymm0, [{src_ptr}]",
+            "vmovdqu ymm1, [{src_ptr} + 32]",
+            "vmovdqu ymm4, [{src_ptr} + 64]",
+            "vmovdqu ymm5, [{src_ptr} + 96]",
+            "vmovdqu ymm8, [{src_ptr} + 128]",
+            "vmovdqu ymm9, [{src_ptr} + 160]",
+            "vmovdqu ymm12, [{src_ptr} + 192]",
+            "vmovdqu ymm13, [{src_ptr} + 224]",
             "add {src_ptr}, 256",  // src += 256
 
             // Use vpermd to group colors in low lane and indices in high lane
@@ -211,16 +211,16 @@ pub unsafe fn permute_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8
             "vperm2i128 ymm8, ymm14, ymm0, 0x31", // all indices
 
             // Store all results
-            "vmovdqa [{colors_ptr}], ymm1",
-            "vmovdqa [{colors_ptr} + 32], ymm3",
-            "vmovdqa [{colors_ptr} + 64], ymm5",
-            "vmovdqa [{colors_ptr} + 96], ymm7",
+            "vmovdqu [{colors_ptr}], ymm1",
+            "vmovdqu [{colors_ptr} + 32], ymm3",
+            "vmovdqu [{colors_ptr} + 64], ymm5",
+            "vmovdqu [{colors_ptr} + 96], ymm7",
             "add {colors_ptr}, 128",
 
-            "vmovdqa [{indices_ptr}], ymm2",
-            "vmovdqa [{indices_ptr} + 32], ymm4",
-            "vmovdqa [{indices_ptr} + 64], ymm6",
-            "vmovdqa [{indices_ptr} + 96], ymm8",
+            "vmovdqu [{indices_ptr}], ymm2",
+            "vmovdqu [{indices_ptr} + 32], ymm4",
+            "vmovdqu [{indices_ptr} + 64], ymm6",
+            "vmovdqu [{indices_ptr} + 96], ymm8",
             "add {indices_ptr}, 128",
 
             // Compare against end address and loop if not done
@@ -277,9 +277,9 @@ pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len:
             "add {src_ptr}, 64",   // src += 64
 
             // Store results
-            "vmovdqa [{colors_ptr}], {ymm3}",
+            "vmovdqu [{colors_ptr}], {ymm3}",
             "add {colors_ptr}, 32",
-            "vmovdqa [{indices_ptr}], {ymm4}",
+            "vmovdqu [{indices_ptr}], {ymm4}",
             "add {indices_ptr}, 32",
 
             // Compare against end address and loop if not done
@@ -363,16 +363,16 @@ pub unsafe fn gather_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: us
             "add r12, 256",   // src += 256 (4 iterations * 64 bytes)
 
             // Store all colors
-            "vmovdqa [r13], ymm0",
-            "vmovdqa [r13 + 32], ymm2",
-            "vmovdqa [r13 + 64], ymm4",
-            "vmovdqa [r13 + 96], ymm6",
+            "vmovdqu [r13], ymm0",
+            "vmovdqu [r13 + 32], ymm2",
+            "vmovdqu [r13 + 64], ymm4",
+            "vmovdqu [r13 + 96], ymm6",
 
             // Store all indices
-            "vmovdqa [r13 + {len_half}], ymm1",
-            "vmovdqa [r13 + {len_half} + 32], ymm3",
-            "vmovdqa [r13 + {len_half} + 64], ymm5",
-            "vmovdqa [r13 + {len_half} + 96], ymm7",
+            "vmovdqu [r13 + {len_half}], ymm1",
+            "vmovdqu [r13 + {len_half} + 32], ymm3",
+            "vmovdqu [r13 + {len_half} + 64], ymm5",
+            "vmovdqu [r13 + {len_half} + 96], ymm7",
 
             // Update pointers
             "add r13, 128",   // dst += 128 (4 iterations * 32 bytes)
@@ -424,8 +424,8 @@ pub unsafe fn shuffle_permute(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             "2:",
 
             // Load 64 bytes
-            "vmovdqa {ymm0}, [{src_ptr}]",
-            "vmovdqa {ymm1}, [{src_ptr} + 32]",
+            "vmovdqu {ymm0}, [{src_ptr}]",
+            "vmovdqu {ymm1}, [{src_ptr} + 32]",
 
             // Update source pointer early
             "add {src_ptr}, 64",  // src += 64
@@ -437,8 +437,8 @@ pub unsafe fn shuffle_permute(mut input_ptr: *const u8, mut output_ptr: *mut u8,
             "vpermpd {ymm3}, {ymm3}, 216",  // arrange indices (0b11011000)
 
             // Store results
-            "vmovdqa [{colors_ptr}], {ymm2}",  // Store colors
-            "vmovdqa [{indices_ptr}], {ymm3}",      // Store indices
+            "vmovdqu [{colors_ptr}], {ymm2}",  // Store colors
+            "vmovdqu [{indices_ptr}], {ymm3}",      // Store indices
             "add {colors_ptr}, 32",  // colors_ptr += 32
             "add {indices_ptr}, 32",      // indices_ptr += 32
 
@@ -490,10 +490,10 @@ pub unsafe fn shuffle_permute_unroll_2(
             "2:",
 
             // Load all 128 bytes first to utilize memory pipeline
-            "vmovdqa {ymm0}, [{src_ptr}]",
-            "vmovdqa {ymm1}, [{src_ptr} + 32]",
-            "vmovdqa {ymm4}, [{src_ptr} + 64]",
-            "vmovdqa {ymm5}, [{src_ptr} + 96]",
+            "vmovdqu {ymm0}, [{src_ptr}]",
+            "vmovdqu {ymm1}, [{src_ptr} + 32]",
+            "vmovdqu {ymm4}, [{src_ptr} + 64]",
+            "vmovdqu {ymm5}, [{src_ptr} + 96]",
             "add {src_ptr}, 128",  // src += 128
 
             // Do all shuffles together to utilize shuffle units
@@ -507,10 +507,10 @@ pub unsafe fn shuffle_permute_unroll_2(
             "vpermpd {ymm7}, {ymm7}, 216",  // arrange indices (0b11011000)
 
             // Store all results together to utilize store pipeline
-            "vmovdqa [{colors_ptr}], {ymm2}",      // Store colors
-            "vmovdqa [{indices_ptr}], {ymm3}",      // Store indices
-            "vmovdqa [{colors_ptr} + 32], {ymm6}",  // Store colors
-            "vmovdqa [{indices_ptr} + 32], {ymm7}",  // Store indices
+            "vmovdqu [{colors_ptr}], {ymm2}",      // Store colors
+            "vmovdqu [{indices_ptr}], {ymm3}",      // Store indices
+            "vmovdqu [{colors_ptr} + 32], {ymm6}",  // Store colors
+            "vmovdqu [{indices_ptr} + 32], {ymm7}",  // Store indices
             "add {colors_ptr}, 64",   // colors_ptr += 64
             "add {indices_ptr}, 64",   // indices_ptr += 64
 
@@ -567,14 +567,14 @@ pub unsafe fn shuffle_permute_unroll_4(
             "2:",
 
             // Load all 256 bytes in sequence to maximize memory throughput
-            "vmovdqa {ymm0}, [{src_ptr}]",
-            "vmovdqa {ymm1}, [{src_ptr} + 32]",
-            "vmovdqa {ymm4}, [{src_ptr} + 64]",
-            "vmovdqa {ymm5}, [{src_ptr} + 96]",
-            "vmovdqa {ymm8}, [{src_ptr} + 128]",
-            "vmovdqa {ymm9}, [{src_ptr} + 160]",
-            "vmovdqa {ymm12}, [{src_ptr} + 192]",
-            "vmovdqa {ymm13}, [{src_ptr} + 224]",
+            "vmovdqu {ymm0}, [{src_ptr}]",
+            "vmovdqu {ymm1}, [{src_ptr} + 32]",
+            "vmovdqu {ymm4}, [{src_ptr} + 64]",
+            "vmovdqu {ymm5}, [{src_ptr} + 96]",
+            "vmovdqu {ymm8}, [{src_ptr} + 128]",
+            "vmovdqu {ymm9}, [{src_ptr} + 160]",
+            "vmovdqu {ymm12}, [{src_ptr} + 192]",
+            "vmovdqu {ymm13}, [{src_ptr} + 224]",
             "add {src_ptr}, 256",  // src += 256
 
             // Group all shuffles together to better utilize shuffle units
@@ -597,14 +597,14 @@ pub unsafe fn shuffle_permute_unroll_4(
 
             // Group all stores together to maximize store throughput
             // Store colors
-            "vmovdqa [{colors_ptr}], {ymm2}",
-            "vmovdqa [{indices_ptr}], {ymm3}",
-            "vmovdqa [{colors_ptr} + 32], {ymm6}",
-            "vmovdqa [{indices_ptr} + 32], {ymm7}",
-            "vmovdqa [{colors_ptr} + 64], {ymm10}",
-            "vmovdqa [{indices_ptr} + 64], {ymm11}",
-            "vmovdqa [{colors_ptr} + 96], {ymm14}",
-            "vmovdqa [{indices_ptr} + 96], {ymm15}",
+            "vmovdqu [{colors_ptr}], {ymm2}",
+            "vmovdqu [{indices_ptr}], {ymm3}",
+            "vmovdqu [{colors_ptr} + 32], {ymm6}",
+            "vmovdqu [{indices_ptr} + 32], {ymm7}",
+            "vmovdqu [{colors_ptr} + 64], {ymm10}",
+            "vmovdqu [{indices_ptr} + 64], {ymm11}",
+            "vmovdqu [{colors_ptr} + 96], {ymm14}",
+            "vmovdqu [{indices_ptr} + 96], {ymm15}",
             "add {colors_ptr}, 128",  // colors_ptr += 128
             "add {indices_ptr}, 128",  // indices_ptr += 128
 

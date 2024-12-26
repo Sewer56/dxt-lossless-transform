@@ -12,6 +12,26 @@ fn bench_portable32(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut R
     });
 }
 
+fn bench_portable32_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
+    b.iter(|| unsafe {
+        u32_unroll_2(
+            black_box(input.as_ptr()),
+            black_box(output.as_mut_ptr()),
+            black_box(input.len()),
+        )
+    });
+}
+
+fn bench_portable32_unroll_4(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
+    b.iter(|| unsafe {
+        u32_unroll_4(
+            black_box(input.as_ptr()),
+            black_box(output.as_mut_ptr()),
+            black_box(input.len()),
+        )
+    });
+}
+
 pub(crate) fn run_benchmarks(
     group: &mut criterion::BenchmarkGroup<'_, criterion::measurement::WallTime>,
     input: &RawAlloc,
@@ -25,5 +45,17 @@ pub(crate) fn run_benchmarks(
         |b, _| bench_portable32(b, input, output),
     );
 
-    if !important_benches_only {}
+    if !important_benches_only {
+        group.bench_with_input(
+            BenchmarkId::new("portable32 unroll-2", size),
+            &size,
+            |b, _| bench_portable32_unroll_2(b, input, output),
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("portable32 unroll-4", size),
+            &size,
+            |b, _| bench_portable32_unroll_4(b, input, output),
+        );
+    }
 }

@@ -35,6 +35,117 @@ pub unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     }
 }
 
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len must be divisible by 32
+/// - pointers must be properly aligned for u32 access
+pub unsafe fn u32_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 32 == 0); // Must be divisible by 32 for unroll-2
+
+    let max_ptr = input_ptr.add(len) as *mut u8;
+    let mut input_ptr = input_ptr as *mut u8;
+
+    let mut alphas_ptr = output_ptr as *mut u64;
+    let mut colours_ptr = output_ptr.add(len / 2) as *mut u32;
+    let mut indices_ptr = output_ptr.add(len / 2 + len / 4) as *mut u32;
+
+    while input_ptr < max_ptr {
+        // First block
+        let alpha_value1 = *(input_ptr as *const u64);
+        let color_value1 = *(input_ptr.add(8) as *const u32);
+        let index_value1 = *(input_ptr.add(12) as *const u32);
+
+        // Second block
+        let alpha_value2 = *(input_ptr.add(16) as *const u64);
+        let color_value2 = *(input_ptr.add(24) as *const u32);
+        let index_value2 = *(input_ptr.add(28) as *const u32);
+        // compiler may reorder this to later (unfortauntely)
+        // I tried memory barriers (fence / compiler_fence), but it didn't seem to help
+        input_ptr = input_ptr.add(32);
+
+        // Store first block
+        *alphas_ptr = alpha_value1;
+        *colours_ptr = color_value1;
+        *indices_ptr = index_value1;
+
+        // Store second block
+        *alphas_ptr.add(1) = alpha_value2;
+        *colours_ptr.add(1) = color_value2;
+        *indices_ptr.add(1) = index_value2;
+
+        // Advance pointers
+        alphas_ptr = alphas_ptr.add(2);
+        colours_ptr = colours_ptr.add(2);
+        indices_ptr = indices_ptr.add(2);
+    }
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len must be divisible by 64
+/// - pointers must be properly aligned for u32 access
+pub unsafe fn u32_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 64 == 0); // Must be divisible by 64 for unroll-4
+
+    let max_ptr = input_ptr.add(len) as *mut u8;
+    let mut input_ptr = input_ptr as *mut u8;
+
+    let mut alphas_ptr = output_ptr as *mut u64;
+    let mut colours_ptr = output_ptr.add(len / 2) as *mut u32;
+    let mut indices_ptr = output_ptr.add(len / 2 + len / 4) as *mut u32;
+
+    while input_ptr < max_ptr {
+        // First block
+        let alpha_value1 = *(input_ptr as *const u64);
+        let color_value1 = *(input_ptr.add(8) as *const u32);
+        let index_value1 = *(input_ptr.add(12) as *const u32);
+
+        // Second block
+        let alpha_value2 = *(input_ptr.add(16) as *const u64);
+        let color_value2 = *(input_ptr.add(24) as *const u32);
+        let index_value2 = *(input_ptr.add(28) as *const u32);
+
+        // Third block
+        let alpha_value3 = *(input_ptr.add(32) as *const u64);
+        let color_value3 = *(input_ptr.add(40) as *const u32);
+        let index_value3 = *(input_ptr.add(44) as *const u32);
+
+        // Fourth block
+        let alpha_value4 = *(input_ptr.add(48) as *const u64);
+        let color_value4 = *(input_ptr.add(56) as *const u32);
+        let index_value4 = *(input_ptr.add(60) as *const u32);
+        // compiler may reorder this to later (unfortauntely)
+        // I tried memory barriers (fence / compiler_fence), but it didn't seem to help
+        input_ptr = input_ptr.add(64);
+
+        // Store all blocks
+        *alphas_ptr = alpha_value1;
+        *colours_ptr = color_value1;
+        *indices_ptr = index_value1;
+
+        *alphas_ptr.add(1) = alpha_value2;
+        *colours_ptr.add(1) = color_value2;
+        *indices_ptr.add(1) = index_value2;
+
+        *alphas_ptr.add(2) = alpha_value3;
+        *colours_ptr.add(2) = color_value3;
+        *indices_ptr.add(2) = index_value3;
+
+        *alphas_ptr.add(3) = alpha_value4;
+        *colours_ptr.add(3) = color_value4;
+        *indices_ptr.add(3) = index_value4;
+
+        // Advance pointers
+        alphas_ptr = alphas_ptr.add(4);
+        colours_ptr = colours_ptr.add(4);
+        indices_ptr = indices_ptr.add(4);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -59,7 +170,11 @@ mod tests {
         transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
         // Test each SSE2 implementation variant
-        let implementations = [("u32 no-unroll", u32 as TransformFn)];
+        let implementations = [
+            ("u32 no-unroll", u32 as TransformFn),
+            ("u32 unroll-2", u32_unroll_2 as TransformFn),
+            ("u32 unroll-4", u32_unroll_4 as TransformFn),
+        ];
 
         for (impl_name, implementation) in implementations {
             // Clear the output buffer

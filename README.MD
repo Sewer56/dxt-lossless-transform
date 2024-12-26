@@ -48,20 +48,25 @@ On a 5900X, with DDR4 3200, CL16 RAM the BC1 transform runs at approx:
 
 Transform BC1:
 
-- AVX2 (Assembly): 8.4053 GiB/s `avx2 shuffle_permute unroll 2`
-- SSE2 (Assembly): 8.4042 GiB/s `sse2 shufps unroll 4`
-- Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 8.3918 GiB/s `portable32 no-unroll`
-- Compiler v3 Unroll-8 (Rust + LLVM on `x86-64-v3`): 1.5411 GiB/s `portable32 unroll-8`
+- AVX2 (Assembly): 58.329 GiB/s `avx2 shuffle_permute unroll 2`
+- SSE2 (Assembly): 56.302 GiB/s `sse2 shufps unroll 4`
+- Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 58.163 GiB/s `portable32 no-unroll`
+- Compiler v3 Unroll-8 (Rust + LLVM on `x86-64-v3`): 12.374 GiB/s `portable32 unroll-8`
 
 Untransform BC1:
 
-- AVX2 (Assembly): 8.3298 GiB/s `avx2 unpck unroll 2`
-- SSE2 (Assembly): 8.2970 GiB/s `sse2 unpck unroll 2`
-- Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 8.3116 GiB/s `portable32 no-unroll`
-- Compiler v3 Unroll-8 (Rust + LLVM on `x86-64-v3`): 8.01 GiB/s `portable32 unroll-8`
+- AVX2 (Assembly): 53.181 GiB/s `avx2 unpck unroll 2`
+- SSE2 (Assembly): 47.392 GiB/s `sse2 unpck unroll 2`
+- Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 53.013 GiB/s `portable32 no-unroll`
+- Compiler v3 Unroll-8 (Rust + LLVM on `x86-64-v3`): 8.01 GiB/s `46.718 GiB/s`
 
-Measured on Linux with `performance` governor. Sensitive to external load and CPU temperature, therefore
-benched with 60 second warmup and 60 seconds measurement. 
+Transform BC2:
+
+- Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 32.408 GiB/s `portable32 no-unroll`
+
+Measured on Linux with `performance` governor. 8MiB file (see: `projects/dxt-lossless-transform/benches`).
+These benches are sensitive to external load and CPU temperature, therefore we instead measured steady
+state performance, i.e. 60 seconds warmup (heat up the parts) and 60 seconds measurement.
 
 In general, the output of LLVM is on par with manually written routines, however the manually
 written routines are smaller in code size; more friendly with cache, etc.

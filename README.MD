@@ -74,15 +74,11 @@ This crate is not yet released.
 
 This project contains a CLI tool that can be used to test the transforms.
 
-```
+```ignore
 ./dxt-lossless-transform-cli transform --input textures --output textures-transformed
 ```
 
 Build like a regular rust project, i.e. `cargo build --release`, and find it at `./target/release/dxt-lossless-transform-cli`. 
-
-## How it Works
-
-
 
 ## Development
 

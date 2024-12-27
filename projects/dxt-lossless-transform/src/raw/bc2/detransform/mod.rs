@@ -4,6 +4,9 @@ pub use portable32::*;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod sse2;
 
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub mod avx2;
+
 #[cfg(test)]
 mod tests {
     use crate::testutils::allocate_align_64;

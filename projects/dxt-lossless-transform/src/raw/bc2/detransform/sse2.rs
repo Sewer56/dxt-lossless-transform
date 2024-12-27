@@ -113,8 +113,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case::unpck(TestCase {
-        name: "unpck",
+    #[case::shuffle(TestCase {
+        name: "shuffle",
         func: shuffle,
         min_blocks: 4,
         many_blocks: 1024,

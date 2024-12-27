@@ -65,6 +65,11 @@ Transform BC2:
 - SSE2 (Assembly, i686): 55.407 GiB/s `sse2 shuffle v2`
 - Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 32.408 GiB/s `portable32 no-unroll`
 
+Untransform BC2:
+
+
+- Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 23.602 GiB/s `portable32 no-unroll`
+
 Measured on Linux with `performance` governor. 8MiB file (see: `projects/dxt-lossless-transform/benches`).
 These benches are sensitive to external load and CPU temperature, therefore we instead measured steady
 state performance, i.e. 60 seconds warmup (heat up the parts) and 60 seconds measurement.

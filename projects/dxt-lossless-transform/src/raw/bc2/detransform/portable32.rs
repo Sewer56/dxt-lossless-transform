@@ -19,10 +19,10 @@ pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
         // Read Alpha, Color and Index values
         let alpha_value = *alphas_ptr;
         alphas_ptr = alphas_ptr.add(1);
-        let index_value = *indices_ptr;
-        indices_ptr = indices_ptr.add(1);
         let color_value = *colours_ptr;
         colours_ptr = colours_ptr.add(1);
+        let index_value = *indices_ptr;
+        indices_ptr = indices_ptr.add(1);
 
         // Write interleaved values to output
         *(output_ptr as *mut u64) = alpha_value;

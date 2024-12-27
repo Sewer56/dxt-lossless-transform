@@ -7,6 +7,12 @@ pub mod sse2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub use sse2::*;
 
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub mod avx2;
+
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub use avx2::*;
+
 #[cfg(test)]
 pub mod tests {
     use crate::raw::bc2::transform::portable32::u32;

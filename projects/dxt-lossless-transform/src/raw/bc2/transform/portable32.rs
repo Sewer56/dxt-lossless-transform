@@ -208,10 +208,7 @@ mod tests {
         // Compare results
         assert_eq!(
             output_expected, output_test,
-            "{} implementation produced different results than reference for {} blocks.\n\
-            First differing block will have predictable values:\n\
-            Colors: Sequential 1-4 + (block_num * 4)\n\
-            Indices: Sequential 128-131 + (block_num * 4)",
+            "{} implementation produced different results than reference for {} blocks.",
             test_case.name, num_blocks
         );
     }

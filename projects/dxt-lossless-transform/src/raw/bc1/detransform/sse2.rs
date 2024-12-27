@@ -155,12 +155,14 @@ pub unsafe fn unpck_detransform_unroll_4(
             "movdqu {xmm3}, [{colors_ptr} + 16]", // colors 1
             "movdqu {xmm6}, [{colors_ptr} + 32]", // colors 2
             "movdqu {xmm9}, [{colors_ptr} + 48]", // colors 3
+            "add {colors_ptr}, 64",
 
             // Load all indices (64 bytes)
             "movdqu {xmm1}, [{indices_ptr}]",      // indices 0
             "movdqu {xmm4}, [{indices_ptr} + 16]", // indices 1
             "movdqu {xmm7}, [{indices_ptr} + 32]", // indices 2
             "movdqu {xmm10}, [{indices_ptr} + 48]", // indices 3
+            "add {indices_ptr}, 64",
 
             // Save copies for high parts
             "movaps {xmm2}, {xmm0}",  // colors 0 copy
@@ -187,10 +189,6 @@ pub unsafe fn unpck_detransform_unroll_4(
             "movdqu [{dst_ptr} + 80], {xmm8}",
             "movdqu [{dst_ptr} + 96], {xmm9}",
             "movdqu [{dst_ptr} + 112], {xmm11}",
-
-            // Update pointers
-            "add {colors_ptr}, 64",
-            "add {indices_ptr}, 64",
             "add {dst_ptr}, 128",
 
             // Continue if we haven't reached the end

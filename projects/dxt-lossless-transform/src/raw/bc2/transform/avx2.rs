@@ -11,7 +11,7 @@ static PERMUTE_MASK: [u32; 8] = [0, 4, 1, 5, 2, 6, 3, 7];
 /// - pointers must be properly aligned for AVX2 operations
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
-pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
+pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
     debug_assert!(len % 128 == 0);
 
     unsafe {
@@ -157,7 +157,7 @@ mod tests {
     #[rstest]
     #[case::avx2_shuffle(TestCase {
         name: "avx2_shuffle",
-        func: avx2_shuffle,
+        func: shuffle,
         min_blocks: 8,
         many_blocks: 1024,
     })]

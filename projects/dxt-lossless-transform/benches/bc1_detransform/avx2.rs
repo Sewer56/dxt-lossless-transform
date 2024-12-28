@@ -43,6 +43,17 @@ fn bench_unpck_unroll_4(b: &mut criterion::Bencher, input: &RawAlloc, output: &m
     });
 }
 
+#[cfg(target_arch = "x86_64")]
+fn bench_permd_unroll_4(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
+    b.iter(|| unsafe {
+        permd_detransform_unroll_4(
+            black_box(input.as_ptr()),
+            black_box(output.as_mut_ptr()),
+            black_box(input.len()),
+        )
+    });
+}
+
 pub(crate) fn run_benchmarks(
     group: &mut criterion::BenchmarkGroup<'_, criterion::measurement::WallTime>,
     input: &RawAlloc,
@@ -54,6 +65,13 @@ pub(crate) fn run_benchmarks(
         BenchmarkId::new("avx2 permd unroll 2", size),
         &size,
         |b, _| bench_permd_unroll_2(b, input, output),
+    );
+
+    #[cfg(target_arch = "x86_64")]
+    group.bench_with_input(
+        BenchmarkId::new("avx2 permd unroll 4", size),
+        &size,
+        |b, _| bench_permd_unroll_4(b, input, output),
     );
 
     if !important_benches_only {

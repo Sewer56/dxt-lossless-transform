@@ -202,6 +202,108 @@ pub unsafe fn permd_detransform_unroll_2(
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - pointers must be properly aligned for AVX operations
+/// - len must be divisible by 256 (processes 64 bytes of input/output per iteration)
+/// - x86_64 only
+#[allow(unused_assignments)]
+#[target_feature(enable = "avx2")]
+#[cfg(target_arch = "x86_64")]
+pub unsafe fn permd_detransform_unroll_4(
+    mut input_ptr: *const u8,
+    mut output_ptr: *mut u8,
+    len: usize,
+) {
+    debug_assert!(len % 256 == 0); // Must handle 256 bytes per iteration now (4x64)
+
+    unsafe {
+        asm!(
+            // Calculate indices pointer
+            "mov {indices_ptr}, {colors_ptr}",
+            "add {indices_ptr}, {len_half}", // indices_ptr = colors_ptr + len / 2
+            "mov {end}, {indices_ptr}",
+            "add {end}, {len_half}", // end = indices_ptr + len / 2
+
+            ".p2align 5",
+            "2:",
+            // Load all colors blocks first to get them in flight
+            "vpermq {ymm0}, [{colors_ptr}], 0xD8",        // Colors block 1
+            "vpermq {ymm4}, [{colors_ptr} + 32], 0xD8",   // Colors block 2
+            "vpermq {ymm8}, [{colors_ptr} + 64], 0xD8",   // Colors block 3
+            "vpermq {ymm12}, [{colors_ptr} + 96], 0xD8",  // Colors block 4
+
+            // Load all indices blocks
+            "vpermq {ymm1}, [{indices_ptr}], 0xD8",       // Indices block 1
+            "vpermq {ymm5}, [{indices_ptr} + 32], 0xD8",  // Indices block 2
+            "vpermq {ymm9}, [{indices_ptr} + 64], 0xD8",  // Indices block 3
+            "vpermq {ymm13}, [{indices_ptr} + 96], 0xD8", // Indices block 4
+
+            // Process all interleaves - can happen in parallel
+            // Block 1
+            "vpunpckldq {ymm2}, {ymm0}, {ymm1}",
+            "vpunpckhdq {ymm3}, {ymm0}, {ymm1}",
+
+            // Block 2
+            "vpunpckldq {ymm6}, {ymm4}, {ymm5}",
+            "vpunpckhdq {ymm7}, {ymm4}, {ymm5}",
+
+            // Block 3
+            "vpunpckldq {ymm10}, {ymm8}, {ymm9}",
+            "vpunpckhdq {ymm11}, {ymm8}, {ymm9}",
+
+            // Block 4
+            "vpunpckldq {ymm14}, {ymm12}, {ymm13}",
+            "vpunpckhdq {ymm15}, {ymm12}, {ymm13}",
+
+            // Store all results - try to maintain some spacing between writes
+            "vmovdqu [{dst_ptr}], {ymm2}",
+            "vmovdqu [{dst_ptr} + 32], {ymm3}",
+            "vmovdqu [{dst_ptr} + 64], {ymm6}",
+            "vmovdqu [{dst_ptr} + 96], {ymm7}",
+            "vmovdqu [{dst_ptr} + 128], {ymm10}",
+            "vmovdqu [{dst_ptr} + 160], {ymm11}",
+            "vmovdqu [{dst_ptr} + 192], {ymm14}",
+            "vmovdqu [{dst_ptr} + 224], {ymm15}",
+
+            // Update pointers for next iteration
+            "add {colors_ptr}, 128",
+            "add {indices_ptr}, 128",
+            "add {dst_ptr}, 256",
+
+            // Continue if we haven't reached the end
+            "cmp {indices_ptr}, {end}",
+            "jb 2b",
+
+            colors_ptr = inout(reg) input_ptr,
+            indices_ptr = out(reg) _,
+            dst_ptr = inout(reg) output_ptr,
+            len_half = in(reg) len / 2,
+            end = out(reg) _,
+            // Use all 16 YMM registers available in x86-64
+            ymm0 = out(ymm_reg) _,
+            ymm1 = out(ymm_reg) _,
+            ymm2 = out(ymm_reg) _,
+            ymm3 = out(ymm_reg) _,
+            ymm4 = out(ymm_reg) _,
+            ymm5 = out(ymm_reg) _,
+            ymm6 = out(ymm_reg) _,
+            ymm7 = out(ymm_reg) _,
+            ymm8 = out(ymm_reg) _,
+            ymm9 = out(ymm_reg) _,
+            ymm10 = out(ymm_reg) _,
+            ymm11 = out(ymm_reg) _,
+            ymm12 = out(ymm_reg) _,
+            ymm13 = out(ymm_reg) _,
+            ymm14 = out(ymm_reg) _,
+            ymm15 = out(ymm_reg) _,
+            options(nostack)
+        );
+    }
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - pointers must be properly aligned for AVX operations
 /// - len must be divisible by 64 (processes 32 bytes of input/output per iteration)
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
@@ -473,6 +575,12 @@ mod tests {
         min_blocks: 16,  // 128-byte alignment requirement
         many_blocks: 1024,
     })]
+    #[cfg_attr(target_arch = "x86_64", case::avx_permd_unroll_4(TestCase {
+        name: "avx_permd_unroll_4",
+        func: permd_detransform_unroll_4,
+        min_blocks: 32,  // 256-byte alignment requirement
+        many_blocks: 1024,
+    }))]
     #[cfg_attr(target_arch = "x86_64", case::avx_unpack_unroll_4(TestCase {
         name: "avx_unpack_unroll_4",
         func: unpck_detransform_unroll_4,

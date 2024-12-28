@@ -49,21 +49,18 @@ pub mod transform;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
 unsafe fn transform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    let is_32_aligned = input_ptr as usize % 32 == 0 && output_ptr as usize % 32 == 0;
-    let is_16_aligned = input_ptr as usize % 16 == 0 && output_ptr as usize % 16 == 0;
-
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         // Runtime feature detection
         let avx2 = std::is_x86_feature_detected!("avx2");
         let sse2 = std::is_x86_feature_detected!("sse2");
 
-        if avx2 && len % 256 == 0 && is_32_aligned {
+        if avx2 && len % 128 == 0 {
             transform::shuffle_permute_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
-        if sse2 && len % 64 == 0 && is_16_aligned {
+        if sse2 && len % 64 == 0 {
             transform::shufps_unroll_4(input_ptr, output_ptr, len);
             return;
         }
@@ -72,13 +69,13 @@ unsafe fn transform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
         #[cfg(target_feature = "avx2")]
-        if len % 256 == 0 && is_32_aligned {
+        if len % 128 == 0 {
             transform::shuffle_permute_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
         #[cfg(target_feature = "sse2")]
-        if len % 64 == 0 && is_16_aligned {
+        if len % 64 == 0 {
             transform::shufps_unroll_4(input_ptr, output_ptr, len);
             return;
         }
@@ -88,13 +85,8 @@ unsafe fn transform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
     transform::u32(input_ptr, output_ptr, len)
 }
 
-/// Transform BC1 data from standard interleaved format to separated color/index format.
-///
-/// This function selects the best available implementation based on CPU features:
-/// 1. AVX2 shuffle_permute_unroll_4 on x86_64 systems
-/// 2. AVX2 shuffle_permute_unroll_2 on x86 systems
-/// 3. SSE2 shufps_unroll_4 if available
-/// 4. Portable 32-bit implementation as fallback
+/// Transform BC1 data from standard interleaved format to separated color/index format
+/// using the best known implementation for the current CPU.
 ///
 /// # Safety
 ///
@@ -125,61 +117,25 @@ unsafe fn untransform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: us
         let avx2 = std::is_x86_feature_detected!("avx2");
         let sse2 = std::is_x86_feature_detected!("sse2");
 
-        if avx2 && len % 256 == 0 {
-            #[cfg(target_arch = "x86_64")]
-            {
-                detransform::avx2::unpck_detransform_unroll_4(input_ptr, output_ptr, len);
-                return;
-            }
-            #[cfg(target_arch = "x86")]
-            {
-                detransform::avx2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
-                return;
-            }
+        if avx2 && len % 128 == 0 {
+            detransform::avx2::permd_detransform_unroll_2(input_ptr, output_ptr, len);
         }
 
-        if sse2 && len % 128 == 0 {
-            #[cfg(target_arch = "x86_64")]
-            {
-                detransform::sse2::unpck_detransform_unroll_4(input_ptr, output_ptr, len);
-                return;
-            }
-            #[cfg(target_arch = "x86")]
-            {
-                detransform::sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
-                return;
-            }
+        if sse2 && len % 64 == 0 {
+            detransform::sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
         }
     }
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
         #[cfg(target_feature = "avx2")]
-        if len % 256 == 0 {
-            #[cfg(target_arch = "x86_64")]
-            {
-                detransform::avx2::unpck_detransform_unroll_4(input_ptr, output_ptr, len);
-                return;
-            }
-            #[cfg(target_arch = "x86")]
-            {
-                detransform::avx2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
-                return;
-            }
+        if len % 128 == 0 {
+            detransform::avx2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
         }
 
         #[cfg(target_feature = "sse2")]
-        if len % 128 == 0 {
-            #[cfg(target_arch = "x86_64")]
-            {
-                detransform::sse2::unpck_detransform_unroll_4(input_ptr, output_ptr, len);
-                return;
-            }
-            #[cfg(target_arch = "x86")]
-            {
-                detransform::sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
-                return;
-            }
+        if len % 64 == 0 {
+            detransform::sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
         }
     }
 
@@ -187,34 +143,18 @@ unsafe fn untransform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: us
     detransform::u32_detransform(input_ptr, output_ptr, len)
 }
 
-/// Transform BC1 data from separated color/index format back to standard interleaved format.
-///
-/// This function selects the best available implementation based on CPU features:
-/// 1. AVX2 unpck_detransform_unroll_4 on x86_64 systems
-/// 2. AVX2 unpck_detransform_unroll_2 on x86 systems
-/// 3. SSE2 unpck_detransform_unroll_4 if available
-/// 4. Portable 32-bit implementation as fallback
+/// Transform BC1 data from separated color/index format back to standard interleaved format
+/// using best known implementation for current CPU.
 ///
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
-/// - input_ptr and output_ptr must be 64-byte aligned for optimal performance
-/// - pointers must be properly aligned for the operation
+/// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
 pub unsafe fn untransform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
-    debug_assert_eq!(
-        input_ptr as usize % 64,
-        0,
-        "input_ptr must be 64-byte aligned"
-    );
-    debug_assert_eq!(
-        output_ptr as usize % 64,
-        0,
-        "output_ptr must be 64-byte aligned"
-    );
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
@@ -237,10 +177,12 @@ mod tests {
     use rstest::rstest;
 
     #[rstest]
-    #[case::min_size(32)] // 256 bytes - minimum size for most operations
-    #[case::one_unroll(64)] // 512 bytes - tests double minimum size
-    #[case::many_unrolls(256)] // 2KB - tests multiple unroll iterations
-    #[case::large(1024)] // 8KB - large dataset
+    #[case::min_size(1)] // 8 bytes - minimum size
+    #[case::min_size(2)] // 16 bytes - SSE Register
+    #[case::min_size(4)] // 32 bytes - AVX Register
+    #[case::min_size(8)] // 64 bytes - SSE Unrolled Operation
+    #[case::min_size(16)] // 128 bytes - AVX Unrolled Operation
+    #[case::min_size(32)] // 256 bytes - Multiple Unrolled Operations
     fn test_transform_untransform(#[case] num_blocks: usize) {
         let input = generate_bc1_test_data(num_blocks);
         let mut transformed = allocate_align_64(input.len());

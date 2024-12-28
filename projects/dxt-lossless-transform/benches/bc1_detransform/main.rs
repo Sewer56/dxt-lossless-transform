@@ -22,7 +22,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let size = 8388608; // 4096x4096px
     let input = allocate_align_64(size);
     let mut output = allocate_align_64(input.len());
-    let important_benches_only = true; // Set to false to enable extra benches, unrolls, etc.
+    let important_benches_only = false; // Set to false to enable extra benches, unrolls, etc.
 
     group.throughput(criterion::Throughput::Bytes(size as u64));
     group.warm_up_time(Duration::from_secs(60));

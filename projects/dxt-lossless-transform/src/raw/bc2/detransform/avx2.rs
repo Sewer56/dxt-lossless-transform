@@ -25,8 +25,8 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
 
         asm!(
             // Load permutation indices for vpermd, to rearrange blocks.
-            "vmovdqu {ymm8}, [{alpha_perm}]",
-            "vmovdqu {ymm9}, [{indcol_perm}]",
+            "vmovdqu {ymm8}, [rip + {alpha_perm}]",
+            "vmovdqu {ymm9}, [rip + {indcol_perm}]",
 
             ".p2align 5",
             "2:",
@@ -159,8 +159,8 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
             // x64-only, alpha and index/colour permutes.
             ymm8 = out(ymm_reg) _,
             ymm9 = out(ymm_reg) _,
-            alpha_perm = in(reg) &ALPHA_PERMUTE_MASK,
-            indcol_perm = in(reg) &INDCOL_PERMUTE_MASK,
+            alpha_perm = sym ALPHA_PERMUTE_MASK,
+            indcol_perm = sym INDCOL_PERMUTE_MASK,
             options(nostack)
         );
     }
@@ -306,8 +306,8 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
             ymm5 = out(ymm_reg) _,
             ymm6 = out(ymm_reg) _,
             ymm7 = out(ymm_reg) _,
-            alpha_perm = in(reg) &ALPHA_PERMUTE_MASK,
-            indcol_perm = in(reg) &INDCOL_PERMUTE_MASK,
+            alpha_perm = sym ALPHA_PERMUTE_MASK,
+            indcol_perm = sym INDCOL_PERMUTE_MASK,
             options(nostack)
         );
     }

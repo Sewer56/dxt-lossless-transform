@@ -8,7 +8,7 @@ use std::arch::asm;
 /// - len must be divisible by 128
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
-#[no_mangle]
+#[cfg(target_arch = "x86_64")]
 pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 128 == 0);
 
@@ -18,6 +18,10 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
         let alpha_ptr_end = colors_ptr;
 
         asm!(
+            // Load permutation indices for vpermd, to rearrange blocks.
+            "vmovdqu {ymm8}, [{alpha_perm}]",
+            "vmovdqu {ymm9}, [{indcol_perm}]",
+
             ".p2align 5",
             "2:",
 
@@ -36,93 +40,94 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
             // ymm1: [A32 - A63]
             // ymm2: [C0  - C31]
             // ymm3: [I0  - I31]
+            "vperm2i128 {ymm4}, {ymm2}, {ymm3}, 0x20",  // Select low half from ymm0, low half from ymm1
+            "vperm2i128 {ymm5}, {ymm2}, {ymm3}, 0x31",  // Select high half from ymm0, high half from ymm1
 
-            // Let's get [C00 - C03] [I00 - I03] ... inside YMM4
-            // Let's get [C08 - C11] [I08 - I11] ... inside YMM5
-            "vpunpckldq {ymm4}, {ymm2}, {ymm3}", // Interleave 32-bit elements. We did it!
-            "vpunpckhdq {ymm5}, {ymm2}, {ymm3}", // Interleave 32-bit elements. We did it!
+            // Desired permute (due to interleave with vpunpcklqdq / vpunpckhqdq):
+            // reg:
+            //     [Block0]
+            //     [Block2]
+            //     [Block1]
+            //     [Block3]
+            // We will achieve this permute on both alphas and colours/indices
 
             // ymm4 {
-            //     [-128, -127, -126, -125],
-            //     [-64, -63, -62, -61],
-            //     [-124, -123, -122, -121],
-            //     [-60, -59, -58, -57],
+            //     [-128, -127, -126, -125], [BLOCK0 COL]
+            //     [-124, -123, -122, -121], [BLOCK1 COL]
+            //     [-120, -119, -118, -117], [BLOCK2 COL]
+            //     [-116, -115, -114, -113], [BLOCK3 COL]
             //
-            //     [-112, -111, -110, -109],
-            //     [-48, -47, -46, -45],
-            //     [-108, -107, -106, -105],
-            //     [-44, -43, -42, -41]
+            //     [-64, -63, -62, -61], [BLOCK0 IND]
+            //     [-60, -59, -58, -57], [BLOCK1 IND]
+            //     [-56, -55, -54, -53], [BLOCK2 IND]
+            //     [-52, -51, -50, -49], [BLOCK3 IND]
             // }
 
-            // ymm5 {
-            //     [-120, -119, -118, -117],
-            //     [-56, -55, -54, -53],
-            //     [-116, -115, -114, -113],
-            //     [-52, -51, -50, -49],
+            // =>
+
+            // ymm4 target {
+            //     [-128, -127, -126, -125], [BLOCK0 COL] 0
+            //     [-64, -63, -62, -61], [BLOCK0 IND] 4
+            //     [-120, -119, -118, -117], [BLOCK2 COL] 2
+            //     [-56, -55, -54, -53], [BLOCK2 IND] 6
             //
-            //     [-104, -103, -102, -101],
-            //     [-40, -39, -38, -37],
-            //     [-100, -99, -98, -97],
-            //     [-36, -35, -34, -33]
+            //     [-124, -123, -122, -121], [BLOCK1 COL] 1
+            //     [-60, -59, -58, -57], [BLOCK1 IND] 5
+            //     [-116, -115, -114, -113], [BLOCK3 COL] 3
+            //     [-52, -51, -50, -49], [BLOCK3 IND] 7
             // }
-            "vperm2i128 {ymm6}, {ymm4}, {ymm5}, 0x20", // First halves (0x20 = 0b00100000)
-            "vperm2i128 {ymm7}, {ymm4}, {ymm5}, 0x31", // Second halves (0x31 = 0b00110001)
-            // Now ymm6, ymm7 are in proper order.
 
-            // ymm6 {
-            //     [-128, -127, -126, -125],
-            //     [-64, -63, -62, -61],
-            //     [-124, -123, -122, -121],
-            //     [-60, -59, -58, -57],
+            // Same for YMM5
+            "vpermd {ymm4}, {ymm9}, {ymm4}",  // Select low half from ymm0, low half from ymm1
+            "vpermd {ymm5}, {ymm9}, {ymm5}",  // Select high half from ymm0, high half from ymm1
+
+            // ymm0 {
+            //     [0, 1, 2, 3], [BLOCK0 ALPHA]
+            //     [4, 5, 6, 7],
+            //     [8, 9, 10, 11], [BLOCK1 ALPHA]
+            //     [12, 13, 14, 15],
             //
-            //     [-120, -119, -118, -117],
-            //     [-56, -55, -54, -53],
-            //     [-116, -115, -114, -113],
-            //     [-52, -51, -50, -49],
+            //     [16, 17, 18, 19], [BLOCK2 ALPHA]
+            //     [20, 21, 22, 23],
+            //     [24, 25, 26, 27], [BLOCK3 ALPHA]
+            //     [28, 29, 30, 31]
             // }
 
-            // ymm7 {
-            //     [-112, -111, -110, -109],
-            //     [-48, -47, -46, -45],
-            //     [-108, -107, -106, -105],
-            //     [-44, -43, -42, -41]
+            // =>
+
+            // ymm0 {
+            //     [0, 1, 2, 3], [BLOCK0 ALPHA] 0
+            //     [4, 5, 6, 7], [BLOCK0 ALPHA] 1
+            //     [16, 17, 18, 19], [BLOCK2 ALPHA] 4
+            //     [20, 21, 22, 23], [BLOCK2 ALPHA] 5
             //
-            //     [-104, -103, -102, -101],
-            //     [-40, -39, -38, -37],
-            //     [-100, -99, -98, -97],
-            //     [-36, -35, -34, -33]
+            //     [8, 9, 10, 11], [BLOCK1 ALPHA] 2
+            //     [12, 13, 14, 15], [BLOCK1 ALPHA] 3
+            //     [24, 25, 26, 27], [BLOCK3 ALPHA] 6
+            //     [28, 29, 30, 31], [BLOCK3 ALPHA] 7
             // }
 
-            // We're gonna now export results to remaining xmm registers
-            // Interleave bottom 64 bits of XMM0 with bottom XMM6 to get block0.
-            "vpunpckhqdq {ymm4}, {ymm0}, {ymm6}", // block2+3
-            "vpunpckhqdq {ymm5}, {ymm1}, {ymm7}", // block6+7
-            "vpunpcklqdq {ymm0}, {ymm0}, {ymm6}", // block0+1
-            "vpunpcklqdq {ymm1}, {ymm1}, {ymm7}", // block4+5
+            // Same for YMM1
+            "vpermd {ymm0}, {ymm8}, {ymm0}",  // Select low half from ymm0, low half from ymm1
+            "vpermd {ymm1}, {ymm8}, {ymm1}",  // Select high half from ymm0, high half from ymm1
 
-            // We got the items, but because we were shifting data across multiple lanes,
-            // the upper half of the registers is out of order. We need to restore order.
-            // ymm0: {
-            //   [0, 1, 2, 3, 4, 5, 6, 7], [-128, -127, -126, -125, -64, -63, -62, -61],
-            //   [16, 17, 18, 19, 20, 21, 22, 23], [-120, -119, -118, -117, -56, -55, -54, -53]
-            // }
-            // ymm4: {
-            //   [8, 9, 10, 11, 12, 13, 14, 15], [-124, -123, -122, -121, -60, -59, -58, -57],
-            //   [24, 25, 26, 27, 28, 29, 30, 31], [-116, -115, -114, -113, -52, -51, -50, -49]
-            // }
-            // ymm1: {
-            //   [32, 33, 34, 35, 36, 37, 38, 39], [-112, -111, -110, -109, -48, -47, -46, -45],
-            //   [48, 49, 50, 51, 52, 53, 54, 55], [-104, -103, -102, -101, -40, -39, -38, -37]
-            // }
-            // ymm5: {
-            //   [40, 41, 42, 43, 44, 45, 46, 47], [-108, -107, -106, -105, -44, -43, -42, -41],
-            //   [56, 57, 58, 59, 60, 61, 62, 63], [-100, -99, -98, -97, -36, -35, -34, -33]
-            // }
+            // We're gonna now interleave the registers now that they're aligned.
+            // By matching BLOCKX patterns.
+            "vpunpcklqdq {ymm2}, {ymm0}, {ymm4}", // block0+1
+            "vpunpckhqdq {ymm3}, {ymm0}, {ymm4}", // block2+3
+            "vpunpcklqdq {ymm6}, {ymm1}, {ymm5}", // block4+5
+            "vpunpckhqdq {ymm7}, {ymm1}, {ymm5}", // block6+7
 
-            "vperm2i128 {ymm2}, {ymm0}, {ymm4}, 0x20", // First halves (0x20 = 0b00100000)
-            "vperm2i128 {ymm3}, {ymm0}, {ymm4}, 0x31", // Second halves (0x31 = 0b00110001)
-            "vperm2i128 {ymm6}, {ymm1}, {ymm5}, 0x20", // First halves
-            "vperm2i128 {ymm7}, {ymm1}, {ymm5}, 0x31", // Second halves
+            // == Interleaved ==
+            // ymm0 [0, 1, 2, 3], [BLOCK0]
+            //      [4, 5, 6, 7],
+            //      [-128, -127, -126, -125], [BLOCK0]
+            //      [-64, -63, -62, -61],
+            //
+            //      [8, 9, 10, 11], [BLOCK1]
+            //      [12, 13, 14, 15],
+            //      [-124, -123, -122, -121], [BLOCK1]
+            //      [-60, -59, -58, -57],
 
             // Store results
             "vmovdqu [{output_ptr}], {ymm2}",
@@ -148,6 +153,11 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
             ymm5 = out(ymm_reg) _,
             ymm6 = out(ymm_reg) _,
             ymm7 = out(ymm_reg) _,
+            // x64-only, alpha and index/colour permutes.
+            ymm8 = out(ymm_reg) _,
+            ymm9 = out(ymm_reg) _,
+            alpha_perm = in(reg) &[0, 1, 4, 5, 2, 3, 6, 7u32],
+            indcol_perm = in(reg) &[0, 4, 2, 6, 1, 5, 3, 7u32],
             options(nostack)
         );
     }

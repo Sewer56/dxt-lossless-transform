@@ -8,7 +8,6 @@ use std::arch::asm;
 /// - len must be divisible by 64
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
-#[no_mangle]
 pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 64 == 0);
 

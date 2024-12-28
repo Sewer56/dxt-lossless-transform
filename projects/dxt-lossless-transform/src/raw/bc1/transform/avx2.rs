@@ -59,6 +59,8 @@ pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len
             len_half = in(reg) len / 2,
             end = inout(reg) len,
             indices_ptr = out(reg) _,
+            // TODO: Move this to static.
+            // There isn't just a clean way to do it without cloning the whole asm! for x86 (32-bit)
             perm = in(reg) &[0, 2, 4, 6, 1, 3, 5, 7u32],
             ymm0 = out(ymm_reg) _,
             ymm1 = out(ymm_reg) _,

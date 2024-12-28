@@ -25,17 +25,44 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
 
         asm!(
             // Load permutation indices for vpermd, to rearrange blocks.
-            "vmovdqu {ymm8}, [rip + {alpha_perm}]",
-            "vmovdqu {ymm9}, [rip + {indcol_perm}]",
+            "vmovdqu {ymm8}, [{alpha_perm}]",
+            "vmovdqu {ymm9}, [{indcol_perm}]",
 
             ".p2align 5",
             "2:",
 
-            // Based on SSE solution, SSE version may be easier to read.
-            // Load components
-            "vmovdqu {ymm0}, [{alpha_ptr}]",         // First alpha block
-            "vmovdqu {ymm1}, [{alpha_ptr} + 32]",    // Second alpha block
+            // Load ymm0 and ymm1 in format ready for interleaving with colours/indices.
+            // ymm0 {
+            //     [0, 1, 2, 3], [BLOCK0 ALPHA]
+            //     [4, 5, 6, 7],
+            //     [8, 9, 10, 11], [BLOCK1 ALPHA]
+            //     [12, 13, 14, 15],
+            //
+            //     [16, 17, 18, 19], [BLOCK2 ALPHA]
+            //     [20, 21, 22, 23],
+            //     [24, 25, 26, 27], [BLOCK3 ALPHA]
+            //     [28, 29, 30, 31]
+            // }
+
+            // =>
+
+            // ymm0 {
+            //     [0, 1, 2, 3], [BLOCK0 ALPHA] 0
+            //     [4, 5, 6, 7], [BLOCK0 ALPHA] 1
+            //     [16, 17, 18, 19], [BLOCK2 ALPHA] 4
+            //     [20, 21, 22, 23], [BLOCK2 ALPHA] 5
+            //
+            //     [8, 9, 10, 11], [BLOCK1 ALPHA] 2
+            //     [12, 13, 14, 15], [BLOCK1 ALPHA] 3
+            //     [24, 25, 26, 27], [BLOCK3 ALPHA] 6
+            //     [28, 29, 30, 31], [BLOCK3 ALPHA] 7
+            // }
+
+            // Same for YMM1
+            "vpermd {ymm0}, {ymm8}, [{alpha_ptr}]",  // Select low half from ymm0, low half from ymm1
+            "vpermd {ymm1}, {ymm8}, [{alpha_ptr} + 32]",  // Select high half from ymm0, high half from ymm1
             "add {alpha_ptr}, 64",
+
             "vmovdqu {ymm2}, [{colors_ptr}]",        // Colors
             "add {colors_ptr}, 32",
             "vmovdqu {ymm3}, [{indices_ptr}]",       // Indices
@@ -86,36 +113,6 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
             // Same for YMM5
             "vpermd {ymm4}, {ymm9}, {ymm4}",  // Select low half from ymm0, low half from ymm1
             "vpermd {ymm5}, {ymm9}, {ymm5}",  // Select high half from ymm0, high half from ymm1
-
-            // ymm0 {
-            //     [0, 1, 2, 3], [BLOCK0 ALPHA]
-            //     [4, 5, 6, 7],
-            //     [8, 9, 10, 11], [BLOCK1 ALPHA]
-            //     [12, 13, 14, 15],
-            //
-            //     [16, 17, 18, 19], [BLOCK2 ALPHA]
-            //     [20, 21, 22, 23],
-            //     [24, 25, 26, 27], [BLOCK3 ALPHA]
-            //     [28, 29, 30, 31]
-            // }
-
-            // =>
-
-            // ymm0 {
-            //     [0, 1, 2, 3], [BLOCK0 ALPHA] 0
-            //     [4, 5, 6, 7], [BLOCK0 ALPHA] 1
-            //     [16, 17, 18, 19], [BLOCK2 ALPHA] 4
-            //     [20, 21, 22, 23], [BLOCK2 ALPHA] 5
-            //
-            //     [8, 9, 10, 11], [BLOCK1 ALPHA] 2
-            //     [12, 13, 14, 15], [BLOCK1 ALPHA] 3
-            //     [24, 25, 26, 27], [BLOCK3 ALPHA] 6
-            //     [28, 29, 30, 31], [BLOCK3 ALPHA] 7
-            // }
-
-            // Same for YMM1
-            "vpermd {ymm0}, {ymm8}, {ymm0}",  // Select low half from ymm0, low half from ymm1
-            "vpermd {ymm1}, {ymm8}, {ymm1}",  // Select high half from ymm0, high half from ymm1
 
             // We're gonna now interleave the registers now that they're aligned.
             // By matching BLOCKX patterns.
@@ -194,11 +191,38 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
             ".p2align 5",
             "2:",
 
-            // Based on SSE solution, SSE version may be easier to read.
-            // Load components
-            "vmovdqu {ymm0}, [{alpha_ptr}]",         // First alpha block
-            "vmovdqu {ymm1}, [{alpha_ptr} + 32]",    // Second alpha block
+            // Load ymm0 and ymm1 in format ready for interleaving with colours/indices.
+            // ymm0 {
+            //     [0, 1, 2, 3], [BLOCK0 ALPHA]
+            //     [4, 5, 6, 7],
+            //     [8, 9, 10, 11], [BLOCK1 ALPHA]
+            //     [12, 13, 14, 15],
+            //
+            //     [16, 17, 18, 19], [BLOCK2 ALPHA]
+            //     [20, 21, 22, 23],
+            //     [24, 25, 26, 27], [BLOCK3 ALPHA]
+            //     [28, 29, 30, 31]
+            // }
+
+            // =>
+
+            // ymm0 {
+            //     [0, 1, 2, 3], [BLOCK0 ALPHA] 0
+            //     [4, 5, 6, 7], [BLOCK0 ALPHA] 1
+            //     [16, 17, 18, 19], [BLOCK2 ALPHA] 4
+            //     [20, 21, 22, 23], [BLOCK2 ALPHA] 5
+            //
+            //     [8, 9, 10, 11], [BLOCK1 ALPHA] 2
+            //     [12, 13, 14, 15], [BLOCK1 ALPHA] 3
+            //     [24, 25, 26, 27], [BLOCK3 ALPHA] 6
+            //     [28, 29, 30, 31], [BLOCK3 ALPHA] 7
+            // }
+
+            // Same for YMM1
+            "vpermd {ymm0}, {ymm6}, [{alpha_ptr}]",  // Select low half from ymm0, low half from ymm1
+            "vpermd {ymm1}, {ymm6}, [{alpha_ptr} + 32]",  // Select high half from ymm0, high half from ymm1
             "add {alpha_ptr}, 64",
+
             "vmovdqu {ymm2}, [{colors_ptr}]",        // Colors
             "add {colors_ptr}, 32",
             "vmovdqu {ymm3}, [{indices_ptr}]",       // Indices
@@ -249,36 +273,6 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
             // Same for YMM5
             "vpermd {ymm4}, {ymm7}, {ymm4}",  // Select low half from ymm0, low half from ymm1
             "vpermd {ymm5}, {ymm7}, {ymm5}",  // Select high half from ymm0, high half from ymm1
-
-            // ymm0 {
-            //     [0, 1, 2, 3], [BLOCK0 ALPHA]
-            //     [4, 5, 6, 7],
-            //     [8, 9, 10, 11], [BLOCK1 ALPHA]
-            //     [12, 13, 14, 15],
-            //
-            //     [16, 17, 18, 19], [BLOCK2 ALPHA]
-            //     [20, 21, 22, 23],
-            //     [24, 25, 26, 27], [BLOCK3 ALPHA]
-            //     [28, 29, 30, 31]
-            // }
-
-            // =>
-
-            // ymm0 {
-            //     [0, 1, 2, 3], [BLOCK0 ALPHA] 0
-            //     [4, 5, 6, 7], [BLOCK0 ALPHA] 1
-            //     [16, 17, 18, 19], [BLOCK2 ALPHA] 4
-            //     [20, 21, 22, 23], [BLOCK2 ALPHA] 5
-            //
-            //     [8, 9, 10, 11], [BLOCK1 ALPHA] 2
-            //     [12, 13, 14, 15], [BLOCK1 ALPHA] 3
-            //     [24, 25, 26, 27], [BLOCK3 ALPHA] 6
-            //     [28, 29, 30, 31], [BLOCK3 ALPHA] 7
-            // }
-
-            // Same for YMM1
-            "vpermd {ymm0}, {ymm6}, {ymm0}",  // Select low half from ymm0, low half from ymm1
-            "vpermd {ymm1}, {ymm6}, {ymm1}",  // Select high half from ymm0, high half from ymm1
 
             // We're gonna now interleave the registers now that they're aligned.
             // By matching BLOCKX patterns.

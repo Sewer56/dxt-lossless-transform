@@ -67,6 +67,7 @@ Transform BC2 (`bc2_transform`):
 
 Untransform BC2 (`bc2_detransform`):
 
+- AVX2 (Assembly): 52.232 GiB/s `avx2 shuffle`
 - SSE2 (Assembly): 51.785 GiB/s `sse2 shuffle`
 - Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 23.602 GiB/s `portable32 no-unroll`
 

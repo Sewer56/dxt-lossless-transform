@@ -7,7 +7,7 @@
         "cobertura.xml"
     ],
     "lldb.displayFormat": "auto",
-    "lldb.showDisassembly": "auto",
+    "lldb.showDisassembly": "always",
     "lldb.dereferencePointers": true,
     "lldb.consoleMode": "commands",
     "rust-analyzer.server.extraEnv": {

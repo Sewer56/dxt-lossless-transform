@@ -92,10 +92,10 @@ pub unsafe fn unpck_detransform_unroll_2(
             "movaps {xmm5}, {xmm3}", // colors 1 copy
 
             // Unpack all blocks
-            "unpcklps {xmm0}, {xmm1}", // color0,index0,color1,index1
-            "unpcklps {xmm3}, {xmm4}", // color4,index4,color5,index5
-            "unpckhps {xmm2}, {xmm1}", // color2,index2,color3,index3
-            "unpckhps {xmm5}, {xmm4}", // color6,index6,color7,index7
+            "punpckldq {xmm0}, {xmm1}", // color0,index0,color1,index1
+            "punpckldq {xmm3}, {xmm4}", // color4,index4,color5,index5
+            "punpckhdq {xmm2}, {xmm1}", // color2,index2,color3,index3
+            "punpckhdq {xmm5}, {xmm4}", // color6,index6,color7,index7
 
             // Store all results
             "movdqu [{dst_ptr}], {xmm0}",

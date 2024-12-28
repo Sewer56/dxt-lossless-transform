@@ -110,22 +110,13 @@ pub unsafe fn punpckhqdq_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len
 /// - pointers must be properly aligned for SSE operations
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn punpckhqdq_unroll_4(
-    mut input_ptr: *const u8,
-    mut output_ptr: *mut u8,
-    mut len: usize,
-) {
+pub unsafe fn punpckhqdq_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 64 == 0);
 
     unsafe {
+        let mut indices_ptr = output_ptr.add(len / 2);
+        let mut end = input_ptr.add(len);
         asm!(
-            // Calculate end address
-            "add {end}, {src_ptr}", // end = src + len
-
-            // Calculate second destination pointer
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {len_half}",
-
             // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
             // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
             ".p2align 5",
@@ -167,9 +158,8 @@ pub unsafe fn punpckhqdq_unroll_4(
 
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
-            len_half = in(reg) len / 2,
-            end = inout(reg) len,
-            indices_ptr = out(reg) _,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             xmm0 = out(xmm_reg) _,
             xmm1 = out(xmm_reg) _,
             xmm2 = out(xmm_reg) _,
@@ -189,22 +179,13 @@ pub unsafe fn punpckhqdq_unroll_4(
 /// - pointers must be properly aligned for SSE operations
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn punpckhqdq_unroll_2(
-    mut input_ptr: *const u8,
-    mut output_ptr: *mut u8,
-    mut len: usize,
-) {
+pub unsafe fn punpckhqdq_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 32 == 0);
 
     unsafe {
+        let mut indices_ptr = output_ptr.add(len / 2);
+        let mut end = input_ptr.add(len);
         asm!(
-            // Calculate end address
-            "add {end}, {src_ptr}", // end = src + len
-
-            // Calculate second destination pointer
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {len_half}",
-
             // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
             // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
             ".p2align 5",
@@ -237,9 +218,8 @@ pub unsafe fn punpckhqdq_unroll_2(
 
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
-            len_half = in(reg) len / 2,
-            end = inout(reg) len,
-            indices_ptr = out(reg) _,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             xmm0 = out(xmm_reg) _,
             xmm1 = out(xmm_reg) _,
             xmm2 = out(xmm_reg) _,
@@ -256,18 +236,13 @@ pub unsafe fn punpckhqdq_unroll_2(
 /// - pointers must be properly aligned for SSE operations
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
+pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 32 == 0);
 
     unsafe {
+        let mut indices_ptr = output_ptr.add(len / 2);
+        let mut end = input_ptr.add(len);
         asm!(
-            // Calculate end address
-            "add {end}, {src_ptr}", // end = src + len
-
-            // Calculate second destination pointer
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {len_half}",
-
             // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
             // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
             ".p2align 5",
@@ -294,9 +269,8 @@ pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8,
 
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
-            len_half = in(reg) len / 2,
-            end = inout(reg) len,
-            indices_ptr = out(reg) _,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             xmm0 = out(xmm_reg) _,
             xmm1 = out(xmm_reg) _,
             xmm2 = out(xmm_reg) _,
@@ -313,18 +287,13 @@ pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8,
 /// - pointers must be properly aligned for SSE operations
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
+pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 64 == 0);
 
     unsafe {
+        let mut indices_ptr = output_ptr.add(len / 2);
+        let mut end = input_ptr.add(len);
         asm!(
-            // Calculate end address
-            "add {end}, {src_ptr}", // end = src + len
-
-            // Calculate second destination pointer
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {len_half}",
-
             // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
             // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
             ".p2align 5",
@@ -359,9 +328,8 @@ pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8,
 
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
-            len_half = in(reg) len / 2,
-            end = inout(reg) len,
-            indices_ptr = out(reg) _,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             xmm0 = out(xmm_reg) _,
             xmm1 = out(xmm_reg) _,
             xmm2 = out(xmm_reg) _,

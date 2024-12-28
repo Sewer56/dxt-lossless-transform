@@ -8,20 +8,14 @@ use std::arch::asm;
 /// - pointers must be properly aligned for SSE2 operations
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
-pub unsafe fn shuffle_v1(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
+pub unsafe fn shuffle_v1(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 32 == 0);
 
     unsafe {
+        let mut end = input_ptr.add(len);
+        let mut colors_ptr = output_ptr.add(len / 2);
+        let mut indices_ptr = colors_ptr.add(len / 4);
         asm!(
-            // Calculate end address
-            "add {end}, {input_ptr}",
-
-            "mov {colors_ptr}, {alpha_ptr}",
-            "add {colors_ptr}, {half_len}", // colors_ptr = alpha_ptr + len / 2
-
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {quarter_len}", // indices_ptr = colors_ptr + len / 4
-
             ".p2align 5",
             "2:",
 
@@ -65,11 +59,9 @@ pub unsafe fn shuffle_v1(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut 
 
             input_ptr = inout(reg) input_ptr,
             alpha_ptr = inout(reg) output_ptr,
-            colors_ptr = out(reg) _,
-            indices_ptr = out(reg) _,
-            end = inout(reg) len,
-            half_len = in(reg) len / 2,
-            quarter_len = in(reg) len / 4,
+            colors_ptr = inout(reg) colors_ptr,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             xmm0 = out(xmm_reg) _,
             xmm1 = out(xmm_reg) _,
             xmm2 = out(xmm_reg) _,
@@ -86,24 +78,14 @@ pub unsafe fn shuffle_v1(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut 
 /// - pointers must be properly aligned for SSE2 operations
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
-pub unsafe fn shuffle_v1_unroll_2(
-    mut input_ptr: *const u8,
-    mut output_ptr: *mut u8,
-    mut len: usize,
-) {
+pub unsafe fn shuffle_v1_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 64 == 0);
 
     unsafe {
+        let mut end = input_ptr.add(len);
+        let mut colors_ptr = output_ptr.add(len / 2);
+        let mut indices_ptr = colors_ptr.add(len / 4);
         asm!(
-            // Calculate end address
-            "add {end}, {input_ptr}",
-
-            "mov {colors_ptr}, {alpha_ptr}",
-            "add {colors_ptr}, {half_len}", // colors_ptr = alpha_ptr + len / 2
-
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {quarter_len}", // indices_ptr = colors_ptr + len / 4
-
             ".p2align 5",
             "2:",
 
@@ -151,11 +133,9 @@ pub unsafe fn shuffle_v1_unroll_2(
 
             input_ptr = inout(reg) input_ptr,
             alpha_ptr = inout(reg) output_ptr,
-            colors_ptr = out(reg) _,
-            indices_ptr = out(reg) _,
-            end = inout(reg) len,
-            half_len = in(reg) len / 2,
-            quarter_len = in(reg) len / 4,
+            colors_ptr = inout(reg) colors_ptr,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             xmm0 = out(xmm_reg) _,
             xmm1 = out(xmm_reg) _,
             xmm2 = out(xmm_reg) _,
@@ -175,20 +155,14 @@ pub unsafe fn shuffle_v1_unroll_2(
 /// - pointers must be properly aligned for SSE2 operations
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
-pub unsafe fn shuffle_v2(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
+pub unsafe fn shuffle_v2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 64 == 0);
 
     unsafe {
+        let mut end = input_ptr.add(len);
+        let mut colors_ptr = output_ptr.add(len / 2);
+        let mut indices_ptr = colors_ptr.add(len / 4);
         asm!(
-            // Calculate end address
-            "add {end}, {input_ptr}",
-
-            "mov {colors_ptr}, {alpha_ptr}",
-            "add {colors_ptr}, {half_len}", // colors_ptr = alpha_ptr + len / 2
-
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {quarter_len}", // indices_ptr = colors_ptr + len / 4
-
             ".p2align 5",
             "2:",
 
@@ -235,11 +209,9 @@ pub unsafe fn shuffle_v2(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut 
 
             input_ptr = inout(reg) input_ptr,
             alpha_ptr = inout(reg) output_ptr,
-            colors_ptr = out(reg) _,
-            indices_ptr = out(reg) _,
-            end = inout(reg) len,
-            half_len = in(reg) len / 2,
-            quarter_len = in(reg) len / 4,
+            colors_ptr = inout(reg) colors_ptr,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             xmm0 = out(xmm_reg) _,
             xmm1 = out(xmm_reg) _,
             xmm2 = out(xmm_reg) _,
@@ -260,20 +232,14 @@ pub unsafe fn shuffle_v2(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut 
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86_64")]
-pub unsafe fn shuffle_v3(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
+pub unsafe fn shuffle_v3(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 128 == 0);
 
     unsafe {
+        let mut end = input_ptr.add(len);
+        let mut colors_ptr = output_ptr.add(len / 2);
+        let mut indices_ptr = colors_ptr.add(len / 4);
         asm!(
-            // Calculate end address
-            "add {end}, {input_ptr}",
-
-            "mov {colors_ptr}, {alpha_ptr}",
-            "add {colors_ptr}, {half_len}", // colors_ptr = alpha_ptr + len / 2
-
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {quarter_len}", // indices_ptr = colors_ptr + len / 4
-
             ".p2align 5",
             "2:",
 
@@ -337,11 +303,9 @@ pub unsafe fn shuffle_v3(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut 
 
             input_ptr = inout(reg) input_ptr,
             alpha_ptr = inout(reg) output_ptr,
-            colors_ptr = out(reg) _,
-            indices_ptr = out(reg) _,
-            end = inout(reg) len,
-            half_len = in(reg) len / 2,
-            quarter_len = in(reg) len / 4,
+            colors_ptr = inout(reg) colors_ptr,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             xmm0 = out(xmm_reg) _,
             xmm1 = out(xmm_reg) _,
             xmm2 = out(xmm_reg) _,

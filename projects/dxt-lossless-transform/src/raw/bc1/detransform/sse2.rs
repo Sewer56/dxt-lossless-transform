@@ -12,13 +12,9 @@ pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
     debug_assert!(len % 32 == 0);
 
     unsafe {
+        let mut indices_ptr = input_ptr.add(len / 2);
+        let mut end = input_ptr.add(len);
         asm!(
-            // Calculate indices pointer
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {len_half}", // indices_ptr = colors_ptr + len / 2
-            "mov {end}, {indices_ptr}",
-            "add {end}, {len_half}", // end = indices_ptr + len / 2
-
             ".p2align 5",
             "2:",
             // Load colors and indices (16 bytes each)
@@ -42,10 +38,9 @@ pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
             "jb 2b",
 
             colors_ptr = inout(reg) input_ptr,
-            indices_ptr = out(reg) _,
+            indices_ptr = inout(reg) indices_ptr,
             dst_ptr = inout(reg) output_ptr,
-            len_half = in(reg) len / 2,
-            end = out(reg) _,
+            end = inout(reg) end,
             xmm0 = out(xmm_reg) _,
             xmm1 = out(xmm_reg) _,
             xmm2 = out(xmm_reg) _,
@@ -70,13 +65,9 @@ pub unsafe fn unpck_detransform_unroll_2(
     debug_assert!(len % 64 == 0);
 
     unsafe {
+        let mut indices_ptr = input_ptr.add(len / 2);
+        let mut end = input_ptr.add(len);
         asm!(
-            // Calculate indices pointer
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {len_half}", // indices_ptr = colors_ptr + len / 2
-            "mov {end}, {indices_ptr}",
-            "add {end}, {len_half}", // end = indices_ptr + len / 2
-
             ".p2align 5",
             "2:",
             // Load all colors and indices (32 bytes each)
@@ -109,10 +100,9 @@ pub unsafe fn unpck_detransform_unroll_2(
             "jb 2b",
 
             colors_ptr = inout(reg) input_ptr,
-            indices_ptr = out(reg) _,
+            indices_ptr = inout(reg) indices_ptr,
             dst_ptr = inout(reg) output_ptr,
-            len_half = in(reg) len / 2,
-            end = out(reg) _,
+            end = inout(reg) end,
             xmm0 = out(xmm_reg) _,
             xmm1 = out(xmm_reg) _,
             xmm2 = out(xmm_reg) _,
@@ -141,13 +131,9 @@ pub unsafe fn unpck_detransform_unroll_4(
     debug_assert!(len % 128 == 0);
 
     unsafe {
+        let mut indices_ptr = input_ptr.add(len / 2);
+        let mut end = input_ptr.add(len);
         asm!(
-            // Calculate indices pointer
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {len_half}", // indices_ptr = colors_ptr + len / 2
-            "mov {end}, {indices_ptr}",
-            "add {end}, {len_half}", // end = indices_ptr + len / 2
-
             ".p2align 5",
             "2:",
             // Load all colors (64 bytes)
@@ -196,10 +182,9 @@ pub unsafe fn unpck_detransform_unroll_4(
             "jb 2b",
 
             colors_ptr = inout(reg) input_ptr,
-            indices_ptr = out(reg) _,
+            indices_ptr = inout(reg) indices_ptr,
             dst_ptr = inout(reg) output_ptr,
-            len_half = in(reg) len / 2,
-            end = out(reg) _,
+            end = inout(reg) end,
             xmm0 = out(xmm_reg) _,
             xmm1 = out(xmm_reg) _,
             xmm2 = out(xmm_reg) _,

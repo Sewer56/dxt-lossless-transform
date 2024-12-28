@@ -8,16 +8,13 @@ use std::arch::asm;
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
-pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
+pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 64 == 0);
 
     unsafe {
+        let mut indices_ptr = output_ptr.add(len / 2);
+        let mut end = input_ptr.add(len);
         asm!(
-            // Calculate end address
-            "add {end}, {src_ptr}",  // end = src + len
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {len_half}",
-
             // Load permutation indices for vpermd (group colors/indices)
             // Colors go to low lane (0,1,2,3), indices to high lane (4,5,6,7)
             "vmovdqu {ymm0}, [{perm}]",
@@ -56,9 +53,8 @@ pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len
 
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
-            len_half = in(reg) len / 2,
-            end = inout(reg) len,
-            indices_ptr = out(reg) _,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             // TODO: Move this to static.
             // There isn't just a clean way to do it without cloning the whole asm! for x86 (32-bit)
             perm = in(reg) &[0, 2, 4, 6, 1, 3, 5, 7u32],
@@ -82,16 +78,13 @@ pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
-pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
+pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 128 == 0);
 
     unsafe {
+        let mut indices_ptr = output_ptr.add(len / 2);
+        let mut end = input_ptr.add(len);
         asm!(
-            // Calculate end address
-            "add {end}, {src_ptr}",  // end = src + len
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {len_half}",
-
             // Load permutation indices for vpermd (group colors/indices)
             // Colors go to low lane (0,1,2,3), indices to high lane (4,5,6,7)
             "vmovdqu {ymm0}, [{perm}]",
@@ -136,9 +129,8 @@ pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8
 
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
-            len_half = in(reg) len / 2,
-            end = inout(reg) len,
-            indices_ptr = out(reg) _,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             perm = in(reg) &[0, 2, 4, 6, 1, 3, 5, 7u32],
             ymm0 = out(ymm_reg) _,
             ymm1 = out(ymm_reg) _,
@@ -161,16 +153,13 @@ pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "avx2")]
-pub unsafe fn permute_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
+pub unsafe fn permute_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 256 == 0);
 
     unsafe {
+        let mut indices_ptr = output_ptr.add(len / 2);
+        let mut end = input_ptr.add(len);
         asm!(
-            // Calculate end address
-            "add {end}, {src_ptr}",  // end = src + len
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {len_half}",
-
             // Load permutation indices for vpermd
             "vmovdqu ymm15, [{perm}]",
 
@@ -231,9 +220,8 @@ pub unsafe fn permute_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8
 
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
-            len_half = in(reg) len / 2,
-            end = inout(reg) len,
-            indices_ptr = out(reg) _,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             perm = in(reg) &[0, 2, 4, 6, 1, 3, 5, 7u32],
             options(nostack)
         );
@@ -248,16 +236,13 @@ pub unsafe fn permute_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
-pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
+pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 128 == 0);
 
     unsafe {
+        let mut indices_ptr = output_ptr.add(len / 2);
+        let mut end = input_ptr.add(len);
         asm!(
-            // Calculate end address
-            "add {end}, {src_ptr}",  // end = src + len
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {len_half}",
-
             // Load gather indices into lower ymm registers
             "vmovdqu {ymm0}, [{color_idx}]",  // for colors (0,2,4,6,8,10,12,14)
             "vmovdqu {ymm1}, [{index_idx}]",  // for indices (1,3,5,7,9,11,13,15)
@@ -290,9 +275,8 @@ pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len:
 
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
-            len_half = in(reg) len / 2,
-            end = inout(reg) len,
-            indices_ptr = out(reg) _,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             color_idx = in(reg) &[0, 2, 4, 6, 8, 10, 12, 14u32],
             index_idx = in(reg) &[1, 3, 5, 7, 9, 11, 13, 15u32],
             ymm0 = out(ymm_reg) _,
@@ -408,16 +392,13 @@ pub unsafe fn gather_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: us
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
-pub unsafe fn shuffle_permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, mut len: usize) {
+pub unsafe fn shuffle_permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 64 == 0);
 
     unsafe {
+        let mut indices_ptr = output_ptr.add(len / 2);
+        let mut end = input_ptr.add(len);
         asm!(
-            // Calculate end address
-            "add {end}, {src_ptr}", // end = src + len
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {len_half}",
-
             // Align the loop's instruction address to 32 bytes.
             // This isn't strictly needed, but more modern processors fetch + execute instructions in
             // 32-byte chunks, as opposed to older ones in 16-byte chunks. Therefore, we can safely-ish
@@ -450,9 +431,8 @@ pub unsafe fn shuffle_permute(mut input_ptr: *const u8, mut output_ptr: *mut u8,
 
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
-            len_half = in(reg) len / 2,
-            end = inout(reg) len,
-            indices_ptr = out(reg) _,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             ymm0 = out(ymm_reg) _,
             ymm1 = out(ymm_reg) _,
             ymm2 = out(ymm_reg) _,
@@ -473,17 +453,14 @@ pub unsafe fn shuffle_permute(mut input_ptr: *const u8, mut output_ptr: *mut u8,
 pub unsafe fn shuffle_permute_unroll_2(
     mut input_ptr: *const u8,
     mut output_ptr: *mut u8,
-    mut len: usize,
+    len: usize,
 ) {
     debug_assert!(len % 128 == 0);
 
     unsafe {
+        let mut indices_ptr = output_ptr.add(len / 2);
+        let mut end = input_ptr.add(len);
         asm!(
-            // Calculate end address
-            "add {end}, {src_ptr}", // end = src + len
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {len_half}",
-
             // Align the loop's instruction address to 32 bytes.
             // This isn't strictly needed, but more modern processors fetch + execute instructions in
             // 32-byte chunks, as opposed to older ones in 16-byte chunks. Therefore, we can safely-ish
@@ -522,9 +499,8 @@ pub unsafe fn shuffle_permute_unroll_2(
 
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
-            len_half = in(reg) len / 2,
-            end = inout(reg) len,
-            indices_ptr = out(reg) _,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             ymm0 = out(ymm_reg) _,
             ymm1 = out(ymm_reg) _,
             ymm2 = out(ymm_reg) _,
@@ -550,17 +526,14 @@ pub unsafe fn shuffle_permute_unroll_2(
 pub unsafe fn shuffle_permute_unroll_4(
     mut input_ptr: *const u8,
     mut output_ptr: *mut u8,
-    mut len: usize,
+    len: usize,
 ) {
     debug_assert!(len % 256 == 0);
 
     unsafe {
+        let mut indices_ptr = output_ptr.add(len / 2);
+        let mut end = input_ptr.add(len);
         asm!(
-            // Calculate end address
-            "add {end}, {src_ptr}", // end = src + len
-            "mov {indices_ptr}, {colors_ptr}",
-            "add {indices_ptr}, {len_half}",
-
             // Align the loop's instruction address to 32 bytes.
             // This isn't strictly needed, but more modern processors fetch + execute instructions in
             // 32-byte chunks, as opposed to older ones in 16-byte chunks. Therefore, we can safely-ish
@@ -616,9 +589,8 @@ pub unsafe fn shuffle_permute_unroll_4(
 
             src_ptr = inout(reg) input_ptr,
             colors_ptr = inout(reg) output_ptr,
-            len_half = in(reg) len / 2,
-            end = inout(reg) len,
-            indices_ptr = out(reg) _,
+            indices_ptr = inout(reg) indices_ptr,
+            end = inout(reg) end,
             ymm0 = out(ymm_reg) _,
             ymm1 = out(ymm_reg) _,
             ymm2 = out(ymm_reg) _,

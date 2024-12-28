@@ -96,8 +96,8 @@ pub unsafe fn permd_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
             "add {indices_ptr}, 32",
 
             // Unpack and interleave the values, reusing ymm0/ymm1
-            "vunpcklps {ymm2}, {ymm0}, {ymm1}",  // [c0 i0 c1 i1 | c4 i4 c5 i5]
-            "vunpckhps {ymm3}, {ymm0}, {ymm1}",  // [c2 i2 c3 i3 | c6 i6 c7 i7]
+            "vpunpckldq {ymm2}, {ymm0}, {ymm1}",  // [c0 i0 c1 i1 | c4 i4 c5 i5]
+            "vpunpckhdq {ymm3}, {ymm0}, {ymm1}",  // [c2 i2 c3 i3 | c6 i6 c7 i7]
 
             // Store results
             "vmovdqu [{dst_ptr}], {ymm2}",
@@ -159,12 +159,12 @@ pub unsafe fn permd_detransform_unroll_2(
             "add {indices_ptr}, 64",
 
             // Process first set
-            "vunpcklps {ymm2}, {ymm0}, {ymm1}",        // Interleave low parts of first set
-            "vunpckhps {ymm3}, {ymm0}, {ymm1}",        // Interleave high parts of first set
+            "vpunpckldq {ymm2}, {ymm0}, {ymm1}",        // Interleave low parts of first set
+            "vpunpckhdq {ymm3}, {ymm0}, {ymm1}",        // Interleave high parts of first set
 
             // Process second set
-            "vunpcklps {ymm6}, {ymm4}, {ymm5}",        // Interleave low parts of second set
-            "vunpckhps {ymm7}, {ymm4}, {ymm5}",        // Interleave high parts of second set
+            "vpunpckldq {ymm6}, {ymm4}, {ymm5}",        // Interleave low parts of second set
+            "vpunpckhdq {ymm7}, {ymm4}, {ymm5}",        // Interleave high parts of second set
 
             // Store results with some spacing to help with memory operations
             "vmovdqu [{dst_ptr}], {ymm2}",             // Store first low part

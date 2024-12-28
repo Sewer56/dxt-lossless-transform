@@ -54,7 +54,7 @@ Transform BC1 (`bc1_transform`):
 
 Untransform BC1 (`bc1_detransform`):
 
-- AVX2 (Assembly): 53.181 GiB/s `avx2 unpck unroll 2`
+- AVX2 (Assembly): 54.211 GiB/s `avx2 permd unroll 2`
 - SSE2 (Assembly): 47.392 GiB/s `sse2 unpck unroll 2`
 - Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 53.013 GiB/s `portable32 no-unroll`
 

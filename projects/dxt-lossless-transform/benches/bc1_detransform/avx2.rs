@@ -22,6 +22,16 @@ fn bench_unpck_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, output: &m
     });
 }
 
+fn bench_permd_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
+    b.iter(|| unsafe {
+        permd_detransform_unroll_2(
+            black_box(input.as_ptr()),
+            black_box(output.as_mut_ptr()),
+            black_box(input.len()),
+        )
+    });
+}
+
 #[cfg(target_arch = "x86_64")]
 fn bench_unpck_unroll_4(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
@@ -41,12 +51,18 @@ pub(crate) fn run_benchmarks(
     important_benches_only: bool,
 ) {
     group.bench_with_input(
-        BenchmarkId::new("avx2 unpck unroll 2", size),
+        BenchmarkId::new("avx2 permd unroll 2", size),
         &size,
-        |b, _| bench_unpck_unroll_2(b, input, output),
+        |b, _| bench_permd_unroll_2(b, input, output),
     );
 
     if !important_benches_only {
+        group.bench_with_input(
+            BenchmarkId::new("avx2 unpck unroll 2", size),
+            &size,
+            |b, _| bench_unpck_unroll_2(b, input, output),
+        );
+
         group.bench_with_input(BenchmarkId::new("avx2 unpck", size), &size, |b, _| {
             bench_unpck(b, input, output)
         });

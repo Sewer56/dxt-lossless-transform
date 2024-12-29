@@ -1,5 +1,5 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform::raw::transform::*;
+use dxt_lossless_transform::raw::bc1::transform::*;
 use safe_allocator_api::RawAlloc;
 
 fn bench_punpckhqdq_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {

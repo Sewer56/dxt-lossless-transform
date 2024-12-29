@@ -186,7 +186,7 @@ pub unsafe fn u32_detransform_unroll_8(input_ptr: *const u8, output_ptr: *mut u8
 mod tests {
     use super::*;
     use crate::raw::bc1::transform::tests::generate_bc1_test_data;
-    use crate::raw::transform;
+    use crate::raw::bc1::transform::u32;
     use rstest::rstest;
 
     type DetransformFn = unsafe fn(*const u8, *mut u8, usize);
@@ -245,7 +245,7 @@ mod tests {
         let mut reconstructed = vec![0u8; original.len()];
 
         unsafe {
-            transform::u32(original.as_ptr(), transformed.as_mut_ptr(), original.len());
+            u32(original.as_ptr(), transformed.as_mut_ptr(), original.len());
             (test_case.func)(
                 transformed.as_ptr(),
                 reconstructed.as_mut_ptr(),

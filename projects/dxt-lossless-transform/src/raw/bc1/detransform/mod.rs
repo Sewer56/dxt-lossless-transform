@@ -9,8 +9,7 @@ pub mod avx2;
 
 #[cfg(test)]
 mod tests {
-
-    use crate::raw::bc1::testutils::allocate_align_64;
+    use crate::testutils::allocate_align_64;
     use safe_allocator_api::RawAlloc;
 
     // Helper to generate test data of specified size (in blocks)

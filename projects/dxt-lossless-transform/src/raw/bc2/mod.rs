@@ -1,22 +1,26 @@
 /*
- * BC1 Block Rearrangement Optimization Explanation
- * =================================================
+ * BC2/DXT3 Block Rearrangement Optimization Explanation
+ * ==================================================
  *
- * Original sequential BC1 data layout:
- * Two 16-bit colours (4 bytes total) followed by 4 bytes of indices:
+ * Original sequential BC2 data layout:
+ * 8 bytes of alpha values followed by two 16-bit colours (4 bytes) and 4 bytes of color indices:
  *
- * Address: 0       4       8   8      12      16
- *          +-------+-------+   +-------+-------+
- * Data:    | C0-C1 | I0-I3 |   | C2-C3 | I4-I8 |
- *          +-------+-------+   +-------+-------+
+ * Address: 0       8       12      16  16      24      28      32
+ *          +-------+-------+-------+   +-------+-------+--------+
+ * Data:    |A0-A15 | C0-C1 | I0-I15 |  |A16-A31| C2-C3 | I6-I31 |
+ *          +-------+-------+-------+   +-------+-------+--------+
  *
- * Each 8-byte block contains:
+ * Each 16-byte block contains:
+ * - 8 bytes of explicit alpha (sixteen 4-bit alpha values)
  * - 4 bytes colours (2x RGB565 values)
- * - 4 bytes of packed indices (sixteen 2-bit indices)
+ * - 4 bytes of packed color indices (sixteen 2-bit indices)
  *
- * Optimized layout separates colours and indices into continuous streams:
+ * Optimized layout separates alpha, colours and indices into continuous streams:
  *
- * +-------+-------+-------+     +-------+  } colours section
+ * +-------+-------+-------+     +-------+  } Alpha section
+ * | A0    | A1    | A2    | ... | AN    |  } (8 bytes per block: 16x 4-bit)
+ * +-------+-------+-------+     +-------+
+ * +-------+-------+-------+     +-------+  } Colours section
  * |C0  C1 |C2  C3 |C4  C5 | ... |CN CN+1|  } (4 bytes per block: 2x RGB565)
  * +-------+-------+-------+     +-------+
  * +-------+-------+-------+     +-------+  } Indices section
@@ -24,9 +28,15 @@
  * +-------+-------+-------+     +-------+
  *
  * This rearrangement improves compression because:
- * 1. Color endpoints tend to be spatially coherent
- * 2. Index patterns often repeat across blocks
- * 3. Separating them allows better compression of each stream
+ * 1. Alpha values often have high spatial coherency
+ * 2. Color endpoints tend to be spatially coherent
+ * 3. Index patterns often repeat across blocks
+ * 4. Separating them allows better compression of each stream
+ *
+ * Key differences from BC1/DXT1:
+ * - Blocks are 16 bytes instead of 8 bytes
+ * - Includes explicit 4-bit alpha values (no alpha interpolation)
+ * - No special "transparent black" color combinations
  *
  * Requirements
  * ============
@@ -48,7 +58,7 @@ pub mod transform;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
-unsafe fn transform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+unsafe fn transform_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         // Runtime feature detection
@@ -56,12 +66,19 @@ unsafe fn transform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
         let sse2 = std::is_x86_feature_detected!("sse2");
 
         if avx2 && len % 128 == 0 {
-            transform::shuffle_permute_unroll_2(input_ptr, output_ptr, len);
+            transform::avx2::shuffle(input_ptr, output_ptr, len);
             return;
         }
 
+        #[cfg(target_arch = "x86_64")]
+        if sse2 && len % 128 == 0 {
+            transform::sse2::shuffle_v3(input_ptr, output_ptr, len);
+            return;
+        }
+
+        #[cfg(target_arch = "x86")]
         if sse2 && len % 64 == 0 {
-            transform::shufps_unroll_4(input_ptr, output_ptr, len);
+            transform::sse2::shuffle_v2(input_ptr, output_ptr, len);
             return;
         }
     }
@@ -70,13 +87,21 @@ unsafe fn transform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
     {
         #[cfg(target_feature = "avx2")]
         if len % 128 == 0 {
-            transform::shuffle_permute_unroll_2(input_ptr, output_ptr, len);
+            transform::avx2::shuffle(input_ptr, output_ptr, len);
             return;
         }
 
         #[cfg(target_feature = "sse2")]
+        #[cfg(target_arch = "x86_64")]
+        if len % 128 == 0 {
+            transform::sse2::shuffle_v3(input_ptr, output_ptr, len);
+            return;
+        }
+
+        #[cfg(target_feature = "sse2")]
+        #[cfg(target_arch = "x86")]
         if len % 64 == 0 {
-            transform::shufps_unroll_4(input_ptr, output_ptr, len);
+            transform::sse2::shuffle_v2(input_ptr, output_ptr, len);
             return;
         }
     }
@@ -85,22 +110,22 @@ unsafe fn transform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
     transform::u32(input_ptr, output_ptr, len)
 }
 
-/// Transform BC1 data from standard interleaved format to separated color/index format
+/// Transform BC2 data from standard interleaved format to separated color/index format
 /// using the best known implementation for the current CPU.
 ///
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 8
+/// - len must be divisible by 16
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn transform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 8 == 0);
+pub unsafe fn transform_bc2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 16 == 0);
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
-        transform_bc1_x86(input_ptr, output_ptr, len)
+        transform_bc2_x86(input_ptr, output_ptr, len)
     }
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
@@ -111,18 +136,18 @@ pub unsafe fn transform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
-unsafe fn untransform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+unsafe fn untransform_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         let avx2 = std::is_x86_feature_detected!("avx2");
         let sse2 = std::is_x86_feature_detected!("sse2");
 
         if avx2 && len % 128 == 0 {
-            detransform::avx2::permd_detransform_unroll_2(input_ptr, output_ptr, len);
+            detransform::avx2::avx2_shuffle(input_ptr, output_ptr, len);
         }
 
         if sse2 && len % 64 == 0 {
-            detransform::sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
+            detransform::sse2::shuffle(input_ptr, output_ptr, len);
         }
     }
 
@@ -130,12 +155,12 @@ unsafe fn untransform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: us
     {
         #[cfg(target_feature = "avx2")]
         if len % 128 == 0 {
-            detransform::avx2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
+            detransform::avx2::avx2_shuffle(input_ptr, output_ptr, len);
         }
 
         #[cfg(target_feature = "sse2")]
         if len % 64 == 0 {
-            detransform::sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
+            detransform::sse2::shuffle(input_ptr, output_ptr, len);
         }
     }
 
@@ -143,22 +168,22 @@ unsafe fn untransform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: us
     detransform::u32_detransform(input_ptr, output_ptr, len)
 }
 
-/// Transform BC1 data from separated color/index format back to standard interleaved format
+/// Transform BC2 data from separated color/index format back to standard interleaved format
 /// using best known implementation for current CPU.
 ///
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 8
+/// - len must be divisible by 16
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn untransform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 8 == 0);
+pub unsafe fn untransform_bc2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 16 == 0);
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
-        untransform_bc1_x86(input_ptr, output_ptr, len)
+        untransform_bc2_x86(input_ptr, output_ptr, len)
     }
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
@@ -170,8 +195,8 @@ pub unsafe fn untransform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: us
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raw::bc1::transform::tests::{
-        generate_bc1_test_data, transform_with_reference_implementation,
+    use crate::raw::bc2::transform::tests::{
+        generate_bc2_test_data, transform_with_reference_implementation,
     };
     use crate::testutils::allocate_align_64;
     use rstest::rstest;
@@ -184,7 +209,7 @@ mod tests {
     #[case::min_size(16)] // 128 bytes - AVX Unrolled Operation
     #[case::min_size(32)] // 256 bytes - Multiple Unrolled Operations
     fn test_transform_untransform(#[case] num_blocks: usize) {
-        let input = generate_bc1_test_data(num_blocks);
+        let input = generate_bc2_test_data(num_blocks);
         let mut transformed = allocate_align_64(input.len());
         let mut reconstructed = allocate_align_64(input.len());
         let mut reference = allocate_align_64(input.len());
@@ -194,16 +219,16 @@ mod tests {
 
         unsafe {
             // Test transform
-            transform_bc1(input.as_ptr(), transformed.as_mut_ptr(), input.len());
+            transform_bc2(input.as_ptr(), transformed.as_mut_ptr(), input.len());
             assert_eq!(
                 transformed.as_slice(),
                 reference.as_slice(),
-                "transform_bc1 produced different results than reference for {} blocks",
+                "transform_bc2 produced different results than reference for {} blocks",
                 num_blocks
             );
 
             // Test untransform
-            untransform_bc1(
+            untransform_bc2(
                 transformed.as_ptr(),
                 reconstructed.as_mut_ptr(),
                 transformed.len(),
@@ -211,7 +236,7 @@ mod tests {
             assert_eq!(
                 reconstructed.as_slice(),
                 input.as_slice(),
-                "untransform_bc1 failed to reconstruct original data for {} blocks",
+                "untransform_bc2 failed to reconstruct original data for {} blocks",
                 num_blocks
             );
         }

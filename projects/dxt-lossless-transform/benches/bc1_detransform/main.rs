@@ -17,38 +17,16 @@ pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
     RawAlloc::new(layout).unwrap()
 }
 
-pub(crate) fn generate_test_data(num_blocks: usize) -> RawAlloc {
-    let mut data = allocate_align_64(num_blocks * 8);
-    let mut data_ptr = data.as_mut_ptr();
-
-    let num_colors = data.len() / 2;
-    unsafe {
-        // First the colors.
-        for id in 0..num_colors {
-            data_ptr.write(id as u8);
-            data_ptr = data_ptr.add(1);
-        }
-
-        // Now the indices.
-        for id in 0..num_colors {
-            data_ptr.write((id + 128) as u8);
-            data_ptr = data_ptr.add(1);
-        }
-    }
-
-    data
-}
-
 fn criterion_benchmark(c: &mut Criterion) {
-    let mut group = c.benchmark_group("DXT1 Untransform Implementations");
-    let size = 16384; // 512x512 px = 16384 blocks
-    let input = generate_test_data(size);
+    let mut group = c.benchmark_group("BC1 Untransform Implementations");
+    let size = 8388608; // 4096x4096px
+    let input = allocate_align_64(size);
     let mut output = allocate_align_64(input.len());
-    let important_benches_only = true; // Set to false to enable extra benches, unrolls, etc.
+    let important_benches_only = false; // Set to false to enable extra benches, unrolls, etc.
 
     group.throughput(criterion::Throughput::Bytes(size as u64));
-    group.warm_up_time(Duration::from_secs(10));
-    group.measurement_time(Duration::from_secs(30));
+    group.warm_up_time(Duration::from_secs(60));
+    group.measurement_time(Duration::from_secs(60));
 
     // Run architecture-specific benchmarks
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]

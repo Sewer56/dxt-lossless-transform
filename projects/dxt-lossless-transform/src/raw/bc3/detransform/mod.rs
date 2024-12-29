@@ -1,3 +1,6 @@
+pub mod portable32;
+pub use portable32::*;
+
 #[cfg(test)]
 mod tests {
     use crate::testutils::allocate_align_64;

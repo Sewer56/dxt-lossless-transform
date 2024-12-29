@@ -1,6 +1,12 @@
 pub mod portable32;
 pub use portable32::*;
 
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub mod avx2;
+
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub use avx2::*;
+
 #[cfg(test)]
 pub mod tests {
     use crate::raw::bc3::transform::portable32::u32;

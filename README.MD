@@ -74,6 +74,7 @@ Untransform BC2 (`bc2_detransform`):
 
 Transform BC3 (`bc3_transform`):
 
+- Mixed AVX2+Scalar (Intrinsics): 16.712 GiB/s `avx2`
 - Compiler (x86-64, Rust + LLVM, no SIMD): 11.576 GiB/s `portable32 no-unroll`
 - Compiler (i686, Rust + LLVM, no SIMD): 10.510 GiB/s `portable32 no-unroll`
 

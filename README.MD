@@ -75,6 +75,7 @@ Untransform BC2 (`bc2_detransform`):
 Transform BC3 (`bc3_transform`):
 
 - Compiler (x86-64, Rust + LLVM, no SIMD): 11.576 GiB/s `portable32 no-unroll`
+- Compiler (i686, Rust + LLVM, no SIMD): 10.510 GiB/s `portable32 no-unroll`
 
 BC3 is tricky, due to unusual memory layout that is not register size or SIMD friendly.
 AVX2 has the capability to make it somewhat 'work', but SSE is not feature rich enough. 

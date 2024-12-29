@@ -40,5 +40,5 @@
  * 5. Separating them allows better compression of each stream
  */
 
-//pub mod detransform;
+pub mod detransform;
 pub mod transform;

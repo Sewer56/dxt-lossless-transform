@@ -3,16 +3,14 @@ pub use portable32::*;
 
 #[cfg(test)]
 pub mod tests {
+    use crate::raw::bc3::transform::portable32::u32;
     use crate::testutils::allocate_align_64;
     use safe_allocator_api::RawAlloc;
 
-    /*
     /// Transforms the input data using a good known reference implementation.
     pub(crate) fn transform_with_reference_implementation(input: &[u8], output: &mut [u8]) {
-        use crate::raw::bc3::transform::portable32::u32;
         unsafe { u32(input.as_ptr(), output.as_mut_ptr(), input.len()) }
     }
-    */
 
     // Helper to generate test data of specified size (in blocks)
     pub(crate) fn generate_bc3_test_data(num_blocks: usize) -> RawAlloc {
@@ -82,38 +80,39 @@ pub mod tests {
         assert_eq!(output.as_slice(), expected.as_slice());
     }
 
-    /*
     #[test]
     fn test_reference_implementation() {
-        let input: Vec<u8> = vec![
-            0x00, 0x01, 0x02, 0x03, // block 1 alpha
-            0x04, 0x05, 0x06, 0x07, // block 1 alpha
-            0x80, 0x81, 0x82, 0x83, // block 1 colours
-            0xC0, 0xC1, 0xC2, 0xC3, // block 1 indices
+        let input = vec![
+            0, 1, // block 1 alpha
+            32, 33, 34, 35, 36, 37, // block 1 alpha indices
+            128, 129, 130, 131, // block 1 colours
+            192, 193, 194, 195, // block 1 indices
             // block 2
-            0x08, 0x09, 0x0A, 0x0B, // block 2 alpha
-            0x0C, 0x0D, 0x0E, 0x0F, // block 2 alpha
-            0x84, 0x85, 0x86, 0x87, // block 2 colours
-            0xC4, 0xC5, 0xC6, 0xC7, // block 2 indices
+            2, 3, // block 2 alpha
+            38, 39, 40, 41, 42, 43, // block 2 alpha indices
+            132, 133, 134, 135, // block 2 colours
+            196, 197, 198, 199, // block 2 indices
             // block 3
-            0x10, 0x11, 0x12, 0x13, // block 3 alpha
-            0x14, 0x15, 0x16, 0x17, // block 3 alpha
-            0x88, 0x89, 0x8A, 0x8B, // block 3 colours
-            0xC8, 0xC9, 0xCA, 0xCB, // block 3 indices
+            4, 5, // block 3 alpha
+            44, 45, 46, 47, 48, 49, // block 3 alpha indices
+            136, 137, 138, 139, // block 3 colours
+            200, 201, 202, 203, // block 3 indices
         ];
         let mut output = vec![0u8; 48];
         transform_with_reference_implementation(&input, &mut output);
         assert_eq!(
             output,
             vec![
-                // alpha
-                0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, // block 1
-                0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, // block 2
-                0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, // block 3
+                // alpha bytes
+                0, 1, 2, 3, 4, 5, // block 1 - 3
+                // alpha indices
+                32, 33, 34, 35, 36, 37, // block 1
+                38, 39, 40, 41, 42, 43, // block 2
+                44, 45, 46, 47, 48, 49, // block 3
                 // colours
-                0x80, 0x81, 0x82, 0x83, // block 1
-                0x84, 0x85, 0x86, 0x87, // block 2
-                0x88, 0x89, 0x8A, 0x8B, // block 3
+                128, 129, 130, 131, // block 1
+                132, 133, 134, 135, // block 2
+                136, 137, 138, 139, // block 3
                 // indices
                 0xC0, 0xC1, 0xC2, 0xC3, // block 1
                 0xC4, 0xC5, 0xC6, 0xC7, // block 2
@@ -121,5 +120,4 @@ pub mod tests {
             ]
         );
     }
-    */
 }

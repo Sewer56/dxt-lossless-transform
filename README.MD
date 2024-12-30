@@ -72,6 +72,26 @@ Untransform BC2 (`bc2_detransform`):
 - SSE2 (Assembly): 49.670 GiB/s `sse2 shuffle`
 - Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 23.602 GiB/s `portable32 no-unroll`
 
+Transform BC3 (`bc3_transform`):
+
+- Mixed AVX2+Scalar (Intrinsics, x86-64): 17.343 GiB/s `avx2`
+- Mixed AVX2+Scalar (Intrinsics, i686): 16.712 GiB/s `avx2`
+- Compiler (x86-64, Rust + LLVM, no SIMD): 11.576 GiB/s `portable32 no-unroll`
+- Compiler (i686, Rust + LLVM, no SIMD): 10.510 GiB/s `portable32 no-unroll`
+
+Detransform BC3 (`bc3_detransform`):
+
+- SSE2 (x86-64, 64-bit only): 22.234 GiB/s `u64 sse2`
+- Compiler (x86-64, 64-bit only, Rust + LLVM, no SIMD): 19.031 GiB/s `portable64 no-unroll`
+- Compiler (x86-64, 32 & 64-bit, Rust + LLVM, no SIMD): 15.851 GiB/s `portable32 v2`
+- Compiler (x86-64, Rust + LLVM, no SIMD): 15.405 GiB/s `portable32 no-unroll`
+- SSE2 (x86-64, 32-bit): 13.668 GiB/s `u32 sse2` (disabled by default)
+
+BC3 is tricky, because it has 2 and 6 byte fields, making them SIMD unfriendly.
+AVX2 has 'gather' for loading, but not 'scatter' for storing. 
+
+Portable 64-bit implementation did not yield performance benefits for transform/untransform.
+
 Benchmark command:
 
 ```bash,ignore

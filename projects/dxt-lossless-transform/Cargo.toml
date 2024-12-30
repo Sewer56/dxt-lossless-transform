@@ -47,3 +47,13 @@ harness = false
 name = "bc2_detransform"
 path = "benches/bc2_detransform/main.rs"
 harness = false
+
+[[bench]]
+name = "bc3_transform"
+path = "benches/bc3_transform/main.rs"
+harness = false
+
+[[bench]]
+name = "bc3_detransform"
+path = "benches/bc3_detransform/main.rs"
+harness = false

@@ -222,6 +222,7 @@ unsafe fn write_alpha_bit_u32(
 }
 
 #[inline(always)]
+#[cfg(target_arch = "x86_64")]
 unsafe fn write_alpha_bits_u64(
     out_ptr: *mut u8,
     out_offset: usize,

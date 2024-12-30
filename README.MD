@@ -79,9 +79,10 @@ Transform BC3 (`bc3_transform`):
 - Compiler (x86-64, Rust + LLVM, no SIMD): 11.576 GiB/s `portable32 no-unroll`
 - Compiler (i686, Rust + LLVM, no SIMD): 10.510 GiB/s `portable32 no-unroll`
 
-
 Detransform BC3 (`bc3_detransform`):
 
+- Compiler (x86-64, 64-bit only, Rust + LLVM, no SIMD): 16.623 GiB/s `portable64 no-unroll`
+- Compiler (x86-64, 32 & 64-bit, Rust + LLVM, no SIMD): 15.851 GiB/s `portable32 v2`
 - Compiler (x86-64, Rust + LLVM, no SIMD): 15.405 GiB/s `portable32 no-unroll`
 
 BC3 is tricky, due to unusual memory layout that is not register size or SIMD friendly.

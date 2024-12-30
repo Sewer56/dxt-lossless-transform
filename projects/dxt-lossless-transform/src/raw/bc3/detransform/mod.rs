@@ -1,5 +1,5 @@
-pub mod portable32;
-pub use portable32::*;
+pub mod portable;
+pub use portable::*;
 
 #[cfg(test)]
 mod tests {

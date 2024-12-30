@@ -11,84 +11,42 @@
 This crates provide fast lossless transforms for DDS files that improve their compression ratio
 once compressed by external compressors.
 
-## Example
+## Reference Numbers
 
-Note: BC2 and BC3 have small sample sizes in below numbers (<30 files) but are generally
-fairly representative otherwise.
+Dataset is the following:
+
+```
+.
+├── 202x-architecture-10.01
+├── 202x-landscape-10.01
+├── 3dnpc-loose-latest
+├── book-of-silence-se-1.9.1
+├── embers-xd-3.0.8
+├── glorious-doors-of-skyrim-1.1
+├── majestic-mountains-402
+├── noble-skyrim-2k
+├── ruins-clutter-improved-se-3.2
+├── skyland-aio-4.32
+└── skyrim-flora-overhaul-with-grass
+```
+
+A bunch of Skyrim mods, from Nexus, obtained by sorting by most downloaded under the 'texture'
+category. All non .DDS files were removed.
 
 ### BC1
 
-Applying filter on every BC1 DDS file of `-Skyrim 202X 10.0.1 - Landscape PART 2-2347-10-0-1-1710489616.rar`.
+Original data contained 1943 files, totalling 6.84GiB.
 
 #### Before
 
 ```ignore
 Tool       Size            Ratio 
-----------------------------------
-original   2.33 GiB        100.00%
-zstd 22    1.48 GiB        63.75%
-kanzi 7    1.31 GiB        56.14%
-bzip3 16m  1.30 GiB        56.02%
-7z         1.34 GiB        57.37%
-```
-
-#### After
-
-```ignore
-Tool       Size            Ratio     
-----------------------------------
-original   2.33 GiB        100.00%
-zstd 22    1.35 GiB        57.91% 
-kanzi 7    1.20 GiB        51.50%
-bzip3 16m  1.20 GiB        51.41%
-7z         1.28 GiB        55.02%
-```
-
-BC2, BC3, BC7 are currently in development.
-Expect similar savings for BC2, BC3. BC7 is likely to be less effective.
-
-### BC2
-
-Applying filter on every BC2 DDS file of `-Skyrim 202X 10.0.1 - Landscape PART 2-2347-10-0-1-1710489616.rar`.
-
-#### Before
-
-```ignore
-Tool       Size            Ratio 
-----------------------------------
-original   60.02 MiB       100.00%
-zstd 22    12.89 MiB       21.47%
-bzip3 16m  10.62 MiB       17.70%
-kanzi 7    10.69 MiB       17.80%
-7z         11.55 MiB       19.25%
-```
-
-#### After
-
-```ignore
-Tool       Size            Ratio 
-----------------------------------
-original   60.02 MiB       100.00%
-zstd 22    11.45 MiB       19.08%
-bzip3 16m  9.90 MiB        16.49%
-kanzi 7    9.97 MiB        16.61%
-7z         10.90 MiB       18.15%
-```
-
-### BC3
-
-Applying filter on every BC2 DDS file of `-Skyrim 202X 10.0.1 - Landscape PART 2-2347-10-0-1-1710489616.rar`.
-
-#### Before
-
-```ignore
-Tool       Size            Ratio  
-----------------------------------
-original   233.02 MiB      100.00%
-zstd 22    117.39 MiB      50.38%
-bzip3 16m  100.79 MiB      43.25%
-kanzi 7    101.05 MiB      43.36%
-7z         105.40 MiB      45.23%
+---------------------------------
+zlib       4.77 GiB        69.77%
+zstd 22    4.23 GiB        61.91%
+bzip3 16m  3.83 GiB        56.00%
+kanzi 7    3.85 GiB        56.32%
+7z         3.83 GiB        56.05%
 ```
 
 #### After
@@ -96,11 +54,84 @@ kanzi 7    101.05 MiB      43.36%
 ```ignore
 Tool       Size            Ratio 
 ---------------------------------
-original   233.02 MiB      100.00%
-zstd 22    104.88 MiB      45.01%
-bzip3 16m  94.00 MiB       40.34%
-kanzi 7    94.49 MiB       40.55%
-7z         99.53 MiB       42.71%
+zlib       4.29 GiB        62.70%
+zstd 22    3.89 GiB        56.95%
+bzip3 16m  3.51 GiB        51.39%
+kanzi 7    3.53 GiB        51.67%
+7z         3.69 GiB        54.03%
+```
+
+BC2, BC3, BC7 are currently in development.
+Expect similar savings for BC2, BC3. BC7 is likely to be less effective.
+
+### BC2
+
+Original data contained 209 files, totalling 750.58MiB.
+
+#### Before
+
+```ignore
+Tool       Size            Ratio 
+---------------------------------
+zlib       232.34 MiB      30.95%
+zstd 22    210.06 MiB      27.99%
+bzip3 16m  178.95 MiB      23.84%
+kanzi 7    179.77 MiB      23.95%
+7z         189.47 MiB      25.24%
+```
+
+#### After
+
+```ignore
+Tool       Size            Ratio 
+---------------------------------
+zlib       199.34 MiB      26.56%
+zstd 22    186.78 MiB      24.89%
+bzip3 16m  167.29 MiB      22.29%
+kanzi 7    167.71 MiB      22.34%
+7z         177.30 MiB      23.62%
+```
+
+### BC3
+
+Original data contained 1138 files, totalling 5.00GiB.
+
+#### Before
+
+```ignore
+Tool       Size            Ratio 
+---------------------------------
+zlib       3.56 GiB        71.09%
+zstd 22    3.28 GiB        65.51%
+bzip3 16m  2.89 GiB        57.73%
+kanzi 7    2.89 GiB        57.88%
+7z         2.98 GiB        59.64%
+```
+
+#### After
+
+```ignore
+Tool       Size            Ratio 
+---------------------------------
+zlib       3.12 GiB        62.37%
+zstd 22    2.95 GiB        59.06%
+bzip3 16m  2.75 GiB        54.92%
+kanzi 7    2.75 GiB        55.07%
+7z         2.83 GiB        56.59%
+```
+
+Alternatively, you can use the BC2 transform on BC3 data for 3.5-4.5x throughput at a small minimal
+compression ratio loss.
+
+
+```ignore
+Tool       Size            Ratio 
+---------------------------------
+zlib       3.19 GiB        63.85%
+zstd 22    3.01 GiB        60.13%
+bzip3 16m  2.77 GiB        55.35%
+kanzi 7    2.78 GiB        55.52%
+7z         2.83 GiB        56.56%
 ```
 
 ## Performance

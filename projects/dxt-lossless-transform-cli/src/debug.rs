@@ -40,6 +40,7 @@ pub fn handle_debug_command(cmd: DebugCmd) -> Result<(), TransformError> {
 fn analyze_bc7_blocks(input: &Path) -> Result<(), TransformError> {
     let mut total_blocks = 0;
     let mut mode_counts = HashMap::new();
+    let mut first_byte_counts = HashMap::new();
 
     // Find all file paths.
     let mut entries = Vec::new();
@@ -64,6 +65,7 @@ fn analyze_bc7_blocks(input: &Path) -> Result<(), TransformError> {
             // The first byte contains the mode in its lowest bits
             // Mode is determined by the position of the first 1 bit
             let mode_byte = block[0];
+            *first_byte_counts.entry(mode_byte).or_insert(0) += 1;
             let mode = if mode_byte == 0 {
                 8 // Invalid mode
             } else {
@@ -88,6 +90,16 @@ fn analyze_bc7_blocks(input: &Path) -> Result<(), TransformError> {
         for (mode, count) in modes {
             let percentage = (*count as f64 / total_blocks as f64) * 100.0;
             println!("Mode {}: {} blocks ({:.2}%)", mode, count, percentage);
+        }
+
+        // Print first byte distribution
+        println!("\nMost common first bytes:");
+        let mut first_bytes: Vec<_> = first_byte_counts.iter().collect();
+        first_bytes.sort_by_key(|&(_, count)| std::cmp::Reverse(*count));
+
+        for (byte, count) in first_bytes {
+            let percentage = ((*count) as f64 / total_blocks as f64) * 100.0;
+            println!("0x{:02X}: {} blocks ({:.2}%)", byte, count, percentage);
         }
     } else {
         println!("No BC7 blocks found in the directory");

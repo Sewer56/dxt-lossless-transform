@@ -1,6 +1,12 @@
 pub mod portable;
 pub use portable::*;
 
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub mod sse2;
+
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub use sse2::*;
+
 #[cfg(test)]
 mod tests {
     use crate::testutils::allocate_align_64;

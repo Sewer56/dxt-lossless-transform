@@ -135,12 +135,12 @@ pub unsafe fn u64_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
         alpha_bit_in_ptr = alpha_bit_in_ptr.add(6);
 
         // Color bytes (4 bytes)
-        (current_output_ptr.add(8) as *mut u32).write_unaligned(color_bytes as u32);
-        (current_output_ptr.add(8 + 16) as *mut u32).write_unaligned((color_bytes >> 32) as u32);
+        let color_index_bytes_0 = (color_bytes & 0xFFFFFFFF) | ((index_bytes & 0xFFFFFFFF) << 32);
+        let color_index_bytes_1 = (color_bytes >> 32) | ((index_bytes >> 32) << 32);
+        (current_output_ptr.add(8) as *mut u64).write_unaligned(color_index_bytes_0);
+        (current_output_ptr.add(8 + 16) as *mut u64).write_unaligned(color_index_bytes_1);
 
         // Index bytes (4 bytes)
-        (current_output_ptr.add(12) as *mut u32).write_unaligned(index_bytes as u32);
-        (current_output_ptr.add(12 + 16) as *mut u32).write_unaligned((index_bytes >> 32) as u32);
         current_output_ptr = current_output_ptr.add(32);
     }
 }

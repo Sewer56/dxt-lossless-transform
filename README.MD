@@ -13,13 +13,18 @@ once compressed by external compressors.
 
 ## Example
 
+Note: BC2 and BC3 have small sample sizes in below numbers (<30 files) but are generally
+fairly representative otherwise.
+
+### BC1
+
 Applying filter on every BC1 DDS file of `-Skyrim 202X 10.0.1 - Landscape PART 2-2347-10-0-1-1710489616.rar`.
 
-### Before
+#### Before
 
 ```ignore
 Tool       Size            Ratio 
----------------------------------
+----------------------------------
 original   2.33 GiB        100.00%
 zstd 22    1.48 GiB        63.75%
 kanzi 7    1.31 GiB        56.14%
@@ -27,7 +32,7 @@ bzip3 16m  1.30 GiB        56.02%
 7z         1.34 GiB        57.37%
 ```
 
-### After
+#### After
 
 ```ignore
 Tool       Size            Ratio     
@@ -41,6 +46,62 @@ bzip3 16m  1.20 GiB        51.41%
 
 BC2, BC3, BC7 are currently in development.
 Expect similar savings for BC2, BC3. BC7 is likely to be less effective.
+
+### BC2
+
+Applying filter on every BC2 DDS file of `-Skyrim 202X 10.0.1 - Landscape PART 2-2347-10-0-1-1710489616.rar`.
+
+#### Before
+
+```ignore
+Tool       Size            Ratio 
+----------------------------------
+original   60.02 MiB       100.00%
+zstd 22    12.89 MiB       21.47%
+bzip3 16m  10.62 MiB       17.70%
+kanzi 7    10.69 MiB       17.80%
+7z         11.55 MiB       19.25%
+```
+
+#### After
+
+```ignore
+Tool       Size            Ratio 
+----------------------------------
+original   60.02 MiB       100.00%
+zstd 22    11.45 MiB       19.08%
+bzip3 16m  9.90 MiB        16.49%
+kanzi 7    9.97 MiB        16.61%
+7z         10.90 MiB       18.15%
+```
+
+### BC3
+
+Applying filter on every BC2 DDS file of `-Skyrim 202X 10.0.1 - Landscape PART 2-2347-10-0-1-1710489616.rar`.
+
+#### Before
+
+```ignore
+Tool       Size            Ratio  
+----------------------------------
+original   233.02 MiB      100.00%
+zstd 22    117.39 MiB      50.38%
+bzip3 16m  100.79 MiB      43.25%
+kanzi 7    101.05 MiB      43.36%
+7z         105.40 MiB      45.23%
+```
+
+#### After
+
+```ignore
+Tool       Size            Ratio 
+---------------------------------
+original   233.02 MiB      100.00%
+zstd 22    104.88 MiB      45.01%
+bzip3 16m  94.00 MiB       40.34%
+kanzi 7    94.49 MiB       40.55%
+7z         99.53 MiB       42.71%
+```
 
 ## Performance
 

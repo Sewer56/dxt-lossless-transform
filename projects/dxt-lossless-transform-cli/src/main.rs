@@ -1,6 +1,9 @@
 #![allow(unexpected_cfgs)]
 #![cfg(not(tarpaulin_include))]
 
+#[cfg(feature = "debug")]
+mod debug;
+
 mod error;
 mod util;
 use argh::FromArgs;
@@ -56,6 +59,8 @@ struct TopLevel {
 enum Commands {
     Transform(TransformCmd),
     Detransform(DetransformCmd),
+    #[cfg(feature = "debug")]
+    Debug(debug::DebugCmd),
 }
 
 #[derive(FromArgs, Debug)]
@@ -105,10 +110,10 @@ fn canonicalize_cli_path(value: &str) -> Result<PathBuf, String> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let top_level: TopLevel = argh::from_env();
+    let cli: TopLevel = argh::from_env();
 
     let start = Instant::now();
-    match top_level.command {
+    match cli.command {
         Commands::Transform(cmd) => {
             let filter = cmd.filter.unwrap_or(DdsFilter::All);
 
@@ -150,6 +155,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                     eprintln!("{}", e);
                 }
             });
+        }
+        #[cfg(feature = "debug")]
+        Commands::Debug(cmd) => {
+            debug::handle_debug_command(cmd)?;
         }
     }
 

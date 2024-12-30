@@ -14,9 +14,9 @@ pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
     let mut index_byte_in_ptr = input_ptr.add(len / 16 * 12) as *const u32;
 
     let mut current_output_ptr = output_ptr;
-    let output_end_ptr = output_ptr.add(len);
+    let alpha_byte_end_ptr = alpha_byte_in_ptr.add(len / 16);
 
-    while current_output_ptr < output_end_ptr {
+    while alpha_byte_in_ptr < alpha_byte_end_ptr {
         // Alpha bytes (2 bytes)
         (current_output_ptr as *mut u16).write_unaligned(alpha_byte_in_ptr.read_unaligned());
         alpha_byte_in_ptr = alpha_byte_in_ptr.add(1);

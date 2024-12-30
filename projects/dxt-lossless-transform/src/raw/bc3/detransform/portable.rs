@@ -63,8 +63,16 @@ pub unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len:
         alpha_byte_in_ptr = alpha_byte_in_ptr.add(1);
 
         // Alpha bytes (2 bytes). Write in 2 blocks in 1 shot.
-        (current_output_ptr as *mut u16).write_unaligned(alpha_bytes as u16);
-        ((current_output_ptr).add(16) as *mut u16).write_unaligned((alpha_bytes >> 16) as u16);
+        #[cfg(target_endian = "little")]
+        {
+            (current_output_ptr as *mut u16).write_unaligned(alpha_bytes as u16);
+            ((current_output_ptr).add(16) as *mut u16).write_unaligned((alpha_bytes >> 16) as u16);
+        }
+        #[cfg(target_endian = "big")]
+        {
+            (current_output_ptr as *mut u16).write_unaligned((alpha_bytes >> 16) as u16);
+            ((current_output_ptr).add(16) as *mut u16).write_unaligned(alpha_bytes as u16);
+        }
 
         // Alpha bits (6 bytes)
         (current_output_ptr.add(2) as *mut u16).write_unaligned(alpha_bit_in_ptr.read_unaligned());
@@ -121,8 +129,16 @@ pub unsafe fn u64_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
         index_byte_in_ptr = index_byte_in_ptr.add(1);
 
         // Alpha bytes (2 bytes). Write in 2 blocks in 1 shot.
-        (current_output_ptr as *mut u16).write_unaligned(alpha_bytes as u16);
-        ((current_output_ptr).add(16) as *mut u16).write_unaligned((alpha_bytes >> 16) as u16);
+        #[cfg(target_endian = "little")]
+        {
+            (current_output_ptr as *mut u16).write_unaligned(alpha_bytes as u16);
+            ((current_output_ptr).add(16) as *mut u16).write_unaligned((alpha_bytes >> 16) as u16);
+        }
+        #[cfg(target_endian = "big")]
+        {
+            (current_output_ptr as *mut u16).write_unaligned((alpha_bytes >> 16) as u16);
+            ((current_output_ptr).add(16) as *mut u16).write_unaligned(alpha_bytes as u16);
+        }
 
         // Alpha bits (6 bytes)
         (current_output_ptr.add(2) as *mut u16).write_unaligned(alpha_bit_in_ptr.read_unaligned());
@@ -135,10 +151,22 @@ pub unsafe fn u64_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
         alpha_bit_in_ptr = alpha_bit_in_ptr.add(6);
 
         // Color bytes (4 bytes)
-        let color_index_bytes_0 = (color_bytes & 0xFFFFFFFF) | ((index_bytes & 0xFFFFFFFF) << 32);
-        let color_index_bytes_1 = (color_bytes >> 32) | ((index_bytes >> 32) << 32);
-        (current_output_ptr.add(8) as *mut u64).write_unaligned(color_index_bytes_0);
-        (current_output_ptr.add(8 + 16) as *mut u64).write_unaligned(color_index_bytes_1);
+        #[cfg(target_endian = "little")]
+        {
+            let color_index_bytes_0 =
+                (color_bytes & 0xFFFFFFFF) | ((index_bytes & 0xFFFFFFFF) << 32);
+            let color_index_bytes_1 = (color_bytes >> 32) | ((index_bytes >> 32) << 32);
+            (current_output_ptr.add(8) as *mut u64).write_unaligned(color_index_bytes_0);
+            (current_output_ptr.add(8 + 16) as *mut u64).write_unaligned(color_index_bytes_1);
+        }
+        #[cfg(target_endian = "big")]
+        {
+            let color_index_bytes_0 = (index_bytes >> 32) | ((color_bytes >> 32) << 32);
+            let color_index_bytes_1 =
+                (index_bytes & 0xFFFFFFFF) | ((color_bytes & 0xFFFFFFFF) << 32);
+            (current_output_ptr.add(8) as *mut u64).write_unaligned(color_index_bytes_0);
+            (current_output_ptr.add(8 + 16) as *mut u64).write_unaligned(color_index_bytes_1);
+        }
 
         // Index bytes (4 bytes)
         current_output_ptr = current_output_ptr.add(32);

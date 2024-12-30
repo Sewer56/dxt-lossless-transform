@@ -51,8 +51,8 @@ pub unsafe fn u64_detransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, le
         alpha_bit_in_ptr = alpha_bit_in_ptr.add(3);
 
         // Load and interleave colors/indices
-        let colors = _mm_load_si128(color_byte_in_ptr);
-        let indices = _mm_load_si128(index_byte_in_ptr);
+        let colors = _mm_loadu_si128(color_byte_in_ptr);
+        let indices = _mm_loadu_si128(index_byte_in_ptr);
 
         let low = _mm_unpacklo_epi32(colors, indices);
         let high = _mm_unpackhi_epi32(colors, indices);
@@ -126,8 +126,8 @@ pub unsafe fn u32_detransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, le
         alpha_bit_in_ptr = alpha_bit_in_ptr.add(6);
 
         // Load and interleave colors/indices
-        let colors = _mm_load_si128(color_byte_in_ptr);
-        let indices = _mm_load_si128(index_byte_in_ptr);
+        let colors = _mm_loadu_si128(color_byte_in_ptr);
+        let indices = _mm_loadu_si128(index_byte_in_ptr);
 
         let low = _mm_unpacklo_epi32(colors, indices);
         let high = _mm_unpackhi_epi32(colors, indices);

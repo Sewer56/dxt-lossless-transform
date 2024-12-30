@@ -1,4 +1,3 @@
-use core::ptr::*;
 #[cfg(target_arch = "x86")]
 use std::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
@@ -230,12 +229,12 @@ unsafe fn write_alpha_bits_u64(
     in_offset: usize,
 ) {
     // Read both parts using unaligned loads
-    let first_part = read_unaligned(in_ptr.add(in_offset) as *const u16);
-    let second_part = read_unaligned(in_ptr.add(in_offset + 2) as *const u32);
+    let first_part = (in_ptr.add(in_offset) as *const u16).read_unaligned();
+    let second_part = (in_ptr.add(in_offset + 2) as *const u32).read_unaligned();
     let combined_value = ((second_part as u64) << 16) | (first_part as u64);
 
     // Write using unaligned store
-    write_unaligned((out_ptr.add(out_offset)) as *mut u64, combined_value);
+    (out_ptr.add(out_offset) as *mut u64).write_unaligned(combined_value);
 }
 
 #[cfg(test)]

@@ -81,13 +81,14 @@ Transform BC3 (`bc3_transform`):
 
 Detransform BC3 (`bc3_detransform`):
 
-- SSE2 (x86-64, 64-bit only, Rust + LLVM, no SIMD): 22.234 GiB/s `u64 sse2`
+- SSE2 (x86-64, 64-bit only): 22.234 GiB/s `u64 sse2`
 - Compiler (x86-64, 64-bit only, Rust + LLVM, no SIMD): 19.031 GiB/s `portable64 no-unroll`
 - Compiler (x86-64, 32 & 64-bit, Rust + LLVM, no SIMD): 15.851 GiB/s `portable32 v2`
 - Compiler (x86-64, Rust + LLVM, no SIMD): 15.405 GiB/s `portable32 no-unroll`
+- SSE2 (x86-64, 32-bit): 13.668 GiB/s `u32 sse2` (disabled by default)
 
-BC3 is tricky, due to unusual memory layout that is not register size or SIMD friendly.
-AVX2 has the capability to make it somewhat 'work', but SSE is not feature rich enough.
+BC3 is tricky, because it has 2 and 6 byte fields, making them SIMD unfriendly.
+AVX2 has 'gather' for loading, but not 'scatter' for storing. 
 
 Portable 64-bit implementation did not yield performance benefits for transform/untransform.
 

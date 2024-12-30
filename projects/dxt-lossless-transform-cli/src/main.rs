@@ -186,7 +186,7 @@ fn process_dir_entry(
     let source_mapping = open_readonly_mmap(&source_handle, source_size)?;
 
     let dds_info = unsafe { parse_dds(source_mapping.data(), source_mapping.len()) };
-    let (info, format) = check_dds_format(dds_info, filter)?;
+    let (info, format) = check_dds_format(dds_info, filter, &dir_entry.path())?;
 
     let target_path_str = target_path.to_str().unwrap();
     let target_handle = open_write_handle(&source_mapping, target_path_str)?;

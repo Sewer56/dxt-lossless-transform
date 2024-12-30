@@ -147,11 +147,14 @@ pub fn create_output_mapping(
 pub fn check_dds_format(
     dds_info: Option<DdsInfo>,
     filter: DdsFilter,
+    target_path: &Path,
 ) -> Result<(DdsInfo, DdsFormat), TransformError> {
     let info = dds_info.ok_or(TransformError::InvalidDdsFile)?;
 
     if info.format == DdsFormat::Unknown {
-        return Err(TransformError::UnsupportedFormat);
+        return Err(TransformError::UnsupportedFormat(
+            target_path.to_string_lossy().to_string(),
+        ));
     }
 
     match (info.format, filter) {
@@ -159,6 +162,8 @@ pub fn check_dds_format(
         (DdsFormat::BC2, DdsFilter::BC2 | DdsFilter::All) => Ok((info, DdsFormat::BC2)),
         (DdsFormat::BC3, DdsFilter::BC3 | DdsFilter::All) => Ok((info, DdsFormat::BC3)),
         (DdsFormat::BC7, DdsFilter::BC7 | DdsFilter::All) => Ok((info, DdsFormat::BC7)),
-        _ => Err(TransformError::UnsupportedFormat),
+        _ => Err(TransformError::UnsupportedFormat(
+            target_path.to_string_lossy().to_string(),
+        )),
     }
 }

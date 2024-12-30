@@ -28,7 +28,7 @@ pub unsafe fn transform_format(
             dxt_lossless_transform::raw::bc2::transform_bc2(input_ptr, output_ptr, len)
         }
         DdsFormat::BC3 => {
-            dxt_lossless_transform::raw::bc2::transform_bc2(input_ptr, output_ptr, len)
+            dxt_lossless_transform::raw::bc3::transform_bc3(input_ptr, output_ptr, len)
         }
         DdsFormat::BC7 => todo!(),
     }
@@ -62,7 +62,7 @@ pub unsafe fn untransform_format(
             dxt_lossless_transform::raw::bc2::untransform_bc2(input_ptr, output_ptr, len)
         }
         DdsFormat::BC3 => {
-            dxt_lossless_transform::raw::bc2::untransform_bc2(input_ptr, output_ptr, len)
+            dxt_lossless_transform::raw::bc3::untransform_bc3(input_ptr, output_ptr, len)
         }
         DdsFormat::BC7 => todo!(),
     }
@@ -132,4 +132,37 @@ pub unsafe fn transform_bc2(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
 #[inline]
 pub unsafe fn untransform_bc2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     dxt_lossless_transform::raw::bc2::untransform_bc2(input_ptr, output_ptr, len)
+}
+
+/// Transform BC3 data from standard interleaved format to separated color/index format
+/// to improve compression ratio.
+///
+/// This function selects the best available implementation based on available CPU features.
+/// Hardware accelerated (SIMD) methods are currently available for x86 and x86-64.
+///
+/// # Safety
+///
+/// - `input_ptr` must be valid for reads of len bytes
+/// - `output_ptr` must be valid for writes of len bytes
+/// - `len` must be divisible by 16 (BC3 block size)
+/// - It is recommended that `input_ptr` and `output_ptr` are at least 16-byte aligned (recommended 32-byte align)
+#[inline]
+pub unsafe fn transform_bc3(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    dxt_lossless_transform::raw::bc3::transform_bc3(input_ptr, output_ptr, len)
+}
+
+/// Transform BC3 data from separated color/index format back to standard interleaved format.
+///
+/// This function selects the best available implementation based on available CPU features.
+/// Hardware accelerated (SIMD) methods are currently available for x86 and x86-64.
+///
+/// # Safety
+///
+/// - `input_ptr` must be valid for reads of len bytes
+/// - `output_ptr` must be valid for writes of len bytes
+/// - `len` must be divisible by 16 (BC3 block size)
+/// - `input_ptr` and `output_ptr` must be 64-byte aligned (for performance and required by some platforms).
+#[inline]
+pub unsafe fn untransform_bc3(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    dxt_lossless_transform::raw::bc3::untransform_bc3(input_ptr, output_ptr, len)
 }

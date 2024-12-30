@@ -1,7 +1,9 @@
 use crate::error::TransformError;
-use crate::find_all_files;
+use crate::*;
 use argh::FromArgs;
+use core::ptr::copy_nonoverlapping;
 use dxt_lossless_transform_api::{parse_dds, DdsFormat};
+use rayon::*;
 use std::collections::HashMap;
 use std::{
     fs,
@@ -20,6 +22,7 @@ pub struct DebugCmd {
 #[argh(subcommand)]
 pub enum DebugCommands {
     AnalyzeBC7(AnalyzeBC7Cmd),
+    SplitByBlockTypeCmd(SplitByBlockTypeCmd),
 }
 
 #[derive(FromArgs, Debug)]
@@ -31,9 +34,43 @@ pub struct AnalyzeBC7Cmd {
     pub input: PathBuf,
 }
 
+#[derive(FromArgs, Debug)]
+/// Transforms BC7 files by splitting the blocks into one section with first byte, and one section with the rest
+#[argh(subcommand, name = "bc7-split-by-block-type")]
+pub struct SplitByBlockTypeCmd {
+    /// input directory path
+    #[argh(option, from_str_fn(canonicalize_cli_path))]
+    pub input: PathBuf,
+
+    /// output directory path
+    #[argh(option, from_str_fn(canonicalize_cli_path))]
+    pub output: PathBuf,
+}
+
 pub fn handle_debug_command(cmd: DebugCmd) -> Result<(), TransformError> {
     match cmd.command {
         DebugCommands::AnalyzeBC7(analyze_cmd) => analyze_bc7_blocks(&analyze_cmd.input),
+        DebugCommands::SplitByBlockTypeCmd(cmd) => {
+            // Collect all files recursively first
+            let mut entries = Vec::new();
+            find_all_files(&cmd.input, &mut entries)?;
+            println!("Found {} files to transform", entries.len());
+
+            // Process files in parallel
+            entries.par_iter().for_each(|entry| {
+                if let Err(e) = process_dir_entry(
+                    entry,
+                    &cmd.input,
+                    &cmd.output,
+                    crate::DdsFilter::All,
+                    transform_bc7_split_block_type,
+                ) {
+                    eprintln!("{}", e);
+                }
+            });
+
+            Ok(())
+        }
     }
 }
 
@@ -106,4 +143,27 @@ fn analyze_bc7_blocks(input: &Path) -> Result<(), TransformError> {
     }
 
     Ok(())
+}
+
+#[inline]
+pub unsafe fn transform_bc7_split_block_type(
+    mut input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+    _format: DdsFormat,
+) {
+    let mut block_type_ptr = output_ptr;
+    let block_type_end = block_type_ptr.add(len / 16); // each type is 1 byte
+    let mut block_data_ptr = block_type_end;
+
+    while block_type_ptr < block_type_end {
+        let block_type = *input_ptr;
+
+        *block_type_ptr = block_type;
+        copy_nonoverlapping(input_ptr.add(1), block_data_ptr, 15); // remaining block bytes
+
+        block_type_ptr = block_type_ptr.add(1);
+        block_data_ptr = block_data_ptr.add(15);
+        input_ptr = input_ptr.add(16);
+    }
 }

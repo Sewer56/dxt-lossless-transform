@@ -158,6 +158,7 @@ pub fn check_dds_format(
         (DdsFormat::BC1, DdsFilter::BC1 | DdsFilter::All) => Ok((info, DdsFormat::BC1)),
         (DdsFormat::BC2, DdsFilter::BC2 | DdsFilter::All) => Ok((info, DdsFormat::BC2)),
         (DdsFormat::BC3, DdsFilter::BC3 | DdsFilter::All) => Ok((info, DdsFormat::BC3)),
+        (DdsFormat::BC7, DdsFilter::BC7 | DdsFilter::All) => Ok((info, DdsFormat::BC7)),
         _ => Err(TransformError::UnsupportedFormat),
     }
 }

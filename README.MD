@@ -123,7 +123,6 @@ kanzi 7    2.75 GiB        55.07%
 Alternatively, you can use the BC2 transform on BC3 data for 3.5-4.5x throughput at a small minimal
 compression ratio loss.
 
-
 ```ignore
 Tool       Size            Ratio 
 ---------------------------------

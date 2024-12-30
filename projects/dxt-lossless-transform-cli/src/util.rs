@@ -162,8 +162,6 @@ pub fn check_dds_format(
         (DdsFormat::BC2, DdsFilter::BC2 | DdsFilter::All) => Ok((info, DdsFormat::BC2)),
         (DdsFormat::BC3, DdsFilter::BC3 | DdsFilter::All) => Ok((info, DdsFormat::BC3)),
         (DdsFormat::BC7, DdsFilter::BC7 | DdsFilter::All) => Ok((info, DdsFormat::BC7)),
-        _ => Err(TransformError::UnsupportedFormat(
-            target_path.to_string_lossy().to_string(),
-        )),
+        _ => Err(TransformError::IgnoredByFilter),
     }
 }

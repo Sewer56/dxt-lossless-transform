@@ -58,15 +58,14 @@ pub fn handle_debug_command(cmd: DebugCmd) -> Result<(), TransformError> {
 
             // Process files in parallel
             entries.par_iter().for_each(|entry| {
-                if let Err(e) = process_dir_entry(
+                let process_entry_result = process_dir_entry(
                     entry,
                     &cmd.input,
                     &cmd.output,
                     crate::DdsFilter::All,
                     transform_bc7_split_block_type,
-                ) {
-                    eprintln!("{}", e);
-                }
+                );
+                handle_process_entry_error(process_entry_result);
             });
 
             Ok(())

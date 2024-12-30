@@ -124,15 +124,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             // Process files in parallel
             entries.par_iter().for_each(|entry| {
-                if let Err(e) = process_dir_entry(
+                let process_entry_result = process_dir_entry(
                     entry,
                     &cmd.input,
                     &cmd.output,
                     filter.clone(),
                     transform_format,
-                ) {
-                    eprintln!("{}", e);
-                }
+                );
+                handle_process_entry_error(process_entry_result);
             });
         }
         Commands::Detransform(cmd) => {
@@ -145,15 +144,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             // Process files in parallel
             entries.par_iter().for_each(|entry| {
-                if let Err(e) = process_dir_entry(
+                let process_entry_result = process_dir_entry(
                     entry,
                     &cmd.input,
                     &cmd.output,
                     filter.clone(),
                     untransform_format,
-                ) {
-                    eprintln!("{}", e);
-                }
+                );
+                handle_process_entry_error(process_entry_result);
             });
         }
         #[cfg(feature = "debug")]
@@ -164,6 +162,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Transform completed in {:.2?}", start.elapsed());
     Ok(())
+}
+
+fn handle_process_entry_error(result: Result<(), TransformError>) {
+    if let Err(e) = result {
+        match e {
+            TransformError::IgnoredByFilter => (),
+            _ => eprintln!("{}", e),
+        }
+    }
 }
 
 fn process_dir_entry(

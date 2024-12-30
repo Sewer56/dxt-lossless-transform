@@ -7,6 +7,7 @@ pub enum TransformError {
     PathError(StripPrefixError),
     MmapError(String),
     UnsupportedFormat(String),
+    IgnoredByFilter,
     InvalidDdsFile,
 }
 
@@ -30,6 +31,7 @@ impl std::fmt::Display for TransformError {
             TransformError::MmapError(e) => write!(f, "{}", e),
             TransformError::UnsupportedFormat(e) => write!(f, "Unsupported DDS format, {}", e),
             TransformError::InvalidDdsFile => write!(f, "Invalid DDS file"),
+            TransformError::IgnoredByFilter => write!(f, "File was skipped by filter"),
         }
     }
 }

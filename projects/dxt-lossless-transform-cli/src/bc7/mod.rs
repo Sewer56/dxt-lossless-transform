@@ -1,6 +1,12 @@
 use crate::*;
+use bitstream_io::{BigEndian, BitRead, BitReader};
 use dxt_lossless_transform_api::*;
-use std::{collections::HashMap, fs, path::Path};
+use std::{
+    collections::HashMap,
+    fs,
+    io::{Cursor, Read, Seek, SeekFrom},
+    path::Path,
+};
 
 #[derive(Debug, Default)]
 pub struct BC7BlockAnalysis {
@@ -181,6 +187,296 @@ pub fn analyze_bc7_directory(input: &Path) -> Result<BC7BlockAnalysis, Transform
     }
 
     Ok(combined_analysis)
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct ColorEndpointBits {
+    bits: [[u64; 2]; 4], // 4 bits per endpoint
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct IndexBits {
+    bits: [[u64; 2]; 3], // 3 bits per index
+}
+
+#[derive(Debug, Default)]
+pub struct BC7Mode0BitDistribution {
+    // Track total blocks analyzed
+    pub total_blocks: u64,
+
+    // Bit frequency maps for each field
+    // First field for 0, other for 1
+    pub partition_bits: [[u64; 2]; 4], // 4 bits
+
+    // Separate arrays for each endpoint
+    pub r0_bits: ColorEndpointBits,
+    pub r1_bits: ColorEndpointBits,
+    pub r2_bits: ColorEndpointBits,
+    pub r3_bits: ColorEndpointBits,
+    pub r4_bits: ColorEndpointBits,
+    pub r5_bits: ColorEndpointBits,
+
+    pub g0_bits: ColorEndpointBits,
+    pub g1_bits: ColorEndpointBits,
+    pub g2_bits: ColorEndpointBits,
+    pub g3_bits: ColorEndpointBits,
+    pub g4_bits: ColorEndpointBits,
+    pub g5_bits: ColorEndpointBits,
+
+    pub b0_bits: ColorEndpointBits,
+    pub b1_bits: ColorEndpointBits,
+    pub b2_bits: ColorEndpointBits,
+    pub b3_bits: ColorEndpointBits,
+    pub b4_bits: ColorEndpointBits,
+    pub b5_bits: ColorEndpointBits,
+
+    pub p_bits: [[u64; 2]; 6], // 6 p-bits
+
+    // Separate arrays for each index
+    pub index0_bits: IndexBits,
+    pub index1_bits: IndexBits,
+    pub index2_bits: IndexBits,
+    pub index3_bits: IndexBits,
+    pub index4_bits: IndexBits,
+    pub index5_bits: IndexBits,
+    pub index6_bits: IndexBits,
+    pub index7_bits: IndexBits,
+    pub index8_bits: IndexBits,
+    pub index9_bits: IndexBits,
+    pub index10_bits: IndexBits,
+    pub index11_bits: IndexBits,
+    pub index12_bits: IndexBits,
+    pub index13_bits: IndexBits,
+    pub index14_bits: IndexBits,
+}
+
+impl BC7Mode0BitDistribution {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    fn analyze_endpoint_bits<T: Read>(
+        reader: &mut BitReader<T, BigEndian>,
+        endpoints: &mut [&mut ColorEndpointBits; 6],
+    ) -> std::io::Result<()> {
+        for endpoint in endpoints.iter_mut() {
+            for i in 0..4 {
+                let bit = reader.read::<u8>(1)? as usize;
+                endpoint.bits[i][bit] += 1;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn analyze_block<T: Read + Seek>(
+        &mut self,
+        reader: &mut BitReader<T, BigEndian>,
+    ) -> std::io::Result<()> {
+        // Skip mode bit (we know it's 1 for mode 0)
+        reader.read::<u8>(1)?;
+
+        // Read and analyze partition bits
+        for i in 0..4 {
+            let bit = reader.read::<u8>(1)? as usize;
+            self.partition_bits[i][bit] += 1;
+        }
+
+        // Read and analyze R endpoints
+        Self::analyze_endpoint_bits(
+            reader,
+            &mut [
+                &mut self.r0_bits,
+                &mut self.r1_bits,
+                &mut self.r2_bits,
+                &mut self.r3_bits,
+                &mut self.r4_bits,
+                &mut self.r5_bits,
+            ],
+        )?;
+
+        // Read and analyze G endpoints
+        Self::analyze_endpoint_bits(
+            reader,
+            &mut [
+                &mut self.g0_bits,
+                &mut self.g1_bits,
+                &mut self.g2_bits,
+                &mut self.g3_bits,
+                &mut self.g4_bits,
+                &mut self.g5_bits,
+            ],
+        )?;
+
+        // Read and analyze B endpoints
+        Self::analyze_endpoint_bits(
+            reader,
+            &mut [
+                &mut self.b0_bits,
+                &mut self.b1_bits,
+                &mut self.b2_bits,
+                &mut self.b3_bits,
+                &mut self.b4_bits,
+                &mut self.b5_bits,
+            ],
+        )?;
+
+        // Read and analyze p-bits
+        for i in 0..6 {
+            let bit = reader.read::<u8>(1)? as usize;
+            self.p_bits[i][bit] += 1;
+        }
+
+        // Read and analyze indices
+        let indices = &mut [
+            &mut self.index0_bits,
+            &mut self.index1_bits,
+            &mut self.index2_bits,
+            &mut self.index3_bits,
+            &mut self.index4_bits,
+            &mut self.index5_bits,
+            &mut self.index6_bits,
+            &mut self.index7_bits,
+            &mut self.index8_bits,
+            &mut self.index9_bits,
+            &mut self.index10_bits,
+            &mut self.index11_bits,
+            &mut self.index12_bits,
+            &mut self.index13_bits,
+            &mut self.index14_bits,
+        ];
+
+        for index in indices.iter_mut() {
+            for i in 0..3 {
+                let bit = reader.read::<u8>(1)? as usize;
+                index.bits[i][bit] += 1;
+            }
+        }
+
+        self.total_blocks += 1;
+        Ok(())
+    }
+
+    fn print_endpoint_stats(endpoint_bits: &ColorEndpointBits, name: &str, total_blocks: u64) {
+        println!("\n{} bit frequencies:", name);
+        for (i, bits) in endpoint_bits.bits.iter().enumerate() {
+            let zeros = (bits[0] as f64 / total_blocks as f64) * 100.0;
+            let ones = (bits[1] as f64 / total_blocks as f64) * 100.0;
+            println!("bit {}: 0={:.2}%, 1={:.2}%", i, zeros, ones);
+        }
+    }
+
+    fn print_index_stats(index_bits: &IndexBits, index: usize, total_blocks: u64) {
+        println!("\nIndex {} bit frequencies:", index);
+        for (i, bits) in index_bits.bits.iter().enumerate() {
+            let zeros = (bits[0] as f64 / total_blocks as f64) * 100.0;
+            let ones = (bits[1] as f64 / total_blocks as f64) * 100.0;
+            println!("bit {}: 0={:.2}%, 1={:.2}%", i, zeros, ones);
+        }
+    }
+
+    pub fn print_results(&self) {
+        if self.total_blocks == 0 {
+            println!("No BC7 mode 0 blocks analyzed");
+            return;
+        }
+
+        println!("\nBC7 Mode 0 Bit Distribution Analysis");
+        println!("Total blocks analyzed: {}", self.total_blocks);
+
+        println!("\nPartition bit frequencies:");
+        for (i, bits) in self.partition_bits.iter().enumerate() {
+            let zeros = (bits[0] as f64 / self.total_blocks as f64) * 100.0;
+            let ones = (bits[1] as f64 / self.total_blocks as f64) * 100.0;
+            println!("Bit {}: 0={:.2}%, 1={:.2}%", i, zeros, ones);
+        }
+
+        // Print R endpoint stats
+        Self::print_endpoint_stats(&self.r0_bits, "R0", self.total_blocks);
+        Self::print_endpoint_stats(&self.r1_bits, "R1", self.total_blocks);
+        Self::print_endpoint_stats(&self.r2_bits, "R2", self.total_blocks);
+        Self::print_endpoint_stats(&self.r3_bits, "R3", self.total_blocks);
+        Self::print_endpoint_stats(&self.r4_bits, "R4", self.total_blocks);
+        Self::print_endpoint_stats(&self.r5_bits, "R5", self.total_blocks);
+
+        // Print G endpoint stats
+        Self::print_endpoint_stats(&self.g0_bits, "G0", self.total_blocks);
+        Self::print_endpoint_stats(&self.g1_bits, "G1", self.total_blocks);
+        Self::print_endpoint_stats(&self.g2_bits, "G2", self.total_blocks);
+        Self::print_endpoint_stats(&self.g3_bits, "G3", self.total_blocks);
+        Self::print_endpoint_stats(&self.g4_bits, "G4", self.total_blocks);
+        Self::print_endpoint_stats(&self.g5_bits, "G5", self.total_blocks);
+
+        // Print B endpoint stats
+        Self::print_endpoint_stats(&self.b0_bits, "B0", self.total_blocks);
+        Self::print_endpoint_stats(&self.b1_bits, "B1", self.total_blocks);
+        Self::print_endpoint_stats(&self.b2_bits, "B2", self.total_blocks);
+        Self::print_endpoint_stats(&self.b3_bits, "B3", self.total_blocks);
+        Self::print_endpoint_stats(&self.b4_bits, "B4", self.total_blocks);
+        Self::print_endpoint_stats(&self.b5_bits, "B5", self.total_blocks);
+
+        println!("\nP-bit frequencies:");
+        for (i, bits) in self.p_bits.iter().enumerate() {
+            let zeros = (bits[0] as f64 / self.total_blocks as f64) * 100.0;
+            let ones = (bits[1] as f64 / self.total_blocks as f64) * 100.0;
+            println!("p{}: 0={:.2}%, 1={:.2}%", i, zeros, ones);
+        }
+
+        // Print index stats
+        Self::print_index_stats(&self.index0_bits, 0, self.total_blocks);
+        Self::print_index_stats(&self.index1_bits, 1, self.total_blocks);
+        Self::print_index_stats(&self.index2_bits, 2, self.total_blocks);
+        Self::print_index_stats(&self.index3_bits, 3, self.total_blocks);
+        Self::print_index_stats(&self.index4_bits, 4, self.total_blocks);
+        Self::print_index_stats(&self.index5_bits, 5, self.total_blocks);
+        Self::print_index_stats(&self.index6_bits, 6, self.total_blocks);
+        Self::print_index_stats(&self.index7_bits, 7, self.total_blocks);
+        Self::print_index_stats(&self.index8_bits, 8, self.total_blocks);
+        Self::print_index_stats(&self.index9_bits, 9, self.total_blocks);
+        Self::print_index_stats(&self.index10_bits, 10, self.total_blocks);
+        Self::print_index_stats(&self.index11_bits, 11, self.total_blocks);
+        Self::print_index_stats(&self.index12_bits, 12, self.total_blocks);
+        Self::print_index_stats(&self.index13_bits, 13, self.total_blocks);
+        Self::print_index_stats(&self.index14_bits, 14, self.total_blocks);
+    }
+
+    #[inline]
+    pub(crate) fn combine_endpoint_bits(dest: &mut ColorEndpointBits, src: &ColorEndpointBits) {
+        for i in 0..4 {
+            for j in 0..2 {
+                dest.bits[i][j] += src.bits[i][j];
+            }
+        }
+    }
+
+    #[inline]
+    pub(crate) fn combine_index_bits(dest: &mut IndexBits, src: &IndexBits) {
+        for i in 0..3 {
+            for j in 0..2 {
+                dest.bits[i][j] += src.bits[i][j];
+            }
+        }
+    }
+}
+
+pub fn analyze_bc7_mode0_bits(data: &[u8]) -> std::io::Result<BC7Mode0BitDistribution> {
+    let mut distribution = BC7Mode0BitDistribution::new();
+    let mut reader = BitReader::endian(Cursor::new(data), BigEndian);
+
+    // Process each 128-bit block
+    while let Ok(first_bit) = reader.read::<u8>(1) {
+        // Rewind the 1 bit we just read to check mode
+        reader.seek_bits(SeekFrom::Current(-1))?;
+
+        // Only analyze mode 0 blocks
+        if first_bit == 1 {
+            distribution.analyze_block(&mut reader)?;
+        } else {
+            // Skip non-mode 0 blocks (128 bits)
+            reader.seek_bits(SeekFrom::Current(128))?;
+        }
+    }
+
+    Ok(distribution)
 }
 
 pub fn get_bc7_mode(mode_byte: u8) -> u8 {

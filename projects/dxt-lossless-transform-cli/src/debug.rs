@@ -24,6 +24,7 @@ pub struct DebugCmd {
 #[argh(subcommand)]
 pub enum DebugCommands {
     AnalyzeBC7(AnalyzeBC7Cmd),
+    AnalyzeBC7Mode0BitDistributions(AnalyzeBC7Mode0BitDistributionsCmd),
     SplitByBlockTypeCmd(SplitByBlockTypeCmd),
     ByteAlignMode0Blocks(ByteAlignMode0Blocks),
     SetMode0TransformToMostCommon(SetMode0TransformToMostCommon),
@@ -35,6 +36,15 @@ pub enum DebugCommands {
 /// Analyze BC7 block types in DDS files
 #[argh(subcommand, name = "analyze-bc7")]
 pub struct AnalyzeBC7Cmd {
+    /// input directory path
+    #[argh(option)]
+    pub input: PathBuf,
+}
+
+#[derive(FromArgs, Debug)]
+/// Analyze BC7 block types in DDS files
+#[argh(subcommand, name = "analyze-bc7-mode-0-bit-distributions")]
+pub struct AnalyzeBC7Mode0BitDistributionsCmd {
     /// input directory path
     #[argh(option)]
     pub input: PathBuf,
@@ -196,7 +206,191 @@ pub fn handle_debug_command(cmd: DebugCmd) -> Result<(), TransformError> {
 
             Ok(())
         }
+        DebugCommands::AnalyzeBC7Mode0BitDistributions(cmd) => {
+            handle_analyze_bc7_mode0_bit_distributions(&cmd)
+        }
     }
+}
+
+pub fn handle_analyze_bc7_mode0_bit_distributions(
+    cmd: &AnalyzeBC7Mode0BitDistributionsCmd,
+) -> Result<(), TransformError> {
+    let mut entries = Vec::new();
+    find_all_files(&cmd.input, &mut entries)?;
+
+    let mut combined_distribution = BC7Mode0BitDistribution::new();
+
+    for entry in entries {
+        if let Ok(data) = fs::read(entry.path()) {
+            // Skip the DDS header
+            let dds_info = unsafe { parse_dds(data.as_ptr(), data.len()) }.unwrap();
+            let data = &data[dds_info.data_offset as usize..];
+
+            if let Ok(distribution) = analyze_bc7_mode0_bits(data) {
+                // Add this file's distribution to combined total
+                combined_distribution.total_blocks += distribution.total_blocks;
+
+                // Combine partition bits
+                for i in 0..4 {
+                    for j in 0..2 {
+                        combined_distribution.partition_bits[i][j] +=
+                            distribution.partition_bits[i][j];
+                    }
+                }
+
+                // Combine R endpoint bits
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.r0_bits,
+                    &distribution.r0_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.r1_bits,
+                    &distribution.r1_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.r2_bits,
+                    &distribution.r2_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.r3_bits,
+                    &distribution.r3_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.r4_bits,
+                    &distribution.r4_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.r5_bits,
+                    &distribution.r5_bits,
+                );
+
+                // Combine G endpoint bits
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.g0_bits,
+                    &distribution.g0_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.g1_bits,
+                    &distribution.g1_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.g2_bits,
+                    &distribution.g2_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.g3_bits,
+                    &distribution.g3_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.g4_bits,
+                    &distribution.g4_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.g5_bits,
+                    &distribution.g5_bits,
+                );
+
+                // Combine B endpoint bits
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.b0_bits,
+                    &distribution.b0_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.b1_bits,
+                    &distribution.b1_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.b2_bits,
+                    &distribution.b2_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.b3_bits,
+                    &distribution.b3_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.b4_bits,
+                    &distribution.b4_bits,
+                );
+                BC7Mode0BitDistribution::combine_endpoint_bits(
+                    &mut combined_distribution.b5_bits,
+                    &distribution.b5_bits,
+                );
+
+                // Combine p bits
+                for i in 0..6 {
+                    for j in 0..2 {
+                        combined_distribution.p_bits[i][j] += distribution.p_bits[i][j];
+                    }
+                }
+
+                // Combine index bits
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index0_bits,
+                    &distribution.index0_bits,
+                );
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index1_bits,
+                    &distribution.index1_bits,
+                );
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index2_bits,
+                    &distribution.index2_bits,
+                );
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index3_bits,
+                    &distribution.index3_bits,
+                );
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index4_bits,
+                    &distribution.index4_bits,
+                );
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index5_bits,
+                    &distribution.index5_bits,
+                );
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index6_bits,
+                    &distribution.index6_bits,
+                );
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index7_bits,
+                    &distribution.index7_bits,
+                );
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index8_bits,
+                    &distribution.index8_bits,
+                );
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index9_bits,
+                    &distribution.index9_bits,
+                );
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index10_bits,
+                    &distribution.index10_bits,
+                );
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index11_bits,
+                    &distribution.index11_bits,
+                );
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index12_bits,
+                    &distribution.index12_bits,
+                );
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index13_bits,
+                    &distribution.index13_bits,
+                );
+                BC7Mode0BitDistribution::combine_index_bits(
+                    &mut combined_distribution.index14_bits,
+                    &distribution.index14_bits,
+                );
+            }
+        }
+    }
+
+    // Print the combined results
+    combined_distribution.print_results();
+    Ok(())
 }
 
 #[inline]

@@ -2,6 +2,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod raw;
+pub mod util {
+    pub mod msb_extract_bits;
+    pub mod msb_insert_bits;
+}
 
 #[cfg(test)]
 mod testutils {

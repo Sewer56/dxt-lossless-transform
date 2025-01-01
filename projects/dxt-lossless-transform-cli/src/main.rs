@@ -2,6 +2,8 @@
 #![cfg(not(tarpaulin_include))]
 
 #[cfg(feature = "debug")]
+mod bc7;
+#[cfg(feature = "debug")]
 mod debug;
 
 mod error;
@@ -130,6 +132,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     &cmd.output,
                     filter.clone(),
                     transform_format,
+                    &(),
                 );
                 handle_process_entry_error(process_entry_result);
             });
@@ -150,6 +153,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     &cmd.output,
                     filter.clone(),
                     untransform_format,
+                    &(),
                 );
                 handle_process_entry_error(process_entry_result);
             });
@@ -164,6 +168,28 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+#[inline]
+pub unsafe fn transform_format(
+    _param: &(),
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+    format: DdsFormat,
+) {
+    dxt_lossless_transform_api::transform_format(input_ptr, output_ptr, len, format)
+}
+
+#[inline]
+pub unsafe fn untransform_format(
+    _param: &(),
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+    format: DdsFormat,
+) {
+    dxt_lossless_transform_api::untransform_format(input_ptr, output_ptr, len, format)
+}
+
 fn handle_process_entry_error(result: Result<(), TransformError>) {
     if let Err(e) = result {
         match e {
@@ -173,12 +199,13 @@ fn handle_process_entry_error(result: Result<(), TransformError>) {
     }
 }
 
-fn process_dir_entry(
+fn process_dir_entry<TParam>(
     dir_entry: &fs::DirEntry,
     input: &Path,
     output: &Path,
     filter: DdsFilter,
-    transform_fn: unsafe fn(*const u8, *mut u8, usize, DdsFormat),
+    transform_fn: unsafe fn(&TParam, *const u8, *mut u8, usize, DdsFormat),
+    param: &TParam,
 ) -> Result<(), TransformError> {
     let path = dir_entry.path();
     let relative = path.strip_prefix(input).unwrap();
@@ -210,6 +237,7 @@ fn process_dir_entry(
 
     unsafe {
         transform_fn(
+            param,
             source_mapping.data().add(info.data_offset as usize),
             target_mapping.data().add(info.data_offset as usize),
             source_size.sub(info.data_offset as usize),

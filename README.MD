@@ -15,7 +15,7 @@ once compressed by external compressors.
 
 Dataset is the following:
 
-```
+```ignore
 .
 ├── 202x-architecture-10.01
 ├── 202x-landscape-10.01

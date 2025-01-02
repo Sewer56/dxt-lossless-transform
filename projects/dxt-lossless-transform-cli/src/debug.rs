@@ -8,6 +8,7 @@ use dxt_lossless_transform::util::msb_extract_bits::extract_msb_bits;
 use dxt_lossless_transform::util::msb_insert_bits::insert_msb_bits;
 use dxt_lossless_transform_api::*;
 use rayon::*;
+use std::collections::HashMap;
 use std::io::{Cursor, SeekFrom};
 use std::path::PathBuf;
 use std::slice;
@@ -30,6 +31,10 @@ pub enum DebugCommands {
     SetMode0TransformToMostCommon(SetMode0TransformToMostCommon),
     RemoveNonMode0Blocks(Bc7RemoveNonMode0Blocks),
     Mode0ToStructureOfArray(Bc7Mode0ToStructureOfArray),
+    AnalyzeBC7Mode0PartitionBits(AnalyzeBC7Mode0PartitionBitsCmd),
+    Mode0Bc7XorTransform(Mode0XorTransformCmd),
+    Mode0PartitionXor(Mode0PartitionXorCmd),
+    ReorderPartitionBits(Mode0ReorderPartitionBitsCmd),
 }
 
 #[derive(FromArgs, Debug)]
@@ -107,6 +112,53 @@ pub struct Bc7RemoveNonMode0Blocks {
 /// Transforms mode 0 blocks to structure of array.
 #[argh(subcommand, name = "bc7-mode-0-to-structure-of-array")]
 pub struct Bc7Mode0ToStructureOfArray {
+    /// input directory path
+    #[argh(option, from_str_fn(canonicalize_cli_path))]
+    pub input: PathBuf,
+
+    /// output directory path
+    #[argh(option, from_str_fn(canonicalize_cli_path))]
+    pub output: PathBuf,
+}
+
+#[derive(FromArgs, Debug)]
+/// Analyze BC7 bit distributions grouped by partition
+#[argh(subcommand, name = "analyze-bc7-mode0-partition-bits")]
+pub struct AnalyzeBC7Mode0PartitionBitsCmd {
+    /// input directory path
+    #[argh(option)]
+    pub input: PathBuf,
+}
+
+#[derive(FromArgs, Debug)]
+/// Transform BC7 mode 0 blocks using XOR based on bit distribution
+#[argh(subcommand, name = "bc7-xor-transform")]
+pub struct Mode0XorTransformCmd {
+    /// input directory path
+    #[argh(option, from_str_fn(canonicalize_cli_path))]
+    pub input: PathBuf,
+    /// output directory path
+    #[argh(option, from_str_fn(canonicalize_cli_path))]
+    pub output: PathBuf,
+}
+
+#[derive(FromArgs, Debug)]
+/// Transform BC7 mode 0 blocks by XORing with previous block of same partition
+#[argh(subcommand, name = "bc7-partition-xor")]
+pub struct Mode0PartitionXorCmd {
+    /// input directory path
+    #[argh(option, from_str_fn(canonicalize_cli_path))]
+    pub input: PathBuf,
+
+    /// output directory path  
+    #[argh(option, from_str_fn(canonicalize_cli_path))]
+    pub output: PathBuf,
+}
+
+#[derive(FromArgs, Debug)]
+/// Transform BC7 mode 0 blocks by reordering bits based on per-partition zero probability
+#[argh(subcommand, name = "bc7-reorder-partition-bits")]
+pub struct Mode0ReorderPartitionBitsCmd {
     /// input directory path
     #[argh(option, from_str_fn(canonicalize_cli_path))]
     pub input: PathBuf,
@@ -209,7 +261,249 @@ pub fn handle_debug_command(cmd: DebugCmd) -> Result<(), TransformError> {
         DebugCommands::AnalyzeBC7Mode0BitDistributions(cmd) => {
             handle_analyze_bc7_mode0_bit_distributions(&cmd)
         }
+        DebugCommands::AnalyzeBC7Mode0PartitionBits(cmd) => {
+            handle_analyze_bc7_mode0_partition_bits(&cmd)
+        }
+        DebugCommands::Mode0Bc7XorTransform(cmd) => {
+            // Collect all files recursively first
+            let mut entries = Vec::new();
+            find_all_files(&cmd.input, &mut entries)?;
+
+            for entry in entries {
+                _ = xor_transform_bc7_mode0_directory(&entry, &cmd.input, &cmd.output);
+            }
+
+            Ok(())
+        }
+        DebugCommands::Mode0PartitionXor(cmd) => {
+            let mut entries = Vec::new();
+            find_all_files(&cmd.input, &mut entries)?;
+            for entry in entries {
+                _ = partition_xor_transform_directory(&entry, &cmd.input, &cmd.output);
+            }
+            Ok(())
+        }
+        DebugCommands::ReorderPartitionBits(cmd) => {
+            let mut entries = Vec::new();
+            find_all_files(&cmd.input, &mut entries)?;
+            for entry in entries {
+                _ = transform_directory(&entry, &cmd.input, &cmd.output);
+            }
+            Ok(())
+        }
     }
+}
+
+pub fn partition_xor_transform_directory(
+    dir_entry: &fs::DirEntry,
+    input: &Path,
+    output: &Path,
+) -> Result<(), TransformError> {
+    let path = dir_entry.path();
+    let relative = path.strip_prefix(input).unwrap();
+    let target_path = output.join(relative);
+
+    if let Some(parent) = target_path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+
+    let source_file = fs::read(path).unwrap();
+    let dds_info = unsafe { parse_dds(source_file.as_ptr(), source_file.len()) }
+        .ok_or(TransformError::InvalidDdsFile)?;
+
+    let mut target_file = Vec::new();
+
+    // Copy DDS header
+    target_file.extend_from_slice(&source_file[..dds_info.data_offset as usize]);
+
+    // Transform BC7 data
+    let data = &source_file[dds_info.data_offset as usize..];
+    let transformed = xor_transform_bc7_partition(data);
+    target_file.extend_from_slice(&transformed);
+
+    fs::write(target_path, target_file).unwrap();
+    Ok(())
+}
+
+pub fn xor_transform_bc7_partition(input: &[u8]) -> Vec<u8> {
+    let mut output = Vec::new();
+    let mut last_partition_blocks: HashMap<u8, Vec<u8>> = HashMap::new();
+
+    // Process each block
+    let mut input_reader = BitReader::endian(Cursor::new(input), BigEndian);
+    let mut output_cursor = Cursor::new(&mut output);
+    let mut writer = BitWriter::endian(&mut output_cursor, BigEndian);
+
+    while let Ok(mode_bit) = input_reader.read::<u8>(1) {
+        // Write mode bit unchanged
+        writer.write(1, mode_bit).unwrap();
+
+        if mode_bit == 1 {
+            // Mode 0 block - apply transform
+            let partition = input_reader.read::<u8>(4).unwrap();
+            writer.write(4, partition).unwrap();
+
+            // Read current block's data (123 bits after mode+partition)
+            let mut current_block = Vec::new();
+            for _ in 0..123 {
+                let bit = input_reader.read::<u8>(1).unwrap();
+                current_block.push(bit);
+            }
+
+            if let Some(last_block) = last_partition_blocks.get(&partition) {
+                // XOR with previous block of same partition
+                for (i, &bit) in current_block.iter().enumerate() {
+                    let transformed = bit ^ last_block[i];
+                    writer.write(1, transformed).unwrap();
+                }
+            } else {
+                // First block with this partition - write unchanged
+                for bit in &current_block {
+                    writer.write(1, *bit).unwrap();
+                }
+            }
+
+            // Update last block for this partition
+            last_partition_blocks.insert(partition, current_block);
+        } else {
+            // Non-mode 0 block - copy unchanged
+            for _ in 0..127 {
+                let bit = input_reader.read::<u8>(1).unwrap();
+                writer.write(1, bit).unwrap();
+            }
+        }
+    }
+
+    writer.flush().unwrap();
+    output
+}
+
+pub fn xor_transform_bc7_mode0_directory(
+    dir_entry: &fs::DirEntry,
+    input: &Path,
+    output: &Path,
+) -> Result<(), TransformError> {
+    let path = dir_entry.path();
+    let relative = path.strip_prefix(input).unwrap();
+    let target_path = output.join(relative);
+
+    if let Some(parent) = target_path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+
+    let source_file = fs::read(path).unwrap();
+    let dds_info = unsafe { parse_dds(source_file.as_ptr(), source_file.len()) }
+        .ok_or(TransformError::InvalidDdsFile)?;
+
+    let mut target_file = Vec::new();
+
+    // Copy DDS header
+    target_file.extend_from_slice(&source_file[..dds_info.data_offset as usize]);
+
+    // Transform BC7 data
+    let data = &source_file[dds_info.data_offset as usize..];
+    let transformed = xor_transform_bc7_mode0(data);
+    target_file.extend_from_slice(&transformed);
+
+    fs::write(target_path, target_file).unwrap();
+    Ok(())
+}
+
+pub fn handle_analyze_bc7_mode0_partition_bits(
+    cmd: &AnalyzeBC7Mode0PartitionBitsCmd,
+) -> Result<(), TransformError> {
+    let mut entries = Vec::new();
+    find_all_files(&cmd.input, &mut entries)?;
+
+    let mut combined_distribution = BC7PartitionBitDistribution::new();
+
+    for entry in entries {
+        if let Ok(data) = fs::read(entry.path()) {
+            // Skip the DDS header
+            let dds_info = unsafe { parse_dds(data.as_ptr(), data.len()) }.unwrap();
+            let data = &data[dds_info.data_offset as usize..];
+
+            if let Ok(distribution) = analyze_bc7_mode0_partition_bits(data) {
+                // Combine blocks per partition counts
+                for (partition, count) in &distribution.blocks_per_partition {
+                    *combined_distribution
+                        .blocks_per_partition
+                        .entry(*partition)
+                        .or_insert(0) += count;
+                }
+
+                // Combine all field data
+                for (partition, fields) in &distribution.fields_by_partition {
+                    let combined_fields = combined_distribution
+                        .fields_by_partition
+                        .entry(*partition)
+                        .or_default();
+
+                    // Combine R endpoints
+                    for i in 0..4 {
+                        for j in 0..2 {
+                            combined_fields.r0_bits.bits[i][j] += fields.r0_bits.bits[i][j];
+                            combined_fields.r1_bits.bits[i][j] += fields.r1_bits.bits[i][j];
+                            combined_fields.r2_bits.bits[i][j] += fields.r2_bits.bits[i][j];
+                            combined_fields.r3_bits.bits[i][j] += fields.r3_bits.bits[i][j];
+                            combined_fields.r4_bits.bits[i][j] += fields.r4_bits.bits[i][j];
+                            combined_fields.r5_bits.bits[i][j] += fields.r5_bits.bits[i][j];
+
+                            combined_fields.g0_bits.bits[i][j] += fields.g0_bits.bits[i][j];
+                            combined_fields.g1_bits.bits[i][j] += fields.g1_bits.bits[i][j];
+                            combined_fields.g2_bits.bits[i][j] += fields.g2_bits.bits[i][j];
+                            combined_fields.g3_bits.bits[i][j] += fields.g3_bits.bits[i][j];
+                            combined_fields.g4_bits.bits[i][j] += fields.g4_bits.bits[i][j];
+                            combined_fields.g5_bits.bits[i][j] += fields.g5_bits.bits[i][j];
+
+                            combined_fields.b0_bits.bits[i][j] += fields.b0_bits.bits[i][j];
+                            combined_fields.b1_bits.bits[i][j] += fields.b1_bits.bits[i][j];
+                            combined_fields.b2_bits.bits[i][j] += fields.b2_bits.bits[i][j];
+                            combined_fields.b3_bits.bits[i][j] += fields.b3_bits.bits[i][j];
+                            combined_fields.b4_bits.bits[i][j] += fields.b4_bits.bits[i][j];
+                            combined_fields.b5_bits.bits[i][j] += fields.b5_bits.bits[i][j];
+                        }
+                    }
+
+                    // Combine p-bits
+                    for i in 0..6 {
+                        for j in 0..2 {
+                            combined_fields.p_bits[i][j] += fields.p_bits[i][j];
+                        }
+                    }
+
+                    // Combine index bits
+                    for i in 0..3 {
+                        for j in 0..2 {
+                            combined_fields.index0_bits.bits[i][j] += fields.index0_bits.bits[i][j];
+                            combined_fields.index1_bits.bits[i][j] += fields.index1_bits.bits[i][j];
+                            combined_fields.index2_bits.bits[i][j] += fields.index2_bits.bits[i][j];
+                            combined_fields.index3_bits.bits[i][j] += fields.index3_bits.bits[i][j];
+                            combined_fields.index4_bits.bits[i][j] += fields.index4_bits.bits[i][j];
+                            combined_fields.index5_bits.bits[i][j] += fields.index5_bits.bits[i][j];
+                            combined_fields.index6_bits.bits[i][j] += fields.index6_bits.bits[i][j];
+                            combined_fields.index7_bits.bits[i][j] += fields.index7_bits.bits[i][j];
+                            combined_fields.index8_bits.bits[i][j] += fields.index8_bits.bits[i][j];
+                            combined_fields.index9_bits.bits[i][j] += fields.index9_bits.bits[i][j];
+                            combined_fields.index10_bits.bits[i][j] +=
+                                fields.index10_bits.bits[i][j];
+                            combined_fields.index11_bits.bits[i][j] +=
+                                fields.index11_bits.bits[i][j];
+                            combined_fields.index12_bits.bits[i][j] +=
+                                fields.index12_bits.bits[i][j];
+                            combined_fields.index13_bits.bits[i][j] +=
+                                fields.index13_bits.bits[i][j];
+                            combined_fields.index14_bits.bits[i][j] +=
+                                fields.index14_bits.bits[i][j];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    combined_distribution.print_results();
+    Ok(())
 }
 
 pub fn handle_analyze_bc7_mode0_bit_distributions(
@@ -633,7 +927,7 @@ fn split_mode0_blocks(
 
     // Copy DDS headers.
     target_file.extend_from_slice(&source_file[..dds_info.data_offset as usize]);
-    mode0_structure_of_array_mode_partition_colour_bycolourchannel_deltaencoded(
+    mode0_structure_of_array_mode_partition_colour_bycolourchannel(
         source_file,
         &mut target_file,
         dds_info,
@@ -1185,15 +1479,23 @@ fn mode0_structure_of_array_mode_partition_colour_bycolourchannel(
             .unwrap();
 
         // Separate channels
-        writer_r
-            .write(24, input_reader.read::<u32>(24).unwrap())
-            .unwrap();
-        writer_g
-            .write(24, input_reader.read::<u32>(24).unwrap())
-            .unwrap();
-        writer_b
-            .write(24, input_reader.read::<u32>(24).unwrap())
-            .unwrap();
+        for _ in 0..6 {
+            writer_r
+                .write(8, input_reader.read::<u32>(4).unwrap())
+                .unwrap();
+        }
+
+        for _ in 0..6 {
+            writer_g
+                .write(8, input_reader.read::<u32>(4).unwrap())
+                .unwrap();
+        }
+
+        for _ in 0..6 {
+            writer_b
+                .write(8, input_reader.read::<u32>(4).unwrap())
+                .unwrap();
+        }
 
         // Write p bits
         writer_p
@@ -1269,22 +1571,22 @@ fn mode0_structure_of_array_mode_partition_colour_bycolourchannel_deltaencoded(
 
         // Separate channels
         let mut last = 0_u8;
-        for _ in 0..3 {
-            let value = input_reader.read::<u8>(8).unwrap();
+        for _ in 0..6 {
+            let value = input_reader.read::<u8>(4).unwrap();
             writer_r.write(8, value ^ last).unwrap();
             last = value;
         }
 
         let mut last = 0_u8;
-        for _ in 0..3 {
-            let value = input_reader.read::<u8>(8).unwrap();
+        for _ in 0..6 {
+            let value = input_reader.read::<u8>(4).unwrap();
             writer_g.write(8, value ^ last).unwrap();
             last = value;
         }
 
         let mut last = 0_u8;
-        for _ in 0..3 {
-            let value = input_reader.read::<u8>(8).unwrap();
+        for _ in 0..6 {
+            let value = input_reader.read::<u8>(4).unwrap();
             writer_b.write(8, value ^ last).unwrap();
             last = value;
         }
@@ -1431,6 +1733,230 @@ fn bitstream_copy<T: Endianness>(
         .unwrap();
     let value = input.read::<u64>(num_bits).unwrap();
     output.write(num_bits, value).unwrap();
+}
+
+#[derive(Debug)]
+struct BitProbability {
+    section: String,
+    original_position: usize,
+    zero_probability: f64,
+}
+
+struct PartitionBitOrder {
+    // For each partition (0-15), store the mapping of original position -> new position
+    position_maps: HashMap<u8, HashMap<usize, usize>>,
+}
+
+impl PartitionBitOrder {
+    fn new(distribution: &BC7PartitionBitDistribution) -> Self {
+        let mut position_maps = HashMap::new();
+
+        // Process each partition
+        for (&partition, fields) in &distribution.fields_by_partition {
+            let total_blocks = distribution.blocks_per_partition[&partition] as f64;
+            let mut probabilities = Vec::new();
+
+            // Process RGB endpoints
+            for (i, endpoint) in [
+                (&fields.r0_bits, "r0"),
+                (&fields.r1_bits, "r1"),
+                (&fields.r2_bits, "r2"),
+                (&fields.r3_bits, "r3"),
+                (&fields.r4_bits, "r4"),
+                (&fields.r5_bits, "r5"),
+                (&fields.g0_bits, "g0"),
+                (&fields.g1_bits, "g1"),
+                (&fields.g2_bits, "g2"),
+                (&fields.g3_bits, "g3"),
+                (&fields.g4_bits, "g4"),
+                (&fields.g5_bits, "g5"),
+                (&fields.b0_bits, "b0"),
+                (&fields.b1_bits, "b1"),
+                (&fields.b2_bits, "b2"),
+                (&fields.b3_bits, "b3"),
+                (&fields.b4_bits, "b4"),
+                (&fields.b5_bits, "b5"),
+            ]
+            .iter()
+            .enumerate()
+            {
+                for bit in 0..4 {
+                    let zero_count = endpoint.0.bits[bit][0] as f64;
+                    probabilities.push(BitProbability {
+                        section: "color".to_string(),
+                        original_position: i * 4 + bit,
+                        zero_probability: zero_count / total_blocks,
+                    });
+                }
+            }
+
+            // Process p-bits
+            for i in 0..6 {
+                let zero_count = fields.p_bits[i][0] as f64;
+                probabilities.push(BitProbability {
+                    section: "p".to_string(),
+                    original_position: 72 + i, // After color bits
+                    zero_probability: zero_count / total_blocks,
+                });
+            }
+
+            // Process index bits
+            for (i, index) in [
+                &fields.index0_bits,
+                &fields.index1_bits,
+                &fields.index2_bits,
+                &fields.index3_bits,
+                &fields.index4_bits,
+                &fields.index5_bits,
+                &fields.index6_bits,
+                &fields.index7_bits,
+                &fields.index8_bits,
+                &fields.index9_bits,
+                &fields.index10_bits,
+                &fields.index11_bits,
+                &fields.index12_bits,
+                &fields.index13_bits,
+                &fields.index14_bits,
+            ]
+            .iter()
+            .enumerate()
+            {
+                for bit in 0..3 {
+                    let zero_count = index.bits[bit][0] as f64;
+                    probabilities.push(BitProbability {
+                        section: "index".to_string(),
+                        original_position: 78 + i * 3 + bit, // After color and p-bits
+                        zero_probability: zero_count / total_blocks,
+                    });
+                }
+            }
+
+            // Sort bits within each section by zero probability
+            let mut color_bits: Vec<_> = probabilities
+                .iter()
+                .filter(|p| p.section == "color")
+                .collect();
+            color_bits.sort_by(|a, b| a.zero_probability.partial_cmp(&b.zero_probability).unwrap());
+
+            let mut p_bits: Vec<_> = probabilities.iter().filter(|p| p.section == "p").collect();
+            p_bits.sort_by(|a, b| a.zero_probability.partial_cmp(&b.zero_probability).unwrap());
+
+            let mut index_bits: Vec<_> = probabilities
+                .iter()
+                .filter(|p| p.section == "index")
+                .collect();
+            index_bits.sort_by(|a, b| a.zero_probability.partial_cmp(&b.zero_probability).unwrap());
+
+            // Create position mapping for this partition
+            let mut position_map = HashMap::new();
+
+            // Map color bits
+            let mut new_pos = 5; // Start after mode+partition
+            for prob in color_bits {
+                position_map.insert(prob.original_position, new_pos);
+                new_pos += 1;
+            }
+
+            // Map p-bits
+            for prob in p_bits {
+                position_map.insert(prob.original_position, new_pos);
+                new_pos += 1;
+            }
+
+            // Map index bits
+            for prob in index_bits {
+                position_map.insert(prob.original_position, new_pos);
+                new_pos += 1;
+            }
+
+            position_maps.insert(partition, position_map);
+        }
+
+        PartitionBitOrder { position_maps }
+    }
+}
+
+pub fn reorder_bc7_mode0_bits(data: &[u8]) -> Vec<u8> {
+    // First analyze the data
+    let distribution = analyze_bc7_mode0_partition_bits(data).unwrap();
+    let bit_order = PartitionBitOrder::new(&distribution);
+
+    // Now rewrite the data with reordered bits
+    let mut output = Vec::new();
+    let mut writer = BitWriter::endian(Cursor::new(&mut output), BigEndian);
+    let mut reader = BitReader::endian(Cursor::new(data), BigEndian);
+
+    while let Ok(mode_bit) = reader.read::<u8>(1) {
+        // Write mode bit unchanged
+        writer.write(1, mode_bit).unwrap();
+
+        if mode_bit == 1 {
+            // Mode 0 block
+            // Read and write partition bits
+            let partition = reader.read::<u8>(4).unwrap();
+            writer.write(4, partition).unwrap();
+
+            if let Some(position_map) = bit_order.position_maps.get(&partition) {
+                // Read all bits into temporary storage
+                let mut block_bits = vec![0u8; 123];
+                for i in 0..123 {
+                    block_bits[i] = reader.read::<u8>(1).unwrap();
+                }
+
+                // Write bits in new order
+                for i in 0..123 {
+                    let new_pos = position_map[&i];
+                    writer.write(1, block_bits[new_pos - 5]).unwrap(); // Subtract 5 to account for mode+partition
+                }
+            } else {
+                // No mapping for this partition - copy unchanged
+                for _ in 0..123 {
+                    let bit = reader.read::<u8>(1).unwrap();
+                    writer.write(1, bit).unwrap();
+                }
+            }
+        } else {
+            // Non-mode 0 block - copy unchanged
+            for _ in 0..127 {
+                let bit = reader.read::<u8>(1).unwrap();
+                writer.write(1, bit).unwrap();
+            }
+        }
+    }
+
+    writer.flush().unwrap();
+    output
+}
+
+pub fn transform_directory(
+    dir_entry: &fs::DirEntry,
+    input: &Path,
+    output: &Path,
+) -> Result<(), TransformError> {
+    let path = dir_entry.path();
+    let relative = path.strip_prefix(input).unwrap();
+    let target_path = output.join(relative);
+
+    if let Some(parent) = target_path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+
+    let source_file = fs::read(path).unwrap();
+    let dds_info = unsafe { parse_dds(source_file.as_ptr(), source_file.len()) }
+        .ok_or(TransformError::InvalidDdsFile)?;
+
+    let mut target_file = Vec::new();
+
+    // Copy DDS header
+    target_file.extend_from_slice(&source_file[..dds_info.data_offset as usize]);
+
+    // Transform BC7 data
+    let data = &source_file[dds_info.data_offset as usize..];
+    let transformed = reorder_bc7_mode0_bits(data);
+    target_file.extend_from_slice(&transformed);
+
+    fs::write(target_path, target_file).unwrap();
+    Ok(())
 }
 
 fn to_orig_endian(value: u64) -> u64 {

@@ -9,15 +9,14 @@ pub fn is_dds(ptr: *const u8, len: usize) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use core::iter::repeat;
-
     use super::*;
+    use core::iter::repeat_n;
 
     #[test]
     fn is_dds_with_valid_header_and_sufficient_length() {
         let valid_data = [0x44, 0x44, 0x53, 0x20]
             .into_iter()
-            .chain(repeat(0).take(124))
+            .chain(repeat_n(0, 124))
             .collect::<Vec<u8>>();
         assert!(is_dds(valid_data.as_ptr(), valid_data.len()));
     }
@@ -26,7 +25,7 @@ mod tests {
     fn is_not_dds_with_valid_header_but_insufficient_length() {
         let short_valid_header = [0x44, 0x44, 0x53, 0x20]
             .into_iter()
-            .chain(repeat(0).take(123))
+            .chain(repeat_n(0, 123))
             .collect::<Vec<u8>>();
         assert!(!is_dds(
             short_valid_header.as_ptr(),
@@ -36,7 +35,7 @@ mod tests {
 
     #[test]
     fn is_not_dds_with_invalid_header() {
-        let invalid_data = repeat(0).take(128).collect::<Vec<u8>>();
+        let invalid_data = repeat_n(0, 128).collect::<Vec<u8>>();
         assert!(!is_dds(invalid_data.as_ptr(), invalid_data.len()));
     }
 

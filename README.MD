@@ -15,7 +15,7 @@ once compressed by external compressors.
 
 Dataset is the following:
 
-```ignore
+```text
 .
 ├── 202x-architecture-10.01
 ├── 202x-landscape-10.01
@@ -39,7 +39,7 @@ Original data contained 1943 files, totalling 6.84GiB.
 
 #### Before
 
-```ignore
+```text
 Tool       Size            Ratio 
 ---------------------------------
 zlib       4.77 GiB        69.77%
@@ -51,7 +51,7 @@ kanzi 7    3.85 GiB        56.32%
 
 #### After
 
-```ignore
+```text
 Tool       Size            Ratio 
 ---------------------------------
 zlib       4.29 GiB        62.70%
@@ -70,7 +70,7 @@ Original data contained 209 files, totalling 750.58MiB.
 
 #### Before
 
-```ignore
+```text
 Tool       Size            Ratio 
 ---------------------------------
 zlib       232.34 MiB      30.95%
@@ -82,7 +82,7 @@ kanzi 7    179.77 MiB      23.95%
 
 #### After
 
-```ignore
+```text
 Tool       Size            Ratio 
 ---------------------------------
 zlib       199.34 MiB      26.56%
@@ -98,7 +98,7 @@ Original data contained 1138 files, totalling 5.00GiB.
 
 #### Before
 
-```ignore
+```text
 Tool       Size            Ratio 
 ---------------------------------
 zlib       3.56 GiB        71.09%
@@ -110,7 +110,7 @@ kanzi 7    2.89 GiB        57.88%
 
 #### After
 
-```ignore
+```text
 Tool       Size            Ratio 
 ---------------------------------
 zlib       3.12 GiB        62.37%
@@ -123,7 +123,7 @@ kanzi 7    2.75 GiB        55.07%
 Alternatively, you can use the BC2 transform on BC3 data for 3.5-4.5x throughput at a small minimal
 compression ratio loss.
 
-```ignore
+```text
 Tool       Size            Ratio 
 ---------------------------------
 zlib       3.19 GiB        63.85%
@@ -205,7 +205,7 @@ This crate is not yet released.
 
 This project contains a CLI tool that can be used to test the transforms.
 
-```ignore
+```text
 ./dxt-lossless-transform-cli transform --input textures --output textures-transformed
 ```
 

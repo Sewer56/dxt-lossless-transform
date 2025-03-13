@@ -1,3 +1,5 @@
+use core::ptr::copy_nonoverlapping;
+
 pub use dxt_lossless_transform_utils::dds::*;
 
 /// Transforms data from the standard format to one that is more suitable for compression.
@@ -30,7 +32,9 @@ pub unsafe fn transform_format(
         DdsFormat::BC3 => {
             dxt_lossless_transform::raw::bc3::transform_bc3(input_ptr, output_ptr, len)
         }
-        DdsFormat::BC7 => todo!(),
+        DdsFormat::BC7 => {
+            copy_nonoverlapping(input_ptr, output_ptr, len);
+        }
     }
 }
 

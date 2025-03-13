@@ -5,9 +5,9 @@
  * Original sequential BC1 data layout:
  * Two 16-bit colours (4 bytes total) followed by 4 bytes of indices:
  *
- * Address: 0       2       4   4       6       8
+ * Address: 0       4       8   8      12      16
  *          +-------+-------+   +-------+-------+
- * Data:    |Color0 |Color1 |   | I0-I3 | I4-I8 |
+ * Data:    | C0-C1 | I0-I3 |   | C2-C3 | I4-I8 |
  *          +-------+-------+   +-------+-------+
  *
  * Each 8-byte block contains:

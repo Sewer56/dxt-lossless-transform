@@ -1,10 +1,13 @@
 #![allow(unexpected_cfgs)]
 #![cfg(not(tarpaulin_include))]
 
+#[cfg(feature = "debug-bc7")]
+mod debug_bc7;
+
 mod error;
 mod util;
 use argh::FromArgs;
-use core::{error::Error, ops::Sub};
+use core::{error::Error, ops::Sub, ptr::copy_nonoverlapping};
 use dxt_lossless_transform_api::*;
 use error::TransformError;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -56,6 +59,8 @@ struct TopLevel {
 enum Commands {
     Transform(TransformCmd),
     Detransform(DetransformCmd),
+    #[cfg(feature = "debug-bc7")]
+    DebugBc7(debug_bc7::DebugCmd),
 }
 
 #[derive(FromArgs, Debug)]
@@ -105,10 +110,10 @@ fn canonicalize_cli_path(value: &str) -> Result<PathBuf, String> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let top_level: TopLevel = argh::from_env();
+    let cli: TopLevel = argh::from_env();
 
     let start = Instant::now();
-    match top_level.command {
+    match cli.command {
         Commands::Transform(cmd) => {
             let filter = cmd.filter.unwrap_or(DdsFilter::All);
 
@@ -119,15 +124,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             // Process files in parallel
             entries.par_iter().for_each(|entry| {
-                if let Err(e) = process_dir_entry(
+                let process_entry_result = process_dir_entry(
                     entry,
                     &cmd.input,
                     &cmd.output,
                     filter.clone(),
                     transform_format,
-                ) {
-                    eprintln!("{}", e);
-                }
+                    &(),
+                );
+                handle_process_entry_error(process_entry_result);
             });
         }
         Commands::Detransform(cmd) => {
@@ -140,16 +145,20 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             // Process files in parallel
             entries.par_iter().for_each(|entry| {
-                if let Err(e) = process_dir_entry(
+                let process_entry_result = process_dir_entry(
                     entry,
                     &cmd.input,
                     &cmd.output,
                     filter.clone(),
                     untransform_format,
-                ) {
-                    eprintln!("{}", e);
-                }
+                    &(),
+                );
+                handle_process_entry_error(process_entry_result);
             });
+        }
+        #[cfg(feature = "debug-bc7")]
+        Commands::DebugBc7(cmd) => {
+            debug_bc7::handle_debug_command(cmd)?;
         }
     }
 
@@ -157,12 +166,52 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn process_dir_entry(
+/// # Safety
+///
+/// This function is unsafe because it uses raw pointers and requires a valid length,
+/// but in our case we know they're valid.
+#[inline]
+pub unsafe fn transform_format(
+    _param: &(),
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+    format: DdsFormat,
+) {
+    dxt_lossless_transform_api::transform_format(input_ptr, output_ptr, len, format)
+}
+
+/// # Safety
+///
+/// This function is unsafe because it uses raw pointers and requires a valid length,
+/// but in our case we know they're valid.
+#[inline]
+pub unsafe fn untransform_format(
+    _param: &(),
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+    format: DdsFormat,
+) {
+    dxt_lossless_transform_api::untransform_format(input_ptr, output_ptr, len, format)
+}
+
+fn handle_process_entry_error(result: Result<(), TransformError>) {
+    if let Err(e) = result {
+        match e {
+            TransformError::IgnoredByFilter => (),
+            _ => eprintln!("{}", e),
+        }
+    }
+}
+
+fn process_dir_entry<TParam>(
     dir_entry: &fs::DirEntry,
     input: &Path,
     output: &Path,
     filter: DdsFilter,
-    transform_fn: unsafe fn(*const u8, *mut u8, usize, DdsFormat),
+    transform_fn: unsafe fn(&TParam, *const u8, *mut u8, usize, DdsFormat),
+    param: &TParam,
 ) -> Result<(), TransformError> {
     let path = dir_entry.path();
     let relative = path.strip_prefix(input).unwrap();
@@ -177,7 +226,7 @@ fn process_dir_entry(
     let source_mapping = open_readonly_mmap(&source_handle, source_size)?;
 
     let dds_info = unsafe { parse_dds(source_mapping.data(), source_mapping.len()) };
-    let (info, format) = check_dds_format(dds_info, filter)?;
+    let (info, format) = check_dds_format(dds_info, filter, &dir_entry.path())?;
 
     let target_path_str = target_path.to_str().unwrap();
     let target_handle = open_write_handle(&source_mapping, target_path_str)?;
@@ -185,7 +234,7 @@ fn process_dir_entry(
 
     // Copy DDS headers.
     unsafe {
-        std::ptr::copy_nonoverlapping(
+        copy_nonoverlapping(
             source_mapping.data(),
             target_mapping.data(),
             info.data_offset as usize,
@@ -194,6 +243,7 @@ fn process_dir_entry(
 
     unsafe {
         transform_fn(
+            param,
             source_mapping.data().add(info.data_offset as usize),
             target_mapping.data().add(info.data_offset as usize),
             source_size.sub(info.data_offset as usize),

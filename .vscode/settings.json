@@ -14,5 +14,5 @@
         // Enable AVX2 in code editor.
         "RUSTFLAGS": "-Ctarget-feature=+avx2"
     },
-    "rust-analyzer.cargo.features": ["c-exports"]
+    "rust-analyzer.cargo.features": "all"
 }

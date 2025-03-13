@@ -3,6 +3,11 @@ name = "dxt-lossless-transform-cli"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+# Debugging and Research Tools/Utilities for BC7
+# Currently a placeholder
+debug-bc7 = []
+
 [dependencies]
 argh = "0.1.13"
 rayon = "1.10.0"

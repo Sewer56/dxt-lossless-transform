@@ -3,6 +3,13 @@
 
 pub mod raw;
 
+/// Used by BC7, since that has unusual non-standard bit order.
+#[allow(dead_code)]
+pub(crate) mod util {
+    pub(crate) mod msb_extract_bits;
+    pub(crate) mod msb_insert_bits;
+}
+
 #[cfg(test)]
 mod testutils {
     use safe_allocator_api::RawAlloc;

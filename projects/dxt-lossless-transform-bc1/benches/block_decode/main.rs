@@ -1,6 +1,6 @@
-use core::{alloc::Layout, slice};
+use core::alloc::Layout;
 use criterion::{criterion_group, criterion_main, Criterion};
-use dxt_lossless_transform_bc1::util::decode_bc1_block;
+use dxt_lossless_transform_bc1::util::{decode_bc1_block, DecodedBc1Block};
 use safe_allocator_api::RawAlloc;
 
 #[cfg(not(target_os = "windows"))]
@@ -12,47 +12,40 @@ pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let mut group = c.benchmark_group("BC1 Decode Blocks");
+    let mut group = c.benchmark_group("BC1 Decode Blocks (BC1 -> RGBA8888)");
 
     // Set up the test data - 8MB of BC1 blocks
     let bc1_size = 8388608; // 8MB
     let blocks_count = bc1_size / 8; // Each BC1 block is 8 bytes
-    let pixels_count = blocks_count * 16; // Each block decodes to 16 RGBA pixels
 
     // Allocate memory for input BC1 data and output pixels
     let input = allocate_align_64(bc1_size);
-    let mut output = allocate_align_64(pixels_count * 4); // 4 bytes per pixel (RGBA)
+    let mut output = allocate_align_64(blocks_count * size_of::<DecodedBc1Block>());
 
     // Initialize input with test data (simple pattern for BC1 blocks)
     unsafe {
         let input_ptr = input.as_ptr() as *mut u8;
-        for i in 0..bc1_size {
+        for x in 0..bc1_size {
             // This creates simple BC1 blocks with varying colors
             // Real-world data would have more variety, but this is suitable for benchmarking
-            *input_ptr.add(i) = (i % 255) as u8;
+            *input_ptr.add(x) = (x % 255) as u8;
         }
     }
 
+    let input_ptr = input.as_ptr();
+    let output_blocks = output.as_mut_ptr() as *mut DecodedBc1Block;
     group.throughput(criterion::Throughput::Bytes(bc1_size as u64));
 
-    // Benchmark the BC1 decoding function
-    group.bench_function("decode_bc1_blocks", |b| {
+    // Benchmark the BC1 decoding function with raw pointers
+    group.bench_function("decode_bc1_blocks_raw_ptr", |b| {
         b.iter(|| {
             unsafe {
-                let input_ptr = input.as_ptr();
-                let output_ptr = output.as_mut_ptr() as *mut u32;
+                // Decode blocks one by one.
+                for block_idx in 0..blocks_count {
+                    let block_ofs = block_idx * 8;
 
-                // Process all blocks
-                for i in 0..blocks_count {
-                    let block_offset = i * 8;
-                    let pixel_offset = i * 16;
-
-                    // Decode one block at a time (4x4 pixels)
-                    decode_bc1_block(
-                        slice::from_raw_parts(input_ptr.add(block_offset), 8),
-                        slice::from_raw_parts_mut(output_ptr.add(pixel_offset), 16),
-                        4, // Stride of 4 pixels for a 4x4 block
-                    );
+                    // Decode one block at a time using raw pointer-based function
+                    *output_blocks.add(block_idx) = decode_bc1_block(input_ptr.add(block_ofs));
                 }
             }
         })

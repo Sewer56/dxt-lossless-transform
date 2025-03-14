@@ -18,7 +18,7 @@ pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let mut group = c.benchmark_group("BC2 Untransform Implementations");
+    let mut group = c.benchmark_group("BC2 Unsplit Blocks");
     let size = 8388608; // 4096x4096px
     let input = allocate_align_64(size);
     let mut output = allocate_align_64(input.len());

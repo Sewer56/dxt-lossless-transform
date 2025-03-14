@@ -1,0 +1,59 @@
+[package]
+name = "dxt-lossless-transform-bc7"
+version = "0.1.0"
+edition = "2021"
+description = "Fast lossless transforms for BC7 texture data that improve their compression ratio."
+repository = "https://github.com/Sewer56/dxt-lossless-transform"
+license-file = "LICENSE"
+include = ["src/**/*"]
+readme = "README.MD"
+
+[features]
+default = ["std"]
+std = []
+# See README.md for more information on using Profile-Guided Optimization.
+pgo = []
+# Use CPU features selected at compile time.
+no-runtime-cpu-detection = []
+
+[dependencies]
+rstest = "0.25.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dev-dependencies]
+criterion = "0.5.1"
+safe-allocator-api = "0.3.0"
+
+[target.'cfg(unix)'.dev-dependencies]
+pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
+
+# Benchmark Stuff
+[[bench]]
+name = "bc1_transform"
+path = "benches/bc1_transform/main.rs"
+harness = false
+
+[[bench]]
+name = "bc1_detransform"
+path = "benches/bc1_detransform/main.rs"
+harness = false
+
+[[bench]]
+name = "bc2_transform"
+path = "benches/bc2_transform/main.rs"
+harness = false
+
+[[bench]]
+name = "bc2_detransform"
+path = "benches/bc2_detransform/main.rs"
+harness = false
+
+[[bench]]
+name = "bc3_transform"
+path = "benches/bc3_transform/main.rs"
+harness = false
+
+[[bench]]
+name = "bc3_detransform"
+path = "benches/bc3_detransform/main.rs"
+harness = false

@@ -60,11 +60,18 @@ Data:    | C0-C1 | I0-I3 |   | C2-C3 | I4-I8 |
          +-------+-------+   +-------+-------+
 ```
 
-When an entire block is solid, we set colour `C0` to the colour of the block, and then set
-C1, I0-I3 all to `0x00`. This results in a nice repetition of `0x00`.
+Sometimes there is a clean conversion between `8888` and `565` colour, meaning that it's possible
+to represent a colour using only 1 out of the 2 colour components, i.e. only `C0` or `C1`.
 
-Do note that this can only be done when the block does not use 1-bit alpha, i.e. when neither 
-`color0 <= color1` and one of the indices being `11` is true. 
+When an entire block is solid, and a clean conversion between `8888` and `565` is possible, we set
+colour `C0` to the colour of the block, and then set `C1`, `I0-I3` all to `0x00`.
+This results in a nice repetition of `0x00` across 6 bytes.
+
+For fully transparent blocks, we instead set all the bits to `1`, so block becomes filled with `0xFF`. 
+
+If the block consists of both transparent and non-transparent pixels, i.e. `color0 <= color1` 
+and there is a mix of `11` and non `11` indices, then we leave the block intact; we can't do much
+with it.
 
 ### Decorrelating Colours
 

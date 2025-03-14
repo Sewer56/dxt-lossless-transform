@@ -2,75 +2,9 @@
 //! <https://github.com/wolfpld/etcpak> and MSDN
 //! <https://learn.microsoft.com/en-us/windows/win32/direct3d9/opaque-and-1-bit-alpha-textures>
 
-use core::mem::transmute;
-use dxt_lossless_transform_common::{color_565::Color565, color_8888::Color8888};
-
-/// Represents a decoded 4x4 block of BC1 pixels
-#[derive(Debug, Clone, Copy)]
-pub struct DecodedBc1Block {
-    /// The 16 pixels in the block (row-major order)
-    pub pixels: [Color8888; 16],
-}
-
-impl DecodedBc1Block {
-    /// Constructs a new decoded BC1 block initialised with 16 copies of the provided pixel.
-    /// This function creates a 4x4 block where every pixel is set to the specified value.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use dxt_lossless_transform_common::color_8888::Color8888;
-    /// use dxt_lossless_transform_bc1::util::DecodedBc1Block;
-    ///
-    /// let pixel = Color8888::new(255, 0, 0, 255);
-    /// let block = DecodedBc1Block::new(pixel);
-    /// assert!(block.pixels.iter().all(|&p| p == pixel));
-    /// ```
-    pub fn new(pixel: Color8888) -> Self {
-        Self {
-            pixels: [pixel; 16],
-        }
-    }
-
-    /// Gets a pixel at the specified coordinates (0-3, 0-3) without bounds checking
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that `x < 4` and `y < 4`.
-    #[inline]
-    pub unsafe fn get_pixel_unchecked(&self, x: usize, y: usize) -> Color8888 {
-        *self.pixels.get_unchecked(y * 4 + x)
-    }
-
-    /// Sets a pixel at the specified coordinates (0-3, 0-3) without bounds checking
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that `x < 4` and `y < 4`.
-    #[inline]
-    pub unsafe fn set_pixel_unchecked(&mut self, x: usize, y: usize, pixel: Color8888) {
-        *self.pixels.get_unchecked_mut(y * 4 + x) = pixel;
-    }
-
-    /// Checks if all pixels in the block have the same color values
-    ///
-    /// # Returns
-    /// `true` if all pixels in the block are identical, `false` otherwise
-    #[inline]
-    pub fn has_identical_pixels(&self) -> bool {
-        // Assert at compile time that Color8888 is the same size as u32
-        const _: () = assert!(size_of::<Color8888>() == size_of::<u32>());
-
-        // Cast first pixel to u32
-        let first_pixel_u32: u32 = unsafe { transmute(self.pixels[0]) };
-
-        // Compare all other pixels to the first one after casting to u32
-        self.pixels.iter().all(|pixel| {
-            let pixel_u32: u32 = unsafe { transmute(*pixel) };
-            pixel_u32 == first_pixel_u32
-        })
-    }
-}
+use dxt_lossless_transform_common::{
+    color_565::Color565, color_8888::Color8888, decoded_4x4_block::Decoded4x4Block,
+};
 
 /// Decodes a BC1 block into a structured representation of pixels
 ///
@@ -80,7 +14,7 @@ impl DecodedBc1Block {
 ///
 /// # Returns
 ///
-/// A [`DecodedBc1Block`] containing all 16 decoded pixels
+/// A [`Decoded4x4Block`] containing all 16 decoded pixels
 ///
 /// # Safety
 ///
@@ -102,7 +36,7 @@ impl DecodedBc1Block {
 /// }
 /// ```
 #[inline(always)]
-pub unsafe fn decode_bc1_block(src: *const u8) -> DecodedBc1Block {
+pub unsafe fn decode_bc1_block(src: *const u8) -> Decoded4x4Block {
     // Extract color endpoints and index data
     let c0_raw: u16 = u16::from_le_bytes([*src, *src.add(1)]);
     let c1_raw: u16 = u16::from_le_bytes([*src.add(2), *src.add(3)]);
@@ -148,7 +82,7 @@ pub unsafe fn decode_bc1_block(src: *const u8) -> DecodedBc1Block {
     }
 
     // Initialize the result block
-    let mut result = DecodedBc1Block::new(Color8888::new(0, 0, 0, 0));
+    let mut result = Decoded4x4Block::new(Color8888::new(0, 0, 0, 0));
 
     // Decode indices and set pixels
     let mut index_pos = 0;
@@ -169,7 +103,7 @@ pub unsafe fn decode_bc1_block(src: *const u8) -> DecodedBc1Block {
 ///
 /// A decoded block, else [`None`] if the slice is too short.
 #[inline(always)]
-pub fn decode_bc1_block_from_slice(src: &[u8]) -> Option<DecodedBc1Block> {
+pub fn decode_bc1_block_from_slice(src: &[u8]) -> Option<Decoded4x4Block> {
     if src.len() < 8 {
         return None;
     }
@@ -178,6 +112,8 @@ pub fn decode_bc1_block_from_slice(src: &[u8]) -> Option<DecodedBc1Block> {
 
 #[cfg(test)]
 mod tests {
+    use dxt_lossless_transform_common::decoded_4x4_block::Decoded4x4Block;
+
     use super::*;
 
     #[test]
@@ -223,10 +159,10 @@ mod tests {
     #[test]
     fn has_identical_pixels() {
         // Create a block where all pixels are the same
-        let identical_block = DecodedBc1Block::new(Color8888::new(100, 150, 200, 255));
+        let identical_block = Decoded4x4Block::new(Color8888::new(100, 150, 200, 255));
 
         // Create a block where one pixel is different
-        let mut different_block = DecodedBc1Block::new(Color8888::new(100, 150, 200, 255));
+        let mut different_block = Decoded4x4Block::new(Color8888::new(100, 150, 200, 255));
         different_block.pixels[10] = Color8888::new(101, 150, 200, 255);
 
         // Test the function

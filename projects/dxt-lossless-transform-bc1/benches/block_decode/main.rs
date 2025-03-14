@@ -1,6 +1,7 @@
 use core::alloc::Layout;
 use criterion::{criterion_group, criterion_main, Criterion};
-use dxt_lossless_transform_bc1::util::{decode_bc1_block, DecodedBc1Block};
+use dxt_lossless_transform_bc1::util::decode_bc1_block;
+use dxt_lossless_transform_common::decoded_4x4_block::Decoded4x4Block;
 use safe_allocator_api::RawAlloc;
 
 #[cfg(not(target_os = "windows"))]
@@ -20,7 +21,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     // Allocate memory for input BC1 data and output pixels
     let input = allocate_align_64(bc1_size);
-    let mut output = allocate_align_64(blocks_count * size_of::<DecodedBc1Block>());
+    let mut output = allocate_align_64(blocks_count * size_of::<Decoded4x4Block>());
 
     // Initialize input with test data (simple pattern for BC1 blocks)
     unsafe {
@@ -43,7 +44,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     }
 
     let input_ptr = input.as_ptr();
-    let output_blocks = output.as_mut_ptr() as *mut DecodedBc1Block;
+    let output_blocks = output.as_mut_ptr() as *mut Decoded4x4Block;
     group.throughput(criterion::Throughput::Bytes(bc1_size as u64));
 
     // Benchmark the BC1 decoding function with raw pointers

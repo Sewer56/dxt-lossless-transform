@@ -57,6 +57,7 @@ impl DecodedBc1Block {
     /// let pixel = Pixel::new(255, 0, 0, 255);
     /// let block = DecodedBc1Block::new(pixel);
     /// assert!(block.pixels.iter().all(|&p| p == pixel));
+    /// ```
     pub fn new(pixel: Pixel) -> Self {
         Self {
             pixels: [pixel; 16],

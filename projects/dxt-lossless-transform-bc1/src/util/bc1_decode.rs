@@ -2,6 +2,8 @@
 //! https://github.com/wolfpld/etcpak and MSDN
 //! https://learn.microsoft.com/en-us/windows/win32/direct3d9/opaque-and-1-bit-alpha-textures
 
+use core::mem::transmute;
+
 /// Represents a single RGBA pixel color from a decoded BC1 block
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Pixel {
@@ -80,6 +82,25 @@ impl DecodedBc1Block {
     pub unsafe fn set_pixel_unchecked(&mut self, x: usize, y: usize, pixel: Pixel) {
         *self.pixels.get_unchecked_mut(y * 4 + x) = pixel;
     }
+
+    /// Checks if all pixels in the block have the same color values
+    ///
+    /// # Returns
+    /// `true` if all pixels in the block are identical, `false` otherwise
+    #[inline]
+    pub fn has_identical_pixels(&self) -> bool {
+        // Assert at compile time that Pixel is the same size as u32
+        const _: () = assert!(size_of::<Pixel>() == size_of::<u32>());
+
+        // Cast first pixel to u32
+        let first_pixel_u32: u32 = unsafe { transmute(self.pixels[0]) };
+
+        // Compare all other pixels to the first one after casting to u32
+        self.pixels.iter().all(|pixel| {
+            let pixel_u32: u32 = unsafe { transmute(*pixel) };
+            pixel_u32 == first_pixel_u32
+        })
+    }
 }
 
 /// Decodes a BC1 block into a structured representation of pixels
@@ -119,14 +140,14 @@ pub unsafe fn decode_bc1_block(src: *const u8) -> DecodedBc1Block {
     let idx: u32 = u32::from_le_bytes([*src.add(4), *src.add(5), *src.add(6), *src.add(7)]);
 
     // Extract RGB components for the first color
-    let r0 = (((c0 & 0xF800) >> 8) | ((c0 & 0xF800) >> 13)) as u8;
-    let g0 = (((c0 & 0x07E0) >> 3) | ((c0 & 0x07E0) >> 9)) as u8;
-    let b0 = (((c0 & 0x001F) << 3) | ((c0 & 0x001F) >> 2)) as u8;
+    let r0 = (((c0 & 0xF800) >> 8) | ((c0 & 0xF800) >> 13)) as u8; // Extract and expand 5-bit red
+    let g0 = (((c0 & 0x07E0) >> 3) | ((c0 & 0x07E0) >> 9)) as u8; // Extract and expand 6-bit green
+    let b0 = (((c0 & 0x001F) << 3) | ((c0 & 0x001F) >> 2)) as u8; // Extract and expand 5-bit blue
 
     // Extract RGB components for the second color
-    let r1 = (((c1 & 0xF800) >> 8) | ((c1 & 0xF800) >> 13)) as u8;
-    let g1 = (((c1 & 0x07E0) >> 3) | ((c1 & 0x07E0) >> 9)) as u8;
-    let b1 = (((c1 & 0x001F) << 3) | ((c1 & 0x001F) >> 2)) as u8;
+    let r1 = (((c1 & 0xF800) >> 8) | ((c1 & 0xF800) >> 13)) as u8; // Extract and expand 5-bit red
+    let g1 = (((c1 & 0x07E0) >> 3) | ((c1 & 0x07E0) >> 9)) as u8; // Extract and expand 6-bit green
+    let b1 = (((c1 & 0x001F) << 3) | ((c1 & 0x001F) >> 2)) as u8; // Extract and expand 5-bit blue
 
     // Create color dictionary - no bounds checks needed for fixed-size array
     let mut dict = [Pixel::new(0, 0, 0, 0); 4];
@@ -225,5 +246,25 @@ mod tests {
                 assert_eq!(pixel, Pixel::new(0, 0, 0, 0));
             }
         }
+    }
+
+    #[test]
+    fn has_identical_pixels() {
+        // Create a block where all pixels are the same
+        let identical_block = DecodedBc1Block::new(Pixel::new(100, 150, 200, 255));
+
+        // Create a block where one pixel is different
+        let mut different_block = DecodedBc1Block::new(Pixel::new(100, 150, 200, 255));
+        different_block.pixels[10] = Pixel::new(101, 150, 200, 255);
+
+        // Test the function
+        assert!(
+            identical_block.has_identical_pixels(),
+            "Block with identical pixels should return true"
+        );
+        assert!(
+            !different_block.has_identical_pixels(),
+            "Block with different pixels should return false"
+        );
     }
 }

@@ -61,6 +61,30 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    // Benchmark the has_identical_pixels method on decoded blocks
+    // Decode all blocks to have data to work with ahead of running bench.
+    unsafe {
+        for block_idx in 0..blocks_count {
+            let block_ofs = block_idx * 8;
+            *output_blocks.add(block_idx) = decode_bc1_block(input_ptr.add(block_ofs));
+        }
+    }
+
+    group.bench_function("has_identical_pixels", |b| {
+        unsafe {
+            // Then benchmark the has_identical_pixels method
+            b.iter(|| {
+                let mut identical_count = 0;
+                for block_idx in 0..blocks_count {
+                    if (*output_blocks.add(block_idx)).has_identical_pixels() {
+                        identical_count += 1;
+                    }
+                }
+                identical_count
+            })
+        }
+    });
+
     group.finish();
 }
 

@@ -10,6 +10,9 @@ This crate provides shared components between various implementations of [dxt-lo
 
 ## Core Types
 
+- [Color565](./src/color_565.rs)
+- [Color8888](./src/color_8888.rs)
+
 ## Development
 
 For information on how to work with this codebase, see [README-DEV.MD][readme-dev].

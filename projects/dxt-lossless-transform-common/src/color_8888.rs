@@ -1,4 +1,4 @@
-/// Represents a single RGBA888 pixel color from a decoded BC1 block
+/// Represents a single RGBA8888 pixel color from a decoded BC1 block
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color8888 {
     /// Red component (0-255)
@@ -12,7 +12,7 @@ pub struct Color8888 {
 }
 
 impl Color8888 {
-    /// Constructs a new `Pixel` from the specified red, green, blue, and alpha components.
+    /// Constructs a new [`Color8888`] from the specified red, green, blue, and alpha components.
     ///
     /// Each parameter represents the intensity of its corresponding colour channel (0–255).
     ///

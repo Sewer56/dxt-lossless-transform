@@ -58,7 +58,7 @@ impl DecodedBc1Block {
     /// `true` if all pixels in the block are identical, `false` otherwise
     #[inline]
     pub fn has_identical_pixels(&self) -> bool {
-        // Assert at compile time that Pixel is the same size as u32
+        // Assert at compile time that Color8888 is the same size as u32
         const _: () = assert!(size_of::<Color8888>() == size_of::<u32>());
 
         // Cast first pixel to u32

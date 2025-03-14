@@ -4,7 +4,7 @@
 [![Docs.rs](https://docs.rs/dxt-lossless-transform/badge.svg)](https://docs.rs/dxt-lossless-transform)
 [![CI](https://github.com/Sewer56/dxt-lossless-transform/actions/workflows/rust.yml/badge.svg)](https://github.com/Sewer56/dxt-lossless-transform/actions)
 
-[Note: Currently in development. Only BC1 done. BC2/3/7 coming soon.]
+[Note: Currently in development. We're far from done. BC1-BC3 mostly done, BC7 barely started]
 
 ## About
 

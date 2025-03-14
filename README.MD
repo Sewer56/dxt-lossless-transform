@@ -36,6 +36,7 @@ Click on a project to navigate to its description.
 > [!TIP]
 > These crates have the concrete implementations
 
+- [dxt-lossless-transform-common]: Code shared between multiple internal implementations.
 - [dxt-lossless-transform-bc1]: Implementation of the lossless transform for the BC1 block format.
 - [dxt-lossless-transform-bc2]: Implementation of the lossless transform for the BC2 block format.
 - [dxt-lossless-transform-bc3]: Implementation of the lossless transform for the BC3 block format.
@@ -71,6 +72,7 @@ Licensed under [GPL v3 (with Reloaded FAQ)](./LICENSE).
 [nuget-key]: https://www.nuget.org/account/apikeys
 [docs]: https://dxt-lossless-transform.github.io/dxt-lossless-transform
 [reloaded-license]: https://reloaded-project.github.io/Reloaded.MkDocsMaterial.Themes.R2/Pages/license.html
+[dxt-lossless-transform-common]: projects/dxt-lossless-transform-common/README.MD
 [dxt-lossless-transform-bc1]: projects/dxt-lossless-transform-bc1/README.MD
 [dxt-lossless-transform-bc2]: projects/dxt-lossless-transform-bc2/README.MD
 [dxt-lossless-transform-bc3]: projects/dxt-lossless-transform-bc3/README.MD

@@ -18,6 +18,7 @@ no-runtime-cpu-detection = []
 
 [dependencies]
 rstest = "0.25.0"
+dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dev-dependencies]

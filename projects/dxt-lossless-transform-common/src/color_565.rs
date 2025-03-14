@@ -39,6 +39,12 @@ impl Color565 {
         self.value
     }
 
+    // NOTE: https://fgiesen.wordpress.com/2021/10/04/gpu-bcn-decoding/
+    // BC1 as written in the D3D11 functional spec first expands the endpoint values from 5 or 6 bits
+    // to 8 bits by replicating the top bits; all three vendors appear to do this or something equivalent,
+    // and then convert the result from 8-bit UNorm to float exactly.
+    // Thanks ryg!! I know am decoding the colour endpoints right!!
+
     /// Extracts the expanded 8-bit red component
     #[inline]
     pub fn red(&self) -> u8 {

@@ -48,9 +48,20 @@ Separates colours and indices into continuous streams:
 
 ### Making Solid Blocks Represented the Same Across Texture
 
-BC1 can represent solid color blocks in multiple ways, which hinders compression.
+BC1 can represent solid color blocks in multiple ways.
+We make this representation consistent.
 
-- TODO
+Recall BC1 block format:
+
+```text
+Address: 0       4       8   8      12      16
+         +-------+-------+   +-------+-------+
+Data:    | C0-C1 | I0-I3 |   | C2-C3 | I4-I8 |
+         +-------+-------+   +-------+-------+
+```
+
+When an entire block is solid, we set colour `C0` to the colour of the block, and then set
+C1, I0-I3 all to `0x00`. This results in a nice repetition of `0x00`.
 
 ### Decorrelating Colours
 

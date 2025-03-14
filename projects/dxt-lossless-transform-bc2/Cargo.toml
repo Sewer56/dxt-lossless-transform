@@ -29,11 +29,11 @@ pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
 
 # Benchmark Stuff
 [[bench]]
-name = "bc2_transform"
-path = "benches/bc2_transform/main.rs"
+name = "split_blocks"
+path = "benches/split_blocks/main.rs"
 harness = false
 
 [[bench]]
-name = "bc2_detransform"
-path = "benches/bc2_detransform/main.rs"
+name = "unsplit_blocks"
+path = "benches/unsplit_blocks/main.rs"
 harness = false

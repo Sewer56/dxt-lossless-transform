@@ -1,8 +1,8 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc2::bc2::transform::shuffle;
+use dxt_lossless_transform_bc2::bc2::unsplit_blocks::sse2::shuffle;
 use safe_allocator_api::RawAlloc;
 
-fn bench_shuffle(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
+fn bench_shuffle_v2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
         shuffle(
             black_box(input.as_ptr()),
@@ -19,8 +19,8 @@ pub(crate) fn run_benchmarks(
     size: usize,
     important_benches_only: bool,
 ) {
-    group.bench_with_input(BenchmarkId::new("avx2 shuffle", size), &size, |b, _| {
-        bench_shuffle(b, input, output)
+    group.bench_with_input(BenchmarkId::new("sse2 shuffle", size), &size, |b, _| {
+        bench_shuffle_v2(b, input, output)
     });
 
     if !important_benches_only {}

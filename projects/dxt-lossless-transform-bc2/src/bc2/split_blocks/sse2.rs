@@ -325,9 +325,9 @@ pub unsafe fn shuffle_v3(mut input_ptr: *const u8, mut output_ptr: *mut u8, len:
 
 #[cfg(test)]
 mod tests {
-    use crate::bc2::transform::tests::generate_bc2_test_data;
-    use crate::bc2::transform::tests::transform_with_reference_implementation;
-    use crate::bc2::transform::*;
+    use crate::bc2::split_blocks::tests::generate_bc2_test_data;
+    use crate::bc2::split_blocks::tests::transform_with_reference_implementation;
+    use crate::bc2::split_blocks::*;
     use rstest::rstest;
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 

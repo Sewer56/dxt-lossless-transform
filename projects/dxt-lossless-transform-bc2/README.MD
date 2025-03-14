@@ -1,12 +1,12 @@
-# dxt-lossless-transform-bc1
+# dxt-lossless-transform-bc2
 
-[![Crates.io](https://img.shields.io/crates/v/dxt-lossless-transform-bc1.svg)](https://crates.io/crates/dxt-lossless-transform-bc1)
-[![Docs.rs](https://docs.rs/dxt-lossless-transform-bc1/badge.svg)](https://docs.rs/dxt-lossless-transform-bc1)
+[![Crates.io](https://img.shields.io/crates/v/dxt-lossless-transform-bc2.svg)](https://crates.io/crates/dxt-lossless-transform-bc2)
+[![Docs.rs](https://docs.rs/dxt-lossless-transform-bc2/badge.svg)](https://docs.rs/dxt-lossless-transform-bc2)
 [![CI](https://github.com/Sewer56/dxt-lossless-transform/actions/workflows/rust.yml/badge.svg)](https://github.com/Sewer56/dxt-lossless-transform/actions)
 
 ## About
 
-This crate provides a fast, visually lossless transform for the BC1 block format.
+This crate provides a fast, visually lossless transform for the BC2 block format.
 
 ## Reference Numbers
 
@@ -30,7 +30,7 @@ Dataset is the following
 A bunch of Skyrim mods, from Nexus, obtained by sorting by most downloaded under the 'texture'
 category. All non .DDS files were removed.
 
-The original data set contained 1943 files, totalling 6.84GiB.
+Original data contained 209 files, totalling 750.58MiB. BC2 is rarely used in practice.
 
 ### Fast Mode (Split Transform Only)
 
@@ -39,11 +39,11 @@ The original data set contained 1943 files, totalling 6.84GiB.
 ```text
 Tool       Size            Ratio 
 ---------------------------------
-zlib       4.77 GiB        69.77%
-zstd 22    4.23 GiB        61.91%
-bzip3 16m  3.83 GiB        56.00%
-kanzi 7    3.85 GiB        56.32%
-7z         3.83 GiB        56.05%
+zlib       232.34 MiB      30.95%
+zstd 22    210.06 MiB      27.99%
+bzip3 16m  178.95 MiB      23.84%
+kanzi 7    179.77 MiB      23.95%
+7z         189.47 MiB      25.24%
 ```
 
 #### After
@@ -51,24 +51,24 @@ kanzi 7    3.85 GiB        56.32%
 ```text
 Tool       Size            Ratio 
 ---------------------------------
-zlib       4.29 GiB        62.70%
-zstd 22    3.89 GiB        56.95%
-bzip3 16m  3.51 GiB        51.39%
-kanzi 7    3.53 GiB        51.67%
-7z         3.69 GiB        54.03%
+zlib       199.34 MiB      26.56%
+zstd 22    186.78 MiB      24.89%
+bzip3 16m  167.29 MiB      22.29%
+kanzi 7    167.71 MiB      22.34%
+7z         177.30 MiB      23.62%
 ```
 
 #### Performance
 
-On a 5900X, with DDR4 3200, CL16 RAM the BC1 transform runs at approx:
+On a 5900X, with DDR4 3200, CL16 RAM the bc2 transform runs at approx:
 
-Transform BC1 (`split_blocks`):
+Transform bc2 (`split_blocks`):
 
 - AVX2 (Assembly): 58.329 GiB/s `avx2 shuffle_permute unroll 2`
 - SSE2 (Assembly): 56.302 GiB/s `sse2 shufps unroll 4`
 - Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 58.163 GiB/s `portable32 no-unroll`
 
-Untransform BC1 (`unsplit_blocks`):
+Untransform bc2 (`unsplit_blocks`):
 
 - AVX2 (Assembly): 54.211 GiB/s `avx2 permd unroll 2`
 - SSE2 (Assembly): 47.392 GiB/s `sse2 unpck unroll 2`
@@ -77,10 +77,10 @@ Untransform BC1 (`unsplit_blocks`):
 You can run the benchmarks like this (example):
 
 ```bash,ignore
-cargo bench -p dxt-lossless-transform-bc1 --bench unsplit_blocks -- "avx2 shuffle_permute"
+cargo bench -p dxt-lossless-transform-bc2 --bench unsplit_blocks -- "avx2 permd unroll 2"
 ```
 
-Measured on Linux with `performance` governor. 8MiB file (see: `projects/dxt-lossless-transform-bc1/benches`).
+Measured on Linux with `performance` governor. 8MiB file (see: `projects/dxt-lossless-transform-bc2/benches`).
 These benches are sensitive to external load and CPU temperature, therefore we instead measured steady
 state performance, i.e. 60 seconds warmup (heat up the parts) and 60 seconds measurement.
 

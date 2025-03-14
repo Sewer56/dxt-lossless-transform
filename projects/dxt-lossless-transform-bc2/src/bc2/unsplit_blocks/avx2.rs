@@ -316,8 +316,8 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bc2::transform::tests::generate_bc2_test_data;
-    use crate::bc2::transform::u32;
+    use crate::bc2::split_blocks::tests::generate_bc2_test_data;
+    use crate::bc2::split_blocks::u32;
     use rstest::rstest;
 
     type DetransformFn = unsafe fn(*const u8, *mut u8, usize);

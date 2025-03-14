@@ -1,10 +1,10 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc2::bc2::detransform::*;
+use dxt_lossless_transform_bc2::bc2::split_blocks::shuffle;
 use safe_allocator_api::RawAlloc;
 
-fn bench_portable32(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
+fn bench_shuffle(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u32_detransform(
+        shuffle(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -19,11 +19,9 @@ pub(crate) fn run_benchmarks(
     size: usize,
     important_benches_only: bool,
 ) {
-    group.bench_with_input(
-        BenchmarkId::new("portable32 no-unroll", size),
-        &size,
-        |b, _| bench_portable32(b, input, output),
-    );
+    group.bench_with_input(BenchmarkId::new("avx2 shuffle", size), &size, |b, _| {
+        bench_shuffle(b, input, output)
+    });
 
     if !important_benches_only {}
 }

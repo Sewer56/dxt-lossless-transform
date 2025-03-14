@@ -252,17 +252,6 @@ Install cross
 cargo install cross
 ```
 
-#### Running Cross-Platform Tests
-
-Use the provided `pwsh` scripts in `scripts` folder.
-
-- `./test-wine-x64.ps1`: Tests your code in Wine on x86_64.  
-- `./test-linux-x64.ps1`: Tests your code in Linux on x86_64.  
-- `./test-linux-x86.ps1`: Tests your code in Linux on x86.  
-
-These scripts can be used on any platform given the prerequisites are met.  
-If you need to test Apple stuff without an Apple machine, you're generally out of luck outside of using CI/CD for testing.  
-
 ## Releasing a New Version
 
 Make a tag, aptly named after the current version of the project. For instance, if you are publishing version `0.1.0`, the tag should be `0.1.0`. This will create a GitHub release for you automatically.
@@ -270,6 +259,7 @@ Make a tag, aptly named after the current version of the project. For instance, 
 ## Contributing
 
 See [CONTRIBUTING](CONTRIBUTING.MD) for guidance on how to contribute to this project.
+
 ## Updating the Documentation
 
 For the latest instructions on updating the documentation (docs), see the [Relevant Doc Page].

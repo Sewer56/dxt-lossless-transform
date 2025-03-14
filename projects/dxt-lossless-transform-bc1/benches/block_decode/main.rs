@@ -25,10 +25,20 @@ fn criterion_benchmark(c: &mut Criterion) {
     // Initialize input with test data (simple pattern for BC1 blocks)
     unsafe {
         let input_ptr = input.as_ptr() as *mut u8;
-        for x in 0..bc1_size {
-            // This creates simple BC1 blocks with varying colors
-            // Real-world data would have more variety, but this is suitable for benchmarking
-            *input_ptr.add(x) = (x % 255) as u8;
+        // Fill with valid BC1 blocks
+        for block_idx in 0..(bc1_size / 8) {
+            let block_ptr = input_ptr.add(block_idx * 8);
+
+            // Write color endpoints (RGB565 format)
+            *block_ptr.add(0) = 0x40; // First color (R)
+            *block_ptr.add(1) = 0xF8; // First color (G+B)
+            *block_ptr.add(2) = 0x00; // Second color (R)
+            *block_ptr.add(3) = 0xF8; // Second color (G+B)
+
+            // Write color indices (randomized)
+            for i in 4..8 {
+                *block_ptr.add(i) = ((block_idx * i) % 255) as u8;
+            }
         }
     }
 

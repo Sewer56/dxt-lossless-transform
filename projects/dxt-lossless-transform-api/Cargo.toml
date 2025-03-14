@@ -2,6 +2,7 @@
 name = "dxt-lossless-transform-api"
 version = "0.1.0"
 edition = "2021"
+readme = "README.MD"
 
 [features]
 default = ["std"]

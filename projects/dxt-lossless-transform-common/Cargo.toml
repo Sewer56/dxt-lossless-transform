@@ -1,0 +1,20 @@
+[package]
+name = "dxt-lossless-transform-common"
+version = "0.1.0"
+edition = "2021"
+description = "Code shared between multiple internal implementations of the BC transforms"
+repository = "https://github.com/Sewer56/dxt-lossless-transform"
+license-file = "LICENSE"
+include = ["src/**/*"]
+readme = "README.MD"
+
+[features]
+default = ["std"]
+std = []
+# See README.md for more information on using Profile-Guided Optimization.
+pgo = []
+# Use CPU features selected at compile time.
+no-runtime-cpu-detection = []
+
+[dev-dependencies]
+rstest = "0.25.0"

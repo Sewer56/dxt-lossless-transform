@@ -148,12 +148,15 @@ pub unsafe fn decode_bc1_block(src: *const u8) -> DecodedBc1Block {
 
 /// Safely wraps the unsafe decode_bc1_block function for use with slices
 ///
-/// # Panics
+/// # Returns
 ///
-/// Panics if the input slice contains fewer than 8 bytes
-pub fn decode_bc1_block_from_slice(src: &[u8]) -> DecodedBc1Block {
-    debug_assert!(src.len() >= 8, "BC1 block must be at least 8 bytes");
-    unsafe { decode_bc1_block(src.as_ptr()) }
+/// A decoded block, else none if the slice is too short.
+#[inline]
+pub fn decode_bc1_block_from_slice(src: &[u8]) -> Option<DecodedBc1Block> {
+    if src.len() < 8 {
+        return None;
+    }
+    unsafe { Some(decode_bc1_block(src.as_ptr())) }
 }
 
 #[cfg(test)]
@@ -169,13 +172,33 @@ mod tests {
             0x00, 0x00, 0x00, 0x00, // All pixels use index 0
         ];
 
-        let decoded = decode_bc1_block_from_slice(&bc1_block);
+        let decoded = decode_bc1_block_from_slice(&bc1_block).unwrap();
 
         // All pixels should be red
         for y in 0..4 {
             for x in 0..4 {
                 let pixel = unsafe { decoded.get_pixel_unchecked(x, y) };
                 assert_eq!(pixel, Pixel::new(255, 0, 0, 255));
+            }
+        }
+    }
+
+    #[test]
+    fn can_decode_bc1_block_with_transparency() {
+        // Test case with transparency (c1 > c0 for 3-color mode)
+        let bc1_block = [
+            0x00, 0xF0, // c0 = R:30 G:0 B:0 (intentionally less than c1)
+            0x00, 0xF8, // c1 = R:31 G:0 B:0
+            0xFF, 0xFF, 0xFF, 0xFF, // All pixels use index 3 (transparent)
+        ];
+
+        let decoded = decode_bc1_block_from_slice(&bc1_block).unwrap();
+
+        // All pixels should be transparent, because color1 is greater than color0
+        for y in 0..4 {
+            for x in 0..4 {
+                let pixel = unsafe { decoded.get_pixel_unchecked(x, y) };
+                assert_eq!(pixel, Pixel::new(0, 0, 0, 0));
             }
         }
     }

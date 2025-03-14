@@ -1,19 +1,9 @@
-#[repr(C)]
-pub enum DdsFormat {
-    NotADds,
-    Unknown,
-    /// a.k.a. DXT1
-    BC1,
-    /// a.k.a. DXT2/3
-    BC2,
-    /// a.k.a. DXT4/5
-    BC3,
-    BC7,
-}
+use dxt_lossless_transform_utils::dds::DdsFormat;
 
 #[repr(C)]
 pub struct DdsInfo {
     pub format: DdsFormat,
+    pub is_dds: bool,
     pub data_offset: u8,
 }
 
@@ -47,18 +37,14 @@ pub unsafe extern "C" fn is_dds(ptr: *const u8, len: usize) -> bool {
 pub unsafe extern "C" fn parse_dds(ptr: *const u8, len: usize) -> DdsInfo {
     if let Some(info) = dxt_lossless_transform_utils::dds::parse_dds(ptr, len) {
         DdsInfo {
-            format: match info.format {
-                dxt_lossless_transform_utils::dds::DdsFormat::Unknown => DdsFormat::Unknown,
-                dxt_lossless_transform_utils::dds::DdsFormat::BC1 => DdsFormat::BC1,
-                dxt_lossless_transform_utils::dds::DdsFormat::BC2 => DdsFormat::BC2,
-                dxt_lossless_transform_utils::dds::DdsFormat::BC3 => DdsFormat::BC3,
-                dxt_lossless_transform_utils::dds::DdsFormat::BC7 => DdsFormat::BC7,
-            },
+            format: info.format,
             data_offset: info.data_offset,
+            is_dds: true,
         }
     } else {
         DdsInfo {
-            format: DdsFormat::NotADds,
+            format: DdsFormat::Unknown,
+            is_dds: false,
             data_offset: 0,
         }
     }
@@ -83,16 +69,7 @@ pub unsafe extern "C" fn transform_format(
     len: usize,
     format: DdsFormat,
 ) {
-    // Convert from C enum to internal enum
-    let internal_format = match format {
-        DdsFormat::NotADds | DdsFormat::Unknown => crate::DdsFormat::Unknown,
-        DdsFormat::BC1 => crate::DdsFormat::BC1,
-        DdsFormat::BC2 => crate::DdsFormat::BC2,
-        DdsFormat::BC3 => crate::DdsFormat::BC3,
-        DdsFormat::BC7 => crate::DdsFormat::BC7,
-    };
-
-    crate::transform_format(input_ptr, output_ptr, len, internal_format)
+    crate::transform_format(input_ptr, output_ptr, len, format)
 }
 
 /// Untransforms data from a compression suitable one to the standard format.
@@ -114,18 +91,7 @@ pub unsafe extern "C" fn untransform_format(
     len: usize,
     format: DdsFormat,
 ) {
-    // Convert from C enum to internal enum
-    let internal_format = match format {
-        DdsFormat::NotADds | DdsFormat::Unknown => {
-            dxt_lossless_transform_utils::dds::DdsFormat::Unknown
-        }
-        DdsFormat::BC1 => crate::DdsFormat::BC1,
-        DdsFormat::BC2 => crate::DdsFormat::BC2,
-        DdsFormat::BC3 => crate::DdsFormat::BC3,
-        DdsFormat::BC7 => crate::DdsFormat::BC7,
-    };
-
-    crate::untransform_format(input_ptr, output_ptr, len, internal_format)
+    crate::untransform_format(input_ptr, output_ptr, len, format)
 }
 
 /// Transform BC1 data from standard interleaved format to separated color/index format

@@ -1,6 +1,6 @@
 //! BC1 (DXT1) decoding implementation; based on etcpak
-//! https://github.com/wolfpld/etcpak and MSDN
-//! https://learn.microsoft.com/en-us/windows/win32/direct3d9/opaque-and-1-bit-alpha-textures
+//! <https://github.com/wolfpld/etcpak> and MSDN
+//! <https://learn.microsoft.com/en-us/windows/win32/direct3d9/opaque-and-1-bit-alpha-textures>
 
 use core::mem::transmute;
 use dxt_lossless_transform_common::{color_565::Color565, color_8888::Color8888};

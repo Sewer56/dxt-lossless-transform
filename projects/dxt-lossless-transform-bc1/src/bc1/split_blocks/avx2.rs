@@ -615,8 +615,8 @@ pub unsafe fn shuffle_permute_unroll_4(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bc1::split_colours::tests::generate_bc1_test_data;
-    use crate::bc1::split_colours::tests::transform_with_reference_implementation;
+    use crate::bc1::split_blocks::tests::generate_bc1_test_data;
+    use crate::bc1::split_blocks::tests::transform_with_reference_implementation;
     use crate::testutils::allocate_align_64;
     use rstest::rstest;
 

@@ -537,8 +537,8 @@ pub unsafe fn unpck_detransform_unroll_4(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bc1::split_colours::tests::generate_bc1_test_data;
-    use crate::bc1::split_colours::u32;
+    use crate::bc1::split_blocks::tests::generate_bc1_test_data;
+    use crate::bc1::split_blocks::u32;
     use rstest::rstest;
 
     type DetransformFn = unsafe fn(*const u8, *mut u8, usize);

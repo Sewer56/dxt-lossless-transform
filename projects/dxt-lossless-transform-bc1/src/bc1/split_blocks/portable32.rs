@@ -189,8 +189,8 @@ pub unsafe fn u32_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bc1::split_colours::tests::generate_bc1_test_data;
-    use crate::bc1::split_colours::tests::transform_with_reference_implementation;
+    use crate::bc1::split_blocks::tests::generate_bc1_test_data;
+    use crate::bc1::split_blocks::tests::transform_with_reference_implementation;
     use rstest::rstest;
 
     // Define the function pointer type

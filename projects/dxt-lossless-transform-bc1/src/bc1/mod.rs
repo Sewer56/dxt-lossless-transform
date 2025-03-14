@@ -43,8 +43,8 @@
  * or outputting it all to a single buffer. Outputting all to single buffer is faster.
  */
 
-pub mod split_colours;
-pub mod unsplit_colours;
+pub mod split_blocks;
+pub mod unsplit_blocks;
 
 /// Transform BC1 data from standard interleaved format to separated color/index format
 /// using the best known implementation for the current CPU.
@@ -58,7 +58,7 @@ pub mod unsplit_colours;
 #[inline]
 pub unsafe fn transform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
-    split_colours::split_blocks(input_ptr, output_ptr, len);
+    split_blocks::split_blocks(input_ptr, output_ptr, len);
 }
 
 /// Transform BC1 data from separated color/index format back to standard interleaved format
@@ -73,12 +73,12 @@ pub unsafe fn transform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
 #[inline]
 pub unsafe fn untransform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
-    unsplit_colours::unsplit_blocks(input_ptr, output_ptr, len);
+    unsplit_blocks::unsplit_blocks(input_ptr, output_ptr, len);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::bc1::split_colours::tests::{
+    use crate::bc1::split_blocks::tests::{
         generate_bc1_test_data, transform_with_reference_implementation,
     };
     use crate::testutils::allocate_align_64;
@@ -92,8 +92,8 @@ mod tests {
     #[case::min_size(16)] // 128 bytes - AVX Unrolled Operation
     #[case::min_size(32)] // 256 bytes - Multiple Unrolled Operations
     fn test_transform_untransform(#[case] num_blocks: usize) {
-        use crate::bc1::split_colours::split_blocks;
-        use crate::bc1::unsplit_colours::unsplit_blocks;
+        use crate::bc1::split_blocks::split_blocks;
+        use crate::bc1::unsplit_blocks::unsplit_blocks;
 
         let input = generate_bc1_test_data(num_blocks);
         let mut transformed = allocate_align_64(input.len());

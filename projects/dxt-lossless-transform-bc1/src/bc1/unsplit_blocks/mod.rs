@@ -9,7 +9,7 @@ pub mod avx2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
-unsafe fn untransform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         let avx2 = std::is_x86_feature_detected!("avx2");
@@ -56,7 +56,7 @@ pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
-        untransform_bc1_x86(input_ptr, output_ptr, len)
+        unsplit_blocks_x86(input_ptr, output_ptr, len)
     }
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]

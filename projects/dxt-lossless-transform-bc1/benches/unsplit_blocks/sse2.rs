@@ -1,5 +1,5 @@
 use criterion::*;
-use dxt_lossless_transform_bc1::bc1::unsplit_colours::sse2::*;
+use dxt_lossless_transform_bc1::bc1::unsplit_blocks::sse2::*;
 use safe_allocator_api::RawAlloc;
 
 fn bench_unpck(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {

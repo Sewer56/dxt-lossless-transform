@@ -1,5 +1,5 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc1::bc1::split_colours::*;
+use dxt_lossless_transform_bc1::bc1::split_blocks::*;
 use safe_allocator_api::RawAlloc;
 
 fn bench_avx2_gather(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {

@@ -7,6 +7,59 @@ pub mod sse2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub use sse2::*;
 
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[inline(always)]
+unsafe fn untransform_bc3_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    // SSE2 is required by x86-64, so no check needed
+    // On i686, this is slower, so skipped.
+    #[cfg(target_arch = "x86_64")]
+    {
+        if len % 64 == 0 {
+            sse2::u64_detransform_sse2(input_ptr, output_ptr, len);
+        }
+    }
+
+    if len % 32 == 0 {
+        #[cfg(target_arch = "x86_64")]
+        {
+            u64_detransform(input_ptr, output_ptr, len);
+            return;
+        }
+
+        #[cfg(target_arch = "x86")]
+        {
+            u32_detransform_v2(input_ptr, output_ptr, len);
+            return;
+        }
+    }
+
+    u32_detransform(input_ptr, output_ptr, len);
+}
+
+/// Transform bc3 data from separated alpha/color/index format back to standard interleaved format
+/// using best known implementation for current CPU.
+///
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len must be divisible by 16
+/// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
+#[inline]
+pub unsafe fn unsplit_blocks_bc3(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 16 == 0);
+
+    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+    {
+        untransform_bc3_x86(input_ptr, output_ptr, len)
+    }
+
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
+    {
+        u32_detransform(input_ptr, output_ptr, len)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::testutils::allocate_align_64;

@@ -40,37 +40,10 @@
  * 5. Separating them allows better compression of each stream
  */
 
-pub mod detransform;
-pub mod transform;
+pub mod split_blocks;
+pub mod unsplit_blocks;
 
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-#[inline(always)]
-unsafe fn transform_bc3_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    #[cfg(not(feature = "no-runtime-cpu-detection"))]
-    {
-        // Runtime feature detection
-        let avx2 = std::is_x86_feature_detected!("avx2");
-
-        if avx2 && len % 128 == 0 {
-            transform::avx2::u32_avx2(input_ptr, output_ptr, len);
-            return;
-        }
-    }
-
-    #[cfg(feature = "no-runtime-cpu-detection")]
-    {
-        #[cfg(target_feature = "avx2")]
-        if len % 128 == 0 {
-            transform::avx2::u32_avx2(input_ptr, output_ptr, len);
-            return;
-        }
-    }
-
-    // Fallback to portable implementation
-    transform::u32(input_ptr, output_ptr, len)
-}
-
-/// Transform bc3 data from standard interleaved format to separated color/index format
+/// Transform bc3 data from standard interleaved format to separated alpha/color/index format
 /// using the best known implementation for the current CPU.
 ///
 /// # Safety
@@ -82,48 +55,10 @@ unsafe fn transform_bc3_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
 #[inline]
 pub unsafe fn transform_bc3(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
-
-    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-    {
-        transform_bc3_x86(input_ptr, output_ptr, len)
-    }
-
-    #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
-    {
-        transform::u32(input_ptr, output_ptr, len)
-    }
+    split_blocks::split_blocks_bc3(input_ptr, output_ptr, len);
 }
 
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-#[inline(always)]
-unsafe fn untransform_bc3_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    // SSE2 is required by x86-64, so no check needed
-    // On i686, this is slower, so skipped.
-    #[cfg(target_arch = "x86_64")]
-    {
-        if len % 64 == 0 {
-            detransform::sse2::u64_detransform_sse2(input_ptr, output_ptr, len);
-        }
-    }
-
-    if len % 32 == 0 {
-        #[cfg(target_arch = "x86_64")]
-        {
-            detransform::u64_detransform(input_ptr, output_ptr, len);
-            return;
-        }
-
-        #[cfg(target_arch = "x86")]
-        {
-            detransform::u32_detransform_v2(input_ptr, output_ptr, len);
-            return;
-        }
-    }
-
-    detransform::u32_detransform(input_ptr, output_ptr, len);
-}
-
-/// Transform bc3 data from separated color/index format back to standard interleaved format
+/// Transform bc3 data from separated alpha/color/index format back to standard interleaved format
 /// using best known implementation for current CPU.
 ///
 /// # Safety
@@ -135,22 +70,13 @@ unsafe fn untransform_bc3_x86(input_ptr: *const u8, output_ptr: *mut u8, len: us
 #[inline]
 pub unsafe fn untransform_bc3(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
-
-    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-    {
-        untransform_bc3_x86(input_ptr, output_ptr, len)
-    }
-
-    #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
-    {
-        detransform::u32_detransform(input_ptr, output_ptr, len)
-    }
+    unsplit_blocks::unsplit_blocks_bc3(input_ptr, output_ptr, len);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bc3::transform::tests::{
+    use crate::bc3::split_blocks::tests::{
         generate_bc3_test_data, transform_with_reference_implementation,
     };
     use crate::testutils::allocate_align_64;

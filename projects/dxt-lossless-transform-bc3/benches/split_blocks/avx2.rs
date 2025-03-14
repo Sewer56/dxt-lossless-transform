@@ -1,10 +1,10 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc3::bc3::detransform::u64_detransform;
+use dxt_lossless_transform_bc3::bc3::split_blocks::u32_avx2;
 use safe_allocator_api::RawAlloc;
 
-fn bench_portable64(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
+fn bench_avx2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u64_detransform(
+        u32_avx2(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -19,11 +19,9 @@ pub(crate) fn run_benchmarks(
     size: usize,
     important_benches_only: bool,
 ) {
-    group.bench_with_input(
-        BenchmarkId::new("portable64 no-unroll", size),
-        &size,
-        |b, _| bench_portable64(b, input, output),
-    );
+    group.bench_with_input(BenchmarkId::new("avx2", size), &size, |b, _| {
+        bench_avx2(b, input, output)
+    });
 
     if !important_benches_only {}
 }

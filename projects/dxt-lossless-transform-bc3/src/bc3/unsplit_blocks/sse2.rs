@@ -185,8 +185,8 @@ unsafe fn shift_u64_u32(value: u64, shift: usize) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bc3::transform::tests::generate_bc3_test_data;
-    use crate::bc3::transform::u32;
+    use crate::bc3::split_blocks::tests::generate_bc3_test_data;
+    use crate::bc3::split_blocks::u32;
     use rstest::rstest;
 
     type DetransformFn = unsafe fn(*const u8, *mut u8, usize);

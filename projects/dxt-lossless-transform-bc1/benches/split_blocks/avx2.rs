@@ -1,10 +1,10 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc1::bc1::transform::*;
+use dxt_lossless_transform_bc1::bc1::split_colours::*;
 use safe_allocator_api::RawAlloc;
 
-fn bench_portable64_shift(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
+fn bench_avx2_gather(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        shift(
+        gather(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -12,13 +12,10 @@ fn bench_portable64_shift(b: &mut criterion::Bencher, input: &RawAlloc, output: 
     });
 }
 
-fn bench_portable64_shift_with_count(
-    b: &mut criterion::Bencher,
-    input: &RawAlloc,
-    output: &mut RawAlloc,
-) {
+#[cfg(target_arch = "x86_64")]
+fn bench_avx2_gather_unroll_4(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        shift_with_count(
+        gather_unroll_4(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -26,13 +23,9 @@ fn bench_portable64_shift_with_count(
     });
 }
 
-fn bench_portable64_shift_unroll_2(
-    b: &mut criterion::Bencher,
-    input: &RawAlloc,
-    output: &mut RawAlloc,
-) {
+fn bench_avx2_permute(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        shift_unroll_2(
+        permute(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -40,13 +33,13 @@ fn bench_portable64_shift_unroll_2(
     });
 }
 
-fn bench_portable64_shift_with_count_unroll_2(
+fn bench_avx2_permute_unroll_2(
     b: &mut criterion::Bencher,
     input: &RawAlloc,
     output: &mut RawAlloc,
 ) {
     b.iter(|| unsafe {
-        shift_with_count_unroll_2(
+        permute_unroll_2(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -54,13 +47,14 @@ fn bench_portable64_shift_with_count_unroll_2(
     });
 }
 
-fn bench_portable64_shift_unroll_4(
+#[cfg(target_arch = "x86_64")]
+fn bench_avx2_permute_unroll_4(
     b: &mut criterion::Bencher,
     input: &RawAlloc,
     output: &mut RawAlloc,
 ) {
     b.iter(|| unsafe {
-        shift_unroll_4(
+        permute_unroll_4(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -68,13 +62,9 @@ fn bench_portable64_shift_unroll_4(
     });
 }
 
-fn bench_portable64_shift_with_count_unroll_4(
-    b: &mut criterion::Bencher,
-    input: &RawAlloc,
-    output: &mut RawAlloc,
-) {
+fn bench_avx2_shuffle_permute(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        shift_with_count_unroll_4(
+        shuffle_permute(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -82,13 +72,13 @@ fn bench_portable64_shift_with_count_unroll_4(
     });
 }
 
-fn bench_portable64_shift_unroll_8(
+fn bench_avx2_shuffle_permute_unroll_2(
     b: &mut criterion::Bencher,
     input: &RawAlloc,
     output: &mut RawAlloc,
 ) {
     b.iter(|| unsafe {
-        shift_unroll_8(
+        shuffle_permute_unroll_2(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -96,13 +86,14 @@ fn bench_portable64_shift_unroll_8(
     });
 }
 
-fn bench_portable64_shift_with_count_unroll_8(
+#[cfg(target_arch = "x86_64")]
+fn bench_avx2_shuffle_permute_unroll_4(
     b: &mut criterion::Bencher,
     input: &RawAlloc,
     output: &mut RawAlloc,
 ) {
     b.iter(|| unsafe {
-        shift_with_count_unroll_8(
+        shuffle_permute_unroll_4(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -118,52 +109,51 @@ pub(crate) fn run_benchmarks(
     important_benches_only: bool,
 ) {
     group.bench_with_input(
-        BenchmarkId::new("portable64 shift no-unroll", size),
+        BenchmarkId::new("avx2 shuffle_permute unroll 2", size),
         &size,
-        |b, _| bench_portable64_shift(b, input, output),
-    );
-
-    group.bench_with_input(
-        BenchmarkId::new("portable64 shift_with_count no-unroll", size),
-        &size,
-        |b, _| bench_portable64_shift_with_count(b, input, output),
-    );
-
-    group.bench_with_input(
-        BenchmarkId::new("portable64 shift unroll-8", size),
-        &size,
-        |b, _| bench_portable64_shift_unroll_8(b, input, output),
-    );
-
-    group.bench_with_input(
-        BenchmarkId::new("portable64 shift_with_count unroll-8", size),
-        &size,
-        |b, _| bench_portable64_shift_with_count_unroll_8(b, input, output),
+        |b, _| bench_avx2_shuffle_permute_unroll_2(b, input, output),
     );
 
     if !important_benches_only {
+        group.bench_with_input(BenchmarkId::new("avx2 gather", size), &size, |b, _| {
+            bench_avx2_gather(b, input, output)
+        });
+
         group.bench_with_input(
-            BenchmarkId::new("portable64 shift unroll-2", size),
+            BenchmarkId::new("avx2 shuffle_permute", size),
             &size,
-            |b, _| bench_portable64_shift_unroll_2(b, input, output),
+            |b, _| bench_avx2_shuffle_permute(b, input, output),
+        );
+
+        group.bench_with_input(BenchmarkId::new("avx2 permute", size), &size, |b, _| {
+            bench_avx2_permute(b, input, output)
+        });
+
+        #[cfg(target_arch = "x86_64")]
+        group.bench_with_input(
+            BenchmarkId::new("avx2 shuffle_permute unroll 4", size),
+            &size,
+            |b, _| bench_avx2_shuffle_permute_unroll_4(b, input, output),
         );
 
         group.bench_with_input(
-            BenchmarkId::new("portable64 shift_with_count unroll-2", size),
+            BenchmarkId::new("avx2 permute unroll 2", size),
             &size,
-            |b, _| bench_portable64_shift_with_count_unroll_2(b, input, output),
+            |b, _| bench_avx2_permute_unroll_2(b, input, output),
         );
 
+        #[cfg(target_arch = "x86_64")]
         group.bench_with_input(
-            BenchmarkId::new("portable64 shift unroll-4", size),
+            BenchmarkId::new("avx2 gather unroll 4", size),
             &size,
-            |b, _| bench_portable64_shift_unroll_4(b, input, output),
+            |b, _| bench_avx2_gather_unroll_4(b, input, output),
         );
 
+        #[cfg(target_arch = "x86_64")]
         group.bench_with_input(
-            BenchmarkId::new("portable64 shift_with_count unroll-4", size),
+            BenchmarkId::new("avx2 permute unroll 4", size),
             &size,
-            |b, _| bench_portable64_shift_with_count_unroll_4(b, input, output),
+            |b, _| bench_avx2_permute_unroll_4(b, input, output),
         );
     }
 }

@@ -185,8 +185,8 @@ pub unsafe fn u32_detransform_unroll_8(input_ptr: *const u8, output_ptr: *mut u8
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bc1::transform::tests::generate_bc1_test_data;
-    use crate::bc1::transform::u32;
+    use crate::bc1::split_colours::tests::generate_bc1_test_data;
+    use crate::bc1::split_colours::u32;
     use rstest::rstest;
 
     type DetransformFn = unsafe fn(*const u8, *mut u8, usize);

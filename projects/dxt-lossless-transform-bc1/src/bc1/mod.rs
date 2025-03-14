@@ -43,47 +43,8 @@
  * or outputting it all to a single buffer. Outputting all to single buffer is faster.
  */
 
-pub mod detransform;
-pub mod transform;
-
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-#[inline(always)]
-unsafe fn transform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    #[cfg(not(feature = "no-runtime-cpu-detection"))]
-    {
-        // Runtime feature detection
-        let avx2 = std::is_x86_feature_detected!("avx2");
-        let sse2 = std::is_x86_feature_detected!("sse2");
-
-        if avx2 && len % 128 == 0 {
-            transform::shuffle_permute_unroll_2(input_ptr, output_ptr, len);
-            return;
-        }
-
-        if sse2 && len % 64 == 0 {
-            transform::shufps_unroll_4(input_ptr, output_ptr, len);
-            return;
-        }
-    }
-
-    #[cfg(feature = "no-runtime-cpu-detection")]
-    {
-        #[cfg(target_feature = "avx2")]
-        if len % 128 == 0 {
-            transform::shuffle_permute_unroll_2(input_ptr, output_ptr, len);
-            return;
-        }
-
-        #[cfg(target_feature = "sse2")]
-        if len % 64 == 0 {
-            transform::shufps_unroll_4(input_ptr, output_ptr, len);
-            return;
-        }
-    }
-
-    // Fallback to portable implementation
-    transform::u32(input_ptr, output_ptr, len)
-}
+pub mod split_colours;
+pub mod unsplit_colours;
 
 /// Transform BC1 data from standard interleaved format to separated color/index format
 /// using the best known implementation for the current CPU.
@@ -97,50 +58,7 @@ unsafe fn transform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
 #[inline]
 pub unsafe fn transform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
-
-    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-    {
-        transform_bc1_x86(input_ptr, output_ptr, len)
-    }
-
-    #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
-    {
-        transform::u32(input_ptr, output_ptr, len)
-    }
-}
-
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-#[inline(always)]
-unsafe fn untransform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    #[cfg(not(feature = "no-runtime-cpu-detection"))]
-    {
-        let avx2 = std::is_x86_feature_detected!("avx2");
-        let sse2 = std::is_x86_feature_detected!("sse2");
-
-        if avx2 && len % 128 == 0 {
-            detransform::avx2::permd_detransform_unroll_2(input_ptr, output_ptr, len);
-        }
-
-        if sse2 && len % 64 == 0 {
-            detransform::sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
-        }
-    }
-
-    #[cfg(feature = "no-runtime-cpu-detection")]
-    {
-        #[cfg(target_feature = "avx2")]
-        if len % 128 == 0 {
-            detransform::avx2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
-        }
-
-        #[cfg(target_feature = "sse2")]
-        if len % 64 == 0 {
-            detransform::sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
-        }
-    }
-
-    // Fallback to portable implementation
-    detransform::u32_detransform(input_ptr, output_ptr, len)
+    split_colours::split_blocks(input_ptr, output_ptr, len);
 }
 
 /// Transform BC1 data from separated color/index format back to standard interleaved format
@@ -155,22 +73,12 @@ unsafe fn untransform_bc1_x86(input_ptr: *const u8, output_ptr: *mut u8, len: us
 #[inline]
 pub unsafe fn untransform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
-
-    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-    {
-        untransform_bc1_x86(input_ptr, output_ptr, len)
-    }
-
-    #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
-    {
-        detransform::u32_detransform(input_ptr, output_ptr, len)
-    }
+    unsplit_colours::unsplit_blocks(input_ptr, output_ptr, len);
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::bc1::transform::tests::{
+    use crate::bc1::split_colours::tests::{
         generate_bc1_test_data, transform_with_reference_implementation,
     };
     use crate::testutils::allocate_align_64;
@@ -184,6 +92,9 @@ mod tests {
     #[case::min_size(16)] // 128 bytes - AVX Unrolled Operation
     #[case::min_size(32)] // 256 bytes - Multiple Unrolled Operations
     fn test_transform_untransform(#[case] num_blocks: usize) {
+        use crate::bc1::split_colours::split_blocks;
+        use crate::bc1::unsplit_colours::unsplit_blocks;
+
         let input = generate_bc1_test_data(num_blocks);
         let mut transformed = allocate_align_64(input.len());
         let mut reconstructed = allocate_align_64(input.len());
@@ -194,7 +105,7 @@ mod tests {
 
         unsafe {
             // Test transform
-            transform_bc1(input.as_ptr(), transformed.as_mut_ptr(), input.len());
+            split_blocks(input.as_ptr(), transformed.as_mut_ptr(), input.len());
             assert_eq!(
                 transformed.as_slice(),
                 reference.as_slice(),
@@ -203,7 +114,7 @@ mod tests {
             );
 
             // Test untransform
-            untransform_bc1(
+            unsplit_blocks(
                 transformed.as_ptr(),
                 reconstructed.as_mut_ptr(),
                 transformed.len(),

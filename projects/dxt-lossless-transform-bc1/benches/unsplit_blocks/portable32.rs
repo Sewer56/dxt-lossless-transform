@@ -1,10 +1,10 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc1::bc1::transform::*;
+use dxt_lossless_transform_bc1::bc1::unsplit_colours::*;
 use safe_allocator_api::RawAlloc;
 
 fn bench_portable32(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u32(
+        u32_detransform(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -14,7 +14,7 @@ fn bench_portable32(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut R
 
 fn bench_portable32_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u32_unroll_2(
+        u32_detransform_unroll_2(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -24,7 +24,7 @@ fn bench_portable32_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, outpu
 
 fn bench_portable32_unroll_4(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u32_unroll_4(
+        u32_detransform_unroll_4(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -34,7 +34,7 @@ fn bench_portable32_unroll_4(b: &mut criterion::Bencher, input: &RawAlloc, outpu
 
 fn bench_portable32_unroll_8(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u32_unroll_8(
+        u32_detransform_unroll_8(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -56,6 +56,12 @@ pub(crate) fn run_benchmarks(
     );
 
     group.bench_with_input(
+        BenchmarkId::new("portable32 unroll-4", size),
+        &size,
+        |b, _| bench_portable32_unroll_4(b, input, output),
+    );
+
+    group.bench_with_input(
         BenchmarkId::new("portable32 unroll-8", size),
         &size,
         |b, _| bench_portable32_unroll_8(b, input, output),
@@ -66,12 +72,6 @@ pub(crate) fn run_benchmarks(
             BenchmarkId::new("portable32 unroll-2", size),
             &size,
             |b, _| bench_portable32_unroll_2(b, input, output),
-        );
-
-        group.bench_with_input(
-            BenchmarkId::new("portable32 unroll-4", size),
-            &size,
-            |b, _| bench_portable32_unroll_4(b, input, output),
         );
     }
 }

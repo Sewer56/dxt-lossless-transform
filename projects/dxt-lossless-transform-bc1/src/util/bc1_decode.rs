@@ -111,7 +111,7 @@ impl DecodedBc1Block {
 ///     let pixel_at_0_0 = decoded.get_pixel_unchecked(0, 0);
 /// }
 /// ```
-#[inline]
+#[inline(always)]
 pub unsafe fn decode_bc1_block(src: *const u8) -> DecodedBc1Block {
     // Extract color endpoints and index data
     let c0: u16 = u16::from_le_bytes([*src, *src.add(1)]);
@@ -174,8 +174,8 @@ pub unsafe fn decode_bc1_block(src: *const u8) -> DecodedBc1Block {
 ///
 /// # Returns
 ///
-/// A decoded block, else none if the slice is too short.
-#[inline]
+/// A decoded block, else [`None`] if the slice is too short.
+#[inline(always)]
 pub fn decode_bc1_block_from_slice(src: &[u8]) -> Option<DecodedBc1Block> {
     if src.len() < 8 {
         return None;

@@ -11,7 +11,7 @@ This crate provides shared components between various implementations of [dxt-lo
 ## Core Types
 
 - [Color565](./src/color_565.rs): A color type representing a 5-bit red, 6-bit green, and 5-bit blue component.
-- [Color8888](./src/color_8888.rs): A color type representing a 8-bit red, 8-bit green, 8-bit blue, and 8-bit alpha component.
+- [Color8888](./src/color_8888.rs): A color type representing an 8-bit red, 8-bit green, 8-bit blue, and 8-bit alpha component.
 
 ## Development
 

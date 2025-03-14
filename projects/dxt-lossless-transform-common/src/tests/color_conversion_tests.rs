@@ -59,9 +59,9 @@ fn can_convert_color_565_to_8888() {
 fn can_round_trip_8888_to_565() {
     // Test colors that should perfectly round-trip from 8888 to 565 and back.
     let test_colors = [
-        Color8888::new(255, 0, 0, 255),     // Blue
-        Color8888::new(0, 255, 0, 255),     // Red
-        Color8888::new(0, 0, 255, 255),     // Green
+        Color8888::new(255, 0, 0, 255),     // Red
+        Color8888::new(0, 255, 0, 255),     // Green
+        Color8888::new(0, 0, 255, 255),     // Blue
         Color8888::new(0, 0, 0, 255),       // Black
         Color8888::new(255, 255, 255, 255), // White
         Color8888::new(132, 130, 132, 255), // Gray (with small error)

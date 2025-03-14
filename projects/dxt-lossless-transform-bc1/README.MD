@@ -67,7 +67,7 @@ When an entire block is solid, and a clean conversion between `8888` and `565` i
 colour `C0` to the colour of the block, and then set `C1`, `I0-I3` all to `0x00`.
 This results in a nice repetition of `0x00` across 6 bytes.
 
-For fully transparent blocks, we instead set all the bits to `1`, so block becomes filled with `0xFF`. 
+For fully transparent blocks, we instead set all the bits to `1`, so the block becomes filled with `0xFF`. 
 
 If the block consists of both transparent and non-transparent pixels, i.e. `color0 <= color1` 
 and there is a mix of `11` and non `11` indices, then we leave the block intact; we can't do much

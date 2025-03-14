@@ -14,7 +14,7 @@ use dxt_lossless_transform_common::{
 ///
 /// # Returns
 ///
-/// A [`DecodedBc1Block`] containing all 16 decoded pixels
+/// A [`Decoded4x4Block`] containing all 16 decoded pixels
 ///
 /// # Safety
 ///

@@ -16,7 +16,21 @@ pub struct Pixel {
 }
 
 impl Pixel {
-    /// Creates a new pixel from RGBA components
+    /// Constructs a new `Pixel` from the specified red, green, blue, and alpha components.
+    ///
+    /// Each parameter represents the intensity of its corresponding colour channel (0–255).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_bc1::util::Pixel;
+    ///
+    /// let pixel = Pixel::new(255, 0, 0, 255);
+    /// assert_eq!(pixel.r, 255);
+    /// assert_eq!(pixel.g, 0);
+    /// assert_eq!(pixel.b, 0);
+    /// assert_eq!(pixel.a, 255);
+    /// ```
     pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { r, g, b, a }
     }
@@ -30,7 +44,17 @@ pub struct DecodedBc1Block {
 }
 
 impl DecodedBc1Block {
-    /// Creates a new decoded block filled with the specified pixel
+    /// Constructs a new decoded BC1 block initialised with 16 copies of the provided pixel.
+    /// This function creates a 4x4 block where every pixel is set to the specified value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_bc1::util::{DecodedBc1Block, Pixel};
+    ///
+    /// let pixel = Pixel::new(255, 0, 0, 255);
+    /// let block = DecodedBc1Block::new(pixel);
+    /// assert!(block.pixels.iter().all(|&p| p == pixel));
     pub fn new(pixel: Pixel) -> Self {
         Self {
             pixels: [pixel; 16],
@@ -66,7 +90,7 @@ impl DecodedBc1Block {
 ///
 /// # Returns
 ///
-/// A `DecodedBc1Block` containing all 16 decoded pixels
+/// A [`DecodedBc1Block`] containing all 16 decoded pixels
 ///
 /// # Safety
 ///
@@ -146,7 +170,7 @@ pub unsafe fn decode_bc1_block(src: *const u8) -> DecodedBc1Block {
     result
 }
 
-/// Safely wraps the unsafe decode_bc1_block function for use with slices
+/// Safely wraps the unsafe [`decode_bc1_block`] function for use with slices
 ///
 /// # Returns
 ///

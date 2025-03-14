@@ -2,7 +2,7 @@
 name = "dxt-lossless-transform-bc1"
 version = "0.1.0"
 edition = "2021"
-description = "Fast lossless transforms for BC1 texture data that improve their compression ratio."
+description = "Fast lossless transforms for BC1 texture data that improve their compression ratio. This is an unstable crate containing the raw implementation."
 repository = "https://github.com/Sewer56/dxt-lossless-transform"
 license-file = "LICENSE"
 include = ["src/**/*"]
@@ -29,11 +29,11 @@ pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
 
 # Benchmark Stuff
 [[bench]]
-name = "bc1_transform"
-path = "benches/bc1_transform/main.rs"
+name = "split_blocks"
+path = "benches/split_blocks/main.rs"
 harness = false
 
 [[bench]]
-name = "bc1_detransform"
-path = "benches/bc1_detransform/main.rs"
+name = "unsplit_blocks"
+path = "benches/unsplit_blocks/main.rs"
 harness = false

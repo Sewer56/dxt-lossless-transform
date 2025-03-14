@@ -16,23 +16,21 @@ panic = "abort"
 
 [workspace]
 members = [
-    # Lossless Transform Crate (BC1)
-    "projects/dxt-lossless-transform-bc1",
-    
-    # Lossless Transform Crate (BC2)
-    "projects/dxt-lossless-transform-bc2",
-    
-    # Lossless Transform Crate (BC3)
-    "projects/dxt-lossless-transform-bc3",
+    # High Level Crates
+    "projects/dxt-lossless-transform-api", # High level cross-crate 'stable' API 
+    "projects/dxt-lossless-transform-bc1-api", # High level cross-crate 'stable' API
+    "projects/dxt-lossless-transform-bc2-api", # High level cross-crate 'stable' API
+    "projects/dxt-lossless-transform-bc3-api", # High level cross-crate 'stable' API
+    "projects/dxt-lossless-transform-bc7-api", # High level cross-crate 'stable' API
 
-    # Lossless Transform Crate (BC7)
+    # Low Level Crates
+    "projects/dxt-lossless-transform-bc1",
+    "projects/dxt-lossless-transform-bc2",
+    "projects/dxt-lossless-transform-bc3",
     "projects/dxt-lossless-transform-bc7",
 
-    # High level 'stable' API.
-    "projects/dxt-lossless-transform-api",
-
-    # Utilities around lossless transform, like parsing DDSes.
-    "projects/dxt-lossless-transform-utils",
+    # Utility Libraries
+    "projects/dxt-lossless-transform-dds", # Adds DDS support
 
     # CLI Tool
     "projects/dxt-lossless-transform-cli",

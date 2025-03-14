@@ -1,4 +1,4 @@
-use dxt_lossless_transform_utils::dds::DdsFormat;
+use dxt_lossless_transform_dds::dds::DdsFormat;
 
 #[repr(C)]
 pub struct DdsInfo {
@@ -15,7 +15,7 @@ pub struct DdsInfo {
 /// - `ptr` must be valid for reads of `len` bytes
 #[no_mangle]
 pub unsafe extern "C" fn is_dds(ptr: *const u8, len: usize) -> bool {
-    dxt_lossless_transform_utils::dds::is_dds(ptr, len)
+    dxt_lossless_transform_dds::dds::is_dds(ptr, len)
 }
 
 /// Attempts to parse the data format of a DDS file from the given pointer and length.
@@ -35,7 +35,7 @@ pub unsafe extern "C" fn is_dds(ptr: *const u8, len: usize) -> bool {
 /// If the format is an unsupported one, then [`DdsFormat`] will be [`DdsFormat::Unknown`].
 #[no_mangle]
 pub unsafe extern "C" fn parse_dds(ptr: *const u8, len: usize) -> DdsInfo {
-    if let Some(info) = dxt_lossless_transform_utils::dds::parse_dds(ptr, len) {
+    if let Some(info) = dxt_lossless_transform_dds::dds::parse_dds(ptr, len) {
         DdsInfo {
             format: info.format,
             data_offset: info.data_offset,

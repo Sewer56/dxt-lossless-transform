@@ -29,4 +29,4 @@ dxt-lossless-transform-bc1 = { path = "../dxt-lossless-transform-bc1" }
 dxt-lossless-transform-bc2 = { path = "../dxt-lossless-transform-bc2" }
 dxt-lossless-transform-bc3 = { path = "../dxt-lossless-transform-bc3" }
 dxt-lossless-transform-bc7 = { path = "../dxt-lossless-transform-bc7" }
-dxt-lossless-transform-utils = { path = "../dxt-lossless-transform-utils" }
+dxt-lossless-transform-dds = { path = "../dxt-lossless-transform-dds" }

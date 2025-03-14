@@ -75,7 +75,7 @@ pub unsafe fn split_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        split_colours::u32(input_ptr, output_ptr, len)
+        u32(input_ptr, output_ptr, len)
     }
 }
 

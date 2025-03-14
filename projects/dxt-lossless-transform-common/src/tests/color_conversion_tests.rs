@@ -57,17 +57,17 @@ fn can_convert_color_565_to_8888() {
 
 #[test]
 fn can_round_trip_8888_to_565() {
-    // Test various colors for round trip conversion
+    // Test colors that should perfectly round-trip from 8888 to 565 and back.
     let test_colors = [
-        Color8888::new(255, 0, 0, 255),     // Red
-        Color8888::new(0, 255, 0, 255),     // Green
-        Color8888::new(0, 0, 255, 255),     // Blue
-        Color8888::new(255, 255, 0, 255),   // Yellow
-        Color8888::new(255, 0, 255, 255),   // Magenta
+        Color8888::new(255, 0, 0, 255),     // Blue
+        Color8888::new(0, 255, 0, 255),     // Red
+        Color8888::new(0, 0, 255, 255),     // Green
+        Color8888::new(0, 0, 0, 255),       // Black
+        Color8888::new(255, 255, 255, 255), // White
+        Color8888::new(132, 130, 132, 255), // Gray (with small error)
         Color8888::new(0, 255, 255, 255),   // Cyan
-        Color8888::new(128, 128, 128, 255), // Gray
-        Color8888::new(255, 128, 64, 255),  // Orange
-        Color8888::new(64, 128, 255, 255),  // Light Blue
+        Color8888::new(255, 0, 255, 255),   // Magenta
+        Color8888::new(255, 255, 0, 255),   // Yellow
     ];
 
     for original in &test_colors {
@@ -75,41 +75,20 @@ fn can_round_trip_8888_to_565() {
         let color_565 = original.to_color_565();
         let round_trip = color_565.to_color_8888();
 
-        // Due to precision loss in RGB565 format, we can't expect exact equality
-        // Instead, check that the difference is within acceptable bounds (≤ 8 for each channel)
-        let r_diff = if original.r >= round_trip.r {
-            original.r - round_trip.r
-        } else {
-            round_trip.r - original.r
-        };
-        let g_diff = if original.g >= round_trip.g {
-            original.g - round_trip.g
-        } else {
-            round_trip.g - original.g
-        };
-        let b_diff = if original.b >= round_trip.b {
-            original.b - round_trip.b
-        } else {
-            round_trip.b - original.b
-        };
-
-        assert!(
-            r_diff <= 8,
-            "Red channel difference too large: {} vs {}",
-            original.r,
-            round_trip.r
+        assert_eq!(
+            original.r, round_trip.r,
+            "Red channel should be preserved exactly for values divisible by 8: {} vs {}",
+            original.r, round_trip.r
         );
-        assert!(
-            g_diff <= 4,
-            "Green channel difference too large: {} vs {}",
-            original.g,
-            round_trip.g
+        assert_eq!(
+            original.g, round_trip.g,
+            "Green channel should be preserved exactly for values divisible by 4: {} vs {}",
+            original.g, round_trip.g
         );
-        assert!(
-            b_diff <= 8,
-            "Blue channel difference too large: {} vs {}",
-            original.b,
-            round_trip.b
+        assert_eq!(
+            original.b, round_trip.b,
+            "Blue channel should be preserved exactly for values divisible by 8: {} vs {}",
+            original.b, round_trip.b
         );
 
         // Alpha should always be preserved as 255

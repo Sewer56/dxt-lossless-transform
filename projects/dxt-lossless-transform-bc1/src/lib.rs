@@ -3,6 +3,7 @@
 
 use split_blocks::{split::split_blocks, unsplit_blocks};
 pub mod split_blocks;
+pub mod util;
 
 /// The information about the BC1 transform that was just performed.
 /// Each item transformed via [`transform_bc1`] will produce an instance of this struct.

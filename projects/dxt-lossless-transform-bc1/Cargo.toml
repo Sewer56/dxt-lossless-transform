@@ -37,3 +37,8 @@ harness = false
 name = "unsplit_blocks"
 path = "benches/unsplit_blocks/main.rs"
 harness = false
+
+[[bench]]
+name = "block_decode"
+path = "benches/block_decode/main.rs"
+harness = false

@@ -16,8 +16,19 @@ pub struct Pixel {
 }
 
 impl Pixel {
-    /// Creates a new pixel from RGBA components
-    pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
+    /// Constructs a new `Pixel` from the specified red, green, blue, and alpha components.
+    ///
+    /// Each parameter represents the intensity of its corresponding colour channel (0–255).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let pixel = Pixel::new(255, 0, 0, 255);
+    /// assert_eq!(pixel.r, 255);
+    /// assert_eq!(pixel.g, 0);
+    /// assert_eq!(pixel.b, 0);
+    /// assert_eq!(pixel.a, 255);
+    /// ```    pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { r, g, b, a }
     }
 }
@@ -30,8 +41,19 @@ pub struct DecodedBc1Block {
 }
 
 impl DecodedBc1Block {
-    /// Creates a new decoded block filled with the specified pixel
-    pub fn new(pixel: Pixel) -> Self {
+    /// Constructs a new decoded BC1 block initialised with 16 copies of the provided pixel.
+    ///
+    /// This function creates a 4x4 block where every pixel is set to the specified value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::{DecodedBc1Block, Pixel};
+    ///
+    /// let pixel = Pixel { r: 255, g: 0, b: 0, a: 255 };
+    /// let block = DecodedBc1Block::new(pixel);
+    /// assert!(block.pixels.iter().all(|&p| p == pixel));
+    /// ```    pub fn new(pixel: Pixel) -> Self {
         Self {
             pixels: [pixel; 16],
         }
@@ -43,6 +65,26 @@ impl DecodedBc1Block {
     ///
     /// The caller must ensure that `x < 4` and `y < 4`.
     #[inline]
+    /// Retrieves a pixel at the specified (x, y) coordinate without performing bounds checking.
+    ///
+    /// # Safety
+    ///
+    /// Calling this function with coordinates outside the valid range (0 <= x < 4 and 0 <= y < 4)
+    /// results in undefined behaviour. The caller must ensure the indices are valid for a 4x4 pixel block.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::bc1_decode::{Pixel, DecodedBc1Block};
+    ///
+    /// let red = Pixel::new(255, 0, 0, 255);
+    /// let block = DecodedBc1Block::new(red);
+    ///
+    /// unsafe {
+    ///     let pixel = block.get_pixel_unchecked(0, 0);
+    ///     assert_eq!(pixel, red);
+    /// }
+    /// ```
     pub unsafe fn get_pixel_unchecked(&self, x: usize, y: usize) -> Pixel {
         *self.pixels.get_unchecked(y * 4 + x)
     }
@@ -53,6 +95,22 @@ impl DecodedBc1Block {
     ///
     /// The caller must ensure that `x < 4` and `y < 4`.
     #[inline]
+    /// Sets the pixel at the specified `(x, y)` coordinate in a 4x4 block without bounds checking.
+    ///
+    /// # Safety
+    ///
+    /// This function does not check that the coordinates `(x, y)` are within the valid range (0 to 3).
+    /// The caller must ensure that `x < 4` and `y < 4` to prevent undefined behaviour.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use crate::bc1_decode::{DecodedBc1Block, Pixel};
+    /// let mut block = DecodedBc1Block::new(Pixel::new(0, 0, 0, 255));
+    /// unsafe {
+    ///     block.set_pixel_unchecked(1, 2, Pixel::new(255, 0, 0, 255));
+    /// }
+    /// ```
     pub unsafe fn set_pixel_unchecked(&mut self, x: usize, y: usize, pixel: Pixel) {
         *self.pixels.get_unchecked_mut(y * 4 + x) = pixel;
     }
@@ -88,6 +146,29 @@ impl DecodedBc1Block {
 /// }
 /// ```
 #[inline]
+/// Decodes a BC1 (DXT1) compressed block into a 4x4 pixel array.
+/// 
+/// This function reads 8 bytes from the raw pointer `src`, where the first four bytes encode two colour endpoints
+/// and the next four bytes encode pixel indices. It then interpolates additional colours based on the BC1 specification,
+/// using either a four-colour or a three-colour (with a transparent pixel) mode depending on the ordering of the endpoints.
+/// The resulting 4x4 grid of pixels is returned as a `DecodedBc1Block`.
+/// 
+/// # Safety
+/// 
+/// This function is unsafe because it dereferences a raw pointer. The caller must ensure that `src` points to at least
+/// 8 contiguous bytes of valid memory.
+/// 
+/// # Examples
+/// 
+/// ```
+/// # use crate::bc1_decode::{decode_bc1_block, DecodedBc1Block, Pixel};
+/// // Sample 8-byte BC1 block data (the values here are for demonstration purposes).
+/// let data: [u8; 8] = [0x7C, 0x1F, 0x00, 0x00, 0b11001100, 0, 0, 0];
+/// let block = unsafe { decode_bc1_block(data.as_ptr()) };
+/// 
+/// // Verify that the decoded block contains 16 pixels forming a 4x4 grid.
+/// assert_eq!(block.pixels.len(), 16);
+/// ```
 pub unsafe fn decode_bc1_block(src: *const u8) -> DecodedBc1Block {
     // Extract color endpoints and index data
     let c0: u16 = u16::from_le_bytes([*src, *src.add(1)]);
@@ -150,8 +231,30 @@ pub unsafe fn decode_bc1_block(src: *const u8) -> DecodedBc1Block {
 ///
 /// # Panics
 ///
-/// Panics if the input slice contains fewer than 8 bytes
-pub fn decode_bc1_block_from_slice(src: &[u8]) -> DecodedBc1Block {
+/// Decodes a BC1 block from a byte slice.
+///
+/// This function serves as a safe wrapper around the unsafe `decode_bc1_block` function by
+/// interpreting the first 8 bytes of the input slice as a BC1 compressed block and decoding it
+/// into a 4x4 block of RGBA pixels.
+///
+/// # Panics
+///
+/// Panics if the input slice contains fewer than 8 bytes.
+///
+/// # Examples
+///
+/// ```
+/// use your_crate::decode_bc1_block_from_slice;
+/// use your_crate::DecodedBc1Block;
+///
+/// // Example BC1 block data (8 bytes). Replace with actual compressed data as needed.
+/// let bc1_data: [u8; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
+/// let block: DecodedBc1Block = decode_bc1_block_from_slice(&bc1_data);
+///
+/// // Access a pixel from the decoded block (coordinates must be valid).
+/// let pixel = block.get_pixel_unchecked(0, 0);
+/// // Use the pixel as needed...
+/// ```pub fn decode_bc1_block_from_slice(src: &[u8]) -> DecodedBc1Block {
     debug_assert!(src.len() >= 8, "BC1 block must be at least 8 bytes");
     unsafe { decode_bc1_block(src.as_ptr()) }
 }

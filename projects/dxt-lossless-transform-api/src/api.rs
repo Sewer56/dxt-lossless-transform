@@ -1,6 +1,5 @@
 use core::ptr::copy_nonoverlapping;
-
-pub use dxt_lossless_transform_utils::dds::*;
+pub use dxt_lossless_transform_dds::dds::*;
 
 /// Transforms data from the standard format to one that is more suitable for compression.
 ///

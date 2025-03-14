@@ -1,8 +1,8 @@
 [package]
-name = "dxt-lossless-transform-utils"
+name = "dxt-lossless-transform-dds"
 version = "0.1.0"
 edition = "2021"
-description = "Supporting utilities for the dxt-lossless-transform crate. Such as parsing DDSes, etc."
+description = "Adds DDS support for the dxt-lossless-transform crate."
 repository = "https://github.com/Sewer56/dxt-lossless-transform"
 license-file = "LICENSE"
 include = ["src/**/*"]
@@ -16,7 +16,7 @@ default = ["std"]
 std = []
 
 [dependencies]
-rstest = "0.23.0"
+rstest = "0.25.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dev-dependencies]

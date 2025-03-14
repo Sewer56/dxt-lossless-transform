@@ -8,8 +8,23 @@ pub mod split_blocks;
 /// To undo the transform, you'll need to pass the same instance to [`untransform_bc2`].
 pub struct BC2TransformDetails {}
 
-/// Transform BC2 data from standard interleaved format to separated alpha/color/index format
-/// using the best known implementation for the current CPU.
+/// Transform BC2 data into a more compressible format.
+///
+/// # Parameters
+///
+/// - `input_ptr`: A pointer to the input data (input BC2 blocks)
+/// - `output_ptr`: A pointer to the output data (output BC2 blocks)
+/// - `len`: The length of the input data in bytes
+///
+/// # Returns
+///
+/// A struct informing you how the file was transformed. You will need this to call the
+/// [`untransform_bc2`] function.
+///
+/// # Remarks
+///
+/// The transform is lossless, in the sense that each pixel will produce an identical value upon
+/// decode, however, it is not guaranteed that after decode, the file will produce an identical hash.
 ///
 /// # Safety
 ///
@@ -28,8 +43,21 @@ pub unsafe fn transform_bc2(
     BC2TransformDetails {}
 }
 
-/// Transform BC2 data from separated alpha/color/index format back to standard interleaved format
-/// using best known implementation for current CPU.
+/// Untransform BC2 file back to its original format.
+///
+/// # Parameters
+///
+/// - `input_ptr`: A pointer to the input data (input BC2 blocks).
+///   Output from [`transform_bc2`].
+/// - `output_ptr`: A pointer to the output data (output BC2 blocks)
+/// - `len`: The length of the input data in bytes
+/// - `_details`: A struct containing information about the transform that was performed
+///   obtained from the original call to [`transform_bc2`].
+///
+/// # Remarks
+///
+/// The transform is lossless, in the sense that each pixel will produce an identical value upon
+/// decode, however, it is not guaranteed that after decode, the file will produce an identical hash.
 ///
 /// # Safety
 ///

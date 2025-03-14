@@ -17,6 +17,16 @@ pub struct Bc1TransformDetails {}
 /// - `output_ptr`: A pointer to the output data (output BC1 blocks)
 /// - `len`: The length of the input data in bytes
 ///
+/// # Returns
+///
+/// A struct informing you how the file was transformed. You will need this to call the
+/// [`untransform_bc1`] function.
+///
+/// # Remarks
+///
+/// The transform is lossless, in the sense that each pixel will produce an identical value upon
+/// decode, however, it is not guaranteed that after decode, the file will produce an identical hash.
+///
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
@@ -34,8 +44,21 @@ pub unsafe fn transform_bc1(
     Bc1TransformDetails {}
 }
 
-/// Transform BC1 data from separated color/index format back to standard interleaved format
-/// using best known implementation for current CPU.
+/// Untransform BC1 file back to its original format.
+///
+/// # Parameters
+///
+/// - `input_ptr`: A pointer to the input data (input BC1 blocks).
+///   Output from [`transform_bc1`].
+/// - `output_ptr`: A pointer to the output data (output BC1 blocks)
+/// - `len`: The length of the input data in bytes
+/// - `_details`: A struct containing information about the transform that was performed
+///   obtained from the original call to [`transform_bc1`].
+///
+/// # Remarks
+///
+/// The transform is lossless, in the sense that each pixel will produce an identical value upon
+/// decode, however, it is not guaranteed that after decode, the file will produce an identical hash.
 ///
 /// # Safety
 ///

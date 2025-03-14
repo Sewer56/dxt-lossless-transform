@@ -8,8 +8,23 @@ pub mod split_blocks;
 /// To undo the transform, you'll need to pass the same instance to [`untransform_bc3`].
 pub struct BC3TransformDetails {}
 
-/// Transform bc3 data from standard interleaved format to separated alpha/color/index format
-/// using the best known implementation for the current CPU.
+/// Transform BC3 data into a more compressible format.
+///
+/// # Parameters
+///
+/// - `input_ptr`: A pointer to the input data (input BC3 blocks)
+/// - `output_ptr`: A pointer to the output data (output BC3 blocks)
+/// - `len`: The length of the input data in bytes
+///
+/// # Returns
+///
+/// A struct informing you how the file was transformed. You will need this to call the
+/// [`untransform_bc3`] function.
+///
+/// # Remarks
+///
+/// The transform is lossless, in the sense that each pixel will produce an identical value upon
+/// decode, however, it is not guaranteed that after decode, the file will produce an identical hash.
 ///
 /// # Safety
 ///
@@ -28,8 +43,21 @@ pub unsafe fn transform_bc3(
     BC3TransformDetails {}
 }
 
-/// Transform bc3 data from separated alpha/color/index format back to standard interleaved format
-/// using best known implementation for current CPU.
+/// Untransform BC3 file back to its original format.
+///
+/// # Parameters
+///
+/// - `input_ptr`: A pointer to the input data (input BC3 blocks).
+///   Output from [`transform_bc3`].
+/// - `output_ptr`: A pointer to the output data (output BC3 blocks)
+/// - `len`: The length of the input data in bytes
+/// - `_details`: A struct containing information about the transform that was performed
+///   obtained from the original call to [`transform_bc3`].
+///
+/// # Remarks
+///
+/// The transform is lossless, in the sense that each pixel will produce an identical value upon
+/// decode, however, it is not guaranteed that after decode, the file will produce an identical hash.
 ///
 /// # Safety
 ///

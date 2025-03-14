@@ -24,13 +24,25 @@ impl Color565 {
     /// - `b`: The blue component (0-255)
     #[inline]
     pub fn from_rgb(r: u8, g: u8, b: u8) -> Self {
-        let r = (r as u16 >> 3) & 0b11111;
-        let g = (g as u16 >> 2) & 0b111111;
-        let b = (b as u16 >> 3) & 0b11111;
-
+        // Implementation matches etcpak's optimized to565 function
+        // Source: https://github.com/wolfpld/etcpak/blob/master/ProcessDxtc.cpp
+        // This approach calculates the entire value in one expression, potentially allowing
+        // better compiler optimizations.
         Self {
-            value: (r << 11) | (g << 5) | b,
+            value: ((r as u16 & 0xF8) << 8) | ((g as u16 & 0xFC) << 3) | (b as u16 >> 3),
         }
+
+        // Original implementation (me):
+        //   Computes to same thing, but just for compiler's sake, using the above.
+        //
+        // let r = (r as u16 >> 3) & 0b11111;
+        // let g = (g as u16 >> 2) & 0b111111;
+        // let b = b as u16 >> 3;
+        //
+        // Self {
+        //     value: (r << 11) | (g << 5) | b,
+        // }
+        //
     }
 
     /// Returns the raw 16-bit value

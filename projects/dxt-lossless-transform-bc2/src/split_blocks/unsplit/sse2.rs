@@ -98,8 +98,8 @@ pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: us
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bc2::split_blocks::tests::generate_bc2_test_data;
-    use crate::bc2::split_blocks::u32;
+    use crate::split_blocks::split::tests::generate_bc2_test_data;
+    use crate::split_blocks::split::u32;
     use rstest::rstest;
 
     type DetransformFn = unsafe fn(*const u8, *mut u8, usize);

@@ -22,12 +22,8 @@ pub unsafe fn transform_format(
 ) {
     match format {
         DdsFormat::Unknown => { /* no-op */ }
-        DdsFormat::BC1 => {
-            dxt_lossless_transform_bc1::bc1::transform_bc1(input_ptr, output_ptr, len)
-        }
-        DdsFormat::BC2 => {
-            dxt_lossless_transform_bc2::bc2::transform_bc2(input_ptr, output_ptr, len)
-        }
+        DdsFormat::BC1 => dxt_lossless_transform_bc1::split_blocks::split_blocks(input_ptr, output_ptr, len),
+        DdsFormat::BC2 => dxt_lossless_transform_bc2::split_blocks::split_blocks(input_ptr, output_ptr, len),
         DdsFormat::BC3 => {
             dxt_lossless_transform_bc3::bc3::transform_bc3(input_ptr, output_ptr, len)
         }
@@ -59,10 +55,10 @@ pub unsafe fn untransform_format(
     match format {
         DdsFormat::Unknown => { /* no-op */ }
         DdsFormat::BC1 => {
-            dxt_lossless_transform_bc1::bc1::untransform_bc1(input_ptr, output_ptr, len)
+            dxt_lossless_transform_bc1::split_blocks::unsplit_blocks(input_ptr, output_ptr, len)
         }
         DdsFormat::BC2 => {
-            dxt_lossless_transform_bc2::bc2::untransform_bc2(input_ptr, output_ptr, len)
+            dxt_lossless_transform_bc2::split_blocks::unsplit_blocks(input_ptr, output_ptr, len)
         }
         DdsFormat::BC3 => {
             dxt_lossless_transform_bc3::bc3::untransform_bc3(input_ptr, output_ptr, len)
@@ -85,7 +81,7 @@ pub unsafe fn untransform_format(
 /// - It is recommended that `input_ptr` and `output_ptr` are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
 pub unsafe fn transform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    dxt_lossless_transform_bc1::bc1::transform_bc1(input_ptr, output_ptr, len)
+    dxt_lossless_transform_bc1::split_blocks::split_blocks(input_ptr, output_ptr, len)
 }
 
 /// Transform BC1 data from separated color/index format back to standard interleaved format.
@@ -101,7 +97,7 @@ pub unsafe fn transform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
 /// - `input_ptr` and `output_ptr` must be 64-byte aligned (for performance and required by some platforms).
 #[inline]
 pub unsafe fn untransform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    dxt_lossless_transform_bc1::bc1::untransform_bc1(input_ptr, output_ptr, len)
+    dxt_lossless_transform_bc1::split_blocks::unsplit_blocks(input_ptr, output_ptr, len)
 }
 
 /// Transform BC2 data from standard interleaved format to separated color/index format
@@ -118,7 +114,7 @@ pub unsafe fn untransform_bc1(input_ptr: *const u8, output_ptr: *mut u8, len: us
 /// - It is recommended that `input_ptr` and `output_ptr` are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
 pub unsafe fn transform_bc2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    dxt_lossless_transform_bc2::bc2::transform_bc2(input_ptr, output_ptr, len)
+    dxt_lossless_transform_bc2::split_blocks::split_blocks(input_ptr, output_ptr, len)
 }
 
 /// Transform BC2 data from separated color/index format back to standard interleaved format.
@@ -134,7 +130,7 @@ pub unsafe fn transform_bc2(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
 /// - `input_ptr` and `output_ptr` must be 64-byte aligned (for performance and required by some platforms).
 #[inline]
 pub unsafe fn untransform_bc2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    dxt_lossless_transform_bc2::bc2::untransform_bc2(input_ptr, output_ptr, len)
+    dxt_lossless_transform_bc2::split_blocks::unsplit_blocks(input_ptr, output_ptr, len)
 }
 
 /// Transform BC3 data from standard interleaved format to separated color/index format

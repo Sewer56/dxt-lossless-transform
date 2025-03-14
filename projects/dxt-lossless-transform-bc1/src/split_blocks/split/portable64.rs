@@ -435,8 +435,8 @@ pub unsafe fn shift_with_count_unroll_8(input_ptr: *const u8, output_ptr: *mut u
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bc1::split_blocks::tests::generate_bc1_test_data;
-    use crate::bc1::split_blocks::tests::transform_with_reference_implementation;
+    use crate::split_blocks::split::tests::generate_bc1_test_data;
+    use crate::split_blocks::split::tests::transform_with_reference_implementation;
     use rstest::rstest;
 
     // Define the function pointer type

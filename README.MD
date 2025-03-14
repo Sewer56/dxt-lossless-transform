@@ -9,7 +9,8 @@
 ## About
 
 This crates provide fast lossless transforms for DDS files that improve their compression ratio
-once compressed by external compressors.
+once compressed by external compressors. These transforms reduce the size of the files, once
+compressed, and improve load speed, by making the data faster to decompress.
 
 ## Project Layout
 

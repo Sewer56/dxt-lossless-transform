@@ -77,7 +77,7 @@ unsafe fn split_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len: u
 /// - len must be divisible by 16
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn split_blocks_bc2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub unsafe fn split_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -93,7 +93,7 @@ pub unsafe fn split_blocks_bc2(input_ptr: *const u8, output_ptr: *mut u8, len: u
 
 #[cfg(test)]
 pub mod tests {
-    use crate::bc2::split_blocks::portable32::u32;
+    use crate::split_blocks::split::portable32::u32;
     use crate::testutils::allocate_align_64;
     use safe_allocator_api::RawAlloc;
 

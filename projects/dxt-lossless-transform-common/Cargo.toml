@@ -16,5 +16,5 @@ pgo = []
 # Use CPU features selected at compile time.
 no-runtime-cpu-detection = []
 
-[dependencies]
+[dev-dependencies]
 rstest = "0.25.0"

@@ -17,12 +17,12 @@ pgo = []
 no-runtime-cpu-detection = []
 
 [dependencies]
-rstest = "0.25.0"
 dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dev-dependencies]
 criterion = "0.5.1"
+rstest = "0.25.0"
 safe-allocator-api = "0.3.0"
 
 [target.'cfg(unix)'.dev-dependencies]

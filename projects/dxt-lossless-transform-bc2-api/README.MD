@@ -60,6 +60,8 @@ kanzi 7    167.71 MiB      22.34%
 
 #### Performance
 
+Benchmark code can be found [in the dxt-lossless-transform-bc2](https://github.com/Sewer56/dxt-lossless-transform/tree/main/projects/dxt-lossless-transform-bc2) project.
+
 On a 5900X, with DDR4 3200, CL16 RAM the bc2 transform runs at approx:
 
 Transform bc2 (`split_blocks`):

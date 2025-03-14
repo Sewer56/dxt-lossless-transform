@@ -9,7 +9,7 @@ pub use sse2::*;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
-unsafe fn untransform_bc3_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     // SSE2 is required by x86-64, so no check needed
     // On i686, this is slower, so skipped.
     #[cfg(target_arch = "x86_64")]
@@ -46,12 +46,12 @@ unsafe fn untransform_bc3_x86(input_ptr: *const u8, output_ptr: *mut u8, len: us
 /// - len must be divisible by 16
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn unsplit_blocks_bc3(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
-        untransform_bc3_x86(input_ptr, output_ptr, len)
+        unsplit_blocks_x86(input_ptr, output_ptr, len)
     }
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]

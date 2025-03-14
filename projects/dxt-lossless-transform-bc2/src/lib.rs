@@ -18,9 +18,14 @@ pub struct BC2TransformDetails {}
 /// - len must be divisible by 16
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn transform_bc2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub unsafe fn transform_bc2(
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+) -> BC2TransformDetails {
     debug_assert!(len % 16 == 0);
     split_blocks::split_blocks(input_ptr, output_ptr, len);
+    BC2TransformDetails {}
 }
 
 /// Transform BC2 data from separated alpha/color/index format back to standard interleaved format
@@ -33,7 +38,12 @@ pub unsafe fn transform_bc2(input_ptr: *const u8, output_ptr: *mut u8, len: usiz
 /// - len must be divisible by 16
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn untransform_bc2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub unsafe fn untransform_bc2(
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+    _details: BC2TransformDetails,
+) {
     debug_assert!(len % 16 == 0);
     split_blocks::unsplit_blocks(input_ptr, output_ptr, len);
 }

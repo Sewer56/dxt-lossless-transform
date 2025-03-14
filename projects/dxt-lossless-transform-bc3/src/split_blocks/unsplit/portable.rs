@@ -176,8 +176,8 @@ pub unsafe fn u64_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bc3::split_blocks::tests::generate_bc3_test_data;
-    use crate::bc3::split_blocks::u32;
+    use crate::split_blocks::split::tests::generate_bc3_test_data;
+    use crate::split_blocks::split::u32;
     use rstest::rstest;
 
     type DetransformFn = unsafe fn(*const u8, *mut u8, usize);

@@ -6,108 +6,65 @@
 
 ## About
 
-This crate provides a fast, visually lossless transform for the BC3 block format.
+This crate provides the implementation of a fast, visually lossless transform for the BC3 block format.  
+This is the low level implementation for the crate. For the high level API, see [dxt-lossless-transform-bc3-api].  
 
-## Reference Numbers
+## Low Level Details
 
-Dataset is the following
+This describes the tricks used under the hood, in a short concise manner, for in depth explanation,
+navigate to the corresponding links in each section.
 
-```text
-.
-├── 202x-architecture-10.01
-├── 202x-landscape-10.01
-├── 3dnpc-loose-latest
-├── book-of-silence-se-1.9.1
-├── embers-xd-3.0.8
-├── glorious-doors-of-skyrim-1.1
-├── majestic-mountains-402
-├── noble-skyrim-2k
-├── ruins-clutter-improved-se-3.2
-├── skyland-aio-4.32
-└── skyrim-flora-overhaul-with-grass
-```
+### Splitting Blocks
 
-A bunch of Skyrim mods, from Nexus, obtained by sorting by most downloaded under the 'texture'
-category. All non .DDS files were removed.
+We split BC3 blocks into two separate arrays of colours and indices.
 
-Original data contained 1138 files, totalling 5.00GiB.
+#### Original BC3 data layout (as received from file)
 
-### Fast Mode (Split Transform Only)
-
-#### Before
+Two 16-bit colours (4 bytes total) followed by 4 bytes of indices:
 
 ```text
-Tool       Size            Ratio 
----------------------------------
-zlib       3.56 GiB        71.09%
-zstd 22    3.28 GiB        65.51%
-bzip3 16m  2.89 GiB        57.73%
-kanzi 7    2.89 GiB        57.88%
-7z         2.98 GiB        59.64%
+Address: 0       2        8       12      16  16      18        24      28      32
+         +-------+--------+-------+-------+   +-------+---------+-------+-------+
+Data:    | A0-A1 |AIdx0-47| C0-C1 |I0-I15 |   | A2-A3 |AIdx48-95| C2-C3 |I16-I31|
+         +-------+--------+-------+-------+   +-------+---------+-------+-------+
 ```
 
-#### After
+Each 16-byte block contains:
+- 8 bytes of explicit alpha (sixteen 4-bit alpha values)
+- 4 bytes colours (2x RGB565 values)
+- 4 bytes of packed color indices (sixteen 2-bit indices)
+
+#### Optimized layout
+
+Separates colours and indices into continuous streams:
 
 ```text
-Tool       Size            Ratio 
----------------------------------
-zlib       3.12 GiB        62.37%
-zstd 22    2.95 GiB        59.06%
-bzip3 16m  2.75 GiB        54.92%
-kanzi 7    2.75 GiB        55.07%
-7z         2.83 GiB        56.59%
++-------+-------+-------+     +-------+  } Alpha endpoints section
+| A0-A1 | A2-A3 | A4-A5 | ... | AN    |  } (2 bytes per block: 2x 8-bit)
++-------+-------+-------+     +-------+
++-------+-------+-------+     +-------+  } Alpha indices section
+|AI0-47 |AI48-95|  ...  | ... |AI N   |  } (6 bytes per block: 16x 3-bit)
++-------+-------+-------+     +-------+
++-------+-------+-------+     +-------+  } Colours section
+|C0  C1 |C2  C3 |C4  C5 | ... |CN CN+1|  } (4 bytes per block: 2x RGB565)
++-------+-------+-------+     +-------+
++-------+-------+-------+     +-------+  } Indices section
+| Idx0  | Idx1  | Idx2  | ... | IdxN  |  } (4 bytes per block: 16x 2-bit)
++-------+-------+-------+     +-------+
 ```
 
-#### Performance
+### Making Solid Blocks Represented the Same Across Texture
 
-On a 5900X, with DDR4 3200, CL16 RAM the BC3 transform runs at approx:
+BC3 can represent solid color blocks in multiple ways, which hinders compression.
 
-Transform BC3 (`bc3_transform`):
+- TODO
 
-- Mixed AVX2+Scalar (Intrinsics, x86-64): 17.343 GiB/s `avx2`
-- Mixed AVX2+Scalar (Intrinsics, i686): 16.712 GiB/s `avx2`
-- Compiler (x86-64, Rust + LLVM, no SIMD): 11.576 GiB/s `portable32 no-unroll`
-- Compiler (i686, Rust + LLVM, no SIMD): 10.510 GiB/s `portable32 no-unroll`
+### Decorrelating Colours
 
-Detransform BC3 (`bc3_detransform`):
+An increase in one colour channel often means an increase in others.
+We can apply `decorrelation` to improve compression ratio in such cases.
 
-- SSE2 (x86-64, 64-bit only): 22.234 GiB/s `u64 sse2`
-- Compiler (x86-64, 64-bit only, Rust + LLVM, no SIMD): 19.031 GiB/s `portable64 no-unroll`
-- Compiler (x86-64, 32 & 64-bit, Rust + LLVM, no SIMD): 15.851 GiB/s `portable32 v2`
-- Compiler (x86-64, Rust + LLVM, no SIMD): 15.405 GiB/s `portable32 no-unroll`
-- SSE2 (x86-64, 32-bit): 13.668 GiB/s `u32 sse2` (disabled by default)
-
-BC3 is tricky, because it has 2 and 6 byte fields, making them SIMD unfriendly.
-AVX2 has 'gather' for loading, but not 'scatter' for storing. 
-
-Portable 64-bit implementation did not yield performance benefits for transform/untransform.
-
-You can run the benchmarks like this (example):
-
-```bash,ignore
-cargo bench -p dxt-lossless-transform-bc3 --bench unsplit_blocks -- "u64 sse2"
-```
-
-Measured on Linux with `performance` governor. 8MiB file (see: `projects/dxt-lossless-transform-bc3/benches`).
-These benches are sensitive to external load and CPU temperature, therefore we instead measured steady
-state performance, i.e. 60 seconds warmup (heat up the parts) and 60 seconds measurement.
-
-In general, the output of LLVM is on par with manually written routines, however the manually
-written routines are smaller in code size; more friendly with cache, etc.
-
-## Usage
-
-This crate is not yet released.
-
-## Testing (CLI)
-
-You can use the `dxt-lossless-transform-cli` tool to perform this transform on DDS files.
-
-```text
-./dxt-lossless-transform-cli transform --input textures --output textures-transformed
-```
-
-You can install it via `cargo install dxt-lossless-transform-cli`, or build it from source.
+- TODO
 
 ## Development
 
@@ -124,3 +81,4 @@ Licensed under [GPL v3 (with Reloaded FAQ)](./LICENSE).
 [docs]: https://dxt-lossless-transform.github.io/dxt-lossless-transform
 [reloaded-license]: https://reloaded-project.github.io/Reloaded.MkDocsMaterial.Themes.R2/Pages/license.html
 [readme-dev]: https://github.com/Sewer56/dxt-lossless-transform/blob/main/README-DEV.MD
+[dxt-lossless-transform-bc3-api]: https://github.com/Sewer56/dxt-lossless-transform/tree/main/projects/dxt-lossless-transform-bc3-api

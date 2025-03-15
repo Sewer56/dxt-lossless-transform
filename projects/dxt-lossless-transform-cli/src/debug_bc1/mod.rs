@@ -100,7 +100,12 @@ fn validate_normalize_single(path: &Path) -> Result<bool, TransformError> {
 
     // Process through normalize_blocks
     unsafe {
-        normalize_blocks(content.as_ptr(), normalized.as_mut_ptr(), content.len());
+        normalize_blocks(
+            content.as_ptr(),
+            normalized.as_mut_ptr(),
+            content.len(),
+            false,
+        );
     }
 
     // Validate each block

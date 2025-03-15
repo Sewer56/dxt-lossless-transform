@@ -34,7 +34,7 @@
 //! ```
 //!
 //! We place the block's color in `Color0`, set `Color1` to zero, and set all indices to zero
-//! (represented by all-zero bytes in the indices section).
+//! (represented by all-zero bytes in the indices section). Can also be repeat of same byte.
 //!
 //! The implementation checks for this case by:
 //! 1. Decoding the block to get all 16 pixels
@@ -80,7 +80,7 @@
 //! 4. Write the normalized block to the output
 
 use crate::util::decode_bc1_block;
-use core::ptr::{copy_nonoverlapping, write_bytes};
+use core::ptr::copy_nonoverlapping;
 use likely_stable::unlikely;
 
 /// Reads an input of blocks from `input_ptr` and writes the normalized blocks to `output_ptr`.
@@ -90,14 +90,24 @@ use likely_stable::unlikely;
 /// - `input_ptr`: A pointer to the input data (input BC1 blocks)
 /// - `output_ptr`: A pointer to the output data (output BC1 blocks)
 /// - `len`: The length of the input data in bytes
+/// - `repeat_colour`: Whether to repeat the colour when writing the block
 ///
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
+///
+/// # Remarks
+///
+///
 #[inline]
-pub unsafe fn normalize_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub unsafe fn normalize_blocks(
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+    repeat_colour: bool,
+) {
     debug_assert!(len % 8 == 0);
 
     // Calculate pointers to current block
@@ -118,7 +128,7 @@ pub unsafe fn normalize_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: u
             // Check if the block is fully transparent
             if unlikely(pixel.a == 0) {
                 // Case 2: Fully transparent block - fill with 0xFF
-                write_bytes(dst_block_ptr, 0xFF, 8);
+                core::ptr::write_bytes(dst_block_ptr, 0xFF, 8);
             } else {
                 // Case 1: Solid color block
                 // Convert the color to RGB565
@@ -137,8 +147,13 @@ pub unsafe fn normalize_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: u
                     *dst_block_ptr.add(1) = color_bytes[1];
 
                     // Write Color1 = 0
-                    *dst_block_ptr.add(2) = 0;
-                    *dst_block_ptr.add(3) = 0;
+                    if repeat_colour {
+                        *dst_block_ptr.add(2) = color_bytes[0];
+                        *dst_block_ptr.add(3) = color_bytes[1];
+                    } else {
+                        *dst_block_ptr.add(2) = 0;
+                        *dst_block_ptr.add(3) = 0;
+                    }
 
                     // Write indices = 0
                     *dst_block_ptr.add(4) = 0;
@@ -202,7 +217,7 @@ mod tests {
 
         // Normalize the block
         unsafe {
-            normalize_blocks(block.as_ptr(), output.as_mut_ptr(), 8);
+            normalize_blocks(block.as_ptr(), output.as_mut_ptr(), 8, false);
         }
 
         // Check that the output matches expected
@@ -239,7 +254,7 @@ mod tests {
 
         // Normalize the block
         unsafe {
-            normalize_blocks(block.as_ptr(), output.as_mut_ptr(), 8);
+            normalize_blocks(block.as_ptr(), output.as_mut_ptr(), 8, false);
         }
 
         // Check that the output matches expected
@@ -274,7 +289,7 @@ mod tests {
 
         // Normalize the block
         unsafe {
-            normalize_blocks(block.as_ptr(), output.as_mut_ptr(), 8);
+            normalize_blocks(block.as_ptr(), output.as_mut_ptr(), 8, false);
         }
 
         // Check that the output is identical to the source (preserved as-is)
@@ -308,7 +323,7 @@ mod tests {
 
         // Normalize the block
         unsafe {
-            normalize_blocks(source.as_ptr(), output.as_mut_ptr(), 8);
+            normalize_blocks(source.as_ptr(), output.as_mut_ptr(), 8, false);
         }
 
         // Check that the output is identical to the source (preserved as-is)
@@ -367,7 +382,7 @@ mod tests {
 
         // Normalize both blocks
         unsafe {
-            normalize_blocks(source.as_ptr(), output.as_mut_ptr(), 16);
+            normalize_blocks(source.as_ptr(), output.as_mut_ptr(), 16, false);
         }
 
         // Check that the output matches expected

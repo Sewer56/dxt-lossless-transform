@@ -47,7 +47,7 @@ pub unsafe fn transform_bc1(
     debug_assert!(len % 8 == 0);
 
     let mut normalized = RawAlloc::new(Layout::from_size_align_unchecked(len, 64)).unwrap();
-    normalize_blocks::normalize_blocks(input_ptr, normalized.as_mut_ptr(), len);
+    normalize_blocks::normalize_blocks(input_ptr, normalized.as_mut_ptr(), len, false);
     split_blocks(normalized.as_ptr(), output_ptr, len);
     Bc1TransformDetails {}
 }

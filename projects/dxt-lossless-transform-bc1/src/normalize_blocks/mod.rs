@@ -324,11 +324,7 @@ mod tests {
     #[test]
     fn can_normalize_multiple_blocks() {
         // Create data for two blocks: one solid color and one transparent
-
-        // Block 1: Solid red
         let red565 = 0xF800u16.to_le_bytes();
-
-        // Block 2: Transparent
 
         // Source data for both blocks
         let mut source = [0u8; 16]; // Two blocks (8 bytes each)

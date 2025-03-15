@@ -25,7 +25,8 @@ pub enum DebugCommands {
     ValidateNormalize(ValidateCommand),
 }
 
-/// Validate BC1 blocks by processing them through normalize_blocks and checking if pixels match
+/// Validate BC1 block normalization code by processing them through normalize_blocks and
+/// checking if pixels match
 #[derive(FromArgs, Debug)]
 #[argh(subcommand, name = "validate-normalize")]
 pub struct ValidateCommand {

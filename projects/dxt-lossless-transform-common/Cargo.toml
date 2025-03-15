@@ -18,3 +18,12 @@ no-runtime-cpu-detection = []
 
 [dev-dependencies]
 rstest = "0.25.0"
+criterion = "0.5.1"
+safe-allocator-api = "0.3.0"
+
+[target.'cfg(unix)'.dev-dependencies]
+pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
+
+[[bench]]
+name = "color_decorrelation"
+harness = false

@@ -8,8 +8,13 @@ edition = "2021"
 # Currently a placeholder
 debug-bc7 = []
 
+# Debugging and Research Tools/Utilities for BC1
+debug-bc1 = ["dxt-lossless-transform-bc1", "safe-allocator-api"]
+
 [dependencies]
 argh = "0.1.13"
 rayon = "1.10.0"
 lightweight-mmap = "0.6.0"
 dxt-lossless-transform-api = { path = "../dxt-lossless-transform-api" }
+dxt-lossless-transform-bc1 = { optional = true, path = "../dxt-lossless-transform-bc1" }
+safe-allocator-api = { optional = true, version = "0.3.0" }

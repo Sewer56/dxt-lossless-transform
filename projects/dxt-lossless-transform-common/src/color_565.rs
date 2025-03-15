@@ -169,6 +169,7 @@ impl Color565 {
         self.value = ((y as u16) << 11) | ((co as u16) << 6) | (g_low << 5) | (cg as u16);
     }
 
+    /// [Variant 1: Usually compresses best]
     /// Transforms color from YCoCg-R back to RGB color space.
     ///
     /// This is the inverse of the decorrelation operation, following these steps:
@@ -216,6 +217,7 @@ impl Color565 {
         self.value = ((r as u16) << 11) | ((g as u16) << 6) | (g_low << 5) | (b as u16);
     }
 
+    /// [Variant 2: Faster recorrelate (marginally) for compression speed.]
     /// Transforms RGB color to YCoCg-R (reversible YCoCg) color space.
     ///
     /// YCoCg-R is a lifting-based variation of YCoCg that offers perfect reversibility.
@@ -266,6 +268,7 @@ impl Color565 {
         // Note: Marginal speed improvement on recorrelate by placing low bit in the top.
     }
 
+    /// [Variant 3: Sometimes better than variant 2.]
     /// Transforms color from YCoCg-R back to RGB color space.
     ///
     /// This is the inverse of the decorrelation operation, following these steps:

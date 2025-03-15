@@ -142,24 +142,25 @@ impl Color565 {
     /// ```
     #[no_mangle]
     pub fn decorrelate_ycocg_r(&mut self) {
+        // 0x1F == 0b11111
         // Extract RGB components
-        let r = (self.value >> 11) & 0b11111; // 5 bits for red
-        let g = (self.value >> 6) & 0b11111; // 5 top bits for green (ignoring bottom 1 bit)
-        let g_low = (self.value >> 5) & 0b1; // leftover bit for green
-        let b = self.value & 0b11111; // 5 bits for blue
+        let r = (self.value >> 11) & 0x1F; // 5 bits for red
+        let g = (self.value >> 6) & 0x1F; // 5 top bits for green (ignoring bottom 1 bit)
+        let g_low = (self.value >> 5) & 0x1; // leftover bit for green
+        let b = self.value & 0x1F; // 5 bits for blue
 
         // Apply YCoCg-R forward transform (all operations in 5-bit space)
         // Step 1: Co = R - B
-        let co = (r as i16 - b as i16) & 0b11111;
+        let co = (r as i16 - b as i16) & 0x1F;
 
         // Step 2: t = B + (Co >> 1)
-        let t = (b as i16 + (co >> 1)) & 0b11111;
+        let t = (b as i16 + (co >> 1)) & 0x1F;
 
         // Step 3: Cg = G - t
-        let cg = (g as i16 - t) & 0b11111;
+        let cg = (g as i16 - t) & 0x1F;
 
         // Step 4: Y = t + (Cg >> 1)
-        let y = (t + (cg >> 1)) & 0b11111;
+        let y = (t + (cg >> 1)) & 0x1F;
 
         // Pack into Color565 format:
         // - Y (5 bits) in red position
@@ -191,6 +192,7 @@ impl Color565 {
     /// ```
     #[no_mangle]
     pub fn recorrelate_ycocg_r(&mut self) {
+        // 0x1F == 0b11111
         // Extract YCoCg-R components
         let y = (self.value >> 11) & 0x1F; // 5 bits (Y in red position)
         let co = (self.value >> 6) & 0x1F; // 5 bits (Co in upper 5 bits of green position)

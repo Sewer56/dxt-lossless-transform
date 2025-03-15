@@ -49,7 +49,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             // Benchmark: run on the fresh copy
             |(_, clone_colors)| {
                 for color in clone_colors.iter_mut() {
-                    color.decorrelate_ycocg_r();
+                    color.decorrelate_ycocg_r_var2();
                 }
             },
             criterion::BatchSize::SmallInput,
@@ -63,7 +63,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     for (x, color) in decorrelated_colors.iter_mut().enumerate() {
         *color = input_colors[x];
-        color.decorrelate_ycocg_r();
+        color.decorrelate_ycocg_r_var2();
     }
 
     group.bench_function("recorrelate_ycocg_r", |b| {
@@ -80,7 +80,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             // Benchmark: run on the fresh copy
             |(_, clone_colors)| {
                 for color in clone_colors.iter_mut() {
-                    color.recorrelate_ycocg_r();
+                    color.recorrelate_ycocg_r_var2();
                 }
             },
             criterion::BatchSize::SmallInput,

@@ -140,7 +140,7 @@ impl Color565 {
     /// color.decorrelate_ycocg_r();
     /// // Color is now in YCoCg-R form
     /// ```
-    #[no_mangle]
+    #[inline]
     pub fn decorrelate_ycocg_r(&mut self) {
         // 0x1F == 0b11111
         // Extract RGB components
@@ -190,7 +190,7 @@ impl Color565 {
     /// decorrelated.recorrelate_ycocg_r();
     /// assert_eq!(decorrelated.raw_value(), original.raw_value());
     /// ```
-    #[no_mangle]
+    #[inline]
     pub fn recorrelate_ycocg_r(&mut self) {
         // 0x1F == 0b11111
         // Extract YCoCg-R components

@@ -80,7 +80,7 @@
 //! 4. Write the normalized block to the output
 
 use crate::util::decode_bc1_block;
-use core::ptr::copy_nonoverlapping;
+use core::ptr::{copy_nonoverlapping, write_bytes};
 use likely_stable::unlikely;
 
 /// Reads an input of blocks from `input_ptr` and writes the normalized blocks to `output_ptr`.
@@ -118,9 +118,7 @@ pub unsafe fn normalize_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: u
             // Check if the block is fully transparent
             if unlikely(pixel.a == 0) {
                 // Case 2: Fully transparent block - fill with 0xFF
-                for y in 0..8 {
-                    *dst_block_ptr.add(y) = 0xFF;
-                }
+                write_bytes(dst_block_ptr, 0xFF, 8);
             } else {
                 // Case 1: Solid color block
                 // Convert the color to RGB565

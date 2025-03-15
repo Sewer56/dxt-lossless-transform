@@ -2,6 +2,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use split_blocks::{split::split_blocks, unsplit_blocks};
+pub mod normalize_blocks;
 pub mod split_blocks;
 pub mod util;
 

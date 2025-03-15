@@ -1,7 +1,11 @@
 #![doc = include_str!(concat!("../", std::env!("CARGO_PKG_README")))]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use core::alloc::Layout;
+
+use safe_allocator_api::RawAlloc;
 use split_blocks::{split::split_blocks, unsplit_blocks};
+pub mod normalize_blocks;
 pub mod split_blocks;
 pub mod util;
 
@@ -41,7 +45,10 @@ pub unsafe fn transform_bc1(
     len: usize,
 ) -> Bc1TransformDetails {
     debug_assert!(len % 8 == 0);
-    split_blocks(input_ptr, output_ptr, len);
+
+    let mut normalized = RawAlloc::new(Layout::from_size_align_unchecked(len, 64)).unwrap();
+    normalize_blocks::normalize_blocks(input_ptr, normalized.as_mut_ptr(), len, false);
+    split_blocks(normalized.as_ptr(), output_ptr, len);
     Bc1TransformDetails {}
 }
 

@@ -58,10 +58,14 @@ BC2 can represent solid color blocks in multiple ways, which hinders compression
 
 ### Decorrelating Colours
 
-An increase in one colour channel often means an increase in others.
-We can apply `decorrelation` to improve compression ratio in such cases.
+An increase in one colour channel often means an increase in others. 
+i.e. They are `correlated`.
 
-- TODO
+We can often apply `decorrelation` to improve compression ratio in such cases.
+We apply the [YCoCg-R] transform to decorrelate the colours.
+
+Since the colours are stored in `565`, we use the upper 5 bits of the green endpoint, leaving the
+remaining bit untouched.
 
 ## Development
 

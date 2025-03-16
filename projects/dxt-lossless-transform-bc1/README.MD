@@ -76,10 +76,14 @@ with it.
 
 ### Decorrelating Colours
 
-An increase in one colour channel often means an increase in others.
-We can apply `decorrelation` to improve compression ratio in such cases.
+An increase in one colour channel often means an increase in others. 
+i.e. They are `correlated`.
 
-- TODO
+We can often apply `decorrelation` to improve compression ratio in such cases.
+We apply the [YCoCg-R] transform to decorrelate the colours.
+
+Since the colours are stored in `565`, we use the upper 5 bits of the green endpoint, leaving the
+remaining bit untouched.
 
 ## Development
 
@@ -97,3 +101,4 @@ Licensed under [GPL v3 (with Reloaded FAQ)](./LICENSE).
 [reloaded-license]: https://reloaded-project.github.io/Reloaded.MkDocsMaterial.Themes.R2/Pages/license.html
 [readme-dev]: https://github.com/Sewer56/dxt-lossless-transform/blob/main/README-DEV.MD
 [dxt-lossless-transform-bc1-api]: https://github.com/Sewer56/dxt-lossless-transform/tree/main/projects/dxt-lossless-transform-bc1-api
+[YCoCg-R]: https://en.wikipedia.org/wiki/YCoCg#The_lifting-based_YCoCg-R_variation

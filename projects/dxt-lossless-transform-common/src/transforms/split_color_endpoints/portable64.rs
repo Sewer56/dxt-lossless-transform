@@ -35,14 +35,11 @@ pub unsafe fn u64(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usiz
 
         // Extract and write four 2-byte values from the 8-byte chunk
         *output0 = get_first2bytes(color0);
-        output0 = output0.add(1);
         *output1 = get_second2bytes(color0);
-        output1 = output1.add(1);
-
-        *output0 = get_third2bytes(color0);
-        output0 = output0.add(1);
-        *output1 = get_fourth2bytes(color0);
-        output1 = output1.add(1);
+        *output0.add(1) = get_third2bytes(color0);
+        *output1.add(1) = get_fourth2bytes(color0);
+        output0 = output0.add(2);
+        output1 = output1.add(2);
     }
 }
 

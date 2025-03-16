@@ -150,8 +150,8 @@ mod tests {
             data.push(color1_byte);
             data.push(color1_byte.wrapping_add(1));
 
-            color0_byte = color0_byte.wrapping_add(4);
-            color1_byte = color1_byte.wrapping_add(4);
+            color0_byte = color0_byte.wrapping_add(2);
+            color1_byte = color1_byte.wrapping_add(2);
         }
 
         data
@@ -189,10 +189,10 @@ mod tests {
         let expected: Vec<u8> = vec![
             0x00, 0x01, // pair 1 color 0
             0x80, 0x81, // pair 1 color 1
-            0x04, 0x05, // pair 2 color 0
-            0x84, 0x85, // pair 2 color 1
-            0x08, 0x09, // pair 3 color 0
-            0x88, 0x89, // pair 3 color 1
+            0x02, 0x03, // pair 2 color 0
+            0x82, 0x83, // pair 2 color 1
+            0x04, 0x05, // pair 3 color 0
+            0x84, 0x85, // pair 3 color 1
         ];
 
         let output = generate_test_data(3);

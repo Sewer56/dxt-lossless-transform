@@ -119,4 +119,405 @@ impl Color565 {
     pub fn to_color_8888_with_alpha(&self, alpha: u8) -> Color8888 {
         Color8888::new(self.red(), self.green(), self.blue(), alpha)
     }
+
+    /// Transforms RGB color to YCoCg-R (reversible YCoCg) color space.
+    ///
+    /// YCoCg-R is a lifting-based variation of YCoCg that offers perfect reversibility.
+    /// This implementation treats all channels as 5-bit values for consistency.
+    ///
+    /// The YCoCg-R transformation follows these steps:
+    /// 1. Co = R - B
+    /// 2. t = B + (Co >> 1)
+    /// 3. Cg = G - t
+    /// 4. Y = t + (Cg >> 1)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_common::color_565::Color565;
+    ///
+    /// let mut color = Color565::from_rgb(255, 128, 64);
+    /// color.decorrelate_ycocg_r_var1();
+    /// // Color is now in YCoCg-R form
+    /// ```
+    #[inline]
+    pub fn decorrelate_ycocg_r_var1(&mut self) {
+        // 0x1F == 0b11111
+        // Extract RGB components
+        let r = (self.value >> 11) & 0x1F; // 5 bits for red
+        let g = (self.value >> 6) & 0x1F; // 5 top bits for green (ignoring bottom 1 bit)
+        let g_low = (self.value >> 5) & 0x1; // leftover bit for green
+        let b = self.value & 0x1F; // 5 bits for blue
+
+        // Apply YCoCg-R forward transform (all operations in 5-bit space)
+        // Step 1: Co = R - B
+        let co = (r as i16 - b as i16) & 0x1F;
+
+        // Step 2: t = B + (Co >> 1)
+        let t = (b as i16 + (co >> 1)) & 0x1F;
+
+        // Step 3: Cg = G - t
+        let cg = (g as i16 - t) & 0x1F;
+
+        // Step 4: Y = t + (Cg >> 1)
+        let y = (t + (cg >> 1)) & 0x1F;
+
+        // Pack into Color565 format:
+        // - Y (5 bits) in red position
+        // - Co (5 bits) in green position (shifted to use upper 5 bits of the 6-bit field)
+        // - Cg (5 bits) in blue position
+        self.value = ((y as u16) << 11) | ((co as u16) << 6) | (g_low << 5) | (cg as u16);
+    }
+
+    /// [Variant 1: Usually compresses best]
+    /// Transforms color from YCoCg-R back to RGB color space.
+    ///
+    /// This is the inverse of the decorrelation operation, following these steps:
+    /// 1. t = Y - (Cg >> 1)
+    /// 2. G = Cg + t
+    /// 3. B = t - (Co >> 1)
+    /// 4. R = B + Co
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_common::color_565::Color565;
+    ///
+    /// let original = Color565::from_rgb(255, 128, 64);
+    /// let mut decorrelated = original;
+    /// decorrelated.decorrelate_ycocg_r_var1();
+    ///
+    /// // Now recorrelate it back to original
+    /// decorrelated.recorrelate_ycocg_r_var1();
+    /// assert_eq!(decorrelated.raw_value(), original.raw_value());
+    /// ```
+    #[inline]
+    pub fn recorrelate_ycocg_r_var1(&mut self) {
+        // 0x1F == 0b11111
+        // Extract YCoCg-R components
+        let y = (self.value >> 11) & 0x1F; // 5 bits (Y in red position)
+        let co = (self.value >> 6) & 0x1F; // 5 bits (Co in upper 5 bits of green position)
+        let g_low = (self.value >> 5) & 0x1; // Extract the preserved low bit of green
+        let cg = self.value & 0x1F; // 5 bits (Cg in blue position)
+
+        // Apply YCoCg-R inverse transform (all operations in 5-bit space)
+        // Step 1: t = Y - (Cg >> 1)
+        let t = (y as i16 - ((cg as i16) >> 1)) & 0x1F;
+
+        // Step 2: G = Cg + t
+        let g = (cg as i16 + t) & 0x1F;
+
+        // Step 3: B = t - (Co >> 1)
+        let b = (t - ((co as i16) >> 1)) & 0x1F;
+
+        // Step 4: R = B + Co
+        let r = (b + co as i16) & 0x1F;
+
+        // Pack back into RGB565 format, preserving the original g_low bit
+        self.value = ((r as u16) << 11) | ((g as u16) << 6) | (g_low << 5) | (b as u16);
+    }
+
+    /// [Variant 2: Faster recorrelate (marginally) for compression speed.]
+    /// Transforms RGB color to YCoCg-R (reversible YCoCg) color space.
+    ///
+    /// YCoCg-R is a lifting-based variation of YCoCg that offers perfect reversibility.
+    /// This implementation treats all channels as 5-bit values for consistency.
+    ///
+    /// The YCoCg-R transformation follows these steps:
+    /// 1. Co = R - B
+    /// 2. t = B + (Co >> 1)
+    /// 3. Cg = G - t
+    /// 4. Y = t + (Cg >> 1)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_common::color_565::Color565;
+    ///
+    /// let mut color = Color565::from_rgb(255, 128, 64);
+    /// color.decorrelate_ycocg_r_var2();
+    /// // Color is now in YCoCg-R form
+    /// ```
+    #[inline]
+    pub fn decorrelate_ycocg_r_var2(&mut self) {
+        // 0x1F == 0b11111
+        // Extract RGB components
+        let r = (self.value >> 11) & 0x1F; // 5 bits for red
+        let g = (self.value >> 6) & 0x1F; // 5 top bits for green (ignoring bottom 1 bit)
+        let g_low = (self.value >> 5) & 0x1; // leftover bit for green
+        let b = self.value & 0x1F; // 5 bits for blue
+
+        // Apply YCoCg-R forward transform (all operations in 5-bit space)
+        // Step 1: Co = R - B
+        let co = (r as i16 - b as i16) & 0x1F;
+
+        // Step 2: t = B + (Co >> 1)
+        let t = (b as i16 + (co >> 1)) & 0x1F;
+
+        // Step 3: Cg = G - t
+        let cg = (g as i16 - t) & 0x1F;
+
+        // Step 4: Y = t + (Cg >> 1)
+        let y = (t + (cg >> 1)) & 0x1F;
+
+        // Pack into Color565 format:
+        // - Y (5 bits) in red position
+        // - Co (5 bits) in green position (shifted to use upper 5 bits of the 6-bit field)
+        // - Cg (5 bits) in blue position
+        self.value = (g_low << 15) | ((y as u16) << 10) | ((co as u16) << 5) | (cg as u16);
+        // Note: Marginal speed improvement on recorrelate by placing low bit in the top.
+    }
+
+    /// [Variant 3: Sometimes better than variant 2.]
+    /// Transforms color from YCoCg-R back to RGB color space.
+    ///
+    /// This is the inverse of the decorrelation operation, following these steps:
+    /// 1. t = Y - (Cg >> 1)
+    /// 2. G = Cg + t
+    /// 3. B = t - (Co >> 1)
+    /// 4. R = B + Co
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_common::color_565::Color565;
+    ///
+    /// let original = Color565::from_rgb(255, 128, 64);
+    /// let mut decorrelated = original;
+    /// decorrelated.decorrelate_ycocg_r_var2();
+    ///
+    /// // Now recorrelate it back to original
+    /// decorrelated.recorrelate_ycocg_r_var2();
+    /// assert_eq!(decorrelated.raw_value(), original.raw_value());
+    /// ```
+    #[inline]
+    pub fn recorrelate_ycocg_r_var2(&mut self) {
+        // 0x1F == 0b11111
+        // Extract YCoCg-R components
+        let g_low = self.value >> 15; // Extract the preserved low bit of green
+        let y = (self.value >> 10) & 0x1F; // 5 bits (Y in red position)
+        let co = (self.value >> 5) & 0x1F; // 5 bits (Co in upper 5 bits of green position)
+        let cg = self.value & 0x1F; // 5 bits (Cg in blue position)
+
+        // Apply YCoCg-R inverse transform (all operations in 5-bit space)
+        // Step 1: t = Y - (Cg >> 1)
+        let t = (y as i16 - ((cg as i16) >> 1)) & 0x1F;
+
+        // Step 2: G = Cg + t
+        let g = (cg as i16 + t) & 0x1F;
+
+        // Step 3: B = t - (Co >> 1)
+        let b = (t - ((co as i16) >> 1)) & 0x1F;
+
+        // Step 4: R = B + Co
+        let r = (b + co as i16) & 0x1F;
+
+        // Pack back into RGB565 format, preserving the original g_low bit
+        self.value = ((r as u16) << 11) | ((g as u16) << 6) | (g_low << 5) | (b as u16);
+    }
+
+    /// Transforms RGB color to YCoCg-R (reversible YCoCg) color space.
+    ///
+    /// YCoCg-R is a lifting-based variation of YCoCg that offers perfect reversibility.
+    /// This implementation treats all channels as 5-bit values for consistency.
+    ///
+    /// The YCoCg-R transformation follows these steps:
+    /// 1. Co = R - B
+    /// 2. t = B + (Co >> 1)
+    /// 3. Cg = G - t
+    /// 4. Y = t + (Cg >> 1)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_common::color_565::Color565;
+    ///
+    /// let mut color = Color565::from_rgb(255, 128, 64);
+    /// color.decorrelate_ycocg_r_var3();
+    /// // Color is now in YCoCg-R form
+    /// ```
+    #[inline]
+    pub fn decorrelate_ycocg_r_var3(&mut self) {
+        // 0x1F == 0b11111
+        // Extract RGB components
+        let r = (self.value >> 11) & 0x1F; // 5 bits for red
+        let g = (self.value >> 6) & 0x1F; // 5 top bits for green (ignoring bottom 1 bit)
+        let g_low = (self.value >> 5) & 0x1; // leftover bit for green
+        let b = self.value & 0x1F; // 5 bits for blue
+
+        // Apply YCoCg-R forward transform (all operations in 5-bit space)
+        // Step 1: Co = R - B
+        let co = (r as i16 - b as i16) & 0x1F;
+
+        // Step 2: t = B + (Co >> 1)
+        let t = (b as i16 + (co >> 1)) & 0x1F;
+
+        // Step 3: Cg = G - t
+        let cg = (g as i16 - t) & 0x1F;
+
+        // Step 4: Y = t + (Cg >> 1)
+        let y = (t + (cg >> 1)) & 0x1F;
+
+        // Pack into Color565 format:
+        // - Y (5 bits) in red position
+        // - Co (5 bits) in green position (shifted to use upper 5 bits of the 6-bit field)
+        // - Cg (5 bits) in blue position
+        self.value = ((y as u16) << 11) | ((co as u16) << 6) | ((cg as u16) << 1) | g_low;
+    }
+
+    /// Transforms color from YCoCg-R back to RGB color space.
+    ///
+    /// This is the inverse of the decorrelation operation, following these steps:
+    /// 1. t = Y - (Cg >> 1)
+    /// 2. G = Cg + t
+    /// 3. B = t - (Co >> 1)
+    /// 4. R = B + Co
+    ///
+    /// This variation has the g_low bit placed as the lowermost bit.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_common::color_565::Color565;
+    ///
+    /// let original = Color565::from_rgb(255, 128, 64);
+    /// let mut decorrelated = original;
+    /// decorrelated.decorrelate_ycocg_r_var3();
+    ///
+    /// // Now recorrelate it back to original
+    /// decorrelated.recorrelate_ycocg_r_var3();
+    /// assert_eq!(decorrelated.raw_value(), original.raw_value());
+    /// ```
+    #[inline]
+    pub fn recorrelate_ycocg_r_var3(&mut self) {
+        // 0x1F == 0b11111
+        // Extract YCoCg-R components
+        let y = (self.value >> 11) & 0x1F; // 5 bits (Y in red position)
+        let co = (self.value >> 6) & 0x1F; // 5 bits (Co in upper 5 bits of green position)
+        let cg = (self.value >> 1) & 0x1F; // 5 bits (Cg in bits 1-5)
+        let g_low = self.value & 0x1; // Extract the preserved low bit of green (lowermost bit)
+
+        // Apply YCoCg-R inverse transform (all operations in 5-bit space)
+        // Step 1: t = Y - (Cg >> 1)
+        let t = (y as i16 - ((cg as i16) >> 1)) & 0x1F;
+
+        // Step 2: G = Cg + t
+        let g = (cg as i16 + t) & 0x1F;
+
+        // Step 3: B = t - (Co >> 1)
+        let b = (t - ((co as i16) >> 1)) & 0x1F;
+
+        // Step 4: R = B + Co
+        let r = (b + co as i16) & 0x1F;
+
+        // Pack back into RGB565 format, preserving the original g_low bit
+        self.value = ((r as u16) << 11) | ((g as u16) << 6) | (g_low << 5) | (b as u16);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    /// Represents a function variant for decoration/recorrelation operations
+    #[derive(Debug, Clone, Copy)]
+    enum YCoCgVariant {
+        Variant1,
+        Variant2,
+        Variant3,
+    }
+
+    /// Apply the specified decorrelation variant to a color
+    fn apply_decorrelation(color: &mut Color565, variant: YCoCgVariant) {
+        match variant {
+            YCoCgVariant::Variant1 => color.decorrelate_ycocg_r_var1(),
+            YCoCgVariant::Variant2 => color.decorrelate_ycocg_r_var2(),
+            YCoCgVariant::Variant3 => color.decorrelate_ycocg_r_var3(),
+        }
+    }
+
+    /// Apply the specified recorrelation variant to a color
+    fn apply_recorrelation(color: &mut Color565, variant: YCoCgVariant) {
+        match variant {
+            YCoCgVariant::Variant1 => color.recorrelate_ycocg_r_var1(),
+            YCoCgVariant::Variant2 => color.recorrelate_ycocg_r_var2(),
+            YCoCgVariant::Variant3 => color.recorrelate_ycocg_r_var3(),
+        }
+    }
+
+    /// Tests that colors can be properly decorrelated and recorrelated
+    /// back to their original values for all three variants.
+    #[rstest]
+    #[case(YCoCgVariant::Variant1)]
+    #[case(YCoCgVariant::Variant2)]
+    #[case(YCoCgVariant::Variant3)]
+    fn can_decorrelate_recorrelate(#[case] variant: YCoCgVariant) {
+        // Create a variety of test colors to ensure coverage across the color space
+        let test_colors = [
+            Color565::from_rgb(255, 0, 0),     // Red
+            Color565::from_rgb(0, 255, 0),     // Green
+            Color565::from_rgb(0, 0, 255),     // Blue
+            Color565::from_rgb(255, 255, 0),   // Yellow
+            Color565::from_rgb(0, 255, 255),   // Cyan
+            Color565::from_rgb(255, 0, 255),   // Magenta
+            Color565::from_rgb(128, 128, 128), // Gray
+            Color565::from_rgb(255, 255, 255), // White
+            Color565::from_rgb(0, 0, 0),       // Black
+            Color565::from_rgb(255, 128, 64),  // Orange
+            Color565::from_rgb(128, 0, 255),   // Purple
+            Color565::from_rgb(0, 128, 64),    // Teal
+            Color565::from_rgb(31, 79, 83),    // Prime Numbers
+        ];
+
+        // Test each color individually in a loop for easier debugging
+        for (x, original_color) in test_colors.iter().enumerate() {
+            // Create a copy to transform
+            let mut color = *original_color;
+
+            // Step 1: Decorrelate
+            apply_decorrelation(&mut color, variant);
+
+            // Step 2: Recorrelate
+            apply_recorrelation(&mut color, variant);
+
+            // Verify the color is restored to its original value
+            assert_eq!(
+                color.raw_value(),
+                original_color.raw_value(),
+                "{:?} - Color at index {} failed to restore.",
+                variant,
+                x
+            );
+        }
+    }
+
+    /// Tests individual color transformations for each variant
+    #[rstest]
+    #[case(YCoCgVariant::Variant1)]
+    #[case(YCoCgVariant::Variant2)]
+    #[case(YCoCgVariant::Variant3)]
+    fn can_individual_color_operations(#[case] variant: YCoCgVariant) {
+        // Test individual color transformations
+        let original = Color565::from_rgb(255, 128, 64);
+        let mut transformed = original;
+
+        // Decorrelate
+        apply_decorrelation(&mut transformed, variant);
+        assert_ne!(
+            transformed.raw_value(),
+            original.raw_value(),
+            "{:?} - Color should change after decorrelation",
+            variant
+        );
+
+        // Recorrelate
+        apply_recorrelation(&mut transformed, variant);
+        assert_eq!(
+            transformed.raw_value(),
+            original.raw_value(),
+            "{:?} - Color should be restored after recorrelation",
+            variant
+        );
+    }
 }

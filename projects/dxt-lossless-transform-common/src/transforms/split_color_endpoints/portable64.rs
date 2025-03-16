@@ -393,6 +393,230 @@ pub unsafe fn u64_mix_unroll_2(colors: *const u8, colors_out: *mut u8, colors_le
     }
 }
 
+/// Splits the colour endpoints using 64-bit operations with loop unrolling factor of 4,
+/// writing with 64-bit values.
+///
+/// # Arguments
+///
+/// * `colors` - Pointer to the input array of colors
+/// * `colors_out` - Pointer to the output array of colors
+/// * `colors_len_bytes` - Number of bytes in the input array.
+///
+/// # Safety
+///
+/// - `colors` must be valid for reads of `colors_len_bytes` bytes
+/// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
+/// - `colors_len` must be a multiple of 8
+/// - Pointers must be properly aligned for u64 access
+#[inline(always)]
+pub unsafe fn u64_mix_unroll_4(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
+    debug_assert!(
+        colors_len_bytes >= 8 && colors_len_bytes % 8 == 0,
+        "colors_len_bytes must be at least 8 and a multiple of 8 for unroll_4"
+    );
+
+    // Cast input/output to appropriate pointer types
+    let max_input_ptr = colors.add(colors_len_bytes) as *const u64;
+    let mut input = colors as *const u64;
+    let mut output0 = colors_out as *mut u64;
+    let mut output1 = colors_out.add(colors_len_bytes / size_of::<Color565>()) as *mut u64;
+
+    while input < max_input_ptr.sub(3) {
+        // Process 4 chunks per iteration
+        let color0 = *input;
+        let color1 = *input.add(1);
+        let color2 = *input.add(2);
+        let color3 = *input.add(3);
+        input = input.add(4);
+
+        // Combine the first two colors
+        let first_combined0 = combine_u16_quad_u64(
+            get_first2bytes(color0),
+            get_third2bytes(color0),
+            get_first2bytes(color1),
+            get_third2bytes(color1),
+        );
+
+        let first_combined1 = combine_u16_quad_u64(
+            get_first2bytes(color2),
+            get_third2bytes(color2),
+            get_first2bytes(color3),
+            get_third2bytes(color3),
+        );
+
+        *output0 = first_combined0;
+        *output0.add(1) = first_combined1;
+
+        let second_combined0 = combine_u16_quad_u64(
+            get_second2bytes(color0),
+            get_fourth2bytes(color0),
+            get_second2bytes(color1),
+            get_fourth2bytes(color1),
+        );
+
+        let second_combined1 = combine_u16_quad_u64(
+            get_second2bytes(color2),
+            get_fourth2bytes(color2),
+            get_second2bytes(color3),
+            get_fourth2bytes(color3),
+        );
+
+        *output1 = second_combined0;
+        *output1.add(1) = second_combined1;
+
+        output0 = output0.add(2);
+        output1 = output1.add(2);
+    }
+
+    // Handle any remaining elements
+    while input < max_input_ptr {
+        let color0 = *input;
+        input = input.add(1);
+
+        // For a single remaining item, write as 32-bit
+        let first_pair = combine_u16_pair_u32(get_first2bytes(color0), get_third2bytes(color0));
+        let second_pair = combine_u16_pair_u32(get_second2bytes(color0), get_fourth2bytes(color0));
+
+        // Write the combined values to 32-bit locations
+        *(output0 as *mut u32) = first_pair;
+        *(output1 as *mut u32) = second_pair;
+
+        // Move pointers forward by half a u64
+        output0 = (output0 as *mut u32).add(1) as *mut u64;
+        output1 = (output1 as *mut u32).add(1) as *mut u64;
+    }
+}
+
+/// Splits the colour endpoints using 64-bit operations with loop unrolling factor of 8,
+/// writing with 64-bit values.
+///
+/// # Arguments
+///
+/// * `colors` - Pointer to the input array of colors
+/// * `colors_out` - Pointer to the output array of colors
+/// * `colors_len_bytes` - Number of bytes in the input array.
+///
+/// # Safety
+///
+/// - `colors` must be valid for reads of `colors_len_bytes` bytes
+/// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
+/// - `colors_len` must be a multiple of 8
+/// - Pointers must be properly aligned for u64 access
+#[inline(always)]
+pub unsafe fn u64_mix_unroll_8(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
+    debug_assert!(
+        colors_len_bytes >= 8 && colors_len_bytes % 8 == 0,
+        "colors_len_bytes must be at least 8 and a multiple of 8 for unroll_8"
+    );
+
+    // Cast input/output to appropriate pointer types
+    let max_input_ptr = colors.add(colors_len_bytes) as *const u64;
+    let mut input = colors as *const u64;
+    let mut output0 = colors_out as *mut u64;
+    let mut output1 = colors_out.add(colors_len_bytes / size_of::<Color565>()) as *mut u64;
+
+    while input < max_input_ptr.sub(7) {
+        // Process 8 chunks per iteration
+        let color0 = *input;
+        let color1 = *input.add(1);
+        let color2 = *input.add(2);
+        let color3 = *input.add(3);
+        let color4 = *input.add(4);
+        let color5 = *input.add(5);
+        let color6 = *input.add(6);
+        let color7 = *input.add(7);
+        input = input.add(8);
+
+        // First pair of colors
+        let first_combined0 = combine_u16_quad_u64(
+            get_first2bytes(color0),
+            get_third2bytes(color0),
+            get_first2bytes(color1),
+            get_third2bytes(color1),
+        );
+
+        let first_combined1 = combine_u16_quad_u64(
+            get_first2bytes(color2),
+            get_third2bytes(color2),
+            get_first2bytes(color3),
+            get_third2bytes(color3),
+        );
+
+        let first_combined2 = combine_u16_quad_u64(
+            get_first2bytes(color4),
+            get_third2bytes(color4),
+            get_first2bytes(color5),
+            get_third2bytes(color5),
+        );
+
+        let first_combined3 = combine_u16_quad_u64(
+            get_first2bytes(color6),
+            get_third2bytes(color6),
+            get_first2bytes(color7),
+            get_third2bytes(color7),
+        );
+
+        *output0 = first_combined0;
+        *output0.add(1) = first_combined1;
+        *output0.add(2) = first_combined2;
+        *output0.add(3) = first_combined3;
+
+        let second_combined0 = combine_u16_quad_u64(
+            get_second2bytes(color0),
+            get_fourth2bytes(color0),
+            get_second2bytes(color1),
+            get_fourth2bytes(color1),
+        );
+
+        let second_combined1 = combine_u16_quad_u64(
+            get_second2bytes(color2),
+            get_fourth2bytes(color2),
+            get_second2bytes(color3),
+            get_fourth2bytes(color3),
+        );
+
+        let second_combined2 = combine_u16_quad_u64(
+            get_second2bytes(color4),
+            get_fourth2bytes(color4),
+            get_second2bytes(color5),
+            get_fourth2bytes(color5),
+        );
+
+        let second_combined3 = combine_u16_quad_u64(
+            get_second2bytes(color6),
+            get_fourth2bytes(color6),
+            get_second2bytes(color7),
+            get_fourth2bytes(color7),
+        );
+
+        *output1 = second_combined0;
+        *output1.add(1) = second_combined1;
+        *output1.add(2) = second_combined2;
+        *output1.add(3) = second_combined3;
+
+        output0 = output0.add(4);
+        output1 = output1.add(4);
+    }
+
+    // Handle any remaining elements
+    while input < max_input_ptr {
+        let color0 = *input;
+        input = input.add(1);
+
+        // For a single remaining item, write as 32-bit
+        let first_pair = combine_u16_pair_u32(get_first2bytes(color0), get_third2bytes(color0));
+        let second_pair = combine_u16_pair_u32(get_second2bytes(color0), get_fourth2bytes(color0));
+
+        // Write the combined values to 32-bit locations
+        *(output0 as *mut u32) = first_pair;
+        *(output1 as *mut u32) = second_pair;
+
+        // Move pointers forward by half a u64
+        output0 = (output0 as *mut u32).add(1) as *mut u64;
+        output1 = (output1 as *mut u32).add(1) as *mut u64;
+    }
+}
+
 /// Helper function to combine two u16 values into a u32
 #[cfg(target_endian = "little")]
 #[inline(always)]
@@ -481,7 +705,7 @@ mod tests {
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
-    #[case::many_unrolls(8)] // 8 bytes - tests multiple unroll iterations
+    #[case::many_unrolls(8)] // 8 bytes - single iteration
     #[case::many_unrolls(64)] // 128 bytes - tests multiple unroll iterations
     #[case::large(512)] // 1024 bytes - large dataset
     fn test_implementations(#[case] num_pairs: usize) {

@@ -13,13 +13,13 @@ use std::mem::size_of;
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len` must be a multiple of 4
+/// - `colors_len` must be a multiple of 8
 /// - Pointers must be properly aligned for u64 access
 #[inline(always)]
 pub unsafe fn u64(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
-        "colors_len_bytes must be at least 4 and a multiple of 4"
+        colors_len_bytes >= 8 && colors_len_bytes % 8 == 0,
+        "colors_len_bytes must be at least 8 and a multiple of 8"
     );
 
     // Cast input/output to u64 pointers for direct value access
@@ -55,7 +55,7 @@ pub unsafe fn u64(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usiz
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len` must be a multiple of 4
+/// - `colors_len` must be a multiple of 8
 /// - Pointers must be properly aligned for u64 access
 #[inline(always)]
 pub unsafe fn u64_unroll_2(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
@@ -116,13 +116,13 @@ pub unsafe fn u64_unroll_2(colors: *const u8, colors_out: *mut u8, colors_len_by
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len` must be a multiple of 4
+/// - `colors_len` must be a multiple of 8
 /// - Pointers must be properly aligned for u64 access
 #[inline(always)]
 pub unsafe fn u64_unroll_4(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 16 && colors_len_bytes % 16 == 0,
-        "colors_len_bytes must be at least 16 and a multiple of 16 for unroll_4"
+        colors_len_bytes >= 8 && colors_len_bytes % 8 == 0,
+        "colors_len_bytes must be at least 8 and a multiple of 8 for unroll_4"
     );
 
     // Cast input/output to u64 pointers for direct value access
@@ -187,13 +187,13 @@ pub unsafe fn u64_unroll_4(colors: *const u8, colors_out: *mut u8, colors_len_by
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len` must be a multiple of 4
+/// - `colors_len` must be a multiple of 8
 /// - Pointers must be properly aligned for u64 access
 #[inline(always)]
 pub unsafe fn u64_unroll_8(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 32 && colors_len_bytes % 32 == 0,
-        "colors_len_bytes must be at least 32 and a multiple of 32 for unroll_8"
+        colors_len_bytes >= 8 && colors_len_bytes % 8 == 0,
+        "colors_len_bytes must be at least 8 and a multiple of 8 for unroll_8"
     );
 
     // Cast input/output to u64 pointers for direct value access

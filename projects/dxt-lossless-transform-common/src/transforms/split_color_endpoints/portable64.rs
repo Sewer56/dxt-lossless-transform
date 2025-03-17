@@ -705,7 +705,7 @@ mod tests {
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
-    #[case::many_unrolls(8)] // 8 bytes - single iteration
+    #[case::single(4)] // 8 bytes - single iteration
     #[case::many_unrolls(64)] // 128 bytes - tests multiple unroll iterations
     #[case::large(512)] // 1024 bytes - large dataset
     fn test_implementations(#[case] num_pairs: usize) {

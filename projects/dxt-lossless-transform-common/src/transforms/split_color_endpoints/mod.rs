@@ -58,7 +58,7 @@ unsafe fn split_color_endpoints_x86(
         }
 
         if sse2 && colors_len_bytes % 16 == 0 {
-            shufps_unroll_4(colors, colors_out, colors_len_bytes);
+            sse2_impl(colors, colors_out, colors_len_bytes);
             return;
         }
     }
@@ -73,7 +73,7 @@ unsafe fn split_color_endpoints_x86(
 
         #[cfg(target_feature = "sse2")]
         if colors_len_bytes % 16 == 0 {
-            shufps_unroll_4(colors, colors_out, colors_len_bytes);
+            sse2_impl(colors, colors_out, colors_len_bytes);
             return;
         }
     }

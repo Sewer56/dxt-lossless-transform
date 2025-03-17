@@ -16,7 +16,7 @@ use core::arch::{asm, x86_64::*};
 /// - Pointers should be 16-byte aligned for best performance
 /// - CPU must support SSE2 instructions
 #[target_feature(enable = "sse2")]
-pub unsafe fn sse2_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
+pub unsafe fn sse2_shift_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
         colors_len_bytes >= 16 && colors_len_bytes % 16 == 0,
         "colors_len_bytes must be at least 16 and a multiple of 16"
@@ -96,7 +96,7 @@ mod tests {
         transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
         // Test the SSE2 implementation
-        let implementations: [(&str, TransformFn); 1] = [("sse2", sse2_impl)];
+        let implementations: [(&str, TransformFn); 1] = [("sse2", sse2_shift_impl)];
 
         for (impl_name, implementation) in implementations {
             // Clear the output buffer

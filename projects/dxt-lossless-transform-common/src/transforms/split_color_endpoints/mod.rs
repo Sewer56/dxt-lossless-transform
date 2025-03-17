@@ -58,8 +58,8 @@ unsafe fn split_color_endpoints_x86(
         let avx2 = std::is_x86_feature_detected!("avx2");
         let sse2 = std::is_x86_feature_detected!("sse2");
 
-        if avx2 && colors_len_bytes % 32 == 0 {
-            shuffle_permute_unroll_2(colors, colors_out, colors_len_bytes);
+        if avx2 && colors_len_bytes % 64 == 0 {
+            avx2_shuf_impl(colors, colors_out, colors_len_bytes);
             return;
         }
 
@@ -72,8 +72,8 @@ unsafe fn split_color_endpoints_x86(
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
         #[cfg(target_feature = "avx2")]
-        if colors_len_bytes % 32 == 0 {
-            shuffle_permute_unroll_2(colors, colors_out, colors_len_bytes);
+        if colors_len_bytes % 64 == 0 {
+            avx2_shuf_impl(colors, colors_out, colors_len_bytes);
             return;
         }
 

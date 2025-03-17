@@ -1,46 +1,12 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_common::transforms::split_color_endpoints::portable32::u32;
+use dxt_lossless_transform_common::transforms::split_color_endpoints::avx2_shuf_impl;
 use safe_allocator_api::RawAlloc;
 
-// Placeholder for future AVX2 implementation
-fn bench_avx2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
+fn bench_avx2_shuf(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u32(
-            black_box(input.as_ptr()),
-            black_box(output.as_mut_ptr()),
-            black_box(input.len()),
-        )
-    });
-}
-
-// Placeholder for future unrolled AVX2 implementation
-fn bench_avx2_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
-    b.iter(|| unsafe {
-        u32(
-            black_box(input.as_ptr()),
-            black_box(output.as_mut_ptr()),
-            black_box(input.len()),
-        )
-    });
-}
-
-// Placeholder for future unrolled AVX2 implementation
-fn bench_avx2_unroll_4(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
-    b.iter(|| unsafe {
-        u32(
-            black_box(input.as_ptr()),
-            black_box(output.as_mut_ptr()),
-            black_box(input.len()),
-        )
-    });
-}
-
-// Placeholder for future unrolled AVX2 implementation
-fn bench_avx2_unroll_8(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
-    b.iter(|| unsafe {
-        u32(
+        avx2_shuf_impl(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -55,38 +21,9 @@ pub(crate) fn run_benchmarks(
     size: usize,
     important_benches_only: bool,
 ) {
-    // Uncomment and adjust when AVX2 implementations are available
-    /*
-    group.bench_with_input(
-        BenchmarkId::new("avx2 no-unroll", size),
-        &size,
-        |b, _| bench_avx2(b, input, output),
-    );
-
-    group.bench_with_input(
-        BenchmarkId::new("avx2 unroll-8", size),
-        &size,
-        |b, _| bench_avx2_unroll_8(b, input, output),
-    );
-
-    if !important_benches_only {
-        group.bench_with_input(
-            BenchmarkId::new("avx2 unroll-2", size),
-            &size,
-            |b, _| bench_avx2_unroll_2(b, input, output),
-        );
-
-        group.bench_with_input(
-            BenchmarkId::new("avx2 unroll-4", size),
-            &size,
-            |b, _| bench_avx2_unroll_4(b, input, output),
-        );
-    }
-    */
-
-    /*
-    group.bench_with_input(BenchmarkId::new("avx2", size), &size, |b, _| {
-        bench_avx2(b, input, output)
+    group.bench_with_input(BenchmarkId::new("avx2 shuffle", size), &size, |b, _| {
+        bench_avx2_shuf(b, input, output)
     });
-    */
+
+    if !important_benches_only {}
 }

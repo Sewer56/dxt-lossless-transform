@@ -1,4 +1,4 @@
-use core::arch::{asm, x86_64::*};
+use core::arch::x86_64::*;
 
 /// Splits the colour endpoints using SSE2 instructions
 ///

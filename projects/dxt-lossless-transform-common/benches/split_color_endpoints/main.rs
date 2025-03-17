@@ -11,6 +11,8 @@ mod portable32;
 mod portable64;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod sse2;
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+mod ssse3;
 
 pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
     let layout = Layout::from_size_align(num_bytes, 64).unwrap();
@@ -33,6 +35,16 @@ fn criterion_benchmark(c: &mut Criterion) {
     {
         if is_x86_feature_detected!("sse2") {
             sse2::run_benchmarks(
+                &mut group,
+                &input,
+                &mut output,
+                size,
+                important_benches_only,
+            );
+        }
+
+        if is_x86_feature_detected!("ssse3") {
+            ssse3::run_benchmarks(
                 &mut group,
                 &input,
                 &mut output,

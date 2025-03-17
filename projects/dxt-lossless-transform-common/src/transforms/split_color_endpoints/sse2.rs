@@ -51,13 +51,13 @@ pub unsafe fn sse2_shift_impl(colors: *const u8, colors_out: *mut u8, colors_len
         // 2. Arithmetic right shift by 16 bits (brings values back with sign extension)
         let low_parts = _mm_srai_epi32(shifted_left, 16);
         // 3. Pack the four 32-bit integers into four 16-bit integers
-        let packed_low = _mm_packs_epi32(low_parts, low_parts);
+        let packed_low = _mm_packs_epi32(low_parts, low_parts); // We now have only the color0 components
 
         // Extract the high 16 bits of each 32-bit chunk:
         // 1. Arithmetic right shift by 16 bits
         let high_parts = _mm_srai_epi32(color_chunk, 16);
         // 2. Pack the four 32-bit integers into four 16-bit integers
-        let packed_high = _mm_packs_epi32(high_parts, high_parts);
+        let packed_high = _mm_packs_epi32(high_parts, high_parts); // We now have only the color1 components
 
         // Store the low 64 bits (4 x 16-bit values) to output0
         _mm_storel_epi64(output0_ptr as *mut __m128i, packed_low);

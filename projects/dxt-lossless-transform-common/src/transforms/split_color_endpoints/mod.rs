@@ -32,6 +32,12 @@ pub mod sse2;
 pub use sse2::*;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub mod ssse3;
+
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub use ssse3::*;
+
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -50,11 +56,19 @@ unsafe fn split_color_endpoints_x86(
     {
         // Runtime feature detection
         let avx2 = std::is_x86_feature_detected!("avx2");
+        let ssse3 = std::is_x86_feature_detected!("ssse3");
         let sse2 = std::is_x86_feature_detected!("sse2");
 
         if avx2 && colors_len_bytes % 32 == 0 {
             shuffle_permute_unroll_2(colors, colors_out, colors_len_bytes);
             return;
+        }
+
+        if ssse3 {
+            if colors_len_bytes % 64 == 0 {
+                ssse3_pshufb_unroll4_impl(colors, colors_out, colors_len_bytes);
+                return;
+            }
         }
 
         if sse2 && colors_len_bytes % 16 == 0 {
@@ -69,6 +83,14 @@ unsafe fn split_color_endpoints_x86(
         if colors_len_bytes % 32 == 0 {
             shuffle_permute_unroll_2(colors, colors_out, colors_len_bytes);
             return;
+        }
+
+        #[cfg(target_feature = "ssse3")]
+        {
+            if colors_len_bytes % 64 == 0 {
+                ssse3_pshufb_unroll4_impl(colors, colors_out, colors_len_bytes);
+                return;
+            }
         }
 
         #[cfg(target_feature = "sse2")]

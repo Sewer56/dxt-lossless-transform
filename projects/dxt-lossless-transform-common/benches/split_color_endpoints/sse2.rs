@@ -2,7 +2,7 @@
 #![allow(unused_variables)]
 use criterion::{black_box, BenchmarkId};
 use dxt_lossless_transform_common::transforms::split_color_endpoints::{
-    portable32::u32, sse2_shift_impl, sse2_shuf_impl, sse2_shuf_unroll2_impl,
+    sse2_shift_impl, sse2_shuf_impl, sse2_shuf_unroll2_impl,
 };
 use safe_allocator_api::RawAlloc;
 

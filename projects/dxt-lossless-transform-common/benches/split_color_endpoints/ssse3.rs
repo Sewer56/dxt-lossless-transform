@@ -35,17 +35,11 @@ pub(crate) fn run_benchmarks(
     size: usize,
     important_benches_only: bool,
 ) {
-    // Benchmark the unroll-2 implementation (32 bytes at once)
-    if size % 32 == 0 {
-        group.bench_with_input(BenchmarkId::new("ssse3 unroll-2", size), &size, |b, _| {
-            bench_ssse3_unroll_2(b, input, output)
-        });
-    }
+    group.bench_with_input(BenchmarkId::new("ssse3 unroll-2", size), &size, |b, _| {
+        bench_ssse3_unroll_2(b, input, output)
+    });
 
-    // Benchmark the unroll-4 implementation (64 bytes at once)
-    if size % 64 == 0 {
-        group.bench_with_input(BenchmarkId::new("ssse3 unroll-4", size), &size, |b, _| {
-            bench_ssse3_unroll_4(b, input, output)
-        });
-    }
+    group.bench_with_input(BenchmarkId::new("ssse3 unroll-4", size), &size, |b, _| {
+        bench_ssse3_unroll_4(b, input, output)
+    });
 }

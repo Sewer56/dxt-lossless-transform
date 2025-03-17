@@ -135,6 +135,110 @@ pub unsafe fn sse2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_
     }
 }
 
+/// Alternative implementation using pshuflw and pshufhw instructions from SSE2,
+/// processing 64 bytes at once (unroll factor of 2)
+///
+/// # Arguments
+///
+/// * `colors` - Pointer to the input array of colors
+/// * `colors_out` - Pointer to the output array of colors
+/// * `colors_len_bytes` - Number of bytes in the input array.
+///
+/// # Safety
+///
+/// - `colors` must be valid for reads of `colors_len_bytes` bytes
+/// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
+/// - `colors_len_bytes` must be a multiple of 64
+/// - Pointers should be 16-byte aligned for best performance
+/// - CPU must support SSE2 instructions
+#[target_feature(enable = "sse2")]
+pub unsafe fn sse2_shuf_unroll2_impl(
+    colors: *const u8,
+    colors_out: *mut u8,
+    colors_len_bytes: usize,
+) {
+    debug_assert!(
+        colors_len_bytes >= 64 && colors_len_bytes % 64 == 0,
+        "colors_len_bytes must be at least 64 and a multiple of 64"
+    );
+
+    // Setup pointers for processing
+    let mut input_ptr = colors;
+    let mut output_low = colors_out;
+    let mut output_high = colors_out.add(colors_len_bytes / 2);
+
+    // Calculate end pointer for our main loop (process 64 bytes at a time)
+    let end_ptr = colors.add(colors_len_bytes);
+
+    while input_ptr < end_ptr {
+        // Load 64 bytes (4 blocks of 16 bytes each)
+        let chunk0 = _mm_loadu_si128(input_ptr as *const __m128i);
+        let chunk1 = _mm_loadu_si128(input_ptr.add(16) as *const __m128i);
+        let chunk2 = _mm_loadu_si128(input_ptr.add(32) as *const __m128i);
+        let chunk3 = _mm_loadu_si128(input_ptr.add(48) as *const __m128i);
+
+        // Group the color0 and color1(s) together for each chunk
+        let shuffled0_low = _mm_shufflelo_epi16::<0b11011000>(chunk0);
+        let shuffled0 = _mm_shufflehi_epi16::<0b11011000>(shuffled0_low);
+
+        let shuffled1_low = _mm_shufflelo_epi16::<0b11011000>(chunk1);
+        let shuffled1 = _mm_shufflehi_epi16::<0b11011000>(shuffled1_low);
+
+        let shuffled2_low = _mm_shufflelo_epi16::<0b11011000>(chunk2);
+        let shuffled2 = _mm_shufflehi_epi16::<0b11011000>(shuffled2_low);
+
+        let shuffled3_low = _mm_shufflelo_epi16::<0b11011000>(chunk3);
+        let shuffled3 = _mm_shufflehi_epi16::<0b11011000>(shuffled3_low);
+
+        // Interleave them such that lower halves is color0, upper half is color1
+        let interleaved_u32s_0 = _mm_shuffle_ps(
+            _mm_castsi128_ps(shuffled0),
+            _mm_castsi128_ps(shuffled0),
+            0b11011000,
+        );
+        let interleaved_u32s_1 = _mm_shuffle_ps(
+            _mm_castsi128_ps(shuffled1),
+            _mm_castsi128_ps(shuffled1),
+            0b11011000,
+        );
+        let interleaved_u32s_2 = _mm_shuffle_ps(
+            _mm_castsi128_ps(shuffled2),
+            _mm_castsi128_ps(shuffled2),
+            0b11011000,
+        );
+        let interleaved_u32s_3 = _mm_shuffle_ps(
+            _mm_castsi128_ps(shuffled3),
+            _mm_castsi128_ps(shuffled3),
+            0b11011000,
+        );
+
+        // Now combine them properly into the final color0 and color1
+        let colors0 = _mm_shuffle_ps(interleaved_u32s_0, interleaved_u32s_1, 0b01000100);
+        let colors1 = _mm_shuffle_ps(interleaved_u32s_2, interleaved_u32s_3, 0b01000100);
+
+        let colors0_2 = _mm_shuffle_ps(interleaved_u32s_0, interleaved_u32s_1, 0b11101110);
+        let colors1_2 = _mm_shuffle_ps(interleaved_u32s_2, interleaved_u32s_3, 0b11101110);
+
+        // Store the results
+        _mm_storeu_si128(output_low as *mut __m128i, _mm_castps_si128(colors0));
+        _mm_storeu_si128(
+            output_low.add(16) as *mut __m128i,
+            _mm_castps_si128(colors1),
+        );
+
+        _mm_storeu_si128(output_high as *mut __m128i, _mm_castps_si128(colors0_2));
+        _mm_storeu_si128(
+            output_high.add(16) as *mut __m128i,
+            _mm_castps_si128(colors1_2),
+        );
+
+        // Update pointers for the next iteration
+        input_ptr = input_ptr.add(64);
+        output_low = output_low.add(32);
+        output_high = output_high.add(32);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -147,7 +251,7 @@ mod tests {
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
-    #[case::single(8)] // 16 bytes - two iterations
+    #[case::single(16)] // 32 bytes - two iterations
     #[case::many_unrolls(64)] // 128 bytes - tests multiple iterations
     #[case::large(512)] // 1024 bytes - large dataset
     fn test_implementations(#[case] num_pairs: usize) {
@@ -159,9 +263,10 @@ mod tests {
         transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
         // Test the SSE2 implementation
-        let implementations: [(&str, TransformFn); 2] = [
+        let implementations: [(&str, TransformFn); 3] = [
             ("sse2_shift", sse2_shift_impl),
             ("sse2_shuf", sse2_shuf_impl),
+            ("sse2_shuf_unroll2", sse2_shuf_unroll2_impl),
         ];
 
         for (impl_name, implementation) in implementations {

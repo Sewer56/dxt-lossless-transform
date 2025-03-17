@@ -82,11 +82,7 @@ pub unsafe fn sse2_shift_impl(colors: *const u8, colors_out: *mut u8, colors_len
 /// - Pointers should be 16-byte aligned for best performance
 /// - CPU must support SSE2 instructions
 #[target_feature(enable = "sse2")]
-pub unsafe fn sse2_shuf_unroll2_impl(
-    colors: *const u8,
-    colors_out: *mut u8,
-    colors_len_bytes: usize,
-) {
+pub unsafe fn sse2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
         colors_len_bytes >= 32 && colors_len_bytes % 32 == 0,
         "colors_len_bytes must be at least 32 and a multiple of 32"
@@ -165,7 +161,7 @@ mod tests {
         // Test the SSE2 implementation
         let implementations: [(&str, TransformFn); 2] = [
             ("sse2_shift", sse2_shift_impl),
-            ("sse2_shuf_unroll2", sse2_shuf_unroll2_impl),
+            ("sse2_shuf", sse2_shuf_impl),
         ];
 
         for (impl_name, implementation) in implementations {

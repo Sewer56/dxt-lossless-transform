@@ -16,6 +16,7 @@ use core::arch::x86_64::*;
 /// - Pointers should be 32-byte aligned for best performance
 /// - CPU must support AVX2 instructions
 #[target_feature(enable = "avx2")]
+#[allow(unused_assignments)]
 pub unsafe fn avx2_shuf_impl_asm(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
         colors_len_bytes >= 64 && colors_len_bytes % 64 == 0,

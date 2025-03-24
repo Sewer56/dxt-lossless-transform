@@ -152,6 +152,7 @@ pub unsafe fn sse2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_
 /// - Pointers should be 16-byte aligned for best performance
 /// - CPU must support SSE2 instructions
 #[target_feature(enable = "sse2")]
+#[allow(unused_assignments)]
 pub unsafe fn sse2_shuf_unroll2_impl_asm(
     colors: *const u8,
     colors_out: *mut u8,

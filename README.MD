@@ -82,3 +82,4 @@ Licensed under [GPL v3 (with Reloaded FAQ)](./LICENSE).
 [dxt-lossless-transform-bc2-api]: projects/dxt-lossless-transform-bc2-api/README.MD
 [dxt-lossless-transform-bc3-api]: projects/dxt-lossless-transform-bc3-api/README.MD
 [dxt-lossless-transform-bc7-api]: projects/dxt-lossless-transform-bc7-api/README.MD
+[dxt-lossless-transform-dds]: projects/dxt-lossless-transform-dds/README.MD

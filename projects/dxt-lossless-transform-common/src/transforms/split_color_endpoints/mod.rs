@@ -63,8 +63,8 @@ unsafe fn split_color_endpoints_x86(
             return;
         }
 
-        if sse2 && colors_len_bytes % 32 == 0 {
-            sse2_shuf_impl(colors, colors_out, colors_len_bytes);
+        if sse2 && colors_len_bytes % 64 == 0 {
+            sse2_shuf_unroll2_impl(colors, colors_out, colors_len_bytes);
             return;
         }
     }
@@ -78,8 +78,8 @@ unsafe fn split_color_endpoints_x86(
         }
 
         #[cfg(target_feature = "sse2")]
-        if colors_len_bytes % 32 == 0 {
-            sse2_shuf_impl(colors, colors_out, colors_len_bytes);
+        if colors_len_bytes % 64 == 0 {
+            sse2_shuf_unroll2_impl(colors, colors_out, colors_len_bytes);
             return;
         }
     }

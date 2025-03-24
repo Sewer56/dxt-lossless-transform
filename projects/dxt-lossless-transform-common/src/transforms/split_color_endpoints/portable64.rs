@@ -144,8 +144,8 @@ pub unsafe fn u64_unroll_4(colors: *const u8, colors_out: *mut u8, colors_len_by
         *output0.add(2) = get_first2bytes(color1);
         *output0.add(4) = get_first2bytes(color2);
         *output0.add(6) = get_first2bytes(color3);
-        *output1.add(2) = get_second2bytes(color1);
         *output1 = get_second2bytes(color0);
+        *output1.add(2) = get_second2bytes(color1);
         *output1.add(4) = get_second2bytes(color2);
         *output1.add(6) = get_second2bytes(color3);
         *output0.add(1) = get_third2bytes(color0);
@@ -239,8 +239,8 @@ pub unsafe fn u64_unroll_8(colors: *const u8, colors_out: *mut u8, colors_len_by
         *output0.add(7) = get_third2bytes(color3);
         *output0.add(9) = get_third2bytes(color4);
         *output0.add(11) = get_third2bytes(color5);
-        *output0.add(15) = get_third2bytes(color7);
         *output0.add(13) = get_third2bytes(color6);
+        *output0.add(15) = get_third2bytes(color7);
 
         *output1.add(1) = get_fourth2bytes(color0);
         *output1.add(3) = get_fourth2bytes(color1);

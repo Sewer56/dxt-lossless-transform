@@ -239,100 +239,6 @@ pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8,
     }
 }
 
-/// # Safety
-///
-/// - input_ptr must be valid for reads of len bytes
-/// - output_ptr must be valid for writes of len bytes
-/// - len is at least divisible by 128
-/// - pointers must be properly aligned for SSE operations
-#[cfg(target_arch = "x86_64")]
-#[target_feature(enable = "sse2")]
-pub unsafe fn shufps_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 128 == 0);
-
-    unsafe {
-        asm!(
-            "push rbx",
-            "push r12",
-            "push r13",
-            "push r14",
-
-            "mov rbx, {src}",
-            "add rbx, {len}",
-
-            "mov r12, {src}",
-            "mov r13, {dst}",
-            "mov r14, {dst}",
-            "add r14, {len_half}",
-
-            // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
-            // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
-            ".p2align 5",
-            "2:",
-
-            // Load first 4 blocks (64 bytes)
-            "movdqu xmm0, [r12]",
-            "movdqu xmm1, [r12 + 16]",
-            "movdqu xmm2, [r12 + 32]",
-            "movdqu xmm3, [r12 + 48]",
-
-            // Load second 4 blocks (64 bytes)
-            "movdqu xmm4, [r12 + 64]",
-            "movdqu xmm5, [r12 + 80]",
-            "movdqu xmm6, [r12 + 96]",
-            "movdqu xmm7, [r12 + 112]",
-            "add r12, 128",  // src += 8 * 16
-
-            // First pair shuffle
-            "movaps xmm8, xmm0",
-            "shufps xmm8, xmm1, 0x88",    // Colors (0b10001000)
-            "shufps xmm0, xmm1, 0xDD",    // Indices (0b11011101)
-
-            // Second pair shuffle
-            "movaps xmm9, xmm2",
-            "shufps xmm9, xmm3, 0x88",    // Colors (0b10001000)
-            "shufps xmm2, xmm3, 0xDD",    // Indices (0b11011101)
-
-            // Third pair shuffle
-            "movaps xmm10, xmm4",
-            "shufps xmm10, xmm5, 0x88",   // Colors (0b10001000)
-            "shufps xmm4, xmm5, 0xDD",    // Indices (0b11011101)
-
-            // Fourth pair shuffle
-            "movaps xmm11, xmm6",
-            "shufps xmm11, xmm7, 0x88",   // Colors (0b10001000)
-            "shufps xmm6, xmm7, 0xDD",    // Indices (0b11011101)
-
-            // Store colors
-            "movdqu [r13], xmm8",
-            "movdqu [r13 + 16], xmm9",
-            "movdqu [r13 + 32], xmm10",
-            "movdqu [r13 + 48], xmm11",
-            "add r13, 64",   // colors_ptr += 8 * 8
-
-            // Store indices
-            "movdqu [r14], xmm0",
-            "movdqu [r14 + 16], xmm2",
-            "movdqu [r14 + 32], xmm4",
-            "movdqu [r14 + 48], xmm6",
-            "add r14, 64",   // indices_ptr += 8 * 8
-
-            "cmp r12, rbx",
-            "jb 2b",
-
-            "pop r14",
-            "pop r13",
-            "pop r12",
-            "pop rbx",
-
-            src = in(reg) input_ptr,
-            dst = in(reg) output_ptr,
-            len = in(reg) len,
-            len_half = in(reg) len / 2,
-        );
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -358,7 +264,12 @@ mod tests {
         transform_with_reference_implementation(input.as_slice(), output_expected.as_mut_slice());
 
         // Test each SSE2 implementation variant
-        let implementations = get_implementations();
+        let implementations: [(&str, TransformFn); 4] = [
+            ("SSE2 punpckhqdq unroll-4", punpckhqdq_unroll_4),
+            ("SSE2 punpckhqdq unroll-2", punpckhqdq_unroll_2),
+            ("SSE2 shuffle unroll-2", shufps_unroll_2),
+            ("SSE2 shuffle unroll-4", shufps_unroll_4),
+        ];
 
         for (impl_name, implementation) in implementations {
             // Clear the output buffer
@@ -381,26 +292,5 @@ mod tests {
                 num_blocks
             );
         }
-    }
-
-    #[cfg(target_arch = "x86_64")]
-    pub fn get_implementations<'a>() -> [(&'a str, TransformFn); 5] {
-        [
-            ("SSE2 punpckhqdq unroll-4", punpckhqdq_unroll_4),
-            ("SSE2 punpckhqdq unroll-2", punpckhqdq_unroll_2),
-            ("SSE2 shuffle unroll-2", shufps_unroll_2),
-            ("SSE2 shuffle unroll-4", shufps_unroll_4),
-            ("SSE2 shuffle unroll-8", shufps_unroll_8),
-        ]
-    }
-
-    #[cfg(target_arch = "x86")]
-    pub fn get_implementations<'a>() -> [(&'a str, TransformFn); 4] {
-        [
-            ("SSE2 punpckhqdq unroll-4", punpckhqdq_unroll_4),
-            ("SSE2 punpckhqdq unroll-2", punpckhqdq_unroll_2),
-            ("SSE2 shuffle unroll-2", shufps_unroll_2),
-            ("SSE2 shuffle unroll-4", shufps_unroll_4),
-        ]
     }
 }

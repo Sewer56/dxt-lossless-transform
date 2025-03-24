@@ -48,38 +48,53 @@ pub unsafe fn avx2_shuf_impl_asm(colors: *const u8, colors_out: *mut u8, colors_
         5, 4, 1, 0, 7, 6, 3, 2, // xmm low
     );
 
-    // Note(sewer): Don't forget the damned little endian!! Flip the order!!
+    std::arch::asm!(
+        // Loop alignment
+        ".p2align 4",
 
-    while input_ptr < end_ptr {
-        // Load 64 bytes (2 blocks of 32 bytes each)
-        let chunk1 = _mm256_loadu_si256(input_ptr as *const __m256i);
-        let chunk2 = _mm256_loadu_si256(input_ptr.add(32) as *const __m256i);
+        // Main processing loop
+        "2:",  // Label 1 (loop start)
 
-        // Apply the shuffle mask to reorganize bytes
-        let shuffled1 = _mm256_shuffle_epi8(chunk1, shuffle_mask);
-        let shuffled2 = _mm256_shuffle_epi8(chunk2, shuffle_mask);
+        // Load 64 bytes (2 YMM registers)
+        "vmovdqu {ymm1}, ymmword ptr [{src_ptr}]",
+        "vmovdqu {ymm2}, ymmword ptr [{src_ptr} + 32]",
+        "add {src_ptr}, 64",
 
-        // Extract color0, color1 components from both chunks
-        let shuffled1_ps = _mm256_castsi256_ps(shuffled1);
-        let shuffled2_ps = _mm256_castsi256_ps(shuffled2);
-        let color0_combined = _mm256_shuffle_ps::<0b11_01_11_01>(shuffled1_ps, shuffled2_ps);
-        let color1_combined = _mm256_shuffle_ps::<0b10_00_10_00>(shuffled1_ps, shuffled2_ps);
+        // Shuffle bytes according to mask
+        "vpshufb {ymm1}, {ymm1}, {shuffle_mask}",
+        "vpshufb {ymm2}, {ymm2}, {shuffle_mask}",
 
-        // Now rearrange them back into right order.
-        let shuffled1_pd = _mm256_castps_pd(color0_combined);
-        let shuffled2_pd = _mm256_castps_pd(color1_combined);
-        let color0_rearranged = _mm256_permute4x64_pd::<0b11_01_10_00>(shuffled1_pd);
-        let color1_rearranged = _mm256_permute4x64_pd::<0b11_01_10_00>(shuffled2_pd);
+        // Interleave the results
+        "vshufps {ymm3}, {ymm1}, {ymm2}, 221",  // 11011101b
+        "vshufps {ymm1}, {ymm1}, {ymm2}, 136",  // 10001000b
+
+        // Rearrange the permuted data
+        "vpermpd {ymm3}, {ymm3}, 216",  // 11011000b
+        "vpermpd {ymm1}, {ymm1}, 216",  // 11011000b
 
         // Store results
-        _mm256_storeu_pd(output_low as *mut f64, color0_rearranged);
-        _mm256_storeu_pd(output_high as *mut f64, color1_rearranged);
+        "vmovups ymmword ptr [{out_low}], {ymm3}",
+        "vmovups ymmword ptr [{out_high}], {ymm1}",
+        "add {out_low}, 32",
+        "add {out_high}, 32",
 
-        // Update pointers for the next iteration
-        input_ptr = input_ptr.add(64);
-        output_low = output_low.add(32);
-        output_high = output_high.add(32);
-    }
+        // Loop condition
+        "cmp {src_ptr}, {end_ptr}",
+        "jb 2b",
+
+        src_ptr = inout(reg) input_ptr,
+        out_low = inout(reg) output_low,
+        out_high = inout(reg) output_high,
+        end_ptr = in(reg) end_ptr,
+
+        // AVX registers that need to be managed
+        shuffle_mask = in(ymm_reg) shuffle_mask,
+        ymm1 = out(ymm_reg) _,
+        ymm2 = out(ymm_reg) _,
+        ymm3 = out(ymm_reg) _,
+
+        options(preserves_flags, nostack)
+    );
 }
 
 /// Splits the colour endpoints using AVX2 instructions

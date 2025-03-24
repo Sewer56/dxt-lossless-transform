@@ -46,6 +46,27 @@ Separates colours and indices into continuous streams:
 +-------+-------+-------+     +-------+
 ```
 
+### Splitting the Colour Endpoints
+
+Each BC1 texture has 2 colour endpoints, `color0` and `color1`.
+It is sometimes beneficial to separate these, i.e. store them separately.
+
+Take our optimized layout from earlier:
+
+```text
++-------+-------+-------+
+|C0  C1 |C0  C1 |C0  C1 |
++-------+-------+-------+
+```
+
+We can split the colour endpoints
+
+```text
++-------+-------+ +-------+-------+
+|C0  C0 |C0  C0 | |C1  C1 |C1  C1 |
++-------+-------+ +-------+-------+
+```
+
 ### Making Solid Blocks Represented the Same Across Texture
 
 BC1 can represent solid color blocks in multiple ways.

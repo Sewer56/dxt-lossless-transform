@@ -33,18 +33,20 @@ pub unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 16 (for 2x unroll)
+/// - len must be divisible by 8
 /// - pointers must be properly aligned for u64/u32 access
 pub unsafe fn u32_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len % 8 == 0);
 
+    let max_aligned_ptr = input_ptr.add(len / 16 * 16) as *mut u8; // Aligned to 16 bytes
     let max_ptr = input_ptr.add(len) as *mut u8;
     let mut input_ptr = input_ptr as *mut u8;
 
     let mut colours_ptr = output_ptr as *mut u32;
     let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
 
-    while input_ptr < max_ptr {
+    // Process 16-byte chunks (2x 8-byte blocks)
+    while input_ptr < max_aligned_ptr {
         // Process first 8 bytes
         let color_value1 = *(input_ptr as *const u32);
         let index_value1 = *(input_ptr.add(4) as *const u32);
@@ -64,24 +66,41 @@ pub unsafe fn u32_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize
         colours_ptr = colours_ptr.add(2);
         indices_ptr = indices_ptr.add(2);
     }
+    
+    // Handle remaining 8-byte chunk if any
+    while input_ptr < max_ptr {
+        // Process remaining 8 bytes
+        let color_value = *(input_ptr as *const u32);
+        let index_value = *(input_ptr.add(4) as *const u32);
+        input_ptr = input_ptr.add(8);
+        
+        // Store to respective sections
+        *colours_ptr = color_value;
+        *indices_ptr = index_value;
+        
+        colours_ptr = colours_ptr.add(1);
+        indices_ptr = indices_ptr.add(1);
+    }
 }
 
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 32 (for 4x unroll)
+/// - len must be divisible by 8
 /// - pointers must be properly aligned for u64/u32 access
 pub unsafe fn u32_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 32 == 0);
+    debug_assert!(len % 8 == 0);
 
+    let max_aligned_ptr = input_ptr.add(len / 32 * 32) as *mut u8; // Aligned to 32 bytes
     let max_ptr = input_ptr.add(len) as *mut u8;
     let mut input_ptr = input_ptr as *mut u8;
 
     let mut colours_ptr = output_ptr as *mut u32;
     let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
 
-    while input_ptr < max_ptr {
+    // Process 32-byte aligned chunks (4x 8-byte blocks)
+    while input_ptr < max_aligned_ptr {
         // Process 4 sets of 8 bytes each
         let color_value1 = *(input_ptr as *const u32);
         let index_value1 = *(input_ptr.add(4) as *const u32);
@@ -112,24 +131,41 @@ pub unsafe fn u32_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize
         colours_ptr = colours_ptr.add(4);
         indices_ptr = indices_ptr.add(4);
     }
+    
+    // Handle remaining 8-byte chunks if any
+    while input_ptr < max_ptr {
+        // Process 8 bytes
+        let color_value = *(input_ptr as *const u32);
+        let index_value = *(input_ptr.add(4) as *const u32);
+        input_ptr = input_ptr.add(8);
+        
+        // Store values
+        *colours_ptr = color_value;
+        *indices_ptr = index_value;
+        
+        colours_ptr = colours_ptr.add(1);
+        indices_ptr = indices_ptr.add(1);
+    }
 }
 
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 64 (for 8x unroll)
+/// - len must be divisible by 8
 /// - pointers must be properly aligned for u64/u32 access
 pub unsafe fn u32_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 64 == 0);
+    debug_assert!(len % 8 == 0);
 
+    let max_aligned_ptr = input_ptr.add(len / 64 * 64) as *mut u8; // Aligned to 64 bytes
     let max_ptr = input_ptr.add(len) as *mut u8;
     let mut input_ptr = input_ptr as *mut u8;
 
     let mut colours_ptr = output_ptr as *mut u32;
     let mut indices_ptr = output_ptr.add(len / 2) as *mut u32;
 
-    while input_ptr < max_ptr {
+    // Process 64-byte aligned chunks (8x 8-byte blocks)
+    while input_ptr < max_aligned_ptr {
         // Process 8 sets of 8 bytes each
         let color_value1 = *(input_ptr as *const u32);
         let index_value1 = *(input_ptr.add(4) as *const u32);
@@ -184,6 +220,21 @@ pub unsafe fn u32_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize
         colours_ptr = colours_ptr.add(8);
         indices_ptr = indices_ptr.add(8);
     }
+    
+    // Handle remaining 8-byte chunks if any
+    while input_ptr < max_ptr {
+        // Process 8 bytes
+        let color_value = *(input_ptr as *const u32);
+        let index_value = *(input_ptr.add(4) as *const u32);
+        input_ptr = input_ptr.add(8);
+        
+        // Store values
+        *colours_ptr = color_value;
+        *indices_ptr = index_value;
+        
+        colours_ptr = colours_ptr.add(1);
+        indices_ptr = indices_ptr.add(1);
+    }
 }
 
 #[cfg(test)]
@@ -197,10 +248,12 @@ mod tests {
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
-    #[case::min_size(16)] // 128 bytes - minimum size for unroll-8
-    #[case::one_unroll(32)] // 256 bytes - tests double minimum size
-    #[case::many_unrolls(256)] // 2KB - tests multiple unroll iterations
-    #[case::large(1024)] // 8KB - large dataset
+    #[case(1)]
+    #[case(2)]
+    #[case(4)]
+    #[case(8)]
+    #[case(16)]
+    #[case(32)]
     fn test_implementations(#[case] num_blocks: usize) {
         let input = generate_bc1_test_data(num_blocks);
         let mut output_expected = vec![0u8; input.len()];

@@ -717,13 +717,15 @@ mod tests {
         transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
         // Test the u64 implementation
-        let implementations: [(&str, TransformFn); 6] = [
+        let implementations: [(&str, TransformFn); 8] = [
             ("u64", u64),
             ("u64_unroll_2", u64_unroll_2),
             ("u64_unroll_4", u64_unroll_4),
             ("u64_unroll_8", u64_unroll_8),
             ("u64_mix", u64_mix),
             ("u64_mix_unroll_2", u64_mix_unroll_2),
+            ("u64_mix_unroll_4", u64_mix_unroll_4),
+            ("u64_mix_unroll_8", u64_mix_unroll_8),
         ];
 
         for (impl_name, implementation) in implementations {

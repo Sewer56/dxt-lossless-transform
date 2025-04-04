@@ -12,7 +12,6 @@ static INDCOL_PERMUTE_MASK: [u32; 8] = [0, 4, 2, 6, 1, 5, 3, 7u32];
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - pointers must be properly aligned for AVX operations
-/// - len must be divisible by 128
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86_64")]
@@ -186,7 +185,6 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - pointers must be properly aligned for AVX operations
-/// - len must be divisible by 128
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86")]

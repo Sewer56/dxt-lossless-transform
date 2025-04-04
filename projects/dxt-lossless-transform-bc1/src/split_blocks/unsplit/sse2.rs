@@ -5,7 +5,6 @@ use std::arch::asm;
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - pointers must be properly aligned for SSE operations
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
 pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
@@ -67,7 +66,6 @@ pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - pointers must be properly aligned for SSE operations
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
 pub unsafe fn unpck_detransform_unroll_2(
@@ -145,7 +143,6 @@ pub unsafe fn unpck_detransform_unroll_2(
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - pointers must be properly aligned for SSE operations
 #[cfg(target_arch = "x86_64")]
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]

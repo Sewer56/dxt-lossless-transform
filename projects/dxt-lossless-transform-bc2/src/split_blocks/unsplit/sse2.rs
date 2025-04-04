@@ -5,7 +5,6 @@ use std::arch::asm;
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - pointers must be properly aligned for SSE operations
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
@@ -74,14 +73,14 @@ pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: us
             "add {output_ptr}, 64",
 
             // Loop until done
-            "cmp {alpha_ptr}, {alpha_ptr_end}",
+            "cmp {alpha_ptr}, {alpha_ptr_aligned_end}",
             "jb 2b",
 
             alpha_ptr = inout(reg) input_ptr,
             output_ptr = inout(reg) output_ptr,
             colors_ptr = inout(reg) colors_ptr,
             indices_ptr = inout(reg) indices_ptr,
-            alpha_ptr_end = in(reg) alpha_ptr_aligned_end,
+            alpha_ptr_aligned_end = in(reg) alpha_ptr_aligned_end,
             xmm0 = out(xmm_reg) _,
             xmm1 = out(xmm_reg) _,
             xmm2 = out(xmm_reg) _,

@@ -7,15 +7,35 @@
 pub unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
-    let max_ptr = input_ptr.add(len) as *mut u8;
-    let mut input_ptr = input_ptr as *mut u8;
-
     // Split output into color and index sections
     // Note(sewer): Compiler will split u64 into 2 u32 registers, so from our perspective
     // whether we go for u32 or u64 is irrelevant
-    let mut alphas_ptr = output_ptr as *mut u64;
-    let mut colours_ptr = output_ptr.add(len / 2) as *mut u32;
-    let mut indices_ptr = output_ptr.add(len / 2 + len / 4) as *mut u32;
+    let alphas_ptr = output_ptr as *mut u64;
+    let colours_ptr = output_ptr.add(len / 2) as *mut u32;
+    let indices_ptr = output_ptr.add(len / 2 + len / 4) as *mut u32;
+
+    u32_with_separate_pointers(input_ptr, alphas_ptr, colours_ptr, indices_ptr, len);
+}
+
+/// Inner function that processes the data with separate pointers for each component
+///
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - alphas_ptr must be valid for writes of len/2 bytes
+/// - colours_ptr must be valid for writes of len/4 bytes
+/// - indices_ptr must be valid for writes of len/4 bytes
+/// - len must be divisible by 16
+/// - pointers must be properly aligned
+pub unsafe fn u32_with_separate_pointers(
+    input_ptr: *const u8,
+    mut alphas_ptr: *mut u64,
+    mut colours_ptr: *mut u32,
+    mut indices_ptr: *mut u32,
+    len: usize,
+) {
+    let max_ptr = input_ptr.add(len) as *mut u8;
+    let mut input_ptr = input_ptr as *mut u8;
 
     while input_ptr < max_ptr {
         // Split into colours (lower 4 bytes) and indices (upper 4 bytes)

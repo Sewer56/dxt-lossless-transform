@@ -209,8 +209,8 @@ pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8,
     let remaining = len - aligned_len;
     if remaining > 0 {
         u32_with_separate_pointers(
-            input_ptr.add(aligned_len),
-            output_ptr.add(aligned_len) as *mut u32,
+            input_ptr,
+            output_ptr as *mut u32,
             indices_ptr as *mut u32,
             remaining,
         );
@@ -306,12 +306,18 @@ mod tests {
     #[rstest]
     #[case(1)]
     #[case(2)]
+    #[case(3)]
     #[case(4)]
     #[case(8)]
+    #[case(9)]
     #[case(16)]
+    #[case(17)]
     #[case(32)]
+    #[case(33)]
     #[case(64)]
+    #[case(65)]
     #[case(128)]
+    #[case(129)]
     fn test_sse2_implementations(#[case] num_blocks: usize) {
         let input = generate_bc1_test_data(num_blocks);
         let mut output_expected = allocate_align_64(input.len());

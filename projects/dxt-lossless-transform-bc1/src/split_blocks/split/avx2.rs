@@ -418,6 +418,7 @@ mod tests {
     #[case(4)]
     #[case(32)]
     #[case(33)]
+    #[case(65)]
     #[case(513)]
     #[case(2048)]
     fn test_avx2_implementations(#[case] num_blocks: usize) {

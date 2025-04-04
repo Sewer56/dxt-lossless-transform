@@ -178,6 +178,8 @@ pub unsafe fn normalize_blocks(
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
 
     /// Test normalizing a solid color block
@@ -225,8 +227,10 @@ mod tests {
     }
 
     /// Test normalizing a fully transparent block
-    #[test]
-    fn can_normalize_transparent_block() {
+    #[rstest]
+    #[case(false)]
+    #[case(true)]
+    fn can_normalize_transparent_block(#[case] repeat_colour: bool) {
         // Create a BC1 block that decodes to all transparent pixels
         // In BC1, when Color0 <= Color1, index 3 refers to transparent
 
@@ -254,7 +258,7 @@ mod tests {
 
         // Normalize the block
         unsafe {
-            normalize_blocks(block.as_ptr(), output.as_mut_ptr(), 8, false);
+            normalize_blocks(block.as_ptr(), output.as_mut_ptr(), 8, repeat_colour);
         }
 
         // Check that the output matches expected
@@ -262,8 +266,10 @@ mod tests {
     }
 
     /// Test that a mixed color block is preserved as-is
-    #[test]
-    fn can_preserve_mixed_color_block() {
+    #[rstest]
+    #[case(false)]
+    #[case(true)]
+    fn can_preserve_mixed_color_block(#[case] repeat_colour: bool) {
         // Create a mixed color block with red and blue
         // - Color0 = Red
         // - Color1 = Blue
@@ -289,7 +295,7 @@ mod tests {
 
         // Normalize the block
         unsafe {
-            normalize_blocks(block.as_ptr(), output.as_mut_ptr(), 8, false);
+            normalize_blocks(block.as_ptr(), output.as_mut_ptr(), 8, repeat_colour);
         }
 
         // Check that the output is identical to the source (preserved as-is)
@@ -297,8 +303,10 @@ mod tests {
     }
 
     /// Test that a solid color block that can't be cleanly round-tripped is preserved as-is
-    #[test]
-    fn can_preserve_non_roundtrippable_color_block() {
+    #[rstest]
+    #[case(false)]
+    #[case(true)]
+    fn can_preserve_non_roundtrippable_color_block(#[case] repeat_colour: bool) {
         // Create a mix of 2 colours that can't be cleanly round-tripped,
         // this cannot be simplified down
         let red565 = 0xF800u16.to_le_bytes(); // (31, 0, 0) -> 0xF800
@@ -323,7 +331,7 @@ mod tests {
 
         // Normalize the block
         unsafe {
-            normalize_blocks(source.as_ptr(), output.as_mut_ptr(), 8, false);
+            normalize_blocks(source.as_ptr(), output.as_mut_ptr(), 8, repeat_colour);
         }
 
         // Check that the output is identical to the source (preserved as-is)

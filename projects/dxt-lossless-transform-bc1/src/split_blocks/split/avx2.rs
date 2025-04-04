@@ -293,101 +293,6 @@ pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usi
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 256 (for eight AVX2 registers worth of data)
-/// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
-#[cfg(target_arch = "x86_64")]
-#[target_feature(enable = "avx2")]
-pub unsafe fn gather_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 256 == 0);
-
-    unsafe {
-        asm!(
-            // Preserve non-volatile registers we'll use
-            "push rbx",
-            "push r12",
-            "push r13",
-
-            // Calculate end address
-            "mov rbx, {src}",
-            "add rbx, {len}",  // end = src + len
-
-            // Store pointers in preserved registers
-            "mov r12, {src}",      // src
-            "mov r13, {dst}",      // dst
-
-            // Load gather indices for colors (every even index)
-            "vmovdqu ymm15, [{color_idx}]",
-            // Load gather indices for block indices (every odd index)
-            "vmovdqu ymm14, [{index_idx}]",
-
-            // Align the loop's instruction address to 32 bytes for AVX2
-            // This isn't strictly needed, but more modern processors fetch + execute instructions in
-            // 32-byte chunks, as opposed to older ones in 16-byte chunks. Therefore, we can safely-ish
-            // assume a processor with AVX2 will be one of those.
-            ".p2align 5",
-            "2:",
-
-            // Gather all colors
-            "vpcmpeqd ymm13, ymm13, ymm13",
-            "vpgatherdd ymm0, [r12 + ymm15 * 4], ymm13",
-            "vpcmpeqd ymm13, ymm13, ymm13",
-            "vpgatherdd ymm2, [r12 + 64 + ymm15 * 4], ymm13",
-            "vpcmpeqd ymm13, ymm13, ymm13",
-            "vpgatherdd ymm4, [r12 + 128 + ymm15 * 4], ymm13",
-            "vpcmpeqd ymm13, ymm13, ymm13",
-            "vpgatherdd ymm6, [r12 + 192 + ymm15 * 4], ymm13",
-
-            // Gather all indices
-            "vpcmpeqd ymm13, ymm13, ymm13",
-            "vpgatherdd ymm1, [r12 + ymm14 * 4], ymm13",
-            "vpcmpeqd ymm13, ymm13, ymm13",
-            "vpgatherdd ymm3, [r12 + 64 + ymm14 * 4], ymm13",
-            "vpcmpeqd ymm13, ymm13, ymm13",
-            "vpgatherdd ymm5, [r12 + 128 + ymm14 * 4], ymm13",
-            "vpcmpeqd ymm13, ymm13, ymm13",
-            "vpgatherdd ymm7, [r12 + 192 + ymm14 * 4], ymm13",
-            "add r12, 256",   // src += 256 (4 iterations * 64 bytes)
-
-            // Store all colors
-            "vmovdqu [r13], ymm0",
-            "vmovdqu [r13 + 32], ymm2",
-            "vmovdqu [r13 + 64], ymm4",
-            "vmovdqu [r13 + 96], ymm6",
-
-            // Store all indices
-            "vmovdqu [r13 + {len_half}], ymm1",
-            "vmovdqu [r13 + {len_half} + 32], ymm3",
-            "vmovdqu [r13 + {len_half} + 64], ymm5",
-            "vmovdqu [r13 + {len_half} + 96], ymm7",
-
-            // Update pointers
-            "add r13, 128",   // dst += 128 (4 iterations * 32 bytes)
-
-            // Compare against end address and loop if not done
-            "cmp r12, rbx",
-            "jb 2b",
-
-            // Restore preserved registers
-            "pop r13",
-            "pop r12",
-            "pop rbx",
-
-            src = in(reg) input_ptr,
-            dst = in(reg) output_ptr,
-            len = in(reg) len,
-            len_half = in(reg) len / 2,
-            // Indices for gathering colors (0, 2, 4, 6, 8, 10, 12, 14)
-            color_idx = in(reg) &[0, 2, 4, 6, 8, 10, 12, 14u32],
-            // Indices for gathering block indices (1, 3, 5, 7, 9, 11, 13, 15)
-            index_idx = in(reg) &[1, 3, 5, 7, 9, 11, 13, 15u32],
-        );
-    }
-}
-
-/// # Safety
-///
-/// - input_ptr must be valid for reads of len bytes
-/// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 64 (for two AVX2 registers worth of data)
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[allow(unused_assignments)]
@@ -514,104 +419,6 @@ pub unsafe fn shuffle_permute_unroll_2(
     }
 }
 
-/// # Safety
-///
-/// - input_ptr must be valid for reads of len bytes
-/// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 256 (for eight AVX2 registers worth of data)
-/// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
-#[allow(unused_assignments)]
-#[cfg(target_arch = "x86_64")]
-#[target_feature(enable = "avx2")]
-pub unsafe fn shuffle_permute_unroll_4(
-    mut input_ptr: *const u8,
-    mut output_ptr: *mut u8,
-    len: usize,
-) {
-    debug_assert!(len % 256 == 0);
-
-    unsafe {
-        let mut indices_ptr = output_ptr.add(len / 2);
-        let mut end = input_ptr.add(len);
-        asm!(
-            // Align the loop's instruction address to 32 bytes.
-            // This isn't strictly needed, but more modern processors fetch + execute instructions in
-            // 32-byte chunks, as opposed to older ones in 16-byte chunks. Therefore, we can safely-ish
-            // assume a processor with AVX2 will be one of those.
-            ".p2align 5",
-            "2:",
-
-            // Load all 256 bytes in sequence to maximize memory throughput
-            "vmovdqu {ymm0}, [{src_ptr}]",
-            "vmovdqu {ymm1}, [{src_ptr} + 32]",
-            "vmovdqu {ymm4}, [{src_ptr} + 64]",
-            "vmovdqu {ymm5}, [{src_ptr} + 96]",
-            "vmovdqu {ymm8}, [{src_ptr} + 128]",
-            "vmovdqu {ymm9}, [{src_ptr} + 160]",
-            "vmovdqu {ymm12}, [{src_ptr} + 192]",
-            "vmovdqu {ymm13}, [{src_ptr} + 224]",
-            "add {src_ptr}, 256",  // src += 256
-
-            // Group all shuffles together to better utilize shuffle units
-            "vshufps {ymm2}, {ymm0}, {ymm1}, 136",   // colors block 1
-            "vpermpd {ymm2}, {ymm2}, 216",   // arrange colors block 1
-            "vshufps {ymm3}, {ymm0}, {ymm1}, 221",   // indices block 1
-            "vpermpd {ymm3}, {ymm3}, 216",   // arrange indices block 1
-            "vshufps {ymm6}, {ymm4}, {ymm5}, 136",   // colors block 2
-            "vpermpd {ymm6}, {ymm6}, 216",   // arrange colors block 2
-            "vshufps {ymm7}, {ymm4}, {ymm5}, 221",   // indices block 2
-            "vpermpd {ymm7}, {ymm7}, 216",   // arrange indices block 2
-            "vshufps {ymm10}, {ymm8}, {ymm9}, 136",  // colors block 3
-            "vpermpd {ymm10}, {ymm10}, 216", // arrange colors block 3
-            "vshufps {ymm11}, {ymm8}, {ymm9}, 221",  // indices block 3
-            "vpermpd {ymm11}, {ymm11}, 216", // arrange indices block 3
-            "vshufps {ymm14}, {ymm12}, {ymm13}, 136", // colors block 4
-            "vpermpd {ymm14}, {ymm14}, 216", // arrange colors block 4
-            "vshufps {ymm15}, {ymm12}, {ymm13}, 221", // indices block 4
-            "vpermpd {ymm15}, {ymm15}, 216", // arrange indices block 4
-
-            // Group all stores together to maximize store throughput
-            // Store colors
-            "vmovdqu [{colors_ptr}], {ymm2}",
-            "vmovdqu [{indices_ptr}], {ymm3}",
-            "vmovdqu [{colors_ptr} + 32], {ymm6}",
-            "vmovdqu [{indices_ptr} + 32], {ymm7}",
-            "vmovdqu [{colors_ptr} + 64], {ymm10}",
-            "vmovdqu [{indices_ptr} + 64], {ymm11}",
-            "vmovdqu [{colors_ptr} + 96], {ymm14}",
-            "vmovdqu [{indices_ptr} + 96], {ymm15}",
-            "add {colors_ptr}, 128",  // colors_ptr += 128
-            "add {indices_ptr}, 128",  // indices_ptr += 128
-
-            // Compare against end address and loop if not done
-            "cmp {src_ptr}, {end}",
-            "jb 2b",
-
-            src_ptr = inout(reg) input_ptr,
-            colors_ptr = inout(reg) output_ptr,
-            indices_ptr = inout(reg) indices_ptr,
-            end = inout(reg) end,
-            ymm0 = out(ymm_reg) _,
-            ymm1 = out(ymm_reg) _,
-            ymm2 = out(ymm_reg) _,
-            ymm3 = out(ymm_reg) _,
-            ymm4 = out(ymm_reg) _,
-            ymm5 = out(ymm_reg) _,
-            ymm6 = out(ymm_reg) _,
-            ymm7 = out(ymm_reg) _,
-            ymm8 = out(ymm_reg) _,
-            ymm9 = out(ymm_reg) _,
-            ymm10 = out(ymm_reg) _,
-            ymm11 = out(ymm_reg) _,
-            ymm12 = out(ymm_reg) _,
-            ymm13 = out(ymm_reg) _,
-            ymm14 = out(ymm_reg) _,
-            ymm15 = out(ymm_reg) _,
-            options(nostack)
-        );
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -621,40 +428,6 @@ mod tests {
     use rstest::rstest;
 
     type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
-
-    #[cfg(target_arch = "x86_64")]
-    fn get_implementations() -> [(PermuteFn, &'static str); 8] {
-        [
-            (shuffle_permute as PermuteFn, "shuffle_permute"),
-            (
-                shuffle_permute_unroll_2 as PermuteFn,
-                "shuffle_permute unroll 2",
-            ),
-            (
-                shuffle_permute_unroll_4 as PermuteFn,
-                "shuffle_permute unroll 4",
-            ),
-            (permute as PermuteFn, "permute"),
-            (permute_unroll_2 as PermuteFn, "permute unroll 2"),
-            (permute_unroll_4 as PermuteFn, "permute unroll 4"),
-            (gather as PermuteFn, "gather"),
-            (gather_unroll_4 as PermuteFn, "gather unroll 4"),
-        ]
-    }
-
-    #[cfg(target_arch = "x86")]
-    fn get_implementations() -> [(PermuteFn, &'static str); 5] {
-        [
-            (shuffle_permute as PermuteFn, "shuffle_permute"),
-            (
-                shuffle_permute_unroll_2 as PermuteFn,
-                "shuffle_permute unroll 2",
-            ),
-            (permute as PermuteFn, "permute"),
-            (permute_unroll_2 as PermuteFn, "permute unroll 2"),
-            (gather as PermuteFn, "gather"),
-        ]
-    }
 
     #[rstest]
     #[case::min_size(32)] // 256 bytes - minimum size for unroll-4
@@ -669,7 +442,19 @@ mod tests {
         transform_with_reference_implementation(input.as_slice(), output_expected.as_mut_slice());
 
         // Test each implementation
-        for (permute_fn, impl_name) in get_implementations() {
+        let implementations = [
+            (shuffle_permute as PermuteFn, "shuffle_permute"),
+            (
+                shuffle_permute_unroll_2 as PermuteFn,
+                "shuffle_permute unroll 2",
+            ),
+            (permute as PermuteFn, "permute"),
+            (permute_unroll_2 as PermuteFn, "permute unroll 2"),
+            (permute_unroll_4 as PermuteFn, "permute unroll 4"),
+            (gather as PermuteFn, "gather"),
+        ];
+
+        for (permute_fn, impl_name) in implementations {
             output_test.as_mut_slice().fill(0);
             unsafe {
                 permute_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());

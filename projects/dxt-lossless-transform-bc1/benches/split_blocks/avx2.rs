@@ -36,21 +36,6 @@ fn bench_avx2_permute_unroll_2(
     });
 }
 
-#[cfg(target_arch = "x86_64")]
-fn bench_avx2_permute_unroll_4(
-    b: &mut criterion::Bencher,
-    input: &RawAlloc,
-    output: &mut RawAlloc,
-) {
-    b.iter(|| unsafe {
-        permute_unroll_4(
-            black_box(input.as_ptr()),
-            black_box(output.as_mut_ptr()),
-            black_box(input.len()),
-        )
-    });
-}
-
 fn bench_avx2_shuffle_permute(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
         shuffle_permute(
@@ -107,13 +92,6 @@ pub(crate) fn run_benchmarks(
             BenchmarkId::new("avx2 permute unroll 2", size),
             &size,
             |b, _| bench_avx2_permute_unroll_2(b, input, output),
-        );
-
-        #[cfg(target_arch = "x86_64")]
-        group.bench_with_input(
-            BenchmarkId::new("avx2 permute unroll 4", size),
-            &size,
-            |b, _| bench_avx2_permute_unroll_4(b, input, output),
         );
     }
 }

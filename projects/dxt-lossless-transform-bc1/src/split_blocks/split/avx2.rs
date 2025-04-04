@@ -177,103 +177,6 @@ pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8
 /// - output_ptr must be valid for writes of len bytes
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[allow(unused_assignments)]
-#[cfg(target_arch = "x86_64")]
-#[target_feature(enable = "avx2")]
-pub unsafe fn permute_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    // Process as many 256-byte blocks as possible
-    let aligned_len = len - (len % 256);
-
-    let mut indices_ptr = output_ptr.add(len / 2);
-    if aligned_len > 0 {
-        let mut aligned_end = input_ptr.add(aligned_len);
-        unsafe {
-            asm!(
-                // Load permutation indices for vpermd
-                "vmovdqu ymm15, [{perm}]",
-
-                // Align the loop's instruction address to 32 bytes for AVX2
-                // This isn't strictly needed, but more modern processors fetch + execute instructions in
-                // 32-byte chunks, as opposed to older ones in 16-byte chunks. Therefore, we can safely-ish
-                // assume a processor with AVX2 will be one of those.
-                ".p2align 5",
-                "2:",
-
-                // Load 256 bytes (32 blocks)
-                "vmovdqu ymm0, [{src_ptr}]",
-                "vmovdqu ymm1, [{src_ptr} + 32]",
-                "vmovdqu ymm4, [{src_ptr} + 64]",
-                "vmovdqu ymm5, [{src_ptr} + 96]",
-                "vmovdqu ymm8, [{src_ptr} + 128]",
-                "vmovdqu ymm9, [{src_ptr} + 160]",
-                "vmovdqu ymm12, [{src_ptr} + 192]",
-                "vmovdqu ymm13, [{src_ptr} + 224]",
-                "add {src_ptr}, 256",  // src += 256
-
-                // Use vpermd to group colors in low lane and indices in high lane
-                "vpermd ymm2, ymm15, ymm0",
-                "vpermd ymm3, ymm15, ymm1",
-                "vpermd ymm6, ymm15, ymm4",
-                "vpermd ymm7, ymm15, ymm5",
-                "vpermd ymm10, ymm15, ymm8",
-                "vpermd ymm11, ymm15, ymm9",
-                "vpermd ymm14, ymm15, ymm12",
-                "vpermd ymm0, ymm15, ymm13",
-
-                // Do all vperm2i128 operations
-                "vperm2i128 ymm1, ymm2, ymm3, 0x20", // all colors
-                "vperm2i128 ymm2, ymm2, ymm3, 0x31", // all indices
-                "vperm2i128 ymm3, ymm6, ymm7, 0x20", // all colors
-                "vperm2i128 ymm4, ymm6, ymm7, 0x31", // all indices
-                "vperm2i128 ymm5, ymm10, ymm11, 0x20", // all colors
-                "vperm2i128 ymm6, ymm10, ymm11, 0x31", // all indices
-                "vperm2i128 ymm7, ymm14, ymm0, 0x20", // all colors
-                "vperm2i128 ymm8, ymm14, ymm0, 0x31", // all indices
-
-                // Store all results
-                "vmovdqu [{colors_ptr}], ymm1",
-                "vmovdqu [{colors_ptr} + 32], ymm3",
-                "vmovdqu [{colors_ptr} + 64], ymm5",
-                "vmovdqu [{colors_ptr} + 96], ymm7",
-                "add {colors_ptr}, 128",
-
-                "vmovdqu [{indices_ptr}], ymm2",
-                "vmovdqu [{indices_ptr} + 32], ymm4",
-                "vmovdqu [{indices_ptr} + 64], ymm6",
-                "vmovdqu [{indices_ptr} + 96], ymm8",
-                "add {indices_ptr}, 128",
-
-                // Compare against end address and loop if not done
-                "cmp {src_ptr}, {end}",
-                "jb 2b",
-
-                src_ptr = inout(reg) input_ptr,
-                colors_ptr = inout(reg) output_ptr,
-                indices_ptr = inout(reg) indices_ptr,
-                end = inout(reg) aligned_end,
-                perm = in(reg) &[0, 2, 4, 6, 1, 3, 5, 7u32],
-                options(nostack)
-            );
-        }
-    }
-
-    // Process any remaining elements after the aligned blocks
-    let remaining = len - aligned_len;
-    if remaining > 0 {
-        u32_with_separate_pointers(
-            input_ptr,
-            output_ptr as *mut u32,
-            indices_ptr as *mut u32,
-            remaining,
-        );
-    }
-}
-
-/// # Safety
-///
-/// - input_ptr must be valid for reads of len bytes
-/// - output_ptr must be valid for writes of len bytes
-/// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
-#[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
 pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     // Process as many 128-byte blocks as possible
@@ -534,7 +437,6 @@ mod tests {
             ),
             (permute as PermuteFn, "permute"),
             (permute_unroll_2 as PermuteFn, "permute unroll 2"),
-            (permute_unroll_4 as PermuteFn, "permute unroll 4"),
             (gather as PermuteFn, "gather"),
         ];
 

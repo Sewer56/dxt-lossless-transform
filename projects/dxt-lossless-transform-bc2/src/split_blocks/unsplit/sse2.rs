@@ -1,3 +1,4 @@
+use crate::split_blocks::unsplit::portable32::u32_detransform_with_separate_pointers;
 use std::arch::asm;
 
 /// # Safety
@@ -5,17 +6,16 @@ use std::arch::asm;
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - pointers must be properly aligned for SSE operations
-/// - len must be divisible by 64
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 64 == 0);
+    // Process 4 blocks (64 bytes) at a time
+    let aligned_len = len - (len % 64);
+    let mut colors_ptr = input_ptr.add(len / 2);
+    let mut indices_ptr = input_ptr.add(len / 2 + len / 4);
+    let alpha_ptr_aligned_end = input_ptr.add(aligned_len / 2); // End pointer for the loop based on aligned length
 
-    unsafe {
-        let mut colors_ptr = input_ptr.add(len / 2);
-        let mut indices_ptr = colors_ptr.add(len / 4);
-        let alpha_ptr_end = colors_ptr;
-
+    if aligned_len > 0 {
         asm!(
             ".p2align 5",
             "2:",
@@ -81,7 +81,7 @@ pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: us
             output_ptr = inout(reg) output_ptr,
             colors_ptr = inout(reg) colors_ptr,
             indices_ptr = inout(reg) indices_ptr,
-            alpha_ptr_end = in(reg) alpha_ptr_end,
+            alpha_ptr_end = in(reg) alpha_ptr_aligned_end,
             xmm0 = out(xmm_reg) _,
             xmm1 = out(xmm_reg) _,
             xmm2 = out(xmm_reg) _,
@@ -91,6 +91,19 @@ pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: us
             xmm6 = out(xmm_reg) _,
             xmm7 = out(xmm_reg) _,
             options(nostack)
+        );
+    }
+
+    // Process any remaining blocks (less than 4)
+    let remaining_len = len - aligned_len;
+    if remaining_len > 0 {
+        // Pointers `input_ptr`, `colors_ptr`, `indices_ptr`, and `output_ptr` have been updated by the asm block
+        u32_detransform_with_separate_pointers(
+            input_ptr as *const u64,   // Final alpha pointer from asm
+            colors_ptr as *const u32,  // Final colors pointer from asm
+            indices_ptr as *const u32, // Final indices pointer from asm
+            output_ptr,                // Final output pointer from asm
+            remaining_len,
         );
     }
 }
@@ -107,23 +120,20 @@ mod tests {
     struct TestCase {
         name: &'static str,
         func: DetransformFn,
-        min_blocks: usize,
-        many_blocks: usize,
     }
 
     #[rstest]
     #[case::shuffle(TestCase {
         name: "shuffle",
         func: shuffle,
-        min_blocks: 4,
-        many_blocks: 1024,
     })]
     fn test_detransform(#[case] test_case: TestCase) {
-        // Test with minimum blocks
-        test_blocks(&test_case, test_case.min_blocks);
-
-        // Test with many blocks
-        test_blocks(&test_case, test_case.many_blocks);
+        // Test with different block counts to ensure they all work correctly
+        for block_count in [
+            1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65, 127, 128, 129,
+        ] {
+            test_blocks(&test_case, block_count);
+        }
     }
 
     fn test_blocks(test_case: &TestCase, num_blocks: usize) {

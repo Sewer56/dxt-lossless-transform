@@ -12,28 +12,27 @@ pub mod avx2;
 unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        let avx2 = std::is_x86_feature_detected!("avx2");
-        let sse2 = std::is_x86_feature_detected!("sse2");
-
-        if avx2 && len % 128 == 0 {
+        if std::is_x86_feature_detected!("avx2") {
             avx2::permd_detransform_unroll_2(input_ptr, output_ptr, len);
+            return;
         }
 
-        if sse2 && len % 64 == 0 {
+        if std::is_x86_feature_detected!("sse2") {
             sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
+            return;
         }
     }
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        #[cfg(target_feature = "avx2")]
-        if len % 128 == 0 {
-            avx2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
+        if cfg!(target_feature = "avx2") {
+            avx2::permd_detransform_unroll_2(input_ptr, output_ptr, len);
+            return;
         }
 
-        #[cfg(target_feature = "sse2")]
-        if len % 64 == 0 {
+        if cfg!(target_feature = "sse2") {
             sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
+            return;
         }
     }
 

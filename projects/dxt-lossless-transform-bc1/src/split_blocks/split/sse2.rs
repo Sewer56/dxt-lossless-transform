@@ -1,70 +1,84 @@
+use crate::split_blocks::split::portable32::u32_with_separate_pointers;
 use std::arch::asm;
 
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len is at least divisible by 64
 /// - pointers must be properly aligned for SSE operations
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
 pub unsafe fn punpckhqdq_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 64 == 0);
+    // Process as many 64-byte blocks as possible
+    let aligned_len = len - (len % 64);
 
-    unsafe {
-        let mut indices_ptr = output_ptr.add(len / 2);
-        let mut end = input_ptr.add(len);
-        asm!(
-            // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
-            // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
-            ".p2align 5",
-            "2:",
+    let mut indices_ptr = output_ptr.add(len / 2);
+    let mut aligned_end = input_ptr.add(aligned_len);
+    if aligned_len > 0 {
+        unsafe {
+            asm!(
+                // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
+                // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
+                ".p2align 5",
+                "2:",
 
-            // Load 8 blocks (64 bytes)
-            "movdqu {xmm0}, [{src_ptr}]",
-            "movdqu {xmm1}, [{src_ptr} + 16]",
-            "movdqu {xmm2}, [{src_ptr} + 32]",
-            "movdqu {xmm3}, [{src_ptr} + 48]",
-            "add {src_ptr}, 64",   // src += 4 * 16
+                // Load 8 blocks (64 bytes)
+                "movdqu {xmm0}, [{src_ptr}]",
+                "movdqu {xmm1}, [{src_ptr} + 16]",
+                "movdqu {xmm2}, [{src_ptr} + 32]",
+                "movdqu {xmm3}, [{src_ptr} + 48]",
+                "add {src_ptr}, 64",   // src += 4 * 16
 
-            // Shuffle all
-            "pshufd {xmm0}, {xmm0}, 0xD8",
-            "pshufd {xmm1}, {xmm1}, 0xD8",
-            "pshufd {xmm2}, {xmm2}, 0xD8",
-            "pshufd {xmm3}, {xmm3}, 0xD8",
+                // Shuffle all
+                "pshufd {xmm0}, {xmm0}, 0xD8",
+                "pshufd {xmm1}, {xmm1}, 0xD8",
+                "pshufd {xmm2}, {xmm2}, 0xD8",
+                "pshufd {xmm3}, {xmm3}, 0xD8",
 
-            // Copy registers
-            "movdqu {xmm4}, {xmm0}",
-            "movdqu {xmm5}, {xmm2}",
+                // Copy registers
+                "movdqu {xmm4}, {xmm0}",
+                "movdqu {xmm5}, {xmm2}",
 
-            // Reorganize pairs
-            "punpckhqdq {xmm0}, {xmm1}",     // indices 0,1
-            "punpckhqdq {xmm2}, {xmm3}",     // indices 2,3
-            "punpcklqdq {xmm4}, {xmm1}",     // colors 0,1
-            "punpcklqdq {xmm5}, {xmm3}",     // colors 2,3
+                // Reorganize pairs
+                "punpckhqdq {xmm0}, {xmm1}",     // indices 0,1
+                "punpckhqdq {xmm2}, {xmm3}",     // indices 2,3
+                "punpcklqdq {xmm4}, {xmm1}",     // colors 0,1
+                "punpcklqdq {xmm5}, {xmm3}",     // colors 2,3
 
-            // Store colors and indices
-            "movdqu [{colors_ptr}],      {xmm4}",
-            "movdqu [{colors_ptr} + 16], {xmm5}",
-            "add {colors_ptr}, 32",   // colors_ptr += 4 * 8
-            "movdqu [{indices_ptr}],      {xmm0}",
-            "movdqu [{indices_ptr} + 16], {xmm2}",
-            "add {indices_ptr}, 32",   // indices_ptr += 4 * 8
+                // Store colors and indices
+                "movdqu [{colors_ptr}],      {xmm4}",
+                "movdqu [{colors_ptr} + 16], {xmm5}",
+                "add {colors_ptr}, 32",   // colors_ptr += 4 * 8
+                "movdqu [{indices_ptr}],      {xmm0}",
+                "movdqu [{indices_ptr} + 16], {xmm2}",
+                "add {indices_ptr}, 32",   // indices_ptr += 4 * 8
 
-            "cmp {src_ptr}, {end}",
-            "jb 2b",
+                "cmp {src_ptr}, {end}",
+                "jb 2b",
 
-            src_ptr = inout(reg) input_ptr,
-            colors_ptr = inout(reg) output_ptr,
-            indices_ptr = inout(reg) indices_ptr,
-            end = inout(reg) end,
-            xmm0 = out(xmm_reg) _,
-            xmm1 = out(xmm_reg) _,
-            xmm2 = out(xmm_reg) _,
-            xmm3 = out(xmm_reg) _,
-            xmm4 = out(xmm_reg) _,
-            xmm5 = out(xmm_reg) _,
-            options(nostack)
+                src_ptr = inout(reg) input_ptr,
+                colors_ptr = inout(reg) output_ptr,
+                indices_ptr = inout(reg) indices_ptr,
+                end = inout(reg) aligned_end,
+                xmm0 = out(xmm_reg) _,
+                xmm1 = out(xmm_reg) _,
+                xmm2 = out(xmm_reg) _,
+                xmm3 = out(xmm_reg) _,
+                xmm4 = out(xmm_reg) _,
+                xmm5 = out(xmm_reg) _,
+                options(nostack)
+            );
+        }
+    }
+
+    // Process any remaining elements after the aligned blocks
+    let remaining = len - aligned_len;
+    if remaining > 0 {
+        u32_with_separate_pointers(
+            input_ptr,
+            output_ptr as *mut u32,
+            indices_ptr as *mut u32,
+            remaining,
         );
     }
 }
@@ -73,55 +87,68 @@ pub unsafe fn punpckhqdq_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len is at least divisible by 32
 /// - pointers must be properly aligned for SSE operations
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
 pub unsafe fn punpckhqdq_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 32 == 0);
+    // Process as many 32-byte blocks as possible
+    let aligned_len = len - (len % 32);
 
-    unsafe {
-        let mut indices_ptr = output_ptr.add(len / 2);
-        let mut end = input_ptr.add(len);
-        asm!(
-            // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
-            // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
-            ".p2align 5",
-            "2:",
+    let mut indices_ptr = output_ptr.add(len / 2);
+    let mut aligned_end = input_ptr.add(aligned_len);
+    if aligned_len > 0 {
+        unsafe {
+            asm!(
+                // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
+                // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
+                ".p2align 5",
+                "2:",
 
-            // Load 4 blocks (32 bytes)
-            "movdqu {xmm0}, [{src_ptr}]",
-            "movdqu {xmm1}, [{src_ptr} + 16]",
-            "add {src_ptr}, 32",   // src += 2 * 16
+                // Load 4 blocks (32 bytes)
+                "movdqu {xmm0}, [{src_ptr}]",
+                "movdqu {xmm1}, [{src_ptr} + 16]",
+                "add {src_ptr}, 32",   // src += 2 * 16
 
-            // Shuffle both
-            "pshufd {xmm0}, {xmm0}, 0xD8",
-            "pshufd {xmm1}, {xmm1}, 0xD8",
+                // Shuffle both
+                "pshufd {xmm0}, {xmm0}, 0xD8",
+                "pshufd {xmm1}, {xmm1}, 0xD8",
 
-            // Copy first register
-            "movdqu {xmm2}, {xmm0}",
+                // Copy first register
+                "movdqu {xmm2}, {xmm0}",
 
-            // Reorganize pair
-            "punpcklqdq {xmm2}, {xmm1}",     // colors
-            "punpckhqdq {xmm0}, {xmm1}",     // indices
+                // Reorganize pair
+                "punpcklqdq {xmm2}, {xmm1}",     // colors
+                "punpckhqdq {xmm0}, {xmm1}",     // indices
 
-            // Store colors and indices
-            "movdqu [{colors_ptr}], {xmm2}",
-            "add {colors_ptr}, 16",   // colors_ptr += 2 * 8
-            "movdqu [{indices_ptr}], {xmm0}",
-            "add {indices_ptr}, 16",   // indices_ptr += 2 * 8
+                // Store colors and indices
+                "movdqu [{colors_ptr}], {xmm2}",
+                "add {colors_ptr}, 16",   // colors_ptr += 2 * 8
+                "movdqu [{indices_ptr}], {xmm0}",
+                "add {indices_ptr}, 16",   // indices_ptr += 2 * 8
 
-            "cmp {src_ptr}, {end}",
-            "jb 2b",
+                "cmp {src_ptr}, {end}",
+                "jb 2b",
 
-            src_ptr = inout(reg) input_ptr,
-            colors_ptr = inout(reg) output_ptr,
-            indices_ptr = inout(reg) indices_ptr,
-            end = inout(reg) end,
-            xmm0 = out(xmm_reg) _,
-            xmm1 = out(xmm_reg) _,
-            xmm2 = out(xmm_reg) _,
-            options(nostack)
+                src_ptr = inout(reg) input_ptr,
+                colors_ptr = inout(reg) output_ptr,
+                indices_ptr = inout(reg) indices_ptr,
+                end = inout(reg) aligned_end,
+                xmm0 = out(xmm_reg) _,
+                xmm1 = out(xmm_reg) _,
+                xmm2 = out(xmm_reg) _,
+                options(nostack)
+            );
+        }
+    }
+
+    // Process any remaining elements after the aligned blocks
+    let remaining = len - aligned_len;
+    if remaining > 0 {
+        u32_with_separate_pointers(
+            input_ptr,
+            output_ptr as *mut u32,
+            indices_ptr as *mut u32,
+            remaining,
         );
     }
 }
@@ -130,49 +157,62 @@ pub unsafe fn punpckhqdq_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len is at least divisible by 32
 /// - pointers must be properly aligned for SSE operations
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
 pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 32 == 0);
+    // Process as many 32-byte blocks as possible
+    let aligned_len = len - (len % 32);
 
-    unsafe {
-        let mut indices_ptr = output_ptr.add(len / 2);
-        let mut end = input_ptr.add(len);
-        asm!(
-            // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
-            // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
-            ".p2align 5",
-            "2:",
+    let mut indices_ptr = output_ptr.add(len / 2);
+    let mut aligned_end = input_ptr.add(aligned_len);
+    if aligned_len > 0 {
+        unsafe {
+            asm!(
+                // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
+                // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
+                ".p2align 5",
+                "2:",
 
-            // Load 2 blocks (32 bytes)
-            "movdqu {xmm0}, [{src_ptr}]",
-            "movdqu {xmm1}, [{src_ptr} + 16]",
-            "add {src_ptr}, 32",   // src += 2 * 16
+                // Load 2 blocks (32 bytes)
+                "movdqu {xmm0}, [{src_ptr}]",
+                "movdqu {xmm1}, [{src_ptr} + 16]",
+                "add {src_ptr}, 32",   // src += 2 * 16
 
-            // Shuffle to separate colors and indices
-            "movaps {xmm2}, {xmm0}",
-            "shufps {xmm2}, {xmm1}, 0x88",    // Colors (0b10001000)
-            "shufps {xmm0}, {xmm1}, 0xDD",    // Indices (0b11011101)
+                // Shuffle to separate colors and indices
+                "movaps {xmm2}, {xmm0}",
+                "shufps {xmm2}, {xmm1}, 0x88",    // Colors (0b10001000)
+                "shufps {xmm0}, {xmm1}, 0xDD",    // Indices (0b11011101)
 
-            // Store colors and indices
-            "movdqu [{colors_ptr}], {xmm2}",
-            "add {colors_ptr}, 16",   // colors_ptr += 2 * 8
-            "movdqu [{indices_ptr}], {xmm0}",
-            "add {indices_ptr}, 16",   // indices_ptr += 2 * 8
+                // Store colors and indices
+                "movdqu [{colors_ptr}], {xmm2}",
+                "add {colors_ptr}, 16",   // colors_ptr += 2 * 8
+                "movdqu [{indices_ptr}], {xmm0}",
+                "add {indices_ptr}, 16",   // indices_ptr += 2 * 8
 
-            "cmp {src_ptr}, {end}",
-            "jb 2b",
+                "cmp {src_ptr}, {end}",
+                "jb 2b",
 
-            src_ptr = inout(reg) input_ptr,
-            colors_ptr = inout(reg) output_ptr,
-            indices_ptr = inout(reg) indices_ptr,
-            end = inout(reg) end,
-            xmm0 = out(xmm_reg) _,
-            xmm1 = out(xmm_reg) _,
-            xmm2 = out(xmm_reg) _,
-            options(nostack)
+                src_ptr = inout(reg) input_ptr,
+                colors_ptr = inout(reg) output_ptr,
+                indices_ptr = inout(reg) indices_ptr,
+                end = inout(reg) aligned_end,
+                xmm0 = out(xmm_reg) _,
+                xmm1 = out(xmm_reg) _,
+                xmm2 = out(xmm_reg) _,
+                options(nostack)
+            );
+        }
+    }
+
+    // Process any remaining elements after the aligned blocks
+    let remaining = len - aligned_len;
+    if remaining > 0 {
+        u32_with_separate_pointers(
+            input_ptr.add(aligned_len),
+            output_ptr.add(aligned_len) as *mut u32,
+            indices_ptr as *mut u32,
+            remaining,
         );
     }
 }
@@ -181,60 +221,73 @@ pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8,
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len is at least divisible by 64
 /// - pointers must be properly aligned for SSE operations
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
 pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 64 == 0);
+    // Process as many 64-byte blocks as possible
+    let aligned_len = len - (len % 64);
 
-    unsafe {
-        let mut indices_ptr = output_ptr.add(len / 2);
-        let mut end = input_ptr.add(len);
-        asm!(
-            // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
-            // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
-            ".p2align 5",
-            "2:",
+    let mut indices_ptr = output_ptr.add(len / 2);
+    let mut aligned_end = input_ptr.add(aligned_len);
+    if aligned_len > 0 {
+        unsafe {
+            asm!(
+                // Modern CPUs fetch instructions in 32 byte blocks (or greater), not 16 like the
+                // CPUs of older. So we can gain a little here by aligning heavier than Rust would.
+                ".p2align 5",
+                "2:",
 
-            // Load 4 blocks (64 bytes)
-            "movdqu {xmm0}, [{src_ptr}]",
-            "movdqu {xmm1}, [{src_ptr} + 16]",
-            "movdqu {xmm2}, [{src_ptr} + 32]",
-            "movdqu {xmm3}, [{src_ptr} + 48]",
-            "add {src_ptr}, 64",   // src += 4 * 16
+                // Load 4 blocks (64 bytes)
+                "movdqu {xmm0}, [{src_ptr}]",
+                "movdqu {xmm1}, [{src_ptr} + 16]",
+                "movdqu {xmm2}, [{src_ptr} + 32]",
+                "movdqu {xmm3}, [{src_ptr} + 48]",
+                "add {src_ptr}, 64",   // src += 4 * 16
 
-            "movaps {xmm4}, {xmm0}",
-            "movaps {xmm5}, {xmm2}",
+                "movaps {xmm4}, {xmm0}",
+                "movaps {xmm5}, {xmm2}",
 
-            // Shuffle the pairs to rearrange
-            "shufps {xmm0}, {xmm1}, 0xDD",    // Indices (0b11011101)
-            "shufps {xmm2}, {xmm3}, 0xDD",    // Indices (0b11011101)
-            "shufps {xmm4}, {xmm1}, 0x88",    // Colors (0b10001000)
-            "shufps {xmm5}, {xmm3}, 0x88",    // Colors (0b10001000)
+                // Shuffle the pairs to rearrange
+                "shufps {xmm0}, {xmm1}, 0xDD",    // Indices (0b11011101)
+                "shufps {xmm2}, {xmm3}, 0xDD",    // Indices (0b11011101)
+                "shufps {xmm4}, {xmm1}, 0x88",    // Colors (0b10001000)
+                "shufps {xmm5}, {xmm3}, 0x88",    // Colors (0b10001000)
 
-            // Store colors and indices
-            "movdqu [{indices_ptr}], {xmm0}",
-            "movdqu [{indices_ptr} + 16], {xmm2}",
-            "add {indices_ptr}, 32",   // indices_ptr += 4 * 8
-            "movdqu [{colors_ptr}], {xmm4}",
-            "movdqu [{colors_ptr} + 16], {xmm5}",
-            "add {colors_ptr}, 32",   // colors_ptr += 4 * 8
+                // Store colors and indices
+                "movdqu [{indices_ptr}], {xmm0}",
+                "movdqu [{indices_ptr} + 16], {xmm2}",
+                "add {indices_ptr}, 32",   // indices_ptr += 4 * 8
+                "movdqu [{colors_ptr}], {xmm4}",
+                "movdqu [{colors_ptr} + 16], {xmm5}",
+                "add {colors_ptr}, 32",   // colors_ptr += 4 * 8
 
-            "cmp {src_ptr}, {end}",
-            "jb 2b",
+                "cmp {src_ptr}, {end}",
+                "jb 2b",
 
-            src_ptr = inout(reg) input_ptr,
-            colors_ptr = inout(reg) output_ptr,
-            indices_ptr = inout(reg) indices_ptr,
-            end = inout(reg) end,
-            xmm0 = out(xmm_reg) _,
-            xmm1 = out(xmm_reg) _,
-            xmm2 = out(xmm_reg) _,
-            xmm3 = out(xmm_reg) _,
-            xmm4 = out(xmm_reg) _,
-            xmm5 = out(xmm_reg) _,
-            options(nostack)
+                src_ptr = inout(reg) input_ptr,
+                colors_ptr = inout(reg) output_ptr,
+                indices_ptr = inout(reg) indices_ptr,
+                end = inout(reg) aligned_end,
+                xmm0 = out(xmm_reg) _,
+                xmm1 = out(xmm_reg) _,
+                xmm2 = out(xmm_reg) _,
+                xmm3 = out(xmm_reg) _,
+                xmm4 = out(xmm_reg) _,
+                xmm5 = out(xmm_reg) _,
+                options(nostack)
+            );
+        }
+    }
+
+    // Process any remaining elements after the aligned blocks
+    let remaining = len - aligned_len;
+    if remaining > 0 {
+        u32_with_separate_pointers(
+            input_ptr,
+            output_ptr as *mut u32,
+            indices_ptr as *mut u32,
+            remaining,
         );
     }
 }
@@ -251,10 +304,14 @@ mod tests {
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
-    #[case::min_size(16)] // 128 bytes - minimum size for unroll-8
-    #[case::one_unroll(32)] // 256 bytes - tests double minimum size
-    #[case::many_unrolls(256)] // 2KB - tests multiple unroll iterations
-    #[case::large(1024)] // 8KB - large dataset
+    #[case(1)]
+    #[case(2)]
+    #[case(4)]
+    #[case(8)]
+    #[case(16)]
+    #[case(32)]
+    #[case(64)]
+    #[case(128)]
     fn test_sse2_implementations(#[case] num_blocks: usize) {
         let input = generate_bc1_test_data(num_blocks);
         let mut output_expected = allocate_align_64(input.len());

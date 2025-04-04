@@ -25,12 +25,12 @@ unsafe fn split_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize
         let avx2 = std::is_x86_feature_detected!("avx2");
         let sse2 = std::is_x86_feature_detected!("sse2");
 
-        if avx2 && len % 128 == 0 {
+        if avx2 {
             shuffle_permute_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
-        if sse2 && len % 64 == 0 {
+        if sse2 {
             shufps_unroll_4(input_ptr, output_ptr, len);
             return;
         }
@@ -38,14 +38,12 @@ unsafe fn split_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        #[cfg(target_feature = "avx2")]
-        if len % 128 == 0 {
+        if cfg!(target_feature = "avx2") {
             shuffle_permute_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
-        #[cfg(target_feature = "sse2")]
-        if len % 64 == 0 {
+        if cfg!(target_feature = "sse2") {
             shufps_unroll_4(input_ptr, output_ptr, len);
             return;
         }

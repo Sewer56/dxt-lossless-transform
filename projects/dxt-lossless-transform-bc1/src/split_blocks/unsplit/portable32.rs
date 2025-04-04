@@ -7,14 +7,32 @@
 pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
 
-    // Get pointers to the color, index sections, and end of data.
-    let mut colours_ptr = input_ptr as *const u32;
-    let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
-    let max_input = input_ptr.add(len) as *const u32;
+    // Get pointers to the color and index sections
+    let colours_ptr = input_ptr as *const u32;
+    let indices_ptr = input_ptr.add(len / 2) as *const u32;
 
-    let mut output_ptr = output_ptr;
+    u32_detransform_with_separate_pointers(colours_ptr, indices_ptr, output_ptr, len);
+}
 
-    while indices_ptr < max_input {
+/// # Safety
+///
+/// - colours_ptr must be valid for reads of len/2 bytes
+/// - indices_ptr must be valid for reads of len/2 bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len must be divisible by 8
+/// - pointers must be properly aligned for u32 access
+pub(crate) unsafe fn u32_detransform_with_separate_pointers(
+    mut colours_ptr: *const u32,
+    mut indices_ptr: *const u32,
+    mut output_ptr: *mut u8,
+    len: usize,
+) {
+    debug_assert!(len % 8 == 0);
+
+    // Calculate end pointer for the indices section
+    let max_indices_ptr = indices_ptr.add(len / 8);
+
+    while indices_ptr < max_indices_ptr {
         // Read color and index values
         let index_value = *indices_ptr;
         indices_ptr = indices_ptr.add(1); // we compare this in loop condition, so eval as fast as possible.

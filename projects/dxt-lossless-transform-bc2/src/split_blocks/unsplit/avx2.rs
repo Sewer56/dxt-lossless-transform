@@ -1,3 +1,4 @@
+use crate::split_blocks::unsplit::portable32::u32_detransform_with_separate_pointers;
 use std::arch::asm;
 
 #[allow(clippy::unusual_byte_groupings)]
@@ -16,13 +17,14 @@ static INDCOL_PERMUTE_MASK: [u32; 8] = [0, 4, 2, 6, 1, 5, 3, 7u32];
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86_64")]
 pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 128 == 0);
+    // Process 8 blocks (128 bytes) at a time
+    let aligned_len = len - (len % 128);
 
-    unsafe {
-        let mut colors_ptr = input_ptr.add(len / 2);
-        let mut indices_ptr = colors_ptr.add(len / 4);
-        let alpha_ptr_end = colors_ptr;
+    let mut colors_ptr = input_ptr.add(len / 2);
+    let mut indices_ptr = colors_ptr.add(len / 4);
+    let alpha_ptr_aligned_end = input_ptr.add(aligned_len / 2); // End pointer for the loop based on aligned length
 
+    if aligned_len > 0 {
         asm!(
             // Load permutation indices for vpermd, to rearrange blocks.
             "vmovdqu {ymm8}, [rip + {alpha_perm}]",
@@ -140,14 +142,14 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
             "add {output_ptr}, 128",
 
             // Loop until done
-            "cmp {alpha_ptr}, {alpha_ptr_end}",
+            "cmp {alpha_ptr}, {alpha_ptr_aligned_end}",
             "jb 2b",
 
             alpha_ptr = inout(reg) input_ptr,
             output_ptr = inout(reg) output_ptr,
             colors_ptr = inout(reg) colors_ptr,
             indices_ptr = inout(reg) indices_ptr,
-            alpha_ptr_end = in(reg) alpha_ptr_end,
+            alpha_ptr_aligned_end = in(reg) alpha_ptr_aligned_end,
             ymm0 = out(ymm_reg) _,
             ymm1 = out(ymm_reg) _,
             ymm2 = out(ymm_reg) _,
@@ -164,6 +166,19 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
             options(nostack)
         );
     }
+
+    // Process any remaining blocks (less than 8)
+    let remaining_len = len - aligned_len;
+    if remaining_len > 0 {
+        // Pointers `input_ptr`, `colors_ptr`, `indices_ptr`, and `output_ptr` have been updated by the asm block
+        u32_detransform_with_separate_pointers(
+            input_ptr as *const u64, // Final alpha pointer from asm (or initial if aligned_len == 0)
+            colors_ptr as *const u32, // Final colors pointer from asm (or initial)
+            indices_ptr as *const u32, // Final indices pointer from asm (or initial)
+            output_ptr,              // Final output pointer from asm (or initial)
+            remaining_len,
+        );
+    }
 }
 
 /// # Safety
@@ -176,13 +191,14 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86")]
 pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 128 == 0);
+    // Process 8 blocks (128 bytes) at a time
+    let aligned_len = len - (len % 128);
 
-    unsafe {
-        let mut colors_ptr = input_ptr.add(len / 2);
-        let mut indices_ptr = colors_ptr.add(len / 4);
-        let alpha_ptr_end = colors_ptr;
+    let mut colors_ptr = input_ptr.add(len / 2);
+    let mut indices_ptr = colors_ptr.add(len / 4);
+    let alpha_ptr_aligned_end = input_ptr.add(aligned_len / 2); // End pointer for the loop based on aligned length
 
+    if aligned_len > 0 {
         asm!(
             // Load permutation indices for vpermd, to rearrange blocks.
             "vmovdqu {ymm6}, [{alpha_perm}]",
@@ -290,14 +306,14 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
             "add {output_ptr}, 128",
 
             // Loop until done
-            "cmp {alpha_ptr}, {alpha_ptr_end}",
+            "cmp {alpha_ptr}, {alpha_ptr_aligned_end}",
             "jb 2b",
 
             alpha_ptr = inout(reg) input_ptr,
             output_ptr = inout(reg) output_ptr,
             colors_ptr = inout(reg) colors_ptr,
             indices_ptr = inout(reg) indices_ptr,
-            alpha_ptr_end = in(reg) alpha_ptr_end,
+            alpha_ptr_aligned_end = in(reg) alpha_ptr_aligned_end,
             ymm0 = out(ymm_reg) _,
             ymm1 = out(ymm_reg) _,
             ymm2 = out(ymm_reg) _,
@@ -309,6 +325,19 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
             alpha_perm = sym ALPHA_PERMUTE_MASK,
             indcol_perm = sym INDCOL_PERMUTE_MASK,
             options(nostack)
+        );
+    }
+
+    // Process any remaining blocks (less than 8)
+    let remaining_len = len - aligned_len;
+    if remaining_len > 0 {
+        // Pointers `input_ptr`, `colors_ptr`, `indices_ptr`, and `output_ptr` have been updated by the asm block
+        u32_detransform_with_separate_pointers(
+            input_ptr as *const u64, // Final alpha pointer from asm (or initial if aligned_len == 0)
+            colors_ptr as *const u32, // Final colors pointer from asm (or initial)
+            indices_ptr as *const u32, // Final indices pointer from asm (or initial)
+            output_ptr,              // Final output pointer from asm (or initial)
+            remaining_len,
         );
     }
 }
@@ -325,23 +354,20 @@ mod tests {
     struct TestCase {
         name: &'static str,
         func: DetransformFn,
-        min_blocks: usize,
-        many_blocks: usize,
     }
 
     #[rstest]
     #[case::avx2_shuffle(TestCase {
         name: "avx2_shuffle",
         func: avx2_shuffle,
-        min_blocks: 8,
-        many_blocks: 1024,
     })]
     fn test_detransform(#[case] test_case: TestCase) {
-        // Test with minimum blocks
-        test_blocks(&test_case, test_case.min_blocks);
-
-        // Test with many blocks
-        test_blocks(&test_case, test_case.many_blocks);
+        // Test with different block counts to ensure they all work correctly, especially the remainder handling
+        for block_count in [
+            1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65, 127, 128, 129,
+        ] {
+            test_blocks(&test_case, block_count);
+        }
     }
 
     fn test_blocks(test_case: &TestCase, num_blocks: usize) {

@@ -8,14 +8,37 @@ pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
     debug_assert!(len % 16 == 0);
 
     // Set up input pointers for each section
-    let mut alpha_byte_in_ptr = input_ptr as *const u16;
-    let mut alpha_bit_in_ptr = input_ptr.add(len / 16 * 2) as *const u16;
-    let mut color_byte_in_ptr = input_ptr.add(len / 16 * 8) as *const u32;
-    let mut index_byte_in_ptr = input_ptr.add(len / 16 * 12) as *const u32;
+    let alpha_byte_in_ptr = input_ptr as *const u16;
+    let alpha_bit_in_ptr = input_ptr.add(len / 16 * 2) as *const u16;
+    let color_byte_in_ptr = input_ptr.add(len / 16 * 8) as *const u32;
+    let index_byte_in_ptr = input_ptr.add(len / 16 * 12) as *const u32;
 
-    let mut current_output_ptr = output_ptr;
+    let current_output_ptr = output_ptr;
     let alpha_byte_end_ptr = alpha_byte_in_ptr.add(len / 16);
 
+    u32_detransform_with_separate_pointers(
+        alpha_byte_in_ptr,
+        alpha_bit_in_ptr,
+        color_byte_in_ptr,
+        index_byte_in_ptr,
+        current_output_ptr,
+        alpha_byte_end_ptr,
+    );
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - pointers must be properly aligned for u64/u32 access
+pub unsafe fn u32_detransform_with_separate_pointers(
+    mut alpha_byte_in_ptr: *const u16,
+    mut alpha_bit_in_ptr: *const u16,
+    mut color_byte_in_ptr: *const u32,
+    mut index_byte_in_ptr: *const u32,
+    mut current_output_ptr: *mut u8,
+    alpha_byte_end_ptr: *const u16,
+) {
     while alpha_byte_in_ptr < alpha_byte_end_ptr {
         // Alpha bytes (2 bytes)
         (current_output_ptr as *mut u16).write_unaligned(alpha_byte_in_ptr.read_unaligned());
@@ -41,12 +64,12 @@ pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
 
 /// # Safety
 ///
-/// - input_ptr must be valid for reads of len bytes
+/// - input_ptr must be valid for reads based on the transformed layout derived from len bytes of output.
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 32
+/// - len must be divisible by 16
 /// - pointers must be properly aligned for u64/u32 access
 pub unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 32 == 0);
+    debug_assert!(len % 16 == 0);
 
     // Set up input pointers for each section
     // Pointers are doubly sized for unroll.
@@ -56,9 +79,9 @@ pub unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len:
     let mut index_byte_in_ptr = input_ptr.add(len / 16 * 12) as *const u32;
 
     let mut current_output_ptr = output_ptr;
-    let alpha_byte_end_ptr = input_ptr.add(len / 16 * 2) as *const u32;
+    let alpha_byte_aligned_end_ptr = input_ptr.add(len / 16 * 2).sub(32 - 16) as *const u32;
 
-    while alpha_byte_in_ptr < alpha_byte_end_ptr {
+    while alpha_byte_in_ptr < alpha_byte_aligned_end_ptr {
         let alpha_bytes = alpha_byte_in_ptr.read_unaligned();
         alpha_byte_in_ptr = alpha_byte_in_ptr.add(1);
 
@@ -99,16 +122,27 @@ pub unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len:
 
         current_output_ptr = current_output_ptr.add(32);
     }
+
+    // Process remaining bytes if necessary
+    let alpha_byte_end_ptr = input_ptr.add(len / 16 * 2) as *const u32;
+    u32_detransform_with_separate_pointers(
+        alpha_byte_in_ptr as *const u16,
+        alpha_bit_in_ptr,
+        color_byte_in_ptr,
+        index_byte_in_ptr,
+        current_output_ptr,
+        alpha_byte_end_ptr as *const u16,
+    );
 }
 
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 32
+/// - len must be divisible by 16
 /// - pointers must be properly aligned for u64/u32 access
 pub unsafe fn u64_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 32 == 0);
+    debug_assert!(len % 16 == 0);
 
     // Set up input pointers for each section
     // Pointers are doubly sized for unroll.
@@ -118,9 +152,9 @@ pub unsafe fn u64_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
     let mut index_byte_in_ptr = input_ptr.add(len / 16 * 12) as *const u64;
 
     let mut current_output_ptr = output_ptr;
-    let alpha_byte_end_ptr = input_ptr.add(len / 16 * 2) as *const u32;
+    let alpha_byte_aligned_end_ptr = input_ptr.add(len / 16 * 2).sub(32 - 16) as *const u32;
 
-    while alpha_byte_in_ptr < alpha_byte_end_ptr {
+    while alpha_byte_in_ptr < alpha_byte_aligned_end_ptr {
         let alpha_bytes = alpha_byte_in_ptr.read_unaligned();
         let color_bytes = color_byte_in_ptr.read_unaligned();
         let index_bytes = index_byte_in_ptr.read_unaligned();
@@ -171,6 +205,17 @@ pub unsafe fn u64_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
         // Index bytes (4 bytes)
         current_output_ptr = current_output_ptr.add(32);
     }
+
+    // Process remaining bytes if necessary
+    let alpha_byte_end_ptr = input_ptr.add(len / 16 * 2) as *const u32;
+    u32_detransform_with_separate_pointers(
+        alpha_byte_in_ptr as *const u16,
+        alpha_bit_in_ptr,
+        color_byte_in_ptr as *const u32,
+        index_byte_in_ptr as *const u32,
+        current_output_ptr,
+        alpha_byte_end_ptr as *const u16,
+    );
 }
 
 #[cfg(test)]
@@ -185,8 +230,6 @@ mod tests {
     struct TestCase {
         name: &'static str,
         func: DetransformFn,
-        min_blocks: usize,
-        many_blocks: usize,
     }
 
     #[rstest]
@@ -194,32 +237,24 @@ mod tests {
         TestCase {
             name: "u32",
             func: u32_detransform,
-            min_blocks: 1,
-            many_blocks: 8,
         }
     )]
     #[case::u32_v2(
         TestCase {
             name: "u32_v2",
             func: u32_detransform_v2,
-            min_blocks: 2,
-            many_blocks: 8,
         }
     )]
     #[case::u64(
         TestCase {
             name: "u64",
             func: u64_detransform,
-            min_blocks: 2,
-            many_blocks: 4,
         }
     )]
     fn test_detransform(#[case] test_case: TestCase) {
-        // Test with minimum blocks
-        test_blocks(&test_case, test_case.min_blocks);
-
-        // Test with many blocks
-        test_blocks(&test_case, test_case.many_blocks);
+        for block_count in 1..512 {
+            test_blocks(&test_case, block_count);
+        }
     }
 
     fn test_blocks(test_case: &TestCase, num_blocks: usize) {

@@ -4,15 +4,21 @@ use std::arch::x86::*;
 use std::arch::x86_64::*;
 use std::arch::*;
 
+use super::portable32::u32_with_separate_endpoints;
+
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 128 (for eight 16-byte BC3 blocks)
+/// - len must be divisible by 16 (BC3 block size)
 /// - pointers must be properly aligned for AVX2 operations (32-byte alignment)
 #[target_feature(enable = "avx2")]
 pub unsafe fn u32_avx2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 128 == 0);
+    debug_assert!(len % 16 == 0, "Length must be a multiple of 16");
+
+    // Process 8 blocks (128 bytes) at a time
+    let aligned_len = len - (len % 128);
+    let remaining_len = len - aligned_len;
 
     // Setup pointers for alpha components
     let mut alpha_byte_out_ptr = output_ptr as *mut u16;
@@ -21,7 +27,7 @@ pub unsafe fn u32_avx2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     let mut index_out_ptr = output_ptr.add(len / 16 * 12) as *mut __m256i;
 
     let mut current_input_ptr = input_ptr;
-    let alpha_byte_end_ptr = alpha_bit_out_ptr as *mut u16;
+    let input_aligned_end_ptr = input_ptr.add(aligned_len);
 
     // Create gather indices for colors (offset 8) and indices (offset 12)
     // For eight blocks, each 16 bytes apart
@@ -37,7 +43,7 @@ pub unsafe fn u32_avx2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     let mut colours: __m256i = _mm256_setzero_si256();
     let mut indices: __m256i = _mm256_setzero_si256();
 
-    while alpha_byte_out_ptr < alpha_byte_end_ptr {
+    while current_input_ptr < input_aligned_end_ptr {
         // Use inline assembly for the gather operations
         unsafe {
             asm!(
@@ -115,6 +121,19 @@ pub unsafe fn u32_avx2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
         color_out_ptr = color_out_ptr.add(1);
         index_out_ptr = index_out_ptr.add(1);
     }
+
+    // Process any remaining blocks (less than 8)
+    if remaining_len > 0 {
+        let alpha_byte_end_ptr = output_ptr.add(len / 16 * 2);
+        u32_with_separate_endpoints(
+            current_input_ptr,              // Start of remaining input data
+            alpha_byte_out_ptr,             // Start of remaining alpha byte output
+            alpha_bit_out_ptr as *mut u16,  // Start of alpha bits
+            color_out_ptr as *mut u32,      // Start of remaining color output
+            index_out_ptr as *mut u32,      // Start of remaining index output
+            alpha_byte_end_ptr as *mut u16, // End of alpha byte section
+        );
+    }
 }
 
 #[inline(always)]
@@ -169,29 +188,17 @@ mod tests {
 
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
-    struct TestCase {
-        name: &'static str,
-        func: TransformFn,
-        min_blocks: usize,
-        many_blocks: usize,
-    }
-
     #[rstest]
-    #[case::u32_avx2(TestCase {
-        name: "u32_avx2 no-unroll",
-        func: u32_avx2,
-        min_blocks: 8, // 128 bytes, minimum size
-        many_blocks: 64,
-    })]
-    fn test_transform(#[case] test_case: TestCase) {
-        // Test with minimum blocks
-        test_blocks(&test_case, test_case.min_blocks);
-
-        // Test with many blocks
-        test_blocks(&test_case, test_case.many_blocks);
+    fn test_transform_avx2() {
+        // Test with different block counts to ensure they all work correctly
+        for block_count in [
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65, 127, 128, 129,
+        ] {
+            test_blocks(u32_avx2, block_count);
+        }
     }
 
-    fn test_blocks(test_case: &TestCase, num_blocks: usize) {
+    fn test_blocks(transform_fn: TransformFn, num_blocks: usize) {
         let input = generate_bc3_test_data(num_blocks);
         let mut output_expected = vec![0u8; input.len()];
         let mut output_test = vec![0u8; input.len()];
@@ -204,14 +211,14 @@ mod tests {
 
         // Run the implementation
         unsafe {
-            (test_case.func)(input.as_ptr(), output_test.as_mut_ptr(), input.len());
+            transform_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());
         }
 
         // Compare results
         assert_eq!(
             output_expected, output_test,
-            "{} implementation produced different results than reference for {} blocks.",
-            test_case.name, num_blocks
+            "u32_avx2 implementation produced different results than reference for {} blocks.",
+            num_blocks
         );
     }
 }

@@ -18,6 +18,7 @@ pub unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
         alpha_bit_out_ptr,
         color_byte_out_ptr,
         index_byte_out_ptr,
+        alpha_bit_out_ptr,
     );
 }
 
@@ -33,9 +34,9 @@ pub unsafe fn u32_with_separate_endpoints(
     mut alpha_bit_out_ptr: *mut u16,
     mut color_byte_out_ptr: *mut u32,
     mut index_byte_out_ptr: *mut u32,
+    alpha_byte_end_ptr: *mut u16,
 ) {
     let mut current_input_ptr = input_ptr;
-    let alpha_byte_end_ptr = alpha_bit_out_ptr;
 
     while alpha_byte_out_ptr < alpha_byte_end_ptr {
         // Alpha bytes (2 bytes)

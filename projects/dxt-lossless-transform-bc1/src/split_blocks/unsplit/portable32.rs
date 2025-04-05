@@ -53,18 +53,18 @@ pub(crate) unsafe fn u32_detransform_with_separate_pointers(
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 16 (for unroll 2)
+/// - len must be divisible by 8
 /// - pointers must be properly aligned for u64/u32 access
 pub unsafe fn u32_detransform_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len % 8 == 0);
 
     let mut colours_ptr = input_ptr as *const u32;
     let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
-    let max_input = input_ptr.add(len) as *const u32;
+    let max_aligned_input = input_ptr.add(len).sub(16 - 8) as *const u32;
 
     let mut output_ptr = output_ptr;
 
-    while indices_ptr < max_input {
+    while indices_ptr < max_aligned_input {
         // Load indices first and advance pointer immediately
         let index_value1 = *indices_ptr;
         let index_value2 = *indices_ptr.add(1);
@@ -84,24 +84,41 @@ pub unsafe fn u32_detransform_unroll_2(input_ptr: *const u8, output_ptr: *mut u8
 
         output_ptr = output_ptr.add(16);
     }
+
+    let max_input = input_ptr.add(len) as *const u32;
+    while indices_ptr < max_input {
+        // Read color and index values
+        let index_value = *indices_ptr;
+        indices_ptr = indices_ptr.add(1); // we compare this in loop condition, so eval as fast as possible.
+
+        let color_value = *colours_ptr;
+        colours_ptr = colours_ptr.add(1);
+
+        // Write interleaved values to output
+        *(output_ptr as *mut u32) = color_value;
+        *(output_ptr.add(4) as *mut u32) = index_value;
+
+        // Move output pointer by 8 bytes (one complete block)
+        output_ptr = output_ptr.add(8);
+    }
 }
 
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 32 (for unroll 4)
+/// - len must be divisible by 8
 /// - pointers must be properly aligned for u64/u32 access
 pub unsafe fn u32_detransform_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 32 == 0);
+    debug_assert!(len % 8 == 0);
 
     let mut colours_ptr = input_ptr as *const u32;
     let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
-    let max_input = input_ptr.add(len) as *const u32;
+    let max_aligned_input = input_ptr.add(len).sub(32 - 8) as *const u32;
 
     let mut output_ptr = output_ptr;
 
-    while indices_ptr < max_input {
+    while indices_ptr < max_aligned_input {
         // Load all indices first and advance pointer immediately
         let index_value1 = *indices_ptr;
         let index_value2 = *indices_ptr.add(1);
@@ -131,24 +148,41 @@ pub unsafe fn u32_detransform_unroll_4(input_ptr: *const u8, output_ptr: *mut u8
 
         output_ptr = output_ptr.add(32);
     }
+
+    let max_input = input_ptr.add(len) as *const u32;
+    while indices_ptr < max_input {
+        // Read color and index values
+        let index_value = *indices_ptr;
+        indices_ptr = indices_ptr.add(1); // we compare this in loop condition, so eval as fast as possible.
+
+        let color_value = *colours_ptr;
+        colours_ptr = colours_ptr.add(1);
+
+        // Write interleaved values to output
+        *(output_ptr as *mut u32) = color_value;
+        *(output_ptr.add(4) as *mut u32) = index_value;
+
+        // Move output pointer by 8 bytes (one complete block)
+        output_ptr = output_ptr.add(8);
+    }
 }
 
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 64 (for unroll 8)
+/// - len must be divisible by 8
 /// - pointers must be properly aligned for u64/u32 access
 pub unsafe fn u32_detransform_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 64 == 0);
+    debug_assert!(len % 8 == 0);
 
     let mut colours_ptr = input_ptr as *const u32;
     let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
-    let max_input = input_ptr.add(len) as *const u32;
+    let max_aligned_input = input_ptr.add(len).sub(64 - 8) as *const u32;
 
     let mut output_ptr = output_ptr;
 
-    while indices_ptr < max_input {
+    while indices_ptr < max_aligned_input {
         // Load all indices first and advance pointer immediately
         let index_value1 = *indices_ptr;
         let index_value2 = *indices_ptr.add(1);
@@ -198,6 +232,23 @@ pub unsafe fn u32_detransform_unroll_8(input_ptr: *const u8, output_ptr: *mut u8
 
         output_ptr = output_ptr.add(64);
     }
+
+    let max_input = input_ptr.add(len) as *const u32;
+    while indices_ptr < max_input {
+        // Read color and index values
+        let index_value = *indices_ptr;
+        indices_ptr = indices_ptr.add(1); // we compare this in loop condition, so eval as fast as possible.
+
+        let color_value = *colours_ptr;
+        colours_ptr = colours_ptr.add(1);
+
+        // Write interleaved values to output
+        *(output_ptr as *mut u32) = color_value;
+        *(output_ptr.add(4) as *mut u32) = index_value;
+
+        // Move output pointer by 8 bytes (one complete block)
+        output_ptr = output_ptr.add(8);
+    }
 }
 
 #[cfg(test)]
@@ -212,49 +263,38 @@ mod tests {
     struct TestCase {
         name: &'static str,
         func: DetransformFn,
-        min_blocks: usize,
-        many_blocks: usize,
     }
 
     #[rstest]
-    #[case::unroll_2(
+    #[case::no_unroll(
         TestCase {
             name: "no_unroll",
             func: u32_detransform,
-            min_blocks: 1,
-            many_blocks: 1024,
         }
     )]
     #[case::unroll_2(
         TestCase {
             name: "unroll_2",
             func: u32_detransform_unroll_2,
-            min_blocks: 2,
-            many_blocks: 1024,
         }
     )]
     #[case::unroll_4(
         TestCase {
             name: "unroll_4",
             func: u32_detransform_unroll_4,
-            min_blocks: 4,
-            many_blocks: 1024,
         }
     )]
     #[case::unroll_8(
         TestCase {
             name: "unroll_8",
             func: u32_detransform_unroll_8,
-            min_blocks: 8,
-            many_blocks: 1024,
         }
     )]
     fn test_detransform(#[case] test_case: TestCase) {
-        // Test with minimum blocks
-        test_blocks(&test_case, test_case.min_blocks);
-
-        // Test with many blocks
-        test_blocks(&test_case, test_case.many_blocks);
+        // Loop through block counts 1 to 512
+        for num_blocks in 1..=512 {
+            test_blocks(&test_case, num_blocks);
+        }
     }
 
     fn test_blocks(test_case: &TestCase, num_blocks: usize) {

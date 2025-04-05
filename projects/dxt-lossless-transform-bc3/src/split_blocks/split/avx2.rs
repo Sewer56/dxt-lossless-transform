@@ -191,9 +191,7 @@ mod tests {
     #[rstest]
     fn test_transform_avx2() {
         // Test with different block counts to ensure they all work correctly
-        for block_count in [
-            1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65, 127, 128, 129,
-        ] {
+        for block_count in 1..512 {
             test_blocks(u32_avx2, block_count);
         }
     }

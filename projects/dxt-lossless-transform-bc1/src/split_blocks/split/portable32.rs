@@ -262,49 +262,38 @@ mod tests {
     use crate::split_blocks::split::tests::transform_with_reference_implementation;
     use rstest::rstest;
 
-    // Define the function pointer type
-    type TransformFn = unsafe fn(*const u8, *mut u8, usize);
+    type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
-    #[case(1)]
-    #[case(2)]
-    #[case(4)]
-    #[case(8)]
-    #[case(16)]
-    #[case(32)]
-    fn test_implementations(#[case] num_blocks: usize) {
-        let input = generate_bc1_test_data(num_blocks);
-        let mut output_expected = vec![0u8; input.len()];
-        let mut output_test = vec![0u8; input.len()];
+    #[case(u32, "u32 no-unroll")]
+    #[case(u32_unroll_2, "u32 unroll_2")]
+    #[case(u32_unroll_4, "u32 unroll_4")]
+    #[case(u32_unroll_8, "u32 unroll_8")]
+    fn test_portable32_implementation(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+        for num_blocks in 1..=512 {
+            let input = generate_bc1_test_data(num_blocks);
+            let mut output_expected = vec![0u8; input.len()];
+            let mut output_test = vec![0u8; input.len()];
 
-        // Generate reference output
-        transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+            transform_with_reference_implementation(
+                input.as_slice(),
+                output_expected.as_mut_slice(),
+            );
 
-        // Test each SSE2 implementation variant
-        let implementations = [
-            ("u32 no-unroll", u32 as TransformFn),
-            ("u32 unroll-2", u32_unroll_2),
-            ("u32 unroll-4", u32_unroll_4),
-            ("u32 unroll-8", u32_unroll_8),
-        ];
-
-        for (impl_name, implementation) in implementations {
-            // Clear the output buffer
-            output_test.fill(0);
-
-            // Run the implementation
+            output_test.as_mut_slice().fill(0);
             unsafe {
-                implementation(input.as_ptr(), output_test.as_mut_ptr(), input.len());
+                permute_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());
             }
 
-            // Compare results
             assert_eq!(
-                output_expected, output_test,
+                output_expected.as_slice(),
+                output_test.as_slice(),
                 "{} implementation produced different results than reference for {} blocks.\n\
                 First differing block will have predictable values:\n\
                 Colors: Sequential 1-4 + (block_num * 4)\n\
                 Indices: Sequential 128-131 + (block_num * 4)",
-                impl_name, num_blocks
+                impl_name,
+                num_blocks
             );
         }
     }

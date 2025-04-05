@@ -296,57 +296,36 @@ mod tests {
     use crate::testutils::allocate_align_64;
     use rstest::rstest;
 
-    // Define the function pointer type
-    type TransformFn = unsafe fn(*const u8, *mut u8, usize);
+    type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
-    #[case(1)]
-    #[case(2)]
-    #[case(3)]
-    #[case(4)]
-    #[case(8)]
-    #[case(9)]
-    #[case(16)]
-    #[case(17)]
-    #[case(32)]
-    #[case(33)]
-    #[case(64)]
-    #[case(65)]
-    #[case(128)]
-    #[case(129)]
-    fn test_sse2_implementations(#[case] num_blocks: usize) {
-        let input = generate_bc1_test_data(num_blocks);
-        let mut output_expected = allocate_align_64(input.len());
-        let mut output_test = allocate_align_64(input.len());
+    #[case(punpckhqdq_unroll_4, "SSE2 punpckhqdq unroll-4")]
+    #[case(punpckhqdq_unroll_2, "SSE2 punpckhqdq unroll-2")]
+    #[case(shufps_unroll_2, "SSE2 shuffle unroll-2")]
+    #[case(shufps_unroll_4, "SSE2 shuffle unroll-4")]
+    fn test_sse2_implementation(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+        for num_blocks in 1..=512 {
+            let input = generate_bc1_test_data(num_blocks);
+            let mut output_expected = allocate_align_64(input.len());
+            let mut output_test = allocate_align_64(input.len());
 
-        // Generate reference output
-        transform_with_reference_implementation(input.as_slice(), output_expected.as_mut_slice());
+            transform_with_reference_implementation(
+                input.as_slice(),
+                output_expected.as_mut_slice(),
+            );
 
-        // Test each SSE2 implementation variant
-        let implementations: [(&str, TransformFn); 4] = [
-            ("SSE2 punpckhqdq unroll-4", punpckhqdq_unroll_4),
-            ("SSE2 punpckhqdq unroll-2", punpckhqdq_unroll_2),
-            ("SSE2 shuffle unroll-2", shufps_unroll_2),
-            ("SSE2 shuffle unroll-4", shufps_unroll_4),
-        ];
-
-        for (impl_name, implementation) in implementations {
-            // Clear the output buffer
             output_test.as_mut_slice().fill(0);
-
-            // Run the implementation
             unsafe {
-                implementation(input.as_ptr(), output_test.as_mut_ptr(), input.len());
+                permute_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());
             }
 
-            // Compare results
             assert_eq!(
                 output_expected.as_slice(),
                 output_test.as_slice(),
                 "{} implementation produced different results than reference for {} blocks.\n\
-                First differing block will have predictable values:\n\
-                Colors: Sequential 1-4 + (block_num * 4)\n\
-                Indices: Sequential 128-131 + (block_num * 4)",
+                 First differing block will have predictable values:\n\
+                 Colors: Sequential 1-4 + (block_num * 4)\n\
+                 Indices: Sequential 128-131 + (block_num * 4)",
                 impl_name,
                 num_blocks
             );

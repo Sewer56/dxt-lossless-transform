@@ -298,11 +298,6 @@ pub unsafe fn unpck_detransform_unroll_2(
     if aligned_len > 0 {
         unsafe {
             asm!(
-                "mov {indices_ptr}, {colors_ptr}",
-                "add {indices_ptr}, {len_half}",
-                "mov {end}, {indices_ptr}",
-                "add {end}, {len_half}",
-
                 ".p2align 5",
                 "2:",
                 // Load first set - colors and indices (32 bytes each)
@@ -337,13 +332,12 @@ pub unsafe fn unpck_detransform_unroll_2(
                 "vmovdqu [{dst_ptr} + 96], {ymm3}",
                 "add {dst_ptr}, 128",
 
-                "cmp {indices_ptr}, {end}",
+                "cmp {colors_ptr}, {end}",
                 "jb 2b",
 
                 colors_ptr = inout(reg) input_ptr,
                 indices_ptr = inout(reg) indices_ptr,
                 dst_ptr = inout(reg) output_ptr,
-                len_half = in(reg) len / 2,
                 end = inout(reg) colors_aligned_end,
                 ymm0 = out(ymm_reg) _,
                 ymm1 = out(ymm_reg) _,
@@ -380,43 +374,31 @@ mod tests {
     struct TestCase {
         name: &'static str,
         func: DetransformFn,
-        min_blocks: usize,
-        many_blocks: usize,
     }
 
     #[rstest]
     #[case::avx_unpack(TestCase {
         name: "avx_unpack",
         func: unpck_detransform,
-        min_blocks: 8,  // 64-byte alignment requirement
-        many_blocks: 1024,
     })]
     #[case::avx_permd(TestCase {
         name: "avx_permd",
         func: permd_detransform,
-        min_blocks: 8,  // 64-byte alignment requirement
-        many_blocks: 1024,
     })]
     #[case::avx_unpack_unroll_2(TestCase {
         name: "avx_unpack_unroll_2",
         func: unpck_detransform_unroll_2,
-        min_blocks: 16,  // 128-byte alignment requirement
-        many_blocks: 1024,
     })]
     #[case::avx_permd_unroll_2(TestCase {
         name: "avx_permd_unroll_2",
         func: permd_detransform_unroll_2,
-        min_blocks: 16,  // 128-byte alignment requirement
-        many_blocks: 1024,
     })]
     fn test_detransform(#[case] test_case: TestCase) {
-        // Test with minimum blocks
-        test_blocks(&test_case, test_case.min_blocks);
-
-        // Test with many blocks
-        test_blocks(&test_case, test_case.many_blocks);
+        // Loop through block counts 1 to 512
+        for num_blocks in 1..=512 {
+            test_blocks(&test_case, num_blocks);
+        }
     }
-
     fn test_blocks(test_case: &TestCase, num_blocks: usize) {
         let original = generate_bc1_test_data(num_blocks);
         let mut transformed = vec![0u8; original.len()];

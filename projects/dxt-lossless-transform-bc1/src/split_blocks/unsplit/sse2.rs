@@ -251,27 +251,23 @@ mod tests {
     struct TestCase {
         name: &'static str,
         func: DetransformFn,
-        block_sizes: Vec<usize>,
     }
 
     #[rstest]
     #[case::unpck(TestCase {
         name: "unpck",
         func: unpck_detransform,
-        block_sizes: vec![1, 3, 4, 5, 7, 8, 16, 17],
     })]
     #[case::unpck_unroll_2(TestCase {
         name: "unpck_unroll_2",
         func: unpck_detransform_unroll_2,
-        block_sizes: vec![1, 3, 4, 7, 8, 9, 15, 16, 17, 31, 32],
     })]
     #[cfg_attr(target_arch = "x86_64", case::unpck_unroll_4(TestCase {
         name: "unpck_unroll_4",
         func: unpck_detransform_unroll_4,
-        block_sizes: vec![1, 3, 4, 8, 15, 16, 17, 31, 32, 63, 64],
     }))]
     fn test_detransform(#[case] test_case: TestCase) {
-        for &num_blocks in &test_case.block_sizes {
+        for num_blocks in 1..=512 {
             test_blocks(&test_case, num_blocks);
         }
     }

@@ -412,36 +412,24 @@ mod tests {
     type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
-    #[case(1)]
-    #[case(2)]
-    #[case(3)]
-    #[case(4)]
-    #[case(32)]
-    #[case(33)]
-    #[case(65)]
-    #[case(513)]
-    #[case(2048)]
-    fn test_avx2_implementations(#[case] num_blocks: usize) {
-        let input = generate_bc1_test_data(num_blocks);
-        let mut output_expected = allocate_align_64(input.len());
-        let mut output_test = allocate_align_64(input.len());
+    #[case(shuffle_permute, "shuffle_permute")]
+    #[case(shuffle_permute_unroll_2, "shuffle_permute unroll 2")]
+    #[case(permute, "permute")]
+    #[case(permute_unroll_2, "permute unroll 2")]
+    #[case(gather, "gather")]
+    fn test_avx2_implementation(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+        for num_blocks in 1..=512 {
+            let input = generate_bc1_test_data(num_blocks);
+            let mut output_expected = allocate_align_64(input.len());
+            let mut output_test = allocate_align_64(input.len());
 
-        // Generate reference output
-        transform_with_reference_implementation(input.as_slice(), output_expected.as_mut_slice());
+            // Generate reference output
+            transform_with_reference_implementation(
+                input.as_slice(),
+                output_expected.as_mut_slice(),
+            );
 
-        // Test each implementation
-        let implementations = [
-            (shuffle_permute as PermuteFn, "shuffle_permute"),
-            (
-                shuffle_permute_unroll_2 as PermuteFn,
-                "shuffle_permute unroll 2",
-            ),
-            (permute as PermuteFn, "permute"),
-            (permute_unroll_2 as PermuteFn, "permute unroll 2"),
-            (gather as PermuteFn, "gather"),
-        ];
-
-        for (permute_fn, impl_name) in implementations {
+            // Test the specific implementation
             output_test.as_mut_slice().fill(0);
             unsafe {
                 permute_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());

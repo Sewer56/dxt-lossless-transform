@@ -66,8 +66,6 @@ mod tests {
     struct TestCase {
         name: &'static str,
         func: DetransformFn,
-        min_blocks: usize,
-        many_blocks: usize,
     }
 
     #[rstest]
@@ -75,16 +73,12 @@ mod tests {
         TestCase {
             name: "no_unroll",
             func: u32_detransform,
-            min_blocks: 1,
-            many_blocks: 1024,
         }
     )]
     fn test_detransform(#[case] test_case: TestCase) {
-        // Test with minimum blocks
-        test_blocks(&test_case, test_case.min_blocks);
-
-        // Test with many blocks
-        test_blocks(&test_case, test_case.many_blocks);
+        for num_blocks in 1..=512 {
+            test_blocks(&test_case, num_blocks);
+        }
     }
 
     fn test_blocks(test_case: &TestCase, num_blocks: usize) {

@@ -33,7 +33,7 @@ fn get_index(value: u64) -> u32 {
 #[inline(always)]
 pub unsafe fn portable(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
-    
+
     // This implementation is a good general purpose one for all vector sizes
     shift(input_ptr, output_ptr, len);
 }
@@ -110,7 +110,7 @@ pub unsafe fn shift_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usi
         *indices_ptr.add(1) = index2;
         indices_ptr = indices_ptr.add(2);
     }
-    
+
     // Handle remaining 8-byte chunk if any
     while input_ptr < max_ptr {
         let curr = *input_ptr;
@@ -178,7 +178,7 @@ pub unsafe fn shift_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usi
         *indices_ptr.add(3) = index4;
         indices_ptr = indices_ptr.add(4);
     }
-    
+
     // Handle remaining 8-byte chunks if any
     while input_ptr < max_ptr {
         let curr = *input_ptr;
@@ -267,7 +267,7 @@ pub unsafe fn shift_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usi
         *indices_ptr.add(7) = index8;
         indices_ptr = indices_ptr.add(8);
     }
-    
+
     // Handle remaining 8-byte chunks if any
     while input_ptr < max_ptr {
         let curr = *input_ptr;
@@ -364,18 +364,18 @@ pub unsafe fn shift_with_count_unroll_2(input_ptr: *const u8, output_ptr: *mut u
         colours_ptr = colours_ptr.add(2);
         indices_ptr = indices_ptr.add(2);
     }
-    
+
     // Process remaining 8-byte chunk if any
     if remaining_bytes > 0 {
         debug_assert_eq!(remaining_bytes, 8);
-        
+
         // Process remaining 8 bytes
         let curr = *input_ptr;
-        
+
         // Split into colors and indices
         let color_value = get_color(curr);
         let index_value = get_index(curr);
-        
+
         // Store values
         *colours_ptr = color_value;
         *indices_ptr = index_value;
@@ -437,18 +437,18 @@ pub unsafe fn shift_with_count_unroll_4(input_ptr: *const u8, output_ptr: *mut u
         colours_ptr = colours_ptr.add(4);
         indices_ptr = indices_ptr.add(4);
     }
-    
+
     // Process remaining 8-byte chunks
     let remaining_chunks = remaining_bytes / 8;
     for _ in 0..remaining_chunks {
         // Process 8 bytes
         let curr = *input_ptr;
         input_ptr = input_ptr.add(1);
-        
+
         // Split into colors and indices
         let color_value = get_color(curr);
         let index_value = get_index(curr);
-        
+
         // Store values
         *colours_ptr = color_value;
         colours_ptr = colours_ptr.add(1);
@@ -532,18 +532,18 @@ pub unsafe fn shift_with_count_unroll_8(input_ptr: *const u8, output_ptr: *mut u
         colours_ptr = colours_ptr.add(8);
         indices_ptr = indices_ptr.add(8);
     }
-    
+
     // Process remaining 8-byte chunks
     let remaining_chunks = remaining_bytes / 8;
     for _ in 0..remaining_chunks {
         // Process 8 bytes
         let curr = *input_ptr;
         input_ptr = input_ptr.add(1);
-        
+
         // Split into colors and indices
         let color_value = get_color(curr);
         let index_value = get_index(curr);
-        
+
         // Store values
         *colours_ptr = color_value;
         colours_ptr = colours_ptr.add(1);
@@ -563,51 +563,38 @@ mod tests {
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
-    #[case(1)]
-    #[case(2)]
-    #[case(4)]
-    #[case(8)]
-    #[case(16)]
-    #[case(32)]
-    #[case(64)]
-    fn test_implementations(#[case] num_blocks: usize) {
-        let input = generate_bc1_test_data(num_blocks);
-        let mut output_expected = vec![0u8; input.len()];
-        let mut output_test = vec![0u8; input.len()];
+    #[case(portable, "64 (auto-selected)")]
+    #[case(shift_unroll_8, "shift unroll-8")]
+    #[case(shift_unroll_4, "shift unroll-4")]
+    #[case(shift_unroll_2, "shift unroll-2")]
+    #[case(shift, "shift no-unroll")]
+    #[case(shift_with_count, "shift_with_count no-unroll")]
+    #[case(shift_with_count_unroll_2, "shift_with_count unroll-2")]
+    #[case(shift_with_count_unroll_4, "shift_with_count unroll-4")]
+    #[case(shift_with_count_unroll_8, "shift_with_count unroll-8")]
+    fn test_portable64_implementation(#[case] transform_fn: TransformFn, #[case] impl_name: &str) {
+        for num_blocks in 1..=512 {
+            let input = generate_bc1_test_data(num_blocks);
+            let mut output_expected = vec![0u8; input.len()];
+            let mut output_test = vec![0u8; input.len()];
 
-        // Generate reference output
-        transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+            // Generate reference output
+            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
-        // Test each SSE2 implementation variant
-        let implementations: [(&str, TransformFn); 9] = [
-            ("64 (auto-selected)", portable),
-            ("shift unroll-8", shift_unroll_8),
-            ("shift unroll-4", shift_unroll_4),
-            ("shift unroll-2", shift_unroll_2),
-            ("shift no-unroll", shift),
-            ("shift_with_count no-unroll", shift_with_count),
-            ("shift_with_count unroll-2", shift_with_count_unroll_2),
-            ("shift_with_count unroll-4", shift_with_count_unroll_4),
-            ("shift_with_count unroll-8", shift_with_count_unroll_8),
-        ];
-
-        for (impl_name, implementation) in implementations {
-            // Clear the output buffer
-            output_test.fill(0);
-
+            // Test the specific implementation variant provided by rstest
+            output_test.as_mut_slice().fill(0);
             // Run the implementation
             unsafe {
-                implementation(input.as_ptr(), output_test.as_mut_ptr(), input.len());
+                transform_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());
             }
 
-            // Compare results
+            // Verify the output
             assert_eq!(
-                output_expected, output_test,
-                "{} implementation produced different results than reference for {} blocks.\n\
-                First differing block will have predictable values:\n\
-                Colors: Sequential 1-4 + (block_num * 4)\n\
-                Indices: Sequential 128-131 + (block_num * 4)",
-                impl_name, num_blocks
+                output_expected.as_slice(),
+                output_test.as_slice(),
+                "{} implementation produced different results than reference for {} blocks",
+                impl_name,
+                num_blocks
             );
         }
     }

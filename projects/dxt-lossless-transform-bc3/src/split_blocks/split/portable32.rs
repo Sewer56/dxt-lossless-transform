@@ -24,7 +24,6 @@ pub unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 
 /// # Safety
 ///
-/// - input_ptr must be valid for reads of len bytes
 /// - alpha_byte_out_ptr, alpha_bit_out_ptr, color_byte_out_ptr, and index_byte_out_ptr must be valid for writes  
 /// - The distance between pointers must follow the layout expected based on DXT block size  
 /// - pointers must be properly aligned for u32 access

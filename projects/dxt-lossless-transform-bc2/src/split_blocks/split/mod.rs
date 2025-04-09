@@ -96,6 +96,24 @@ pub mod tests {
         unsafe { u32(input.as_ptr(), output.as_mut_ptr(), input.len()) }
     }
 
+    /// Helper to assert implementation results match reference implementation
+    pub(crate) fn assert_implementation_matches_reference(
+        output_expected: &[u8],
+        output_test: &[u8],
+        impl_name: &str,
+        num_blocks: usize,
+    ) {
+        assert_eq!(
+            output_expected, output_test,
+            "{} implementation produced different results than reference for {} blocks.\n\
+            First differing block will have predictable values:\n\
+            Alpha: Sequential 0-7 + (block_num * 8)\n\
+            Colors: Sequential 0x80-0x83 + (block_num * 4)\n\
+            Indices: Sequential 0xC0-0xC3 + (block_num * 4)",
+            impl_name, num_blocks
+        );
+    }
+
     // Helper to generate test data of specified size (in blocks)
     pub(crate) fn generate_bc2_test_data(num_blocks: usize) -> RawAlloc {
         let mut data = allocate_align_64(num_blocks * 16);

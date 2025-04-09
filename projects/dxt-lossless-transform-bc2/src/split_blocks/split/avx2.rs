@@ -14,7 +14,6 @@ static PERMUTE_MASK: [u32; 8] = [0, 4, 1, 5, 2, 6, 3, 7];
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - pointers must be properly aligned for AVX2 operations
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
 pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
@@ -153,54 +152,91 @@ pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: us
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::split_blocks::split::tests::generate_bc2_test_data;
-    use crate::split_blocks::split::tests::transform_with_reference_implementation;
+    use crate::split_blocks::split::tests::{
+        assert_implementation_matches_reference, generate_bc2_test_data,
+        transform_with_reference_implementation,
+    };
+    use crate::testutils::allocate_align_64;
+    use core::ptr::copy_nonoverlapping;
     use rstest::rstest;
 
-    type TransformFn = unsafe fn(*const u8, *mut u8, usize);
-
-    struct TestCase {
-        name: &'static str,
-        func: TransformFn,
-    }
+    type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
-    #[case::avx2_shuffle(TestCase {
-        name: "avx2_shuffle",
-        func: shuffle,
-    })]
-    fn test_transform(#[case] test_case: TestCase) {
+    #[case(shuffle, "avx2_shuffle")]
+    fn test_avx2_aligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
         if !std::is_x86_feature_detected!("avx2") {
             return;
         }
 
-        // Test with different block counts to ensure they all work correctly
-        for block_count in 1..512 {
-            test_blocks(&test_case, block_count);
+        for num_blocks in [1, 2, 4, 8, 16, 32, 64, 128, 256, 512] {
+            let mut input = allocate_align_64(num_blocks * 16);
+            let mut output_expected = allocate_align_64(input.len());
+            let mut output_test = allocate_align_64(input.len());
+
+            // Fill the input with test data
+            unsafe {
+                copy_nonoverlapping(
+                    generate_bc2_test_data(num_blocks).as_ptr(),
+                    input.as_mut_ptr(),
+                    input.len(),
+                );
+            }
+
+            transform_with_reference_implementation(
+                input.as_slice(),
+                output_expected.as_mut_slice(),
+            );
+
+            output_test.as_mut_slice().fill(0);
+            unsafe {
+                permute_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());
+            }
+
+            assert_implementation_matches_reference(
+                output_expected.as_slice(),
+                output_test.as_slice(),
+                &format!("{} (aligned)", impl_name),
+                num_blocks,
+            );
         }
     }
 
-    fn test_blocks(test_case: &TestCase, num_blocks: usize) {
-        let input = generate_bc2_test_data(num_blocks);
-        let mut output_expected = vec![0u8; input.len()];
-        let mut output_test = vec![0u8; input.len()];
-
-        // Generate reference output
-        transform_with_reference_implementation(input.as_slice(), &mut output_expected);
-
-        // Clear the output buffer
-        output_test.fill(0);
-
-        // Run the implementation
-        unsafe {
-            (test_case.func)(input.as_ptr(), output_test.as_mut_ptr(), input.len());
+    #[rstest]
+    #[case(shuffle, "avx2_shuffle")]
+    fn test_avx2_unaligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+        if !std::is_x86_feature_detected!("avx2") {
+            return;
         }
 
-        // Compare results
-        assert_eq!(
-            output_expected, output_test,
-            "{} implementation produced different results than reference for {} blocks.",
-            test_case.name, num_blocks
-        );
+        for num_blocks in [1, 2, 4, 8, 16, 32, 64, 128, 256, 512] {
+            let input = generate_bc2_test_data(num_blocks);
+
+            // Add 1 extra byte at the beginning to create misaligned buffers
+            let mut input_unaligned = vec![0u8; input.len() + 1];
+            input_unaligned[1..].copy_from_slice(input.as_slice());
+
+            let mut output_expected = vec![0u8; input.len()];
+            let mut output_test = vec![0u8; input.len() + 1];
+
+            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+
+            output_test.as_mut_slice().fill(0);
+            unsafe {
+                // Use pointers offset by 1 byte to create unaligned access
+                permute_fn(
+                    input_unaligned.as_ptr().add(1),
+                    output_test.as_mut_ptr().add(1),
+                    input.len(),
+                );
+            }
+
+            assert_implementation_matches_reference(
+                output_expected.as_slice(),
+                &output_test[1..],
+                &format!("{} (unaligned)", impl_name),
+                num_blocks,
+            );
+        }
     }
 }

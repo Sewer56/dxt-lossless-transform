@@ -5,7 +5,6 @@ use std::arch::asm;
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - pointers must be properly aligned for SSE2 operations
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 pub unsafe fn shuffle_v1(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
@@ -87,7 +86,6 @@ pub unsafe fn shuffle_v1(mut input_ptr: *const u8, mut output_ptr: *mut u8, len:
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - pointers must be properly aligned for SSE2 operations
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 pub unsafe fn shuffle_v1_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
@@ -175,7 +173,6 @@ pub unsafe fn shuffle_v1_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - pointers must be properly aligned for SSE2 operations
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 pub unsafe fn shuffle_v2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
@@ -262,7 +259,6 @@ pub unsafe fn shuffle_v2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len:
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - pointers must be properly aligned for SSE2 operations
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86_64")]
@@ -371,62 +367,89 @@ pub unsafe fn shuffle_v3(mut input_ptr: *const u8, mut output_ptr: *mut u8, len:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::split_blocks::split::tests::generate_bc2_test_data;
-    use crate::split_blocks::split::tests::transform_with_reference_implementation;
+    use crate::split_blocks::split::tests::{
+        assert_implementation_matches_reference, generate_bc2_test_data,
+        transform_with_reference_implementation,
+    };
+    use crate::testutils::allocate_align_64;
+    use core::ptr::copy_nonoverlapping;
     use rstest::rstest;
-    type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
-    #[derive(Debug)]
-    struct TestCase {
-        name: &'static str,
-        func: TransformFn,
+    type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
+
+    #[rstest]
+    #[case(shuffle_v1, "shuffle_v1")]
+    #[case(shuffle_v1_unroll_2, "shuffle_v1_unroll_2")]
+    #[case(shuffle_v2, "shuffle_v2")]
+    #[cfg_attr(target_arch = "x86_64", case(shuffle_v3, "shuffle_v3"))]
+    fn test_sse2_aligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+        for num_blocks in [1, 2, 4, 8, 16, 32, 64, 128, 256, 512] {
+            let mut input = allocate_align_64(num_blocks * 16);
+            let mut output_expected = allocate_align_64(input.len());
+            let mut output_test = allocate_align_64(input.len());
+
+            // Fill the input with test data
+            unsafe {
+                copy_nonoverlapping(
+                    generate_bc2_test_data(num_blocks).as_ptr(),
+                    input.as_mut_ptr(),
+                    input.len(),
+                );
+            }
+
+            transform_with_reference_implementation(
+                input.as_slice(),
+                output_expected.as_mut_slice(),
+            );
+
+            output_test.as_mut_slice().fill(0);
+            unsafe {
+                permute_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());
+            }
+
+            assert_implementation_matches_reference(
+                output_expected.as_slice(),
+                output_test.as_slice(),
+                &format!("{} (aligned)", impl_name),
+                num_blocks,
+            );
+        }
     }
 
     #[rstest]
-    #[case::shuffle_v1(TestCase {
-        name: "shuffle_v1",
-        func: shuffle_v1,
-    })]
-    #[case::shuffle_v1_unroll_2(TestCase {
-        name: "shuffle_v1_unroll_2",
-        func: shuffle_v1_unroll_2,
-    })]
-    #[case::shuffle_v2(TestCase {
-        name: "shuffle_v2",
-        func: shuffle_v2,
-    })]
-    #[cfg_attr(target_arch = "x86_64", case::shuffle_v3(TestCase {
-        name: "shuffle_v3",
-        func: shuffle_v3,
-    }))]
-    fn test_transform(#[case] test_case: TestCase) {
-        // Test with different block counts to ensure they all work correctly
-        for block_count in 1..512 {
-            test_blocks(&test_case, block_count);
+    #[case(shuffle_v1, "shuffle_v1")]
+    #[case(shuffle_v1_unroll_2, "shuffle_v1_unroll_2")]
+    #[case(shuffle_v2, "shuffle_v2")]
+    #[cfg_attr(target_arch = "x86_64", case(shuffle_v3, "shuffle_v3"))]
+    fn test_sse2_unaligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+        for num_blocks in [1, 2, 4, 8, 16, 32, 64, 128, 256, 512] {
+            let input = generate_bc2_test_data(num_blocks);
+
+            // Add 1 extra byte at the beginning to create misaligned buffers
+            let mut input_unaligned = vec![0u8; input.len() + 1];
+            input_unaligned[1..].copy_from_slice(input.as_slice());
+
+            let mut output_expected = vec![0u8; input.len()];
+            let mut output_test = vec![0u8; input.len() + 1];
+
+            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+
+            output_test.as_mut_slice().fill(0);
+            unsafe {
+                // Use pointers offset by 1 byte to create unaligned access
+                permute_fn(
+                    input_unaligned.as_ptr().add(1),
+                    output_test.as_mut_ptr().add(1),
+                    input.len(),
+                );
+            }
+
+            assert_implementation_matches_reference(
+                output_expected.as_slice(),
+                &output_test[1..],
+                &format!("{} (unaligned)", impl_name),
+                num_blocks,
+            );
         }
-    }
-
-    fn test_blocks(test_case: &TestCase, num_blocks: usize) {
-        println!("Testing {} with {} blocks", test_case.name, num_blocks);
-
-        // Get some test data
-        let input = generate_bc2_test_data(num_blocks);
-        let mut output = vec![0; input.len()];
-        let mut expected = vec![0; input.len()];
-
-        // Generate reference output
-        transform_with_reference_implementation(input.as_slice(), &mut expected);
-
-        // Apply implementation
-        unsafe {
-            (test_case.func)(input.as_ptr(), output.as_mut_ptr(), input.len());
-        }
-
-        // Compare results
-        assert_eq!(
-            expected, output,
-            "{} implementation produced different results than reference for {} blocks.",
-            test_case.name, num_blocks
-        );
     }
 }

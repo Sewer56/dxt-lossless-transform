@@ -169,7 +169,7 @@ mod tests {
             return;
         }
 
-        for num_blocks in [1, 2, 4, 8, 16, 32, 64, 128, 256, 512] {
+        for num_blocks in 1..=512 {
             let mut input = allocate_align_64(num_blocks * 16);
             let mut output_expected = allocate_align_64(input.len());
             let mut output_test = allocate_align_64(input.len());
@@ -209,7 +209,7 @@ mod tests {
             return;
         }
 
-        for num_blocks in [1, 2, 4, 8, 16, 32, 64, 128, 256, 512] {
+        for num_blocks in 1..=512 {
             let input = generate_bc2_test_data(num_blocks);
 
             // Add 1 extra byte at the beginning to create misaligned buffers

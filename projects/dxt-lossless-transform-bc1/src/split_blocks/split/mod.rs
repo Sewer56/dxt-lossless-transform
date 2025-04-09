@@ -87,20 +87,18 @@ pub mod tests {
 
     /// Helper to assert implementation results match reference implementation
     pub(crate) fn assert_implementation_matches_reference(
-        output_expected: &[u8], 
-        output_test: &[u8], 
-        impl_name: &str, 
-        num_blocks: usize
+        output_expected: &[u8],
+        output_test: &[u8],
+        impl_name: &str,
+        num_blocks: usize,
     ) {
         assert_eq!(
-            output_expected,
-            output_test,
+            output_expected, output_test,
             "{} implementation produced different results than reference for {} blocks.\n\
             First differing block will have predictable values:\n\
-            Colors: Sequential 1-4 + (block_num * 4)\n\
+            Colors: Sequential 0-3 + (block_num * 4)\n\
             Indices: Sequential 128-131 + (block_num * 4)",
-            impl_name,
-            num_blocks
+            impl_name, num_blocks
         );
     }
 

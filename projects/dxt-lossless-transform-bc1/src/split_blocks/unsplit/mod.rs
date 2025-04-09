@@ -69,6 +69,25 @@ mod tests {
     use crate::testutils::allocate_align_64;
     use safe_allocator_api::RawAlloc;
 
+    /// Helper to assert implementation results match reference implementation
+    pub(crate) fn assert_implementation_matches_reference(
+        expected: &[u8], 
+        actual: &[u8], 
+        impl_name: &str, 
+        num_blocks: usize
+    ) {
+        assert_eq!(
+            expected,
+            actual,
+            "{} implementation produced different results than reference for {} blocks.\n\
+            First differing block will have predictable values:\n\
+            Colors: Sequential 0-3 + (block_num * 4)\n\
+            Indices: Sequential 128-131 + (block_num * 4)",
+            impl_name,
+            num_blocks
+        );
+    }
+
     // Helper to generate test data of specified size (in blocks)
     pub(crate) fn generate_bc1_transformed_test_data(num_blocks: usize) -> RawAlloc {
         let mut data = allocate_align_64(num_blocks * 8);

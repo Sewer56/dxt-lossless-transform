@@ -291,11 +291,13 @@ pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::split_blocks::split::tests::generate_bc1_test_data;
-    use crate::split_blocks::split::tests::transform_with_reference_implementation;
+    use crate::split_blocks::split::tests::{
+        assert_implementation_matches_reference, generate_bc1_test_data,
+        transform_with_reference_implementation,
+    };
     use crate::testutils::allocate_align_64;
+    use core::ptr::copy_nonoverlapping;
     use rstest::rstest;
-
     type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
@@ -303,11 +305,20 @@ mod tests {
     #[case(punpckhqdq_unroll_2, "SSE2 punpckhqdq unroll-2")]
     #[case(shufps_unroll_2, "SSE2 shuffle unroll-2")]
     #[case(shufps_unroll_4, "SSE2 shuffle unroll-4")]
-    fn test_sse2_implementation(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+    fn test_sse2_aligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
         for num_blocks in 1..=512 {
-            let input = generate_bc1_test_data(num_blocks);
+            let mut input = allocate_align_64(num_blocks * 8);
             let mut output_expected = allocate_align_64(input.len());
             let mut output_test = allocate_align_64(input.len());
+
+            // Fill the input with test data
+            unsafe {
+                copy_nonoverlapping(
+                    generate_bc1_test_data(num_blocks).as_ptr(),
+                    input.as_mut_ptr(),
+                    input.len(),
+                );
+            }
 
             transform_with_reference_implementation(
                 input.as_slice(),
@@ -319,15 +330,51 @@ mod tests {
                 permute_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());
             }
 
-            assert_eq!(
+            assert_implementation_matches_reference(
                 output_expected.as_slice(),
                 output_test.as_slice(),
-                "{} implementation produced different results than reference for {} blocks.\n\
-                 First differing block will have predictable values:\n\
-                 Colors: Sequential 1-4 + (block_num * 4)\n\
-                 Indices: Sequential 128-131 + (block_num * 4)",
-                impl_name,
-                num_blocks
+                &format!("{} (aligned)", impl_name),
+                num_blocks,
+            );
+        }
+    }
+
+    #[rstest]
+    #[case(punpckhqdq_unroll_4, "SSE2 punpckhqdq unroll-4")]
+    #[case(punpckhqdq_unroll_2, "SSE2 punpckhqdq unroll-2")]
+    #[case(shufps_unroll_2, "SSE2 shuffle unroll-2")]
+    #[case(shufps_unroll_4, "SSE2 shuffle unroll-4")]
+    fn test_sse2_unaligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+        for num_blocks in 1..=512 {
+            let input = generate_bc1_test_data(num_blocks);
+
+            // Add 1 extra byte at the beginning to create misaligned buffers
+            let mut input_unaligned = vec![0u8; input.len() + 1];
+            input_unaligned[1..].copy_from_slice(input.as_slice());
+
+            let mut output_expected = vec![0u8; input.len()];
+            let mut output_test = vec![0u8; input.len() + 1];
+
+            transform_with_reference_implementation(
+                input.as_slice(),
+                output_expected.as_mut_slice(),
+            );
+
+            output_test.as_mut_slice().fill(0);
+            unsafe {
+                // Use pointers offset by 1 byte to create unaligned access
+                permute_fn(
+                    input_unaligned.as_ptr().add(1),
+                    output_test.as_mut_ptr().add(1),
+                    input.len(),
+                );
+            }
+
+            assert_implementation_matches_reference(
+                output_expected.as_slice(),
+                &output_test[1..],
+                &format!("{} (unaligned)", impl_name),
+                num_blocks,
             );
         }
     }

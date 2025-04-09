@@ -60,7 +60,7 @@ pub unsafe fn u32_detransform_unroll_2(input_ptr: *const u8, output_ptr: *mut u8
 
     let mut colours_ptr = input_ptr as *const u32;
     let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
-    let max_aligned_input = input_ptr.add(len).sub(16 - 8) as *const u32;
+    let max_aligned_input = input_ptr.add(len.saturating_sub(16 - 8)) as *const u32;
 
     let mut output_ptr = output_ptr;
 
@@ -114,7 +114,7 @@ pub unsafe fn u32_detransform_unroll_4(input_ptr: *const u8, output_ptr: *mut u8
 
     let mut colours_ptr = input_ptr as *const u32;
     let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
-    let max_aligned_input = input_ptr.add(len).sub(32 - 8) as *const u32;
+    let max_aligned_input = input_ptr.add(len.saturating_sub(32 - 8)) as *const u32;
 
     let mut output_ptr = output_ptr;
 
@@ -178,7 +178,7 @@ pub unsafe fn u32_detransform_unroll_8(input_ptr: *const u8, output_ptr: *mut u8
 
     let mut colours_ptr = input_ptr as *const u32;
     let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
-    let max_aligned_input = input_ptr.add(len).sub(64 - 8) as *const u32;
+    let max_aligned_input = input_ptr.add(len.saturating_sub(64 - 8)) as *const u32;
 
     let mut output_ptr = output_ptr;
 

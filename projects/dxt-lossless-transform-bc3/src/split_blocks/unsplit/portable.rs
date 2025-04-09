@@ -79,7 +79,8 @@ pub unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len:
     let mut index_byte_in_ptr = input_ptr.add(len / 16 * 12) as *const u32;
 
     let mut current_output_ptr = output_ptr;
-    let alpha_byte_aligned_end_ptr = input_ptr.add(len / 16 * 2).sub(32 - 16) as *const u32;
+    let alpha_byte_aligned_end_ptr =
+        input_ptr.add((len / 16 * 2).saturating_sub(32 - 16)) as *const u32;
 
     while alpha_byte_in_ptr < alpha_byte_aligned_end_ptr {
         let alpha_bytes = alpha_byte_in_ptr.read_unaligned();
@@ -152,7 +153,8 @@ pub unsafe fn u64_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
     let mut index_byte_in_ptr = input_ptr.add(len / 16 * 12) as *const u64;
 
     let mut current_output_ptr = output_ptr;
-    let alpha_byte_aligned_end_ptr = input_ptr.add(len / 16 * 2).sub(32 - 16) as *const u32;
+    let alpha_byte_aligned_end_ptr =
+        input_ptr.add((len / 16 * 2).saturating_sub(32 - 16)) as *const u32;
 
     while alpha_byte_in_ptr < alpha_byte_aligned_end_ptr {
         let alpha_bytes = alpha_byte_in_ptr.read_unaligned();

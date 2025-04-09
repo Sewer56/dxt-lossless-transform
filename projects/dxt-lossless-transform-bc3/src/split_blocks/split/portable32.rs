@@ -77,7 +77,7 @@ pub unsafe fn u32_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize
     let mut index_byte_out_ptr = output_ptr.add(len / 16 * 12) as *mut u32;
 
     let mut current_input_ptr = input_ptr;
-    let alpha_byte_end_ptr = output_ptr.add(len / 16 * 2).sub(16) as *mut u16;
+    let alpha_byte_end_ptr = output_ptr.add((len / 16 * 2).saturating_sub(16)) as *mut u16;
 
     while alpha_byte_out_ptr < alpha_byte_end_ptr {
         // Block 1

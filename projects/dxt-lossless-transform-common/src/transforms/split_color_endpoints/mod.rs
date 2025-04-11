@@ -163,6 +163,23 @@ mod tests {
         data
     }
 
+    /// Helper to assert implementation results match reference implementation
+    pub(crate) fn assert_implementation_matches_reference(
+        output_expected: &[u8],
+        output_test: &[u8],
+        impl_name: &str,
+        num_pairs: usize,
+    ) {
+        assert_eq!(
+            output_expected, output_test,
+            "{} implementation produced different results than reference for {} color pairs.\n\
+            First differing pair will have predictable values:\n\
+            Color0: Sequential bytes 0x00,0x01 + (pair_num * 4)\n\
+            Color1: Sequential bytes 0x80,0x81 + (pair_num * 4)",
+            impl_name, num_pairs
+        );
+    }
+
     #[test]
     fn test_reference_implementation() {
         let input: Vec<u8> = vec![

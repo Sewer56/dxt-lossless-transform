@@ -353,7 +353,8 @@ pub unsafe fn sse2_shuf_unroll2_impl(
 mod tests {
     use super::*;
     use crate::transforms::split_color_endpoints::tests::{
-        generate_test_data, transform_with_reference_implementation,
+        assert_implementation_matches_reference, generate_test_data,
+        transform_with_reference_implementation,
     };
     use rstest::rstest;
 
@@ -364,7 +365,7 @@ mod tests {
     #[case::single(16)] // 32 bytes - two iterations
     #[case::many_unrolls(64)] // 128 bytes - tests multiple iterations
     #[case::large(512)] // 1024 bytes - large dataset
-    fn test_implementations(#[case] num_pairs: usize) {
+    fn test_sse2_aligned(#[case] num_pairs: usize) {
         let input = generate_test_data(num_pairs);
         let mut output_expected = vec![0u8; input.len()];
         let mut output_test = vec![0u8; input.len()];
@@ -390,13 +391,60 @@ mod tests {
             }
 
             // Compare results
-            assert_eq!(
-                output_expected, output_test,
-                "{} implementation produced different results than reference for {} color pairs.\n\
-                First differing pair will have predictable values:\n\
-                Color0: Sequential bytes 0x00,0x01 + (pair_num * 4)\n\
-                Color1: Sequential bytes 0x80,0x81 + (pair_num * 4)",
-                impl_name, num_pairs
+            assert_implementation_matches_reference(
+                &output_expected,
+                &output_test,
+                &format!("{} (aligned)", impl_name),
+                num_pairs,
+            );
+        }
+    }
+
+    #[rstest]
+    #[case::single(16)] // 32 bytes - two iterations
+    #[case::many_unrolls(64)] // 128 bytes - tests multiple iterations
+    #[case::large(512)] // 1024 bytes - large dataset
+    fn test_sse2_unaligned(#[case] num_pairs: usize) {
+        let input = generate_test_data(num_pairs);
+
+        // Add 1 extra byte at the beginning to create misaligned buffers
+        let mut input_unaligned = vec![0u8; input.len() + 1];
+        input_unaligned[1..].copy_from_slice(input.as_slice());
+
+        let mut output_expected = vec![0u8; input.len()];
+        let mut output_test = vec![0u8; input.len() + 1];
+
+        // Generate reference output
+        transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+
+        // Test the SSE2 implementation
+        let implementations: [(&str, TransformFn); 4] = [
+            ("sse2_shift", sse2_shift_impl),
+            ("sse2_shuf", sse2_shuf_impl),
+            ("sse2_shuf_unroll2", sse2_shuf_unroll2_impl),
+            ("sse2_shuf_unroll2_asm", sse2_shuf_unroll2_impl_asm),
+        ];
+
+        for (impl_name, implementation) in implementations {
+            // Clear the output buffer
+            output_test.fill(0);
+
+            // Run the implementation
+            unsafe {
+                // Use pointers offset by 1 byte to create unaligned access
+                implementation(
+                    input_unaligned.as_ptr().add(1),
+                    output_test.as_mut_ptr().add(1),
+                    input.len(),
+                );
+            }
+
+            // Compare results
+            assert_implementation_matches_reference(
+                &output_expected,
+                &output_test[1..],
+                &format!("{} (unaligned)", impl_name),
+                num_pairs,
             );
         }
     }

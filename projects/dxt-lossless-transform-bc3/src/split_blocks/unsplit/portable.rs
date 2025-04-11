@@ -225,60 +225,80 @@ mod tests {
     use super::*;
     use crate::split_blocks::split::tests::generate_bc3_test_data;
     use crate::split_blocks::split::u32;
+    use crate::split_blocks::unsplit::tests::assert_implementation_matches_reference;
+    use crate::testutils::allocate_align_64;
     use rstest::rstest;
 
     type DetransformFn = unsafe fn(*const u8, *mut u8, usize);
 
-    struct TestCase {
-        name: &'static str,
-        func: DetransformFn,
+    #[rstest]
+    #[case(u32_detransform, "u32")]
+    #[case(u32_detransform_v2, "u32_v2")]
+    #[case(u64_detransform, "u64")]
+    fn test_portable_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+        for num_blocks in 1..=512 {
+            let original = generate_bc3_test_data(num_blocks);
+            let mut transformed = allocate_align_64(original.len());
+            let mut reconstructed = allocate_align_64(original.len());
+
+            unsafe {
+                // Transform using standard implementation
+                u32(original.as_ptr(), transformed.as_mut_ptr(), original.len());
+
+                // Reconstruct using the implementation being tested
+                reconstructed.as_mut_slice().fill(0);
+                detransform_fn(
+                    transformed.as_ptr(),
+                    reconstructed.as_mut_ptr(),
+                    transformed.len(),
+                );
+            }
+
+            assert_implementation_matches_reference(
+                original.as_slice(),
+                reconstructed.as_slice(),
+                &format!("{} (aligned)", impl_name),
+                num_blocks,
+            );
+        }
     }
 
     #[rstest]
-    #[case::u32(
-        TestCase {
-            name: "u32",
-            func: u32_detransform,
-        }
-    )]
-    #[case::u32_v2(
-        TestCase {
-            name: "u32_v2",
-            func: u32_detransform_v2,
-        }
-    )]
-    #[case::u64(
-        TestCase {
-            name: "u64",
-            func: u64_detransform,
-        }
-    )]
-    fn test_detransform(#[case] test_case: TestCase) {
-        for block_count in 1..512 {
-            test_blocks(&test_case, block_count);
-        }
-    }
-
-    fn test_blocks(test_case: &TestCase, num_blocks: usize) {
-        let original = generate_bc3_test_data(num_blocks);
-        let mut transformed = vec![0u8; original.len()];
-        let mut reconstructed = vec![0u8; original.len()];
-
-        unsafe {
-            u32(original.as_ptr(), transformed.as_mut_ptr(), original.len());
-            (test_case.func)(
-                transformed.as_ptr(),
-                reconstructed.as_mut_ptr(),
-                transformed.len(),
+    #[case(u32_detransform, "u32")]
+    #[case(u32_detransform_v2, "u32_v2")]
+    #[case(u64_detransform, "u64")]
+    fn test_portable_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+        for num_blocks in 1..=512 {
+            let original = generate_bc3_test_data(num_blocks);
+            
+            // Transform using standard implementation
+            let mut transformed = vec![0u8; original.len()];
+            unsafe {
+                u32(original.as_ptr(), transformed.as_mut_ptr(), original.len());
+            }
+            
+            // Add 1 extra byte at the beginning to create misaligned buffers
+            let mut transformed_unaligned = vec![0u8; transformed.len() + 1];
+            transformed_unaligned[1..].copy_from_slice(&transformed);
+            
+            let mut reconstructed = vec![0u8; original.len() + 1];
+            
+            unsafe {
+                // Reconstruct using the implementation being tested with unaligned pointers
+                reconstructed.as_mut_slice().fill(0);
+                detransform_fn(
+                    transformed_unaligned.as_ptr().add(1),
+                    reconstructed.as_mut_ptr().add(1),
+                    transformed.len(),
+                );
+            }
+            
+            assert_implementation_matches_reference(
+                original.as_slice(),
+                &reconstructed[1..],
+                &format!("{} (unaligned)", impl_name),
+                num_blocks,
             );
         }
-
-        assert_eq!(
-            original.as_slice(),
-            reconstructed.as_slice(),
-            "{} detransform failed to reconstruct original data for {} blocks",
-            test_case.name,
-            num_blocks
-        );
     }
 }

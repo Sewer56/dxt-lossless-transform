@@ -145,6 +145,7 @@ mod tests {
 
     #[rstest]
     #[case(TestCase { func: u32, name: "portable32" })]
+    #[case(TestCase { func: u32_unroll_2, name: "portable32_unroll_2" })]
     fn test_portable32_aligned(#[case] test_case: TestCase) {
         for num_blocks in 1..=512 {
             let input = generate_bc3_test_data(num_blocks);
@@ -168,6 +169,7 @@ mod tests {
 
     #[rstest]
     #[case(TestCase { func: u32, name: "portable32" })]
+    #[case(TestCase { func: u32_unroll_2, name: "portable32_unroll_2" })]
     fn test_portable32_unaligned(#[case] test_case: TestCase) {
         for num_blocks in 1..=512 {
             let input = generate_bc3_test_data(num_blocks);

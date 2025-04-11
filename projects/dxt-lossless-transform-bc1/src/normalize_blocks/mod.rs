@@ -90,7 +90,11 @@ use likely_stable::unlikely;
 /// - `input_ptr`: A pointer to the input data (input BC1 blocks)
 /// - `output_ptr`: A pointer to the output data (output BC1 blocks)
 /// - `len`: The length of the input data in bytes
-/// - `repeat_colour`: Whether to repeat the colour when writing the block
+/// - `repeat_colour`: Whether to repeat the solid color in both color slots when normalizing.
+///   - When `true`: For solid color blocks, the same color value is written to both color0 and color1
+///     Example: A red block might become `[0xF800, 0xF800]`
+///   - When `false`: For solid color blocks, color0 contains the color and color1 is set to zero
+///     Example: A red block might become `[0xF800, 0x0000]`
 ///
 /// # Safety
 ///
@@ -100,7 +104,15 @@ use likely_stable::unlikely;
 ///
 /// # Remarks
 ///
+/// This function identifies and normalizes BC1 blocks based on their content:
+/// - Solid color blocks are normalized to a standard format with the color in color0
+/// - Fully transparent blocks are normalized to all 0xFF bytes
+/// - Mixed color/alpha blocks are preserved as-is
 ///
+/// Normalization improves compression ratios by ensuring that similar visual blocks
+/// have identical binary representations, reducing entropy in the data.
+///
+/// See the module-level documentation for more details on the normalization process.
 #[inline]
 pub unsafe fn normalize_blocks(
     input_ptr: *const u8,

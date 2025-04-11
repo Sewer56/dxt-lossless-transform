@@ -189,8 +189,6 @@ mod tests {
     use crate::testutils::allocate_align_64;
     use rstest::rstest;
 
-    type TransformFn = fn(*const u8, *mut u8, usize);
-
     #[rstest]
     fn test_avx2_aligned() {
         let num_blocks = 64;
@@ -222,11 +220,7 @@ mod tests {
         let mut output_test = vec![0u8; input.len() + 1];
         output_test.as_mut_slice().fill(0);
         unsafe {
-            u32_avx2(
-                input.as_ptr(),
-                output_test.as_mut_ptr().add(1),
-                input.len(),
-            );
+            u32_avx2(input.as_ptr(), output_test.as_mut_ptr().add(1), input.len());
         }
 
         assert_implementation_matches_reference(

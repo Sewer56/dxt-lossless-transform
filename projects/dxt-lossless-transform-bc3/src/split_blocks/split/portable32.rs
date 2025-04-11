@@ -3,7 +3,6 @@
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
-/// - pointers must be properly aligned for u32 access
 pub unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
@@ -26,7 +25,6 @@ pub unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 ///
 /// - alpha_byte_out_ptr, alpha_bit_out_ptr, color_byte_out_ptr, and index_byte_out_ptr must be valid for writes  
 /// - The distance between pointers must follow the layout expected based on DXT block size  
-/// - pointers must be properly aligned for u32 access
 pub unsafe fn u32_with_separate_endpoints(
     input_ptr: *const u8,
     mut alpha_byte_out_ptr: *mut u16,
@@ -67,7 +65,6 @@ pub unsafe fn u32_with_separate_endpoints(
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
-/// - pointers must be properly aligned for u32 access
 pub unsafe fn u32_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 

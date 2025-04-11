@@ -146,44 +146,46 @@ mod tests {
     #[rstest]
     #[case(TestCase { func: u32, name: "portable32" })]
     fn test_portable32_aligned(#[case] test_case: TestCase) {
-        let num_blocks = 64;
-        let input = generate_bc3_test_data(num_blocks);
-        let mut output_expected = vec![0u8; input.len()];
-        transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+        for num_blocks in 1..=512 {
+            let input = generate_bc3_test_data(num_blocks);
+            let mut output_expected = vec![0u8; input.len()];
+            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
-        let mut output_test = allocate_align_64(input.len());
-        output_test.as_mut_slice().fill(0);
-        unsafe {
-            (test_case.func)(input.as_ptr(), output_test.as_mut_ptr(), input.len());
+            let mut output_test = allocate_align_64(input.len());
+            output_test.as_mut_slice().fill(0);
+            unsafe {
+                (test_case.func)(input.as_ptr(), output_test.as_mut_ptr(), input.len());
+            }
+
+            assert_implementation_matches_reference(
+                output_expected.as_slice(),
+                output_test.as_slice(),
+                test_case.name,
+                num_blocks,
+            );
         }
-
-        assert_implementation_matches_reference(
-            output_expected.as_slice(),
-            output_test.as_slice(),
-            test_case.name,
-            num_blocks,
-        );
     }
 
     #[rstest]
     #[case(TestCase { func: u32, name: "portable32" })]
     fn test_portable32_unaligned(#[case] test_case: TestCase) {
-        let num_blocks = 64;
-        let input = generate_bc3_test_data(num_blocks);
-        let mut output_expected = vec![0u8; input.len() + 1];
-        transform_with_reference_implementation(input.as_slice(), &mut output_expected[1..]);
+        for num_blocks in 1..=512 {
+            let input = generate_bc3_test_data(num_blocks);
+            let mut output_expected = vec![0u8; input.len() + 1];
+            transform_with_reference_implementation(input.as_slice(), &mut output_expected[1..]);
 
-        let mut output_test = vec![0u8; input.len() + 1];
-        output_test.as_mut_slice().fill(0);
-        unsafe {
-            (test_case.func)(input.as_ptr(), output_test.as_mut_ptr().add(1), input.len());
+            let mut output_test = vec![0u8; input.len() + 1];
+            output_test.as_mut_slice().fill(0);
+            unsafe {
+                (test_case.func)(input.as_ptr(), output_test.as_mut_ptr().add(1), input.len());
+            }
+
+            assert_implementation_matches_reference(
+                &output_expected[1..],
+                &output_test[1..],
+                test_case.name,
+                num_blocks,
+            );
         }
-
-        assert_implementation_matches_reference(
-            &output_expected[1..],
-            &output_test[1..],
-            test_case.name,
-            num_blocks,
-        );
     }
 }

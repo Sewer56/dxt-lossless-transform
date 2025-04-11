@@ -116,29 +116,14 @@ pub unsafe fn u32_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 
     // Handle remaining blocks
     let alpha_byte_end_ptr = output_ptr.add(len / 16 * 2) as *mut u16;
-    while alpha_byte_out_ptr < alpha_byte_end_ptr {
-        // Alpha bytes (2 bytes)
-        alpha_byte_out_ptr.write_unaligned((current_input_ptr as *const u16).read_unaligned());
-        alpha_byte_out_ptr = alpha_byte_out_ptr.add(1); // 2 bytes forward
-
-        // Alpha bits (6 bytes)
-        alpha_bit_out_ptr
-            .write_unaligned((current_input_ptr.add(2) as *const u16).read_unaligned());
-        (alpha_bit_out_ptr.add(1) as *mut u32)
-            .write_unaligned((current_input_ptr.add(4) as *const u32).read_unaligned());
-        alpha_bit_out_ptr = alpha_bit_out_ptr.add(3); // 6 bytes forward
-
-        // Color bytes (4 bytes)
-        color_byte_out_ptr
-            .write_unaligned((current_input_ptr.add(8) as *const u32).read_unaligned());
-        color_byte_out_ptr = color_byte_out_ptr.add(1); // 4 bytes forward
-
-        // Index bytes
-        index_byte_out_ptr
-            .write_unaligned((current_input_ptr.add(12) as *const u32).read_unaligned());
-        index_byte_out_ptr = index_byte_out_ptr.add(1); // 4 bytes forward
-        current_input_ptr = current_input_ptr.add(16); // 16 bytes forward
-    }
+    u32_with_separate_endpoints(
+        current_input_ptr,
+        alpha_byte_out_ptr,
+        alpha_bit_out_ptr,
+        color_byte_out_ptr,
+        index_byte_out_ptr,
+        alpha_byte_end_ptr,
+    );
 }
 
 #[cfg(test)]

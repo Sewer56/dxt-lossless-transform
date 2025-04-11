@@ -695,6 +695,7 @@ mod tests {
     #[rstest]
     #[case(u64, "u64")]
     #[case(u64_unroll_2, "u64_unroll_2")]
+    #[case(u64_unroll_4, "u64_unroll_4")]
     #[case(u64_unroll_8, "u64_unroll_8")]
     #[case(u64_mix, "u64_mix")]
     #[case(u64_mix_unroll_2, "u64_mix_unroll_2")]

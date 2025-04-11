@@ -3,6 +3,8 @@ use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
+use crate::transforms::split_565_color_endpoints::u32_with_separate_endpoints;
+
 /// Splits the colour endpoints using SSE2 instructions
 ///
 /// # Arguments
@@ -15,14 +17,14 @@ use core::arch::x86_64::*;
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len_bytes` must be a multiple of 16
+/// - `colors_len_bytes` must be a multiple of 4
 /// - Pointers should be 16-byte aligned for best performance
 /// - CPU must support SSE2 instructions
 #[target_feature(enable = "sse2")]
 pub unsafe fn sse2_shift_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 16 && colors_len_bytes % 16 == 0,
-        "colors_len_bytes must be at least 16 and a multiple of 16"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
     // Setup pointers for processing
@@ -32,8 +34,9 @@ pub unsafe fn sse2_shift_impl(colors: *const u8, colors_out: *mut u8, colors_len
 
     // Calculate end pointer for our main loop (process 16 bytes at a time)
     let end_ptr = colors.add(colors_len_bytes) as *const u64;
+    let aligned_end_ptr = end_ptr.sub(2); // Align to process remaining elements
 
-    while input_ptr < end_ptr {
+    while input_ptr < aligned_end_ptr {
         // Load 16 bytes (128 bits) from the input array
         // This gives us 2 complete 64-bit color chunks (8 color components)
         let color_chunk = _mm_loadu_si128(input_ptr as *const __m128i);
@@ -66,6 +69,14 @@ pub unsafe fn sse2_shift_impl(colors: *const u8, colors_out: *mut u8, colors_len
         output0_ptr = output0_ptr.add(1); // Move to the next 8 bytes (64 bits) of output0
         output1_ptr = output1_ptr.add(1); // Move to the next 8 bytes (64 bits) of output1
     }
+
+    // Handle remaining elements
+    u32_with_separate_endpoints(
+        end_ptr as *const u32,
+        input_ptr as *const u32,
+        output0_ptr as *mut u16,
+        output1_ptr as *mut u16,
+    );
 }
 
 /// Alternative implementation using pshuflw and pshufhw instructions from SSE2,
@@ -81,14 +92,14 @@ pub unsafe fn sse2_shift_impl(colors: *const u8, colors_out: *mut u8, colors_len
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len_bytes` must be a multiple of 32
+/// - `colors_len_bytes` must be a multiple of 4
 /// - Pointers should be 16-byte aligned for best performance
 /// - CPU must support SSE2 instructions
 #[target_feature(enable = "sse2")]
 pub unsafe fn sse2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 32 && colors_len_bytes % 32 == 0,
-        "colors_len_bytes must be at least 32 and a multiple of 32"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
     // Setup pointers for processing
@@ -98,8 +109,9 @@ pub unsafe fn sse2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_
 
     // Calculate end pointer for our main loop (process 32 bytes at a time)
     let end_ptr = colors.add(colors_len_bytes);
+    let aligned_end_ptr = end_ptr.sub(32);
 
-    while input_ptr < end_ptr {
+    while input_ptr < aligned_end_ptr {
         // Load 32 bytes (2 blocks of 16 bytes each)
         let chunk0 = _mm_loadu_si128(input_ptr as *const __m128i);
         let chunk1 = _mm_loadu_si128(input_ptr.add(16) as *const __m128i);
@@ -136,6 +148,14 @@ pub unsafe fn sse2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_
         output_low = output_low.add(16);
         output_high = output_high.add(16);
     }
+
+    // Handle remaining elements
+    u32_with_separate_endpoints(
+        end_ptr as *const u32,
+        input_ptr as *const u32,
+        output_low as *mut u16,
+        output_high as *mut u16,
+    );
 }
 
 /// Alternative implementation using pshuflw and pshufhw instructions from SSE2,
@@ -151,7 +171,7 @@ pub unsafe fn sse2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len_bytes` must be a multiple of 64
+/// - `colors_len_bytes` must be a multiple of 4
 /// - Pointers should be 16-byte aligned for best performance
 /// - CPU must support SSE2 instructions
 #[target_feature(enable = "sse2")]
@@ -162,8 +182,8 @@ pub unsafe fn sse2_shuf_unroll2_impl_asm(
     colors_len_bytes: usize,
 ) {
     debug_assert!(
-        colors_len_bytes >= 64 && colors_len_bytes % 64 == 0,
-        "colors_len_bytes must be at least 64 and a multiple of 64"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
     // Setup pointers for processing
@@ -173,75 +193,86 @@ pub unsafe fn sse2_shuf_unroll2_impl_asm(
 
     // Calculate end pointer for our main loop (process 64 bytes at a time)
     let end_ptr = colors.add(colors_len_bytes);
+    let aligned_end_ptr = end_ptr.sub(64);
 
-    std::arch::asm!(
-        // Loop alignment
-        ".p2align 4",
+    if input_ptr < aligned_end_ptr {
+        std::arch::asm!(
+            // Loop alignment
+            ".p2align 4",
 
-        // Main processing loop
-        "2:",  // Label for loop start
+            // Main processing loop
+            "2:",  // Label for loop start
 
-        // Load 64 bytes (4 XMM registers)
-        "movdqu {xmm0}, xmmword ptr [{src_ptr}]",
-        "movdqu {xmm1}, xmmword ptr [{src_ptr} + 16]",
-        "movdqu {xmm3}, xmmword ptr [{src_ptr} + 48]",
-        "movdqu {xmm2}, xmmword ptr [{src_ptr} + 32]",
-        "add {src_ptr}, 64",
+            // Load 64 bytes (4 XMM registers)
+            "movdqu {xmm0}, xmmword ptr [{src_ptr}]",
+            "movdqu {xmm1}, xmmword ptr [{src_ptr} + 16]",
+            "movdqu {xmm3}, xmmword ptr [{src_ptr} + 48]",
+            "movdqu {xmm2}, xmmword ptr [{src_ptr} + 32]",
+            "add {src_ptr}, 64",
 
-        // Shuffle operations for first chunk
-        "pshuflw {xmm0}, {xmm0}, 216", // 11011000b = 216
-        "pshuflw {xmm1}, {xmm1}, 216",
-        "pshuflw {xmm3}, {xmm3}, 216",
-        "pshufhw {xmm0}, {xmm0}, 39",  // 00100111b = 39
-        "pshufhw {xmm1}, {xmm1}, 39",
-        "pshufhw {xmm3}, {xmm3}, 39",
-        "pshufd {xmm0}, {xmm0}, 108",  // 01101100b = 108
-        "pshufd {xmm1}, {xmm1}, 108",
-        "pshufd {xmm3}, {xmm3}, 108",
-        "pshufhw {xmm4}, {xmm0}, 30",  // 00011110b = 30
-        "pshufhw {xmm5}, {xmm1}, 30",
-        "pshuflw {xmm0}, {xmm0}, 180", // 10110100b = 180
-        "pshuflw {xmm1}, {xmm1}, 180",
-        "punpcklqdq {xmm0}, {xmm1}",
-        "pshuflw {xmm1}, {xmm2}, 216",
-        "movhlps {xmm5}, {xmm4}",
-        "pshufhw {xmm4}, {xmm3}, 30",
-        "pshuflw {xmm3}, {xmm3}, 180",
-        "pshufhw {xmm1}, {xmm1}, 39",
+            // Shuffle operations for first chunk
+            "pshuflw {xmm0}, {xmm0}, 216", // 11011000b = 216
+            "pshuflw {xmm1}, {xmm1}, 216",
+            "pshuflw {xmm3}, {xmm3}, 216",
+            "pshufhw {xmm0}, {xmm0}, 39",  // 00100111b = 39
+            "pshufhw {xmm1}, {xmm1}, 39",
+            "pshufhw {xmm3}, {xmm3}, 39",
+            "pshufd {xmm0}, {xmm0}, 108",  // 01101100b = 108
+            "pshufd {xmm1}, {xmm1}, 108",
+            "pshufd {xmm3}, {xmm3}, 108",
+            "pshufhw {xmm4}, {xmm0}, 30",  // 00011110b = 30
+            "pshufhw {xmm5}, {xmm1}, 30",
+            "pshuflw {xmm0}, {xmm0}, 180", // 10110100b = 180
+            "pshuflw {xmm1}, {xmm1}, 180",
+            "punpcklqdq {xmm0}, {xmm1}",
+            "pshuflw {xmm1}, {xmm2}, 216",
+            "movhlps {xmm5}, {xmm4}",
+            "pshufhw {xmm4}, {xmm3}, 30",
+            "pshuflw {xmm3}, {xmm3}, 180",
+            "pshufhw {xmm1}, {xmm1}, 39",
 
-        // Store first result
-        "movdqu xmmword ptr [{out_low}], {xmm0}",
-        "pshufd {xmm1}, {xmm1}, 108",
-        "pshufhw {xmm2}, {xmm1}, 30",
-        "pshuflw {xmm1}, {xmm1}, 180",
-        "punpcklqdq {xmm1}, {xmm3}",
-        "movhlps {xmm4}, {xmm2}",
+            // Store first result
+            "movdqu xmmword ptr [{out_low}], {xmm0}",
+            "pshufd {xmm1}, {xmm1}, 108",
+            "pshufhw {xmm2}, {xmm1}, 30",
+            "pshuflw {xmm1}, {xmm1}, 180",
+            "punpcklqdq {xmm1}, {xmm3}",
+            "movhlps {xmm4}, {xmm2}",
 
-        // Store remaining results
-        "movdqu xmmword ptr [{out_low} + 16], {xmm1}",
-        "movups xmmword ptr [{out_high}], {xmm5}",
-        "movups xmmword ptr [{out_high} + 16], {xmm4}",
-        "add {out_low}, 32",
-        "add {out_high}, 32",
+            // Store remaining results
+            "movdqu xmmword ptr [{out_low} + 16], {xmm1}",
+            "movups xmmword ptr [{out_high}], {xmm5}",
+            "movups xmmword ptr [{out_high} + 16], {xmm4}",
+            "add {out_low}, 32",
+            "add {out_high}, 32",
 
-        // Loop condition
-        "cmp {src_ptr}, {end_ptr}",
-        "jb 2b",
+            // Loop condition
+            "cmp {src_ptr}, {end_ptr}",
+            "jb 2b",
 
-        src_ptr = inout(reg) input_ptr,
-        out_low = inout(reg) output_low,
-        out_high = inout(reg) output_high,
-        end_ptr = in(reg) end_ptr,
+            src_ptr = inout(reg) input_ptr,
+            end_ptr = in(reg) aligned_end_ptr,
+            out_low = inout(reg) output_low,
+            out_high = inout(reg) output_high,
 
-        // XMM registers
-        xmm0 = out(xmm_reg) _,
-        xmm1 = out(xmm_reg) _,
-        xmm2 = out(xmm_reg) _,
-        xmm3 = out(xmm_reg) _,
-        xmm4 = out(xmm_reg) _,
-        xmm5 = out(xmm_reg) _,
+            // XMM registers
+            xmm0 = out(xmm_reg) _,
+            xmm1 = out(xmm_reg) _,
+            xmm2 = out(xmm_reg) _,
+            xmm3 = out(xmm_reg) _,
+            xmm4 = out(xmm_reg) _,
+            xmm5 = out(xmm_reg) _,
 
-        options(preserves_flags, nostack)
+            options(preserves_flags, nostack)
+        );
+    }
+
+    // Handle remaining elements
+    u32_with_separate_endpoints(
+        end_ptr as *const u32,
+        input_ptr as *const u32,
+        output_low as *mut u16,
+        output_high as *mut u16,
     );
 }
 
@@ -258,7 +289,7 @@ pub unsafe fn sse2_shuf_unroll2_impl_asm(
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len_bytes` must be a multiple of 64
+/// - `colors_len_bytes` must be a multiple of 4
 /// - Pointers should be 16-byte aligned for best performance
 /// - CPU must support SSE2 instructions
 #[target_feature(enable = "sse2")]
@@ -268,8 +299,8 @@ pub unsafe fn sse2_shuf_unroll2_impl(
     colors_len_bytes: usize,
 ) {
     debug_assert!(
-        colors_len_bytes >= 64 && colors_len_bytes % 64 == 0,
-        "colors_len_bytes must be at least 64 and a multiple of 64"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
     // Setup pointers for processing
@@ -279,8 +310,9 @@ pub unsafe fn sse2_shuf_unroll2_impl(
 
     // Calculate end pointer for our main loop (process 64 bytes at a time)
     let end_ptr = colors.add(colors_len_bytes);
+    let aligned_end_ptr = end_ptr.sub(64);
 
-    while input_ptr < end_ptr {
+    while input_ptr < aligned_end_ptr {
         // Load 64 bytes (4 blocks of 16 bytes each)
         let chunk0 = _mm_loadu_si128(input_ptr as *const __m128i);
         let chunk1 = _mm_loadu_si128(input_ptr.add(16) as *const __m128i);
@@ -347,6 +379,14 @@ pub unsafe fn sse2_shuf_unroll2_impl(
         output_low = output_low.add(32);
         output_high = output_high.add(32);
     }
+
+    // Handle remaining elements
+    u32_with_separate_endpoints(
+        end_ptr as *const u32,
+        input_ptr as *const u32,
+        output_low as *mut u16,
+        output_high as *mut u16,
+    );
 }
 
 #[cfg(test)]

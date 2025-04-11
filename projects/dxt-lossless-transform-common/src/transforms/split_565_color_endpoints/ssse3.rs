@@ -3,6 +3,8 @@ use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
+use crate::transforms::split_565_color_endpoints::u32_with_separate_endpoints;
+
 /// Alternative implementation using pshufb and SSE shuffling,
 /// processing 32 bytes at once (unroll factor of 2)
 ///
@@ -16,7 +18,7 @@ use core::arch::x86_64::*;
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len_bytes` must be a multiple of 32
+/// - `colors_len_bytes` must be a multiple of 4
 /// - Pointers should be 16-byte aligned for best performance
 /// - CPU must support SSE2 and SSSE3 instructions (for pshufb)
 #[target_feature(enable = "ssse3")]
@@ -26,8 +28,8 @@ pub unsafe fn ssse3_pshufb_unroll2_impl(
     colors_len_bytes: usize,
 ) {
     debug_assert!(
-        colors_len_bytes >= 32 && colors_len_bytes % 32 == 0,
-        "colors_len_bytes must be at least 32 and a multiple of 32"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
     // Setup pointers for processing
@@ -45,8 +47,9 @@ pub unsafe fn ssse3_pshufb_unroll2_impl(
 
     // Calculate end pointer for our main loop (process 32 bytes at a time)
     let end_ptr = colors.add(colors_len_bytes);
+    let aligned_end_ptr = end_ptr.sub(32);
 
-    while input_ptr < end_ptr {
+    while input_ptr < aligned_end_ptr {
         // Load 32 bytes (2 blocks of 16 bytes each)
         let chunk0 = _mm_loadu_si128(input_ptr as *const __m128i);
         let chunk1 = _mm_loadu_si128(input_ptr.add(16) as *const __m128i);
@@ -72,6 +75,13 @@ pub unsafe fn ssse3_pshufb_unroll2_impl(
         output_low = output_low.add(16);
         output_high = output_high.add(16);
     }
+
+    u32_with_separate_endpoints(
+        end_ptr as *const u32,
+        input_ptr as *const u32,
+        output_low as *mut u16,
+        output_high as *mut u16,
+    );
 }
 
 /// Alternative implementation using pshufb and SSE shuffling,
@@ -87,7 +97,7 @@ pub unsafe fn ssse3_pshufb_unroll2_impl(
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len_bytes` must be a multiple of 64
+/// - `colors_len_bytes` must be a multiple of 4
 /// - Pointers should be 16-byte aligned for best performance
 /// - CPU must support SSE2 and SSSE3 instructions (for pshufb)
 #[target_feature(enable = "ssse3")]
@@ -97,8 +107,8 @@ pub unsafe fn ssse3_pshufb_unroll4_impl(
     colors_len_bytes: usize,
 ) {
     debug_assert!(
-        colors_len_bytes >= 64 && colors_len_bytes % 64 == 0,
-        "colors_len_bytes must be at least 64 and a multiple of 64"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
     // Setup pointers for processing
@@ -117,7 +127,9 @@ pub unsafe fn ssse3_pshufb_unroll4_impl(
     // Calculate end pointer for our main loop (process 64 bytes at a time)
     let end_ptr = colors.add(colors_len_bytes);
 
-    while input_ptr < end_ptr {
+    let aligned_end_ptr = end_ptr.sub(64);
+
+    while input_ptr < aligned_end_ptr {
         // Load 64 bytes (4 blocks of 16 bytes each)
         let chunk0 = _mm_loadu_si128(input_ptr as *const __m128i);
         let chunk1 = _mm_loadu_si128(input_ptr.add(16) as *const __m128i);
@@ -162,6 +174,13 @@ pub unsafe fn ssse3_pshufb_unroll4_impl(
         output_low = output_low.add(32);
         output_high = output_high.add(32);
     }
+
+    u32_with_separate_endpoints(
+        end_ptr as *const u32,
+        input_ptr as *const u32,
+        output_low as *mut u16,
+        output_high as *mut u16,
+    );
 }
 
 #[cfg(test)]

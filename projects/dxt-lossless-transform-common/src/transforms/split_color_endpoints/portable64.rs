@@ -14,7 +14,6 @@ use std::mem::size_of;
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
 /// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
 #[inline(always)]
 pub unsafe fn u64(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
@@ -56,7 +55,6 @@ pub unsafe fn u64(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usiz
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
 /// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
 #[inline(always)]
 pub unsafe fn u64_unroll_2(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
@@ -117,7 +115,6 @@ pub unsafe fn u64_unroll_2(colors: *const u8, colors_out: *mut u8, colors_len_by
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
 /// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
 #[inline(always)]
 pub unsafe fn u64_unroll_4(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
@@ -188,7 +185,6 @@ pub unsafe fn u64_unroll_4(colors: *const u8, colors_out: *mut u8, colors_len_by
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
 /// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
 #[inline(always)]
 pub unsafe fn u64_unroll_8(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
@@ -282,7 +278,6 @@ pub unsafe fn u64_unroll_8(colors: *const u8, colors_out: *mut u8, colors_len_by
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
 /// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
 #[inline(always)]
 pub unsafe fn u64_mix(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
@@ -330,7 +325,6 @@ pub unsafe fn u64_mix(colors: *const u8, colors_out: *mut u8, colors_len_bytes: 
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
 /// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
 #[inline(always)]
 pub unsafe fn u64_mix_unroll_2(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
@@ -407,7 +401,6 @@ pub unsafe fn u64_mix_unroll_2(colors: *const u8, colors_out: *mut u8, colors_le
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
 /// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
 #[inline(always)]
 pub unsafe fn u64_mix_unroll_4(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
@@ -501,7 +494,6 @@ pub unsafe fn u64_mix_unroll_4(colors: *const u8, colors_out: *mut u8, colors_le
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
 /// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
 #[inline(always)]
 pub unsafe fn u64_mix_unroll_8(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
@@ -706,30 +698,22 @@ mod tests {
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
-    #[case::single(4)] // 8 bytes - single iteration
-    #[case::many_unrolls(64)] // 128 bytes - tests multiple unroll iterations
-    #[case::large(512)] // 1024 bytes - large dataset
-    fn test_portable64_aligned(#[case] num_pairs: usize) {
-        let input = generate_test_data(num_pairs);
-        let mut output_expected = vec![0u8; input.len()];
-        let mut output_test = vec![0u8; input.len()];
+    #[case(u64, "u64")]
+    #[case(u64_unroll_2, "u64_unroll_2")]
+    #[case(u64_unroll_8, "u64_unroll_8")]
+    #[case(u64_mix, "u64_mix")]
+    #[case(u64_mix_unroll_2, "u64_mix_unroll_2")]
+    #[case(u64_mix_unroll_4, "u64_mix_unroll_4")]
+    #[case(u64_mix_unroll_8, "u64_mix_unroll_8")]
+    fn test_portable64_aligned(#[case] implementation: TransformFn, #[case] impl_name: &str) {
+        for num_pairs in 1..=512 {
+            let input = generate_test_data(num_pairs);
+            let mut output_expected = vec![0u8; input.len()];
+            let mut output_test = vec![0u8; input.len()];
 
-        // Generate reference output
-        transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+            // Generate reference output
+            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
-        // Test the u64 implementation
-        let implementations: [(&str, TransformFn); 8] = [
-            ("u64", u64),
-            ("u64_unroll_2", u64_unroll_2),
-            ("u64_unroll_4", u64_unroll_4),
-            ("u64_unroll_8", u64_unroll_8),
-            ("u64_mix", u64_mix),
-            ("u64_mix_unroll_2", u64_mix_unroll_2),
-            ("u64_mix_unroll_4", u64_mix_unroll_4),
-            ("u64_mix_unroll_8", u64_mix_unroll_8),
-        ];
-
-        for (impl_name, implementation) in implementations {
             // Clear the output buffer
             output_test.fill(0);
 
@@ -749,35 +733,27 @@ mod tests {
     }
 
     #[rstest]
-    #[case::single(4)] // 8 bytes - single iteration
-    #[case::many_unrolls(64)] // 128 bytes - tests multiple unroll iterations
-    #[case::large(512)] // 1024 bytes - large dataset
-    fn test_portable64_unaligned(#[case] num_pairs: usize) {
-        let input = generate_test_data(num_pairs);
+    #[case(u64, "u64")]
+    #[case(u64_unroll_2, "u64_unroll_2")]
+    #[case(u64_unroll_8, "u64_unroll_8")]
+    #[case(u64_mix, "u64_mix")]
+    #[case(u64_mix_unroll_2, "u64_mix_unroll_2")]
+    #[case(u64_mix_unroll_4, "u64_mix_unroll_4")]
+    #[case(u64_mix_unroll_8, "u64_mix_unroll_8")]
+    fn test_portable64_unaligned(#[case] implementation: TransformFn, #[case] impl_name: &str) {
+        for num_pairs in 1..=512 {
+            let input = generate_test_data(num_pairs);
 
-        // Add 1 extra byte at the beginning to create misaligned buffers
-        let mut input_unaligned = vec![0u8; input.len() + 1];
-        input_unaligned[1..].copy_from_slice(input.as_slice());
+            // Add 1 extra byte at the beginning to create misaligned buffers
+            let mut input_unaligned = vec![0u8; input.len() + 1];
+            input_unaligned[1..].copy_from_slice(input.as_slice());
 
-        let mut output_expected = vec![0u8; input.len()];
-        let mut output_test = vec![0u8; input.len() + 1];
+            let mut output_expected = vec![0u8; input.len()];
+            let mut output_test = vec![0u8; input.len() + 1];
 
-        // Generate reference output
-        transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+            // Generate reference output
+            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
-        // Test the u64 implementation
-        let implementations: [(&str, TransformFn); 8] = [
-            ("u64", u64),
-            ("u64_unroll_2", u64_unroll_2),
-            ("u64_unroll_4", u64_unroll_4),
-            ("u64_unroll_8", u64_unroll_8),
-            ("u64_mix", u64_mix),
-            ("u64_mix_unroll_2", u64_mix_unroll_2),
-            ("u64_mix_unroll_4", u64_mix_unroll_4),
-            ("u64_mix_unroll_8", u64_mix_unroll_8),
-        ];
-
-        for (impl_name, implementation) in implementations {
             // Clear the output buffer
             output_test.fill(0);
 

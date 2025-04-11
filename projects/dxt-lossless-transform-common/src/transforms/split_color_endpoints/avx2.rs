@@ -310,25 +310,18 @@ mod tests {
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
-    #[case::single(32)] // 64 bytes - two iterations
-    #[case::many_unrolls(64)] // 128 bytes - tests multiple iterations
-    #[case::large(512)] // 1024 bytes - large dataset
-    fn test_avx2_aligned(#[case] num_pairs: usize) {
-        let input = generate_test_data(num_pairs);
-        let mut output_expected = vec![0u8; input.len()];
-        let mut output_test = vec![0u8; input.len()];
+    #[case(avx2_shuf_impl, "avx2_shuf")]
+    #[case(avx2_shuf_impl_asm, "avx2_shuf_asm")]
+    #[case(avx2_shuf_impl_unroll_2, "avx2_shuf_unroll_2")]
+    fn test_avx2_aligned(#[case] implementation: TransformFn, #[case] impl_name: &str) {
+        for num_pairs in 1..=512 {
+            let input = generate_test_data(num_pairs);
+            let mut output_expected = vec![0u8; input.len()];
+            let mut output_test = vec![0u8; input.len()];
 
-        // Generate reference output
-        transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+            // Generate reference output
+            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
-        // Test the AVX2 implementation
-        let implementations: [(&str, TransformFn); 3] = [
-            ("avx2_shuf", avx2_shuf_impl),
-            ("avx2_shuf_asm", avx2_shuf_impl_asm),
-            ("avx2_shuf_unrolled", avx2_shuf_impl_unroll_2),
-        ];
-
-        for (impl_name, implementation) in implementations {
             // Clear the output buffer
             output_test.fill(0);
 
@@ -348,30 +341,23 @@ mod tests {
     }
 
     #[rstest]
-    #[case::single(32)] // 64 bytes - two iterations
-    #[case::many_unrolls(64)] // 128 bytes - tests multiple iterations
-    #[case::large(512)] // 1024 bytes - large dataset
-    fn test_avx2_unaligned(#[case] num_pairs: usize) {
-        let input = generate_test_data(num_pairs);
+    #[case(avx2_shuf_impl, "avx2_shuf")]
+    #[case(avx2_shuf_impl_asm, "avx2_shuf_asm")]
+    #[case(avx2_shuf_impl_unroll_2, "avx2_shuf_unroll_2")]
+    fn test_avx2_unaligned(#[case] implementation: TransformFn, #[case] impl_name: &str) {
+        for num_pairs in 1..=512 {
+            let input = generate_test_data(num_pairs);
 
-        // Add 1 extra byte at the beginning to create misaligned buffers
-        let mut input_unaligned = vec![0u8; input.len() + 1];
-        input_unaligned[1..].copy_from_slice(input.as_slice());
+            // Add 1 extra byte at the beginning to create misaligned buffers
+            let mut input_unaligned = vec![0u8; input.len() + 1];
+            input_unaligned[1..].copy_from_slice(input.as_slice());
 
-        let mut output_expected = vec![0u8; input.len()];
-        let mut output_test = vec![0u8; input.len() + 1];
+            let mut output_expected = vec![0u8; input.len()];
+            let mut output_test = vec![0u8; input.len() + 1];
 
-        // Generate reference output
-        transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+            // Generate reference output
+            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
-        // Test the AVX2 implementation
-        let implementations: [(&str, TransformFn); 3] = [
-            ("avx2_shuf", avx2_shuf_impl),
-            ("avx2_shuf_asm", avx2_shuf_impl_asm),
-            ("avx2_shuf_unrolled", avx2_shuf_impl_unroll_2),
-        ];
-
-        for (impl_name, implementation) in implementations {
             // Clear the output buffer
             output_test.fill(0);
 

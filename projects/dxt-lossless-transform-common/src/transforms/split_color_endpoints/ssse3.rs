@@ -177,24 +177,17 @@ mod tests {
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
-    #[case::single(16)] // 32 bytes - two iterations
-    #[case::many_unrolls(64)] // 128 bytes - tests multiple iterations
-    #[case::large(512)] // 1024 bytes - large dataset
-    fn test_ssse3_aligned(#[case] num_pairs: usize) {
-        let input = generate_test_data(num_pairs);
-        let mut output_expected = vec![0u8; input.len()];
-        let mut output_test = vec![0u8; input.len()];
+    #[case(ssse3_pshufb_unroll2_impl, "ssse3_pshufb_unroll2")]
+    #[case(ssse3_pshufb_unroll4_impl, "ssse3_pshufb_unroll4")]
+    fn test_ssse3_aligned(#[case] implementation: TransformFn, #[case] impl_name: &str) {
+        for num_pairs in 1..=512 {
+            let input = generate_test_data(num_pairs);
+            let mut output_expected = vec![0u8; input.len()];
+            let mut output_test = vec![0u8; input.len()];
 
-        // Generate reference output
-        transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+            // Generate reference output
+            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
-        // Test the SSSE3 implementation
-        let implementations: [(&str, TransformFn); 2] = [
-            ("ssse3_pshufb_unroll2", ssse3_pshufb_unroll2_impl),
-            ("ssse3_pshufb_unroll4", ssse3_pshufb_unroll4_impl),
-        ];
-
-        for (impl_name, implementation) in implementations {
             // Clear the output buffer
             output_test.fill(0);
 
@@ -214,29 +207,22 @@ mod tests {
     }
 
     #[rstest]
-    #[case::single(16)] // 32 bytes - two iterations
-    #[case::many_unrolls(64)] // 128 bytes - tests multiple iterations
-    #[case::large(512)] // 1024 bytes - large dataset
-    fn test_ssse3_unaligned(#[case] num_pairs: usize) {
-        let input = generate_test_data(num_pairs);
+    #[case(ssse3_pshufb_unroll2_impl, "ssse3_pshufb_unroll2")]
+    #[case(ssse3_pshufb_unroll4_impl, "ssse3_pshufb_unroll4")]
+    fn test_ssse3_unaligned(#[case] implementation: TransformFn, #[case] impl_name: &str) {
+        for num_pairs in 1..=512 {
+            let input = generate_test_data(num_pairs);
 
-        // Add 1 extra byte at the beginning to create misaligned buffers
-        let mut input_unaligned = vec![0u8; input.len() + 1];
-        input_unaligned[1..].copy_from_slice(input.as_slice());
+            // Add 1 extra byte at the beginning to create misaligned buffers
+            let mut input_unaligned = vec![0u8; input.len() + 1];
+            input_unaligned[1..].copy_from_slice(input.as_slice());
 
-        let mut output_expected = vec![0u8; input.len()];
-        let mut output_test = vec![0u8; input.len() + 1];
+            let mut output_expected = vec![0u8; input.len()];
+            let mut output_test = vec![0u8; input.len() + 1];
 
-        // Generate reference output
-        transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+            // Generate reference output
+            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
-        // Test the SSSE3 implementation
-        let implementations: [(&str, TransformFn); 2] = [
-            ("ssse3_pshufb_unroll2", ssse3_pshufb_unroll2_impl),
-            ("ssse3_pshufb_unroll4", ssse3_pshufb_unroll4_impl),
-        ];
-
-        for (impl_name, implementation) in implementations {
             // Clear the output buffer
             output_test.fill(0);
 

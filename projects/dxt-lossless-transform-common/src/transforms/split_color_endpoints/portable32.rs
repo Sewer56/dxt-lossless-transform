@@ -14,7 +14,6 @@ use std::mem::size_of;
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
 /// - `colors_len_bytes` must be a multiple of 4
-/// - Pointers must be properly aligned for u32 access
 #[inline(always)]
 pub unsafe fn u32(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
@@ -30,11 +29,11 @@ pub unsafe fn u32(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usiz
 
     while input < max_input_ptr {
         // Read color0 and color1 (interleaved in input)
-        let color0 = *input;
+        let color0 = input.read_unaligned();
         input = input.add(1);
-        *output0 = get_first2bytes(color0);
+        output0.write_unaligned(get_first2bytes(color0));
         output0 = output0.add(1);
-        *output1 = get_second2bytes(color0);
+        output1.write_unaligned(get_second2bytes(color0));
         output1 = output1.add(1);
     }
 }

@@ -300,7 +300,7 @@ pub unsafe fn avx2_shuf_impl_unroll_2(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transforms::split_color_endpoints::tests::{
+    use crate::transforms::split_565_color_endpoints::tests::{
         assert_implementation_matches_reference, generate_test_data,
         transform_with_reference_implementation,
     };

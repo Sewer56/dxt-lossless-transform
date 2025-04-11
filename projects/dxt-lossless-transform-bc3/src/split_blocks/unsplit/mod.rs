@@ -14,26 +14,13 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
     // On i686, this is slower, so skipped.
     #[cfg(target_arch = "x86_64")]
     {
-        if len % 64 == 0 {
-            sse2::u64_detransform_sse2(input_ptr, output_ptr, len);
-        }
+        sse2::u64_detransform_sse2(input_ptr, output_ptr, len);
     }
 
-    if len % 32 == 0 {
-        #[cfg(target_arch = "x86_64")]
-        {
-            u64_detransform(input_ptr, output_ptr, len);
-            return;
-        }
-
-        #[cfg(target_arch = "x86")]
-        {
-            u32_detransform_v2(input_ptr, output_ptr, len);
-            return;
-        }
+    #[cfg(target_arch = "x86")]
+    {
+        u32_detransform_v2(input_ptr, output_ptr, len);
     }
-
-    u32_detransform(input_ptr, output_ptr, len);
 }
 
 /// Transform bc3 data from separated alpha/color/index format back to standard interleaved format

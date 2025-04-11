@@ -66,6 +66,25 @@ pub mod tests {
         unsafe { u32(input.as_ptr(), output.as_mut_ptr(), input.len()) }
     }
 
+    /// Helper to assert implementation results match reference implementation
+    pub(crate) fn assert_implementation_matches_reference(
+        expected: &[u8],
+        actual: &[u8],
+        impl_name: &str,
+        num_blocks: usize,
+    ) {
+        assert_eq!(
+            expected, actual,
+            "BC3 {} implementation produced different results than reference for {} blocks.\n\
+            First differing block will have predictable values:\n\
+            Alpha: Sequential 00-31\n\
+            Alpha Indices: Sequential 32-127\n\
+            Colors: Sequential 128-191\n\
+            Indices: Sequential 192-255",
+            impl_name, num_blocks
+        );
+    }
+
     // Helper to generate test data of specified size (in blocks)
     pub(crate) fn generate_bc3_test_data(num_blocks: usize) -> RawAlloc {
         let mut data = allocate_align_64(num_blocks * 16);

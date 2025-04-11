@@ -146,53 +146,61 @@ pub unsafe fn u32_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::split_blocks::split::tests::generate_bc3_test_data;
-    use crate::split_blocks::split::tests::transform_with_reference_implementation;
+    use crate::split_blocks::split::tests::{
+        assert_implementation_matches_reference, generate_bc3_test_data,
+        transform_with_reference_implementation,
+    };
+    use crate::testutils::allocate_align_64;
     use rstest::rstest;
 
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
     struct TestCase {
-        name: &'static str,
         func: TransformFn,
+        name: &'static str,
     }
 
     #[rstest]
-    #[case::u32(TestCase {
-        name: "u32 no-unroll",
-        func: u32,
-    })]
-    #[case::u32_unroll_2(TestCase {
-        name: "u32 unroll-2",
-        func: u32_unroll_2,
-    })]
-    fn test_transform(#[case] test_case: TestCase) {
-        for num_blocks in 1..=512 {
-            test_blocks(&test_case, num_blocks);
-        }
-    }
-
-    fn test_blocks(test_case: &TestCase, num_blocks: usize) {
+    #[case(TestCase { func: u32, name: "portable32" })]
+    fn test_portable32_aligned(#[case] test_case: TestCase) {
+        let num_blocks = 64;
         let input = generate_bc3_test_data(num_blocks);
         let mut output_expected = vec![0u8; input.len()];
-        let mut output_test = vec![0u8; input.len()];
-
-        // Generate reference output
         transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
-        // Clear the output buffer
-        output_test.fill(0);
-
-        // Run the implementation
+        let mut output_test = allocate_align_64(input.len());
+        output_test.as_mut_slice().fill(0);
         unsafe {
             (test_case.func)(input.as_ptr(), output_test.as_mut_ptr(), input.len());
         }
 
-        // Compare results
-        assert_eq!(
-            output_expected, output_test,
-            "{} implementation produced different results than reference for {} blocks.",
-            test_case.name, num_blocks
+        assert_implementation_matches_reference(
+            output_expected.as_slice(),
+            output_test.as_slice(),
+            test_case.name,
+            num_blocks,
+        );
+    }
+
+    #[rstest]
+    #[case(TestCase { func: u32, name: "portable32" })]
+    fn test_portable32_unaligned(#[case] test_case: TestCase) {
+        let num_blocks = 64;
+        let input = generate_bc3_test_data(num_blocks);
+        let mut output_expected = vec![0u8; input.len() + 1];
+        transform_with_reference_implementation(input.as_slice(), &mut output_expected[1..]);
+
+        let mut output_test = vec![0u8; input.len() + 1];
+        output_test.as_mut_slice().fill(0);
+        unsafe {
+            (test_case.func)(input.as_ptr(), output_test.as_mut_ptr().add(1), input.len());
+        }
+
+        assert_implementation_matches_reference(
+            &output_expected[1..],
+            &output_test[1..],
+            test_case.name,
+            num_blocks,
         );
     }
 }

@@ -3,6 +3,8 @@ use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
+use crate::transforms::split_565_color_endpoints::u32_with_separate_endpoints;
+
 /// Splits the colour endpoints using AVX2 instructions
 ///
 /// # Arguments
@@ -15,15 +17,15 @@ use core::arch::x86_64::*;
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len_bytes` must be a multiple of 64
+/// - `colors_len_bytes` must be a multiple of 4
 /// - Pointers should be 32-byte aligned for best performance
 /// - CPU must support AVX2 instructions
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
 pub unsafe fn avx2_shuf_impl_asm(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 64 && colors_len_bytes % 64 == 0,
-        "colors_len_bytes must be at least 64 and a multiple of 64"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
     // Setup pointers for processing
@@ -33,71 +35,82 @@ pub unsafe fn avx2_shuf_impl_asm(colors: *const u8, colors_out: *mut u8, colors_
 
     // Calculate end pointer for our main loop (process 64 bytes at a time)
     let end_ptr = colors.add(colors_len_bytes);
+    let aligned_end_ptr = end_ptr.sub(64);
 
-    // Input data:
-    // [00 01], (80 81), [02 03], (82 83), [04 05], (84 85), [06 07], (86 87)
-    // [08 09], (88 89), [0A 0B], (8A 8B), [0C 0D], (8C 8D), [0E 0F], (8E 8F)
-    // [10 11], (90 91), [12 13], (92 93), [14 15], (94 95), [16 17], (96 97)
-    // [18 19], (98 99), [1A 1B], (9A 9B), [1C 1D], (9C 9D), [1E 1F], (9E 9F)
+    if input_ptr < aligned_end_ptr {
+        // Input data:
+        // [00 01], (80 81), [02 03], (82 83), [04 05], (84 85), [06 07], (86 87)
+        // [08 09], (88 89), [0A 0B], (8A 8B), [0C 0D], (8C 8D), [0E 0F], (8E 8F)
+        // [10 11], (90 91), [12 13], (92 93), [14 15], (94 95), [16 17], (96 97)
+        // [18 19], (98 99), [1A 1B], (9A 9B), [1C 1D], (9C 9D), [1E 1F], (9E 9F)
 
-    // Desired format (big endian):
-    // [00 01], [02 03], [04 05], [06 07], (80 81), (82 83), (84 85), (86 87)
-    // [08 09], [0A 0B], [0C 0D], [0E 0F], (88 89), (8A 8B), (8C 8D), (8E 8F)
-    // [10 11], [12 13], [14 15], [16 17], (90 91), (92 93), (94 95), (96 97)
-    // [18 19], [1A 1B], [1C 1D], [1E 1F], (98 99), (9A 9B), (9C 9D), (9E 9F)
-    let shuffle_mask = _mm256_set_epi8(
-        13, 12, 9, 8, 15, 14, 11, 10, // xmm high
-        5, 4, 1, 0, 7, 6, 3, 2, // xmm low
-        13, 12, 9, 8, 15, 14, 11, 10, // xmm high
-        5, 4, 1, 0, 7, 6, 3, 2, // xmm low
-    );
+        // Desired format (big endian):
+        // [00 01], [02 03], [04 05], [06 07], (80 81), (82 83), (84 85), (86 87)
+        // [08 09], [0A 0B], [0C 0D], [0E 0F], (88 89), (8A 8B), (8C 8D), (8E 8F)
+        // [10 11], [12 13], [14 15], [16 17], (90 91), (92 93), (94 95), (96 97)
+        // [18 19], [1A 1B], [1C 1D], [1E 1F], (98 99), (9A 9B), (9C 9D), (9E 9F)
+        let shuffle_mask = _mm256_set_epi8(
+            13, 12, 9, 8, 15, 14, 11, 10, // xmm high
+            5, 4, 1, 0, 7, 6, 3, 2, // xmm low
+            13, 12, 9, 8, 15, 14, 11, 10, // xmm high
+            5, 4, 1, 0, 7, 6, 3, 2, // xmm low
+        );
 
-    std::arch::asm!(
-        // Loop alignment
-        ".p2align 4",
+        std::arch::asm!(
+            // Loop alignment
+            ".p2align 4",
 
-        // Main processing loop
-        "2:",  // Label 1 (loop start)
+            // Main processing loop
+            "2:",  // Label 1 (loop start)
 
-        // Load 64 bytes (2 YMM registers)
-        "vmovdqu {ymm1}, ymmword ptr [{src_ptr}]",
-        "vmovdqu {ymm2}, ymmword ptr [{src_ptr} + 32]",
-        "add {src_ptr}, 64",
+            // Load 64 bytes (2 YMM registers)
+            "vmovdqu {ymm1}, ymmword ptr [{src_ptr}]",
+            "vmovdqu {ymm2}, ymmword ptr [{src_ptr} + 32]",
+            "add {src_ptr}, 64",
 
-        // Shuffle bytes according to mask
-        "vpshufb {ymm1}, {ymm1}, {shuffle_mask}",
-        "vpshufb {ymm2}, {ymm2}, {shuffle_mask}",
+            // Shuffle bytes according to mask
+            "vpshufb {ymm1}, {ymm1}, {shuffle_mask}",
+            "vpshufb {ymm2}, {ymm2}, {shuffle_mask}",
 
-        // Interleave the results
-        "vshufps {ymm3}, {ymm1}, {ymm2}, 221",  // 11011101b
-        "vshufps {ymm1}, {ymm1}, {ymm2}, 136",  // 10001000b
+            // Interleave the results
+            "vshufps {ymm3}, {ymm1}, {ymm2}, 221",  // 11011101b
+            "vshufps {ymm1}, {ymm1}, {ymm2}, 136",  // 10001000b
 
-        // Rearrange the permuted data
-        "vpermpd {ymm3}, {ymm3}, 216",  // 11011000b
-        "vpermpd {ymm1}, {ymm1}, 216",  // 11011000b
+            // Rearrange the permuted data
+            "vpermpd {ymm3}, {ymm3}, 216",  // 11011000b
+            "vpermpd {ymm1}, {ymm1}, 216",  // 11011000b
 
-        // Store results
-        "vmovups ymmword ptr [{out_low}], {ymm3}",
-        "vmovups ymmword ptr [{out_high}], {ymm1}",
-        "add {out_low}, 32",
-        "add {out_high}, 32",
+            // Store results
+            "vmovups ymmword ptr [{out_low}], {ymm3}",
+            "vmovups ymmword ptr [{out_high}], {ymm1}",
+            "add {out_low}, 32",
+            "add {out_high}, 32",
 
-        // Loop condition
-        "cmp {src_ptr}, {end_ptr}",
-        "jb 2b",
+            // Loop condition
+            "cmp {src_ptr}, {aligned_end_ptr}",
+            "jb 2b",
 
-        src_ptr = inout(reg) input_ptr,
-        out_low = inout(reg) output_low,
-        out_high = inout(reg) output_high,
-        end_ptr = in(reg) end_ptr,
+            src_ptr = inout(reg) input_ptr,
+            out_low = inout(reg) output_low,
+            out_high = inout(reg) output_high,
+            aligned_end_ptr = in(reg) aligned_end_ptr,
 
-        // AVX registers that need to be managed
-        shuffle_mask = in(ymm_reg) shuffle_mask,
-        ymm1 = out(ymm_reg) _,
-        ymm2 = out(ymm_reg) _,
-        ymm3 = out(ymm_reg) _,
+            // AVX registers that need to be managed
+            shuffle_mask = in(ymm_reg) shuffle_mask,
+            ymm1 = out(ymm_reg) _,
+            ymm2 = out(ymm_reg) _,
+            ymm3 = out(ymm_reg) _,
 
-        options(preserves_flags, nostack)
+            options(preserves_flags, nostack)
+        );
+    }
+
+    // Handle remaining elements
+    u32_with_separate_endpoints(
+        end_ptr as *const u32,
+        input_ptr as *const u32,
+        output_low as *mut u16,
+        output_high as *mut u16,
     );
 }
 
@@ -113,7 +126,7 @@ pub unsafe fn avx2_shuf_impl_asm(colors: *const u8, colors_out: *mut u8, colors_
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len_bytes` must be a multiple of 64
+/// - `colors_len_bytes` must be a multiple of 4
 /// - Pointers should be 32-byte aligned for best performance
 /// - CPU must support AVX2 instructions
 ///
@@ -123,8 +136,8 @@ pub unsafe fn avx2_shuf_impl_asm(colors: *const u8, colors_out: *mut u8, colors_
 #[target_feature(enable = "avx2")]
 pub unsafe fn avx2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 64 && colors_len_bytes % 64 == 0,
-        "colors_len_bytes must be at least 64 and a multiple of 64"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
     // Setup pointers for processing
@@ -134,6 +147,7 @@ pub unsafe fn avx2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_
 
     // Calculate end pointer for our main loop (process 64 bytes at a time)
     let end_ptr = colors.add(colors_len_bytes);
+    let aligned_end_ptr = end_ptr.sub(64);
 
     // Input data:
     // [00 01], (80 81), [02 03], (82 83), [04 05], (84 85), [06 07], (86 87)
@@ -155,7 +169,7 @@ pub unsafe fn avx2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_
 
     // Note(sewer): Don't forget the damned little endian!! Flip the order!!
 
-    while input_ptr < end_ptr {
+    while input_ptr < aligned_end_ptr {
         // Load 64 bytes (2 blocks of 32 bytes each)
         let chunk1 = _mm256_loadu_si256(input_ptr as *const __m256i);
         let chunk2 = _mm256_loadu_si256(input_ptr.add(32) as *const __m256i);
@@ -185,6 +199,14 @@ pub unsafe fn avx2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_
         output_low = output_low.add(32);
         output_high = output_high.add(32);
     }
+
+    // Handle remaining elements
+    u32_with_separate_endpoints(
+        end_ptr as *const u32,
+        input_ptr as *const u32,
+        output_low as *mut u16,
+        output_high as *mut u16,
+    );
 }
 
 /// Splits the colour endpoints using AVX2 instructions with a single loop unroll
@@ -199,7 +221,7 @@ pub unsafe fn avx2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len_bytes` must be a multiple of 128
+/// - `colors_len_bytes` must be a multiple of 4
 /// - Pointers should be 32-byte aligned for best performance
 /// - CPU must support AVX2 instructions
 #[target_feature(enable = "avx2")]
@@ -209,8 +231,8 @@ pub unsafe fn avx2_shuf_impl_unroll_2(
     colors_len_bytes: usize,
 ) {
     debug_assert!(
-        colors_len_bytes >= 128 && colors_len_bytes % 128 == 0,
-        "colors_len_bytes must be at least 128 and a multiple of 128"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
     // Setup pointers for processing
@@ -220,6 +242,7 @@ pub unsafe fn avx2_shuf_impl_unroll_2(
 
     // Calculate end pointer for our main loop (process 128 bytes at a time)
     let end_ptr = colors.add(colors_len_bytes);
+    let aligned_end_ptr = end_ptr.sub(128);
 
     // Input data:
     // [00 01], (80 81), [02 03], (82 83), [04 05], (84 85), [06 07], (86 87)
@@ -241,7 +264,7 @@ pub unsafe fn avx2_shuf_impl_unroll_2(
 
     // Note(sewer): Don't forget the damned little endian!! Flip the order!!
 
-    while input_ptr < end_ptr {
+    while input_ptr < aligned_end_ptr {
         // First 64 bytes
         // Load 64 bytes (2 blocks of 32 bytes each)
         let chunk1_a = _mm256_loadu_si256(input_ptr as *const __m256i);
@@ -295,6 +318,14 @@ pub unsafe fn avx2_shuf_impl_unroll_2(
         output_low = output_low.add(64);
         output_high = output_high.add(64);
     }
+
+    // Handle remaining elements
+    u32_with_separate_endpoints(
+        end_ptr as *const u32,
+        input_ptr as *const u32,
+        output_low as *mut u16,
+        output_high as *mut u16,
+    );
 }
 
 #[cfg(test)]

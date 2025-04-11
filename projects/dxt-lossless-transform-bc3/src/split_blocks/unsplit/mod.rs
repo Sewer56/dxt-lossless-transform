@@ -14,26 +14,13 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
     // On i686, this is slower, so skipped.
     #[cfg(target_arch = "x86_64")]
     {
-        if len % 64 == 0 {
-            sse2::u64_detransform_sse2(input_ptr, output_ptr, len);
-        }
+        sse2::u64_detransform_sse2(input_ptr, output_ptr, len);
     }
 
-    if len % 32 == 0 {
-        #[cfg(target_arch = "x86_64")]
-        {
-            u64_detransform(input_ptr, output_ptr, len);
-            return;
-        }
-
-        #[cfg(target_arch = "x86")]
-        {
-            u32_detransform_v2(input_ptr, output_ptr, len);
-            return;
-        }
+    #[cfg(target_arch = "x86")]
+    {
+        u32_detransform_v2(input_ptr, output_ptr, len);
     }
-
-    u32_detransform(input_ptr, output_ptr, len);
 }
 
 /// Transform bc3 data from separated alpha/color/index format back to standard interleaved format
@@ -64,6 +51,25 @@ pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 mod tests {
     use crate::testutils::allocate_align_64;
     use safe_allocator_api::RawAlloc;
+
+    /// Helper to assert implementation results match reference implementation
+    pub(crate) fn assert_implementation_matches_reference(
+        expected: &[u8],
+        actual: &[u8],
+        impl_name: &str,
+        num_blocks: usize,
+    ) {
+        assert_eq!(
+            expected, actual,
+            "{} implementation produced different results than reference for {} blocks.\n\
+            First differing block will have predictable values:\n\
+            Alpha bytes: Sequential 0-1 + (block_num * 2)\n\
+            Alpha bits: Sequential 32-37 + (block_num * 6)\n\
+            Colors: Sequential 128-131 + (block_num * 4)\n\
+            Indices: Sequential 192-195 + (block_num * 4)",
+            impl_name, num_blocks
+        );
+    }
 
     // Helper to generate test data of specified size (in blocks)
     pub(crate) fn generate_bc3_transformed_test_data(num_blocks: usize) -> RawAlloc {

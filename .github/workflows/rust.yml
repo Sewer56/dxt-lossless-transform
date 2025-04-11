@@ -9,12 +9,11 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-
 env:
   build-with-pgo: true
 
 jobs:
-  build-and-test:
+  test:
     strategy:
       matrix:
         include:
@@ -47,6 +46,36 @@ jobs:
           use-cross: ${{ matrix.use-cross }}
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
 
+      # Uncomment after first release.
+      # - name: Check semver
+      #   uses: obi1kenobi/cargo-semver-checks-action@v2
+
+  build-binaries:
+    strategy:
+      matrix:
+        include:
+          # Common Linux Targets
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false }
+          - { os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false }
+          - { os: ubuntu-latest, target: aarch64-unknown-linux-gnu, use-cross: true }
+          - { os: ubuntu-latest, target: armv7-unknown-linux-gnueabihf, use-cross: true }
+          # Common Windows Targets
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, use-cross: false }
+          - { os: windows-latest, target: i686-pc-windows-msvc, use-cross: false }
+          # - { os: windows-latest, target: aarch64-pc-windows-msvc, use-cross: true }
+          # Common Apple Targets
+          - { os: macos-13, target: x86_64-apple-darwin, use-cross: false }
+          - { os: macos-14, target: aarch64-apple-darwin, use-cross: false }
+          # Big Endian (64-bit)
+          - { os: ubuntu-latest, target: powerpc64-unknown-linux-gnu, use-cross: true }
+          # Big Endian (32-bit)
+          - { os: ubuntu-latest, target: powerpc-unknown-linux-gnu, use-cross: true }
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Build CLI
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
@@ -56,6 +85,7 @@ jobs:
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
+          use-cache: true
 
       - name: Build C API
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
@@ -67,10 +97,7 @@ jobs:
           use-cross: ${{ matrix.use-cross }}
           features: "c-exports"
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
-
-      # Uncomment after first release.
-      # - name: Check semver
-      #   uses: obi1kenobi/cargo-semver-checks-action@v2
+          use-cache: false
 
   build-c-headers:
     runs-on: ubuntu-latest
@@ -95,7 +122,7 @@ jobs:
     permissions:
       contents: write
 
-    needs: [build-and-test]
+    needs: [test,build-binaries]
     # Publish only on tags
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest

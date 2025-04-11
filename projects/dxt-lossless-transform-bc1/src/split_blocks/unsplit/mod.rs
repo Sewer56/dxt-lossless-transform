@@ -12,28 +12,27 @@ pub mod avx2;
 unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        let avx2 = std::is_x86_feature_detected!("avx2");
-        let sse2 = std::is_x86_feature_detected!("sse2");
-
-        if avx2 && len % 128 == 0 {
+        if std::is_x86_feature_detected!("avx2") {
             avx2::permd_detransform_unroll_2(input_ptr, output_ptr, len);
+            return;
         }
 
-        if sse2 && len % 64 == 0 {
+        if std::is_x86_feature_detected!("sse2") {
             sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
+            return;
         }
     }
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        #[cfg(target_feature = "avx2")]
-        if len % 128 == 0 {
-            avx2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
+        if cfg!(target_feature = "avx2") {
+            avx2::permd_detransform_unroll_2(input_ptr, output_ptr, len);
+            return;
         }
 
-        #[cfg(target_feature = "sse2")]
-        if len % 64 == 0 {
+        if cfg!(target_feature = "sse2") {
             sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
+            return;
         }
     }
 
@@ -69,6 +68,25 @@ pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 mod tests {
     use crate::testutils::allocate_align_64;
     use safe_allocator_api::RawAlloc;
+
+    /// Helper to assert implementation results match reference implementation
+    pub(crate) fn assert_implementation_matches_reference(
+        expected: &[u8], 
+        actual: &[u8], 
+        impl_name: &str, 
+        num_blocks: usize
+    ) {
+        assert_eq!(
+            expected,
+            actual,
+            "{} implementation produced different results than reference for {} blocks.\n\
+            First differing block will have predictable values:\n\
+            Colors: Sequential 0-3 + (block_num * 4)\n\
+            Indices: Sequential 128-131 + (block_num * 4)",
+            impl_name,
+            num_blocks
+        );
+    }
 
     // Helper to generate test data of specified size (in blocks)
     pub(crate) fn generate_bc1_transformed_test_data(num_blocks: usize) -> RawAlloc {

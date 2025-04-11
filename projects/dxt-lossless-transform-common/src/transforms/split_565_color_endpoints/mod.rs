@@ -55,15 +55,12 @@ unsafe fn split_color_endpoints_x86(
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         // Runtime feature detection
-        let avx2 = std::is_x86_feature_detected!("avx2");
-        let sse2 = std::is_x86_feature_detected!("sse2");
-
-        if avx2 && colors_len_bytes % 64 == 0 {
+        if std::is_x86_feature_detected!("avx2") {
             avx2_shuf_impl_asm(colors, colors_out, colors_len_bytes);
             return;
         }
 
-        if sse2 && colors_len_bytes % 64 == 0 {
+        if std::is_x86_feature_detected!("sse2") {
             sse2_shuf_unroll2_impl_asm(colors, colors_out, colors_len_bytes);
             return;
         }
@@ -71,14 +68,12 @@ unsafe fn split_color_endpoints_x86(
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        #[cfg(target_feature = "avx2")]
-        if colors_len_bytes % 64 == 0 {
+        if cfg!(target_feature = "avx2") {
             avx2_shuf_impl_asm(colors, colors_out, colors_len_bytes);
             return;
         }
 
-        #[cfg(target_feature = "sse2")]
-        if colors_len_bytes % 64 == 0 {
+        if cfg!(target_feature = "sse2") {
             sse2_shuf_unroll2_impl_asm(colors, colors_out, colors_len_bytes);
             return;
         }
@@ -161,6 +156,23 @@ mod tests {
         }
 
         data
+    }
+
+    /// Helper to assert implementation results match reference implementation
+    pub(crate) fn assert_implementation_matches_reference(
+        output_expected: &[u8],
+        output_test: &[u8],
+        impl_name: &str,
+        num_pairs: usize,
+    ) {
+        assert_eq!(
+            output_expected, output_test,
+            "{} implementation produced different results than reference for {} color pairs.\n\
+            First differing pair will have predictable values:\n\
+            Color0: Sequential bytes 0x00,0x01 + (pair_num * 4)\n\
+            Color1: Sequential bytes 0x80,0x81 + (pair_num * 4)",
+            impl_name, num_pairs
+        );
     }
 
     #[test]

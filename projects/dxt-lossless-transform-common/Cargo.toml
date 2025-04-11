@@ -25,9 +25,9 @@ safe-allocator-api = "0.3.0"
 pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
 
 [[bench]]
-name = "color_decorrelation"
+name = "color565_decorrelation"
 harness = false
 
 [[bench]]
-name = "split_color_endpoints"
+name = "split_color565_endpoints"
 harness = false

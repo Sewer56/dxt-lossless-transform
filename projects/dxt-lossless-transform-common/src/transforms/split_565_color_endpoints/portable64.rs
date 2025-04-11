@@ -1,4 +1,5 @@
 use crate::color_565::Color565;
+use crate::transforms::split_565_color_endpoints::portable32::u32_with_separate_endpoints;
 use std::mem::size_of;
 
 /// Splits the colour endpoints using 64-bit operations
@@ -13,13 +14,12 @@ use std::mem::size_of;
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
+/// - `colors_len` must be a multiple of 4
 #[inline(always)]
 pub unsafe fn u64(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 8 && colors_len_bytes % 8 == 0,
-        "colors_len_bytes must be at least 8 and a multiple of 8"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
     // Cast input/output to u64 pointers for direct value access
@@ -28,18 +28,29 @@ pub unsafe fn u64(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usiz
     let mut output0 = colors_out as *mut u16;
     let mut output1 = colors_out.add(colors_len_bytes / size_of::<Color565>()) as *mut u16;
 
-    while input < max_input_ptr {
+    while input < max_input_ptr.sub(1) {
         // Read color0 and color1 (interleaved in input)
-        let color0 = *input;
+        let color0 = input.read_unaligned();
         input = input.add(1);
 
         // Extract and write four 2-byte values from the 8-byte chunk
-        *output0 = get_first2bytes(color0);
-        *output1 = get_second2bytes(color0);
-        *output0.add(1) = get_third2bytes(color0);
-        *output1.add(1) = get_fourth2bytes(color0);
+        output0.write_unaligned(get_first2bytes(color0));
+        output1.write_unaligned(get_second2bytes(color0));
+        output0.add(1).write_unaligned(get_third2bytes(color0));
+        output1.add(1).write_unaligned(get_fourth2bytes(color0));
         output0 = output0.add(2);
         output1 = output1.add(2);
+    }
+
+    // Handle any remaining elements
+    if input < max_input_ptr {
+        let remaining_input = input as *const u32;
+        u32_with_separate_endpoints(
+            max_input_ptr as *const u32,
+            remaining_input,
+            output0,
+            output1,
+        );
     }
 }
 
@@ -55,13 +66,12 @@ pub unsafe fn u64(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usiz
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
+/// - `colors_len` must be a multiple of 4
 #[inline(always)]
 pub unsafe fn u64_unroll_2(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 8 && colors_len_bytes % 8 == 0,
-        "colors_len_bytes must be at least 8 and a multiple of 8 for unroll_2"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4 for unroll_2"
     );
 
     // Cast input/output to u64 pointers for direct value access
@@ -70,37 +80,35 @@ pub unsafe fn u64_unroll_2(colors: *const u8, colors_out: *mut u8, colors_len_by
     let mut output0 = colors_out as *mut u16;
     let mut output1 = colors_out.add(colors_len_bytes / size_of::<Color565>()) as *mut u16;
 
-    while input < max_input_ptr.sub(1) {
+    while input < max_input_ptr.sub(2) {
         // Process 2 chunks per iteration
-        let color0 = *input;
-        let color1 = *input.add(1);
+        let color0 = input.read_unaligned();
+        let color1 = input.add(1).read_unaligned();
         input = input.add(2);
 
         // Process first chunk
-        *output0 = get_first2bytes(color0);
-        *output0.add(2) = get_first2bytes(color1);
-        *output1 = get_second2bytes(color0);
-        *output1.add(2) = get_second2bytes(color1);
-        *output0.add(1) = get_third2bytes(color0);
-        *output0.add(3) = get_third2bytes(color1);
-        *output1.add(1) = get_fourth2bytes(color0);
-        *output1.add(3) = get_fourth2bytes(color1);
+        output0.write_unaligned(get_first2bytes(color0));
+        output0.add(2).write_unaligned(get_first2bytes(color1));
+        output1.write_unaligned(get_second2bytes(color0));
+        output1.add(2).write_unaligned(get_second2bytes(color1));
+        output0.add(1).write_unaligned(get_third2bytes(color0));
+        output0.add(3).write_unaligned(get_third2bytes(color1));
+        output1.add(1).write_unaligned(get_fourth2bytes(color0));
+        output1.add(3).write_unaligned(get_fourth2bytes(color1));
 
         output0 = output0.add(4);
         output1 = output1.add(4);
     }
 
-    // Handle any remaining elements (shouldn't happen with proper alignment)
-    while input < max_input_ptr {
-        let color0 = *input;
-        input = input.add(1);
-
-        *output0 = get_first2bytes(color0);
-        *output1 = get_second2bytes(color0);
-        *output0.add(1) = get_third2bytes(color0);
-        *output1.add(1) = get_fourth2bytes(color0);
-        output0 = output0.add(2);
-        output1 = output1.add(2);
+    // Handle any remaining elements
+    if input < max_input_ptr {
+        let remaining_input = input as *const u32;
+        u32_with_separate_endpoints(
+            max_input_ptr as *const u32,
+            remaining_input,
+            output0,
+            output1,
+        );
     }
 }
 
@@ -116,13 +124,12 @@ pub unsafe fn u64_unroll_2(colors: *const u8, colors_out: *mut u8, colors_len_by
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
+/// - `colors_len` must be a multiple of 4
 #[inline(always)]
 pub unsafe fn u64_unroll_4(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 8 && colors_len_bytes % 8 == 0,
-        "colors_len_bytes must be at least 8 and a multiple of 8 for unroll_4"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4 for unroll_4"
     );
 
     // Cast input/output to u64 pointers for direct value access
@@ -131,47 +138,45 @@ pub unsafe fn u64_unroll_4(colors: *const u8, colors_out: *mut u8, colors_len_by
     let mut output0 = colors_out as *mut u16;
     let mut output1 = colors_out.add(colors_len_bytes / size_of::<Color565>()) as *mut u16;
 
-    while input < max_input_ptr.sub(3) {
+    while input < max_input_ptr.sub(4) {
         // Process 4 chunks per iteration
-        let color0 = *input;
-        let color1 = *input.add(1);
-        let color2 = *input.add(2);
-        let color3 = *input.add(3);
+        let color0 = input.read_unaligned();
+        let color1 = input.add(1).read_unaligned();
+        let color2 = input.add(2).read_unaligned();
+        let color3 = input.add(3).read_unaligned();
         input = input.add(4);
 
         // Process first chunk
-        *output0 = get_first2bytes(color0);
-        *output0.add(2) = get_first2bytes(color1);
-        *output0.add(4) = get_first2bytes(color2);
-        *output0.add(6) = get_first2bytes(color3);
-        *output1 = get_second2bytes(color0);
-        *output1.add(2) = get_second2bytes(color1);
-        *output1.add(4) = get_second2bytes(color2);
-        *output1.add(6) = get_second2bytes(color3);
-        *output0.add(1) = get_third2bytes(color0);
-        *output0.add(3) = get_third2bytes(color1);
-        *output0.add(5) = get_third2bytes(color2);
-        *output0.add(7) = get_third2bytes(color3);
-        *output1.add(1) = get_fourth2bytes(color0);
-        *output1.add(3) = get_fourth2bytes(color1);
-        *output1.add(5) = get_fourth2bytes(color2);
-        *output1.add(7) = get_fourth2bytes(color3);
+        output0.write_unaligned(get_first2bytes(color0));
+        output0.add(2).write_unaligned(get_first2bytes(color1));
+        output0.add(4).write_unaligned(get_first2bytes(color2));
+        output0.add(6).write_unaligned(get_first2bytes(color3));
+        output1.write_unaligned(get_second2bytes(color0));
+        output1.add(2).write_unaligned(get_second2bytes(color1));
+        output1.add(4).write_unaligned(get_second2bytes(color2));
+        output1.add(6).write_unaligned(get_second2bytes(color3));
+        output0.add(1).write_unaligned(get_third2bytes(color0));
+        output0.add(3).write_unaligned(get_third2bytes(color1));
+        output0.add(5).write_unaligned(get_third2bytes(color2));
+        output0.add(7).write_unaligned(get_third2bytes(color3));
+        output1.add(1).write_unaligned(get_fourth2bytes(color0));
+        output1.add(3).write_unaligned(get_fourth2bytes(color1));
+        output1.add(5).write_unaligned(get_fourth2bytes(color2));
+        output1.add(7).write_unaligned(get_fourth2bytes(color3));
 
         output0 = output0.add(8);
         output1 = output1.add(8);
     }
 
     // Handle any remaining elements
-    while input < max_input_ptr {
-        let color0 = *input;
-        input = input.add(1);
-
-        *output0 = get_first2bytes(color0);
-        *output1 = get_second2bytes(color0);
-        *output0.add(1) = get_third2bytes(color0);
-        *output1.add(1) = get_fourth2bytes(color0);
-        output0 = output0.add(2);
-        output1 = output1.add(2);
+    if input < max_input_ptr {
+        let remaining_input = input as *const u32;
+        u32_with_separate_endpoints(
+            max_input_ptr as *const u32,
+            remaining_input,
+            output0,
+            output1,
+        );
     }
 }
 
@@ -187,13 +192,12 @@ pub unsafe fn u64_unroll_4(colors: *const u8, colors_out: *mut u8, colors_len_by
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
+/// - `colors_len` must be a multiple of 4
 #[inline(always)]
 pub unsafe fn u64_unroll_8(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 8 && colors_len_bytes % 8 == 0,
-        "colors_len_bytes must be at least 8 and a multiple of 8 for unroll_8"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4 for unroll_8"
     );
 
     // Cast input/output to u64 pointers for direct value access
@@ -202,70 +206,68 @@ pub unsafe fn u64_unroll_8(colors: *const u8, colors_out: *mut u8, colors_len_by
     let mut output0 = colors_out as *mut u16;
     let mut output1 = colors_out.add(colors_len_bytes / size_of::<Color565>()) as *mut u16;
 
-    while input < max_input_ptr.sub(7) {
+    while input < max_input_ptr.sub(8) {
         // Process 8 chunks per iteration
-        let color0 = *input;
-        let color1 = *input.add(1);
-        let color2 = *input.add(2);
-        let color3 = *input.add(3);
-        let color4 = *input.add(4);
-        let color5 = *input.add(5);
-        let color6 = *input.add(6);
-        let color7 = *input.add(7);
+        let color0 = input.read_unaligned();
+        let color1 = input.add(1).read_unaligned();
+        let color2 = input.add(2).read_unaligned();
+        let color3 = input.add(3).read_unaligned();
+        let color4 = input.add(4).read_unaligned();
+        let color5 = input.add(5).read_unaligned();
+        let color6 = input.add(6).read_unaligned();
+        let color7 = input.add(7).read_unaligned();
         input = input.add(8);
 
         // Process chunks
-        *output0 = get_first2bytes(color0);
-        *output0.add(2) = get_first2bytes(color1);
-        *output0.add(4) = get_first2bytes(color2);
-        *output0.add(6) = get_first2bytes(color3);
-        *output0.add(8) = get_first2bytes(color4);
-        *output0.add(10) = get_first2bytes(color5);
-        *output0.add(12) = get_first2bytes(color6);
-        *output0.add(14) = get_first2bytes(color7);
+        output0.write_unaligned(get_first2bytes(color0));
+        output0.add(2).write_unaligned(get_first2bytes(color1));
+        output0.add(4).write_unaligned(get_first2bytes(color2));
+        output0.add(6).write_unaligned(get_first2bytes(color3));
+        output0.add(8).write_unaligned(get_first2bytes(color4));
+        output0.add(10).write_unaligned(get_first2bytes(color5));
+        output0.add(12).write_unaligned(get_first2bytes(color6));
+        output0.add(14).write_unaligned(get_first2bytes(color7));
 
-        *output1 = get_second2bytes(color0);
-        *output1.add(2) = get_second2bytes(color1);
-        *output1.add(4) = get_second2bytes(color2);
-        *output1.add(6) = get_second2bytes(color3);
-        *output1.add(8) = get_second2bytes(color4);
-        *output1.add(10) = get_second2bytes(color5);
-        *output1.add(12) = get_second2bytes(color6);
-        *output1.add(14) = get_second2bytes(color7);
+        output1.write_unaligned(get_second2bytes(color0));
+        output1.add(2).write_unaligned(get_second2bytes(color1));
+        output1.add(4).write_unaligned(get_second2bytes(color2));
+        output1.add(6).write_unaligned(get_second2bytes(color3));
+        output1.add(8).write_unaligned(get_second2bytes(color4));
+        output1.add(10).write_unaligned(get_second2bytes(color5));
+        output1.add(12).write_unaligned(get_second2bytes(color6));
+        output1.add(14).write_unaligned(get_second2bytes(color7));
 
-        *output0.add(1) = get_third2bytes(color0);
-        *output0.add(3) = get_third2bytes(color1);
-        *output0.add(5) = get_third2bytes(color2);
-        *output0.add(7) = get_third2bytes(color3);
-        *output0.add(9) = get_third2bytes(color4);
-        *output0.add(11) = get_third2bytes(color5);
-        *output0.add(13) = get_third2bytes(color6);
-        *output0.add(15) = get_third2bytes(color7);
+        output0.add(1).write_unaligned(get_third2bytes(color0));
+        output0.add(3).write_unaligned(get_third2bytes(color1));
+        output0.add(5).write_unaligned(get_third2bytes(color2));
+        output0.add(7).write_unaligned(get_third2bytes(color3));
+        output0.add(9).write_unaligned(get_third2bytes(color4));
+        output0.add(11).write_unaligned(get_third2bytes(color5));
+        output0.add(13).write_unaligned(get_third2bytes(color6));
+        output0.add(15).write_unaligned(get_third2bytes(color7));
 
-        *output1.add(1) = get_fourth2bytes(color0);
-        *output1.add(3) = get_fourth2bytes(color1);
-        *output1.add(5) = get_fourth2bytes(color2);
-        *output1.add(7) = get_fourth2bytes(color3);
-        *output1.add(9) = get_fourth2bytes(color4);
-        *output1.add(11) = get_fourth2bytes(color5);
-        *output1.add(13) = get_fourth2bytes(color6);
-        *output1.add(15) = get_fourth2bytes(color7);
+        output1.add(1).write_unaligned(get_fourth2bytes(color0));
+        output1.add(3).write_unaligned(get_fourth2bytes(color1));
+        output1.add(5).write_unaligned(get_fourth2bytes(color2));
+        output1.add(7).write_unaligned(get_fourth2bytes(color3));
+        output1.add(9).write_unaligned(get_fourth2bytes(color4));
+        output1.add(11).write_unaligned(get_fourth2bytes(color5));
+        output1.add(13).write_unaligned(get_fourth2bytes(color6));
+        output1.add(15).write_unaligned(get_fourth2bytes(color7));
 
         output0 = output0.add(16);
         output1 = output1.add(16);
     }
 
     // Handle any remaining elements
-    while input < max_input_ptr {
-        let color0 = *input;
-        input = input.add(1);
-
-        *output0 = get_first2bytes(color0);
-        *output1 = get_second2bytes(color0);
-        *output0.add(1) = get_third2bytes(color0);
-        *output1.add(1) = get_fourth2bytes(color0);
-        output0 = output0.add(2);
-        output1 = output1.add(2);
+    if input < max_input_ptr {
+        let remaining_input = input as *const u32;
+        u32_with_separate_endpoints(
+            max_input_ptr as *const u32,
+            remaining_input,
+            output0,
+            output1,
+        );
     }
 }
 
@@ -281,13 +283,12 @@ pub unsafe fn u64_unroll_8(colors: *const u8, colors_out: *mut u8, colors_len_by
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
+/// - `colors_len` must be a multiple of 4
 #[inline(always)]
 pub unsafe fn u64_mix(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 8 && colors_len_bytes % 8 == 0,
-        "colors_len_bytes must be at least 8 and a multiple of 8"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
     // Cast input/output to appropriate pointer types
@@ -296,9 +297,9 @@ pub unsafe fn u64_mix(colors: *const u8, colors_out: *mut u8, colors_len_bytes: 
     let mut output0 = colors_out as *mut u32;
     let mut output1 = colors_out.add(colors_len_bytes / size_of::<Color565>()) as *mut u32;
 
-    while input < max_input_ptr {
+    while input < max_input_ptr.sub(1) {
         // Read color0 and color1 (interleaved in input)
-        let color0 = *input;
+        let color0 = input.read_unaligned();
         input = input.add(1);
 
         // Combine first and third 2-bytes into a single u32
@@ -308,11 +309,22 @@ pub unsafe fn u64_mix(colors: *const u8, colors_out: *mut u8, colors_len_bytes: 
         let second_pair = combine_u16_pair_u32(get_second2bytes(color0), get_fourth2bytes(color0));
 
         // Write the combined values
-        *output0 = first_pair;
-        *output1 = second_pair;
+        output0.write_unaligned(first_pair);
+        output1.write_unaligned(second_pair);
 
         output0 = output0.add(1);
         output1 = output1.add(1);
+    }
+
+    // Handle any remaining elements
+    if input < max_input_ptr {
+        let remaining_input = input as *const u32;
+        u32_with_separate_endpoints(
+            max_input_ptr as *const u32,
+            remaining_input,
+            output0 as *mut u16,
+            output1 as *mut u16,
+        );
     }
 }
 
@@ -329,13 +341,12 @@ pub unsafe fn u64_mix(colors: *const u8, colors_out: *mut u8, colors_len_bytes: 
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
+/// - `colors_len` must be a multiple of 4
 #[inline(always)]
 pub unsafe fn u64_mix_unroll_2(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 8 && colors_len_bytes % 8 == 0,
-        "colors_len_bytes must be at least 8 and a multiple of 8 for unroll_2"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4 for unroll_2"
     );
 
     // Cast input/output to appropriate pointer types
@@ -344,10 +355,10 @@ pub unsafe fn u64_mix_unroll_2(colors: *const u8, colors_out: *mut u8, colors_le
     let mut output0 = colors_out as *mut u64;
     let mut output1 = colors_out.add(colors_len_bytes / size_of::<Color565>()) as *mut u64;
 
-    while input < max_input_ptr.sub(1) {
+    while input < max_input_ptr.sub(2) {
         // Process 2 chunks per iteration
-        let color0 = *input;
-        let color1 = *input.add(1);
+        let color0 = input.read_unaligned();
+        let color1 = input.add(1).read_unaligned();
         input = input.add(2);
 
         // Combine the values using helper functions
@@ -366,30 +377,22 @@ pub unsafe fn u64_mix_unroll_2(colors: *const u8, colors_out: *mut u8, colors_le
         );
 
         // Write the combined values as u64s
-        *output0 = first_combined;
-        *output1 = second_combined;
+        output0.write_unaligned(first_combined);
+        output1.write_unaligned(second_combined);
 
         output0 = output0.add(1);
         output1 = output1.add(1);
     }
 
-    // Handle any remaining elements (shouldn't happen with proper alignment)
-    while input < max_input_ptr {
-        let color0 = *input;
-        input = input.add(1);
-
-        // For a single remaining item, we need to write as 32-bit since we
-        // don't have enough data for a full 64-bit write
-        let first_pair = combine_u16_pair_u32(get_first2bytes(color0), get_third2bytes(color0));
-        let second_pair = combine_u16_pair_u32(get_second2bytes(color0), get_fourth2bytes(color0));
-
-        // Write the combined values to 32-bit locations
-        *(output0 as *mut u32) = first_pair;
-        *(output1 as *mut u32) = second_pair;
-
-        // Move pointers forward by half a u64
-        output0 = (output0 as *mut u32).add(1) as *mut u64;
-        output1 = (output1 as *mut u32).add(1) as *mut u64;
+    // Handle any remaining elements
+    if input < max_input_ptr {
+        let remaining_input = input as *const u32;
+        u32_with_separate_endpoints(
+            max_input_ptr as *const u32,
+            remaining_input,
+            output0 as *mut u16,
+            output1 as *mut u16,
+        );
     }
 }
 
@@ -406,13 +409,12 @@ pub unsafe fn u64_mix_unroll_2(colors: *const u8, colors_out: *mut u8, colors_le
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
+/// - `colors_len` must be a multiple of 4
 #[inline(always)]
 pub unsafe fn u64_mix_unroll_4(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 8 && colors_len_bytes % 8 == 0,
-        "colors_len_bytes must be at least 8 and a multiple of 8 for unroll_4"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4 for unroll_4"
     );
 
     // Cast input/output to appropriate pointer types
@@ -421,12 +423,12 @@ pub unsafe fn u64_mix_unroll_4(colors: *const u8, colors_out: *mut u8, colors_le
     let mut output0 = colors_out as *mut u64;
     let mut output1 = colors_out.add(colors_len_bytes / size_of::<Color565>()) as *mut u64;
 
-    while input < max_input_ptr.sub(3) {
+    while input < max_input_ptr.sub(4) {
         // Process 4 chunks per iteration
-        let color0 = *input;
-        let color1 = *input.add(1);
-        let color2 = *input.add(2);
-        let color3 = *input.add(3);
+        let color0 = input.read_unaligned();
+        let color1 = input.add(1).read_unaligned();
+        let color2 = input.add(2).read_unaligned();
+        let color3 = input.add(3).read_unaligned();
         input = input.add(4);
 
         // Combine the first two colors
@@ -444,8 +446,8 @@ pub unsafe fn u64_mix_unroll_4(colors: *const u8, colors_out: *mut u8, colors_le
             get_third2bytes(color3),
         );
 
-        *output0 = first_combined0;
-        *output0.add(1) = first_combined1;
+        output0.write_unaligned(first_combined0);
+        output0.add(1).write_unaligned(first_combined1);
 
         let second_combined0 = combine_u16_quad_u64(
             get_second2bytes(color0),
@@ -461,29 +463,22 @@ pub unsafe fn u64_mix_unroll_4(colors: *const u8, colors_out: *mut u8, colors_le
             get_fourth2bytes(color3),
         );
 
-        *output1 = second_combined0;
-        *output1.add(1) = second_combined1;
+        output1.write_unaligned(second_combined0);
+        output1.add(1).write_unaligned(second_combined1);
 
         output0 = output0.add(2);
         output1 = output1.add(2);
     }
 
     // Handle any remaining elements
-    while input < max_input_ptr {
-        let color0 = *input;
-        input = input.add(1);
-
-        // For a single remaining item, write as 32-bit
-        let first_pair = combine_u16_pair_u32(get_first2bytes(color0), get_third2bytes(color0));
-        let second_pair = combine_u16_pair_u32(get_second2bytes(color0), get_fourth2bytes(color0));
-
-        // Write the combined values to 32-bit locations
-        *(output0 as *mut u32) = first_pair;
-        *(output1 as *mut u32) = second_pair;
-
-        // Move pointers forward by half a u64
-        output0 = (output0 as *mut u32).add(1) as *mut u64;
-        output1 = (output1 as *mut u32).add(1) as *mut u64;
+    if input < max_input_ptr {
+        let remaining_input = input as *const u32;
+        u32_with_separate_endpoints(
+            max_input_ptr as *const u32,
+            remaining_input,
+            output0 as *mut u16,
+            output1 as *mut u16,
+        );
     }
 }
 
@@ -500,13 +495,12 @@ pub unsafe fn u64_mix_unroll_4(colors: *const u8, colors_out: *mut u8, colors_le
 ///
 /// - `colors` must be valid for reads of `colors_len_bytes` bytes
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
-/// - `colors_len` must be a multiple of 8
-/// - Pointers must be properly aligned for u64 access
+/// - `colors_len` must be a multiple of 4
 #[inline(always)]
 pub unsafe fn u64_mix_unroll_8(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 8 && colors_len_bytes % 8 == 0,
-        "colors_len_bytes must be at least 8 and a multiple of 8 for unroll_8"
+        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        "colors_len_bytes must be at least 4 and a multiple of 4 for unroll_8"
     );
 
     // Cast input/output to appropriate pointer types
@@ -515,16 +509,16 @@ pub unsafe fn u64_mix_unroll_8(colors: *const u8, colors_out: *mut u8, colors_le
     let mut output0 = colors_out as *mut u64;
     let mut output1 = colors_out.add(colors_len_bytes / size_of::<Color565>()) as *mut u64;
 
-    while input < max_input_ptr.sub(7) {
+    while input < max_input_ptr.sub(8) {
         // Process 8 chunks per iteration
-        let color0 = *input;
-        let color1 = *input.add(1);
-        let color2 = *input.add(2);
-        let color3 = *input.add(3);
-        let color4 = *input.add(4);
-        let color5 = *input.add(5);
-        let color6 = *input.add(6);
-        let color7 = *input.add(7);
+        let color0 = input.read_unaligned();
+        let color1 = input.add(1).read_unaligned();
+        let color2 = input.add(2).read_unaligned();
+        let color3 = input.add(3).read_unaligned();
+        let color4 = input.add(4).read_unaligned();
+        let color5 = input.add(5).read_unaligned();
+        let color6 = input.add(6).read_unaligned();
+        let color7 = input.add(7).read_unaligned();
         input = input.add(8);
 
         // First pair of colors
@@ -556,10 +550,10 @@ pub unsafe fn u64_mix_unroll_8(colors: *const u8, colors_out: *mut u8, colors_le
             get_third2bytes(color7),
         );
 
-        *output0 = first_combined0;
-        *output0.add(1) = first_combined1;
-        *output0.add(2) = first_combined2;
-        *output0.add(3) = first_combined3;
+        output0.write_unaligned(first_combined0);
+        output0.add(1).write_unaligned(first_combined1);
+        output0.add(2).write_unaligned(first_combined2);
+        output0.add(3).write_unaligned(first_combined3);
 
         let second_combined0 = combine_u16_quad_u64(
             get_second2bytes(color0),
@@ -589,31 +583,24 @@ pub unsafe fn u64_mix_unroll_8(colors: *const u8, colors_out: *mut u8, colors_le
             get_fourth2bytes(color7),
         );
 
-        *output1 = second_combined0;
-        *output1.add(1) = second_combined1;
-        *output1.add(2) = second_combined2;
-        *output1.add(3) = second_combined3;
+        output1.write_unaligned(second_combined0);
+        output1.add(1).write_unaligned(second_combined1);
+        output1.add(2).write_unaligned(second_combined2);
+        output1.add(3).write_unaligned(second_combined3);
 
         output0 = output0.add(4);
         output1 = output1.add(4);
     }
 
     // Handle any remaining elements
-    while input < max_input_ptr {
-        let color0 = *input;
-        input = input.add(1);
-
-        // For a single remaining item, write as 32-bit
-        let first_pair = combine_u16_pair_u32(get_first2bytes(color0), get_third2bytes(color0));
-        let second_pair = combine_u16_pair_u32(get_second2bytes(color0), get_fourth2bytes(color0));
-
-        // Write the combined values to 32-bit locations
-        *(output0 as *mut u32) = first_pair;
-        *(output1 as *mut u32) = second_pair;
-
-        // Move pointers forward by half a u64
-        output0 = (output0 as *mut u32).add(1) as *mut u64;
-        output1 = (output1 as *mut u32).add(1) as *mut u64;
+    if input < max_input_ptr {
+        let remaining_input = input as *const u32;
+        u32_with_separate_endpoints(
+            max_input_ptr as *const u32,
+            remaining_input,
+            output0 as *mut u16,
+            output1 as *mut u16,
+        );
     }
 }
 
@@ -696,8 +683,9 @@ fn get_fourth2bytes(value: u64) -> u16 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transforms::split_color_endpoints::tests::{
-        generate_test_data, transform_with_reference_implementation,
+    use crate::transforms::split_565_color_endpoints::tests::{
+        assert_implementation_matches_reference, generate_test_data,
+        transform_with_reference_implementation,
     };
     use rstest::rstest;
 
@@ -705,30 +693,23 @@ mod tests {
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
-    #[case::single(4)] // 8 bytes - single iteration
-    #[case::many_unrolls(64)] // 128 bytes - tests multiple unroll iterations
-    #[case::large(512)] // 1024 bytes - large dataset
-    fn test_implementations(#[case] num_pairs: usize) {
-        let input = generate_test_data(num_pairs);
-        let mut output_expected = vec![0u8; input.len()];
-        let mut output_test = vec![0u8; input.len()];
+    #[case(u64, "u64")]
+    #[case(u64_unroll_2, "u64_unroll_2")]
+    #[case(u64_unroll_4, "u64_unroll_4")]
+    #[case(u64_unroll_8, "u64_unroll_8")]
+    #[case(u64_mix, "u64_mix")]
+    #[case(u64_mix_unroll_2, "u64_mix_unroll_2")]
+    #[case(u64_mix_unroll_4, "u64_mix_unroll_4")]
+    #[case(u64_mix_unroll_8, "u64_mix_unroll_8")]
+    fn test_portable64_aligned(#[case] implementation: TransformFn, #[case] impl_name: &str) {
+        for num_pairs in 1..=512 {
+            let input = generate_test_data(num_pairs);
+            let mut output_expected = vec![0u8; input.len()];
+            let mut output_test = vec![0u8; input.len()];
 
-        // Generate reference output
-        transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+            // Generate reference output
+            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
-        // Test the u64 implementation
-        let implementations: [(&str, TransformFn); 8] = [
-            ("u64", u64),
-            ("u64_unroll_2", u64_unroll_2),
-            ("u64_unroll_4", u64_unroll_4),
-            ("u64_unroll_8", u64_unroll_8),
-            ("u64_mix", u64_mix),
-            ("u64_mix_unroll_2", u64_mix_unroll_2),
-            ("u64_mix_unroll_4", u64_mix_unroll_4),
-            ("u64_mix_unroll_8", u64_mix_unroll_8),
-        ];
-
-        for (impl_name, implementation) in implementations {
             // Clear the output buffer
             output_test.fill(0);
 
@@ -738,13 +719,56 @@ mod tests {
             }
 
             // Compare results
-            assert_eq!(
-                output_expected, output_test,
-                "{} implementation produced different results than reference for {} color pairs.\n\
-                First differing pair will have predictable values:\n\
-                Color0: Sequential bytes 0x00,0x01 + (pair_num * 4)\n\
-                Color1: Sequential bytes 0x80,0x81 + (pair_num * 4)",
-                impl_name, num_pairs
+            assert_implementation_matches_reference(
+                &output_expected,
+                &output_test,
+                &format!("{} (aligned)", impl_name),
+                num_pairs,
+            );
+        }
+    }
+
+    #[rstest]
+    #[case(u64, "u64")]
+    #[case(u64_unroll_2, "u64_unroll_2")]
+    #[case(u64_unroll_8, "u64_unroll_8")]
+    #[case(u64_mix, "u64_mix")]
+    #[case(u64_mix_unroll_2, "u64_mix_unroll_2")]
+    #[case(u64_mix_unroll_4, "u64_mix_unroll_4")]
+    #[case(u64_mix_unroll_8, "u64_mix_unroll_8")]
+    fn test_portable64_unaligned(#[case] implementation: TransformFn, #[case] impl_name: &str) {
+        for num_pairs in 1..=512 {
+            let input = generate_test_data(num_pairs);
+
+            // Add 1 extra byte at the beginning to create misaligned buffers
+            let mut input_unaligned = vec![0u8; input.len() + 1];
+            input_unaligned[1..].copy_from_slice(input.as_slice());
+
+            let mut output_expected = vec![0u8; input.len()];
+            let mut output_test = vec![0u8; input.len() + 1];
+
+            // Generate reference output
+            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+
+            // Clear the output buffer
+            output_test.fill(0);
+
+            // Run the implementation
+            unsafe {
+                // Use pointers offset by 1 byte to create unaligned access
+                implementation(
+                    input_unaligned.as_ptr().add(1),
+                    output_test.as_mut_ptr().add(1),
+                    input.len(),
+                );
+            }
+
+            // Compare results
+            assert_implementation_matches_reference(
+                &output_expected,
+                &output_test[1..],
+                &format!("{} (unaligned)", impl_name),
+                num_pairs,
             );
         }
     }

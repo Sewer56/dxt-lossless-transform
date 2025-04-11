@@ -1,21 +1,20 @@
+use crate::split_blocks::unsplit::portable32::u32_detransform_with_separate_pointers;
 use std::arch::asm;
 
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - pointers must be properly aligned for SSE operations
-/// - len must be divisible by 64
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 64 == 0);
+    // Process 4 blocks (64 bytes) at a time
+    let aligned_len = len - (len % 64);
+    let mut colors_ptr = input_ptr.add(len / 2);
+    let mut indices_ptr = input_ptr.add(len / 2 + len / 4);
+    let alpha_ptr_aligned_end = input_ptr.add(aligned_len / 2); // End pointer for the loop based on aligned length
 
-    unsafe {
-        let mut colors_ptr = input_ptr.add(len / 2);
-        let mut indices_ptr = colors_ptr.add(len / 4);
-        let alpha_ptr_end = colors_ptr;
-
+    if aligned_len > 0 {
         asm!(
             ".p2align 5",
             "2:",
@@ -74,14 +73,14 @@ pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: us
             "add {output_ptr}, 64",
 
             // Loop until done
-            "cmp {alpha_ptr}, {alpha_ptr_end}",
+            "cmp {alpha_ptr}, {alpha_ptr_aligned_end}",
             "jb 2b",
 
             alpha_ptr = inout(reg) input_ptr,
             output_ptr = inout(reg) output_ptr,
             colors_ptr = inout(reg) colors_ptr,
             indices_ptr = inout(reg) indices_ptr,
-            alpha_ptr_end = in(reg) alpha_ptr_end,
+            alpha_ptr_aligned_end = in(reg) alpha_ptr_aligned_end,
             xmm0 = out(xmm_reg) _,
             xmm1 = out(xmm_reg) _,
             xmm2 = out(xmm_reg) _,
@@ -93,6 +92,19 @@ pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: us
             options(nostack)
         );
     }
+
+    // Process any remaining blocks (less than 4)
+    let remaining_len = len - aligned_len;
+    if remaining_len > 0 {
+        // Pointers `input_ptr`, `colors_ptr`, `indices_ptr`, and `output_ptr` have been updated by the asm block
+        u32_detransform_with_separate_pointers(
+            input_ptr as *const u64,   // Final alpha pointer from asm
+            colors_ptr as *const u32,  // Final colors pointer from asm
+            indices_ptr as *const u32, // Final indices pointer from asm
+            output_ptr,                // Final output pointer from asm
+            remaining_len,
+        );
+    }
 }
 
 #[cfg(test)]
@@ -100,52 +112,79 @@ mod tests {
     use super::*;
     use crate::split_blocks::split::tests::generate_bc2_test_data;
     use crate::split_blocks::split::u32;
+    use crate::split_blocks::unsplit::tests::assert_implementation_matches_reference;
+    use crate::testutils::allocate_align_64;
     use rstest::rstest;
 
     type DetransformFn = unsafe fn(*const u8, *mut u8, usize);
 
-    struct TestCase {
-        name: &'static str,
-        func: DetransformFn,
-        min_blocks: usize,
-        many_blocks: usize,
+    #[rstest]
+    #[case::shuffle(shuffle, "shuffle")]
+    fn test_sse2_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+        // Test with different block counts to ensure they all work correctly
+        for block_count in 1..=512 {
+            // Generate test data
+            let original = generate_bc2_test_data(block_count);
+            let mut transformed = allocate_align_64(original.len());
+            let mut reconstructed = allocate_align_64(original.len());
+
+            unsafe {
+                // Transform the original test data
+                u32(original.as_ptr(), transformed.as_mut_ptr(), original.len());
+
+                // Re-transform it back using the implementation under test
+                (detransform_fn)(
+                    transformed.as_ptr(),
+                    reconstructed.as_mut_ptr(),
+                    transformed.len(),
+                );
+            }
+
+            // Verify the results match
+            assert_implementation_matches_reference(
+                original.as_slice(),
+                reconstructed.as_slice(),
+                impl_name,
+                block_count,
+            );
+        }
     }
 
     #[rstest]
-    #[case::shuffle(TestCase {
-        name: "shuffle",
-        func: shuffle,
-        min_blocks: 4,
-        many_blocks: 1024,
-    })]
-    fn test_detransform(#[case] test_case: TestCase) {
-        // Test with minimum blocks
-        test_blocks(&test_case, test_case.min_blocks);
+    #[case::shuffle(shuffle, "shuffle")]
+    fn test_sse2_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+        // Test with different block counts to ensure they all work correctly
+        for block_count in 1..=512 {
+            // Generate test data
+            let original = generate_bc2_test_data(block_count);
 
-        // Test with many blocks
-        test_blocks(&test_case, test_case.many_blocks);
-    }
+            // Create unaligned buffers (allocate an extra byte and offset by 1)
+            let mut unaligned_transformed = vec![0u8; original.len() + 1];
+            let mut unaligned_reconstructed = vec![0u8; original.len() + 1];
 
-    fn test_blocks(test_case: &TestCase, num_blocks: usize) {
-        let original = generate_bc2_test_data(num_blocks);
-        let mut transformed = vec![0u8; original.len()];
-        let mut reconstructed = vec![0u8; original.len()];
+            unsafe {
+                // Transform the original test data
+                u32(
+                    original.as_ptr(),
+                    unaligned_transformed.as_mut_ptr().add(1),
+                    original.len(),
+                );
 
-        unsafe {
-            u32(original.as_ptr(), transformed.as_mut_ptr(), original.len());
-            (test_case.func)(
-                transformed.as_ptr(),
-                reconstructed.as_mut_ptr(),
-                transformed.len(),
+                // Re-transform it back using the implementation under test
+                (detransform_fn)(
+                    unaligned_transformed.as_mut_ptr().add(1),
+                    unaligned_reconstructed.as_mut_ptr().add(1),
+                    unaligned_transformed.len() - 1,
+                );
+            }
+
+            // Verify the results match
+            assert_implementation_matches_reference(
+                original.as_slice(),
+                &unaligned_reconstructed[1..],
+                impl_name,
+                block_count,
             );
         }
-
-        assert_eq!(
-            original.as_slice(),
-            reconstructed.as_slice(),
-            "{} detransform failed to reconstruct original data for {} blocks",
-            test_case.name,
-            num_blocks
-        );
     }
 }

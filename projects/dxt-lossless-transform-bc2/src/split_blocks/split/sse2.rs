@@ -1,20 +1,20 @@
+use crate::split_blocks::split::portable32::u32_with_separate_pointers;
 use std::arch::asm;
 
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 32 (two blocks at a time)
-/// - pointers must be properly aligned for SSE2 operations
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 pub unsafe fn shuffle_v1(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 32 == 0);
+    let aligned_len = len - (len % 32);
+    let mut colors_ptr = output_ptr.add(len / 2);
+    let mut indices_ptr = colors_ptr.add(len / 4);
 
-    unsafe {
-        let mut end = input_ptr.add(len);
-        let mut colors_ptr = output_ptr.add(len / 2);
-        let mut indices_ptr = colors_ptr.add(len / 4);
+    if aligned_len > 0 {
+        let mut end = input_ptr.add(aligned_len);
+
         asm!(
             ".p2align 5",
             "2:",
@@ -68,23 +68,33 @@ pub unsafe fn shuffle_v1(mut input_ptr: *const u8, mut output_ptr: *mut u8, len:
             options(nostack)
         );
     }
+
+    // Process any remaining elements after the aligned blocks
+    let remaining = len - aligned_len;
+    if remaining > 0 {
+        u32_with_separate_pointers(
+            input_ptr,
+            output_ptr as *mut u64,
+            colors_ptr as *mut u32,
+            indices_ptr as *mut u32,
+            remaining,
+        );
+    }
 }
 
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 64 (four blocks at a time)
-/// - pointers must be properly aligned for SSE2 operations
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 pub unsafe fn shuffle_v1_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 64 == 0);
+    let aligned_len = len - (len % 64);
+    let mut colors_ptr = output_ptr.add(len / 2);
+    let mut indices_ptr = colors_ptr.add(len / 4);
 
-    unsafe {
-        let mut end = input_ptr.add(len);
-        let mut colors_ptr = output_ptr.add(len / 2);
-        let mut indices_ptr = colors_ptr.add(len / 4);
+    if aligned_len > 0 {
+        let mut end = input_ptr.add(aligned_len);
         asm!(
             ".p2align 5",
             "2:",
@@ -145,23 +155,33 @@ pub unsafe fn shuffle_v1_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut
             options(nostack)
         );
     }
+
+    // Process any remaining elements after the aligned blocks
+    let remaining = len - aligned_len;
+    if remaining > 0 {
+        u32_with_separate_pointers(
+            input_ptr,
+            output_ptr as *mut u64,
+            colors_ptr as *mut u32,
+            indices_ptr as *mut u32,
+            remaining,
+        );
+    }
 }
 
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 64 (four blocks at a time)
-/// - pointers must be properly aligned for SSE2 operations
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 pub unsafe fn shuffle_v2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 64 == 0);
+    let aligned_len = len - (len % 64);
+    let mut colors_ptr = output_ptr.add(len / 2);
+    let mut indices_ptr = colors_ptr.add(len / 4);
 
-    unsafe {
-        let mut end = input_ptr.add(len);
-        let mut colors_ptr = output_ptr.add(len / 2);
-        let mut indices_ptr = colors_ptr.add(len / 4);
+    if aligned_len > 0 {
+        let mut end = input_ptr.add(aligned_len);
         asm!(
             ".p2align 5",
             "2:",
@@ -221,29 +241,39 @@ pub unsafe fn shuffle_v2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len:
             options(nostack)
         );
     }
+
+    // Process any remaining elements after the aligned blocks
+    let remaining = len - aligned_len;
+    if remaining > 0 {
+        u32_with_separate_pointers(
+            input_ptr,
+            output_ptr as *mut u64,
+            colors_ptr as *mut u32,
+            indices_ptr as *mut u32,
+            remaining,
+        );
+    }
 }
 
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 128 (eight blocks at a time)
-/// - pointers must be properly aligned for SSE2 operations
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86_64")]
 pub unsafe fn shuffle_v3(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 128 == 0);
+    // Process as many 128-byte blocks as possible
+    let aligned_len = len - (len % 128);
+    let mut colors_ptr = output_ptr.add(len / 2);
+    let mut indices_ptr = colors_ptr.add(len / 4);
 
-    unsafe {
-        let mut end = input_ptr.add(len);
-        let mut colors_ptr = output_ptr.add(len / 2);
-        let mut indices_ptr = colors_ptr.add(len / 4);
+    if aligned_len > 0 {
+        let mut end = input_ptr.add(aligned_len);
         asm!(
             ".p2align 5",
             "2:",
-
-            // Load first 64 bytes (four blocks)
+            // Load first 128 bytes (eight blocks)
             "movdqu {xmm0}, [{input_ptr}]",      // First block
             "movdqu {xmm1}, [{input_ptr} + 16]", // Second block
             "movdqu {xmm3}, [{input_ptr} + 32]", // Third block
@@ -252,7 +282,6 @@ pub unsafe fn shuffle_v3(mut input_ptr: *const u8, mut output_ptr: *mut u8, len:
             "movdqu {xmm9}, [{input_ptr} + 80]", // Sixth block
             "movdqu {xmm10}, [{input_ptr} + 96]", // Seventh block
             "movdqu {xmm11}, [{input_ptr} + 112]", // Eighth block
-
             "add {input_ptr}, 128",
 
             // Extract alpha from all 128 bytes.
@@ -321,77 +350,106 @@ pub unsafe fn shuffle_v3(mut input_ptr: *const u8, mut output_ptr: *mut u8, len:
             options(nostack)
         );
     }
+
+    // Process any remaining elements after the aligned blocks
+    let remaining = len - aligned_len;
+    if remaining > 0 {
+        u32_with_separate_pointers(
+            input_ptr,
+            output_ptr as *mut u64,
+            colors_ptr as *mut u32,
+            indices_ptr as *mut u32,
+            remaining,
+        );
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::split_blocks::split::tests::generate_bc2_test_data;
-    use crate::split_blocks::split::tests::transform_with_reference_implementation;
-    use crate::split_blocks::split::*;
+    use super::*;
+    use crate::split_blocks::split::tests::{
+        assert_implementation_matches_reference, generate_bc2_test_data,
+        transform_with_reference_implementation,
+    };
+    use crate::testutils::allocate_align_64;
+    use core::ptr::copy_nonoverlapping;
     use rstest::rstest;
-    type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
-    struct TestCase {
-        name: &'static str,
-        func: TransformFn,
-        min_blocks: usize,
-        many_blocks: usize,
+    type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
+
+    #[rstest]
+    #[case(shuffle_v1, "shuffle_v1")]
+    #[case(shuffle_v1_unroll_2, "shuffle_v1_unroll_2")]
+    #[case(shuffle_v2, "shuffle_v2")]
+    #[cfg_attr(target_arch = "x86_64", case(shuffle_v3, "shuffle_v3"))]
+    fn test_sse2_aligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+        for num_blocks in 1..=512 {
+            let mut input = allocate_align_64(num_blocks * 16);
+            let mut output_expected = allocate_align_64(input.len());
+            let mut output_test = allocate_align_64(input.len());
+
+            // Fill the input with test data
+            unsafe {
+                copy_nonoverlapping(
+                    generate_bc2_test_data(num_blocks).as_ptr(),
+                    input.as_mut_ptr(),
+                    input.len(),
+                );
+            }
+
+            transform_with_reference_implementation(
+                input.as_slice(),
+                output_expected.as_mut_slice(),
+            );
+
+            output_test.as_mut_slice().fill(0);
+            unsafe {
+                permute_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());
+            }
+
+            assert_implementation_matches_reference(
+                output_expected.as_slice(),
+                output_test.as_slice(),
+                &format!("{} (aligned)", impl_name),
+                num_blocks,
+            );
+        }
     }
 
     #[rstest]
-    #[case::shuffle_v1(TestCase {
-        name: "shuffle_v1",
-        func: shuffle_v1,
-        min_blocks: 2,
-        many_blocks: 1024,
-    })]
-    #[case::shuffle_v1_unroll_2(TestCase {
-        name: "shuffle_v1_unroll_2",
-        func: shuffle_v1_unroll_2,
-        min_blocks: 4,
-        many_blocks: 1024,
-    })]
-    #[case::shuffle_v2(TestCase {
-        name: "shuffle_v2",
-        func: shuffle_v2,
-        min_blocks: 4,
-        many_blocks: 1024,
-    })]
-    #[cfg_attr(target_arch = "x86_64", case::shuffle_v3(TestCase {
-        name: "shuffle_v3",
-        func: shuffle_v3,
-        min_blocks: 8,
-        many_blocks: 1024,
-    }))]
-    fn test_transform(#[case] test_case: TestCase) {
-        // Test with minimum blocks
-        test_blocks(&test_case, test_case.min_blocks);
+    #[case(shuffle_v1, "shuffle_v1")]
+    #[case(shuffle_v1_unroll_2, "shuffle_v1_unroll_2")]
+    #[case(shuffle_v2, "shuffle_v2")]
+    #[cfg_attr(target_arch = "x86_64", case(shuffle_v3, "shuffle_v3"))]
+    fn test_sse2_unaligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+        for num_blocks in 1..=512 {
+            let input = generate_bc2_test_data(num_blocks);
 
-        // Test with many blocks
-        test_blocks(&test_case, test_case.many_blocks);
-    }
+            // Add 1 extra byte at the beginning to create misaligned buffers
+            let mut input_unaligned = vec![0u8; input.len() + 1];
+            input_unaligned[1..].copy_from_slice(input.as_slice());
 
-    fn test_blocks(test_case: &TestCase, num_blocks: usize) {
-        let input = generate_bc2_test_data(num_blocks);
-        let mut output_expected = vec![0u8; input.len()];
-        let mut output_test = vec![0u8; input.len()];
+            let mut output_expected = vec![0u8; input.len()];
+            let mut output_test = vec![0u8; input.len() + 1];
 
-        // Generate reference output
-        transform_with_reference_implementation(input.as_slice(), &mut output_expected);
+            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
 
-        // Clear the output buffer
-        output_test.fill(0);
+            output_test.as_mut_slice().fill(0);
+            unsafe {
+                // Use pointers offset by 1 byte to create unaligned access
+                permute_fn(
+                    input_unaligned.as_ptr().add(1),
+                    output_test.as_mut_ptr().add(1),
+                    input.len(),
+                );
+            }
 
-        // Run the implementation
-        unsafe {
-            (test_case.func)(input.as_ptr(), output_test.as_mut_ptr(), input.len());
+            assert_implementation_matches_reference(
+                output_expected.as_slice(),
+                &output_test[1..],
+                &format!("{} (unaligned)", impl_name),
+                num_blocks,
+            );
         }
-
-        // Compare results
-        assert_eq!(
-            output_expected, output_test,
-            "{} implementation produced different results than reference for {} blocks.",
-            test_case.name, num_blocks
-        );
     }
 }

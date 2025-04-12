@@ -68,15 +68,28 @@ pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn unpck_detransform_unroll_2(
-    mut input_ptr: *const u8,
+pub unsafe fn unpck_detransform_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    // Process as many 64-byte blocks as possible
+    let indices_ptr = input_ptr.add(len / 2);
+    let colors_ptr = input_ptr;
+    unpck_detransform_unroll_2_with_components(output_ptr, len, indices_ptr, colors_ptr);
+}
+
+/// # Safety
+///
+/// - output_ptr must be valid for writes of len bytes
+/// - indices_ptr must be valid for reads of len/2 bytes
+/// - colors_ptr must be valid for reads of len/2 bytes
+#[allow(unused_assignments)]
+#[target_feature(enable = "sse2")]
+pub unsafe fn unpck_detransform_unroll_2_with_components(
     mut output_ptr: *mut u8,
     len: usize,
+    mut indices_ptr: *const u8,
+    mut colors_ptr: *const u8,
 ) {
-    // Process as many 64-byte blocks as possible
     let aligned_len = len - (len % 64);
-    let mut indices_ptr = input_ptr.add(len / 2);
-    let mut colors_aligned_end = input_ptr.add(aligned_len / 2);
+    let mut colors_aligned_end = colors_ptr.add(aligned_len / 2);
 
     if aligned_len > 0 {
         unsafe {
@@ -112,7 +125,7 @@ pub unsafe fn unpck_detransform_unroll_2(
                 "cmp {colors_ptr}, {end}",
                 "jb 2b",
 
-                colors_ptr = inout(reg) input_ptr,
+                colors_ptr = inout(reg) colors_ptr,
                 indices_ptr = inout(reg) indices_ptr,
                 dst_ptr = inout(reg) output_ptr,
                 end = inout(reg) colors_aligned_end,
@@ -131,7 +144,7 @@ pub unsafe fn unpck_detransform_unroll_2(
     let remaining = len - aligned_len;
     if remaining > 0 {
         u32_detransform_with_separate_pointers(
-            input_ptr as *const u32,
+            colors_ptr as *const u32,
             indices_ptr as *const u32,
             output_ptr,
             remaining,

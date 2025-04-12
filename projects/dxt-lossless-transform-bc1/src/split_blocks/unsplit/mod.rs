@@ -64,6 +64,92 @@ pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usi
     }
 }
 
+unsafe fn unsplit_block_with_separate_pointers_x86(
+    colors_ptr: *const u32,
+    indices_ptr: *const u32,
+    output_ptr: *mut u8,
+    len: usize,
+) {
+    #[cfg(not(feature = "no-runtime-cpu-detection"))]
+    {
+        if std::is_x86_feature_detected!("avx2") {
+            avx2::permd_detransform_unroll_2_with_components(
+                output_ptr,
+                len,
+                indices_ptr as *const u8,
+                colors_ptr as *const u8,
+            );
+            return;
+        }
+
+        if std::is_x86_feature_detected!("sse2") {
+            sse2::unpck_detransform_unroll_2_with_components(
+                output_ptr,
+                len,
+                indices_ptr as *const u8,
+                colors_ptr as *const u8,
+            );
+            return;
+        }
+    }
+
+    #[cfg(feature = "no-runtime-cpu-detection")]
+    {
+        if cfg!(target_feature = "avx2") {
+            avx2::permd_detransform_unroll_2_with_components(
+                output_ptr,
+                len,
+                indices_ptr as *const u8,
+                colors_ptr as *const u8,
+            );
+            return;
+        }
+
+        if cfg!(target_feature = "sse2") {
+            sse2::unpck_detransform_unroll_2_with_components(
+                output_ptr,
+                len,
+                indices_ptr as *const u8,
+                colors_ptr as *const u8,
+            );
+            return;
+        }
+    }
+
+    // Fallback to portable implementation
+    u32_detransform_with_separate_pointers(colors_ptr, indices_ptr, output_ptr, len)
+}
+
+/// Unsplit BC1 blocks, putting them back into standard interleaved format from a separated color/index format
+/// using the best known implementation for the current CPU.
+///
+/// # Safety
+///
+/// - colors_ptr must be valid for reads of len/2 bytes
+/// - indices_ptr must be valid for reads of len/2 bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len must be divisible by 8
+/// - It is recommended that colors_ptr and indices_ptr are at least 16-byte aligned (recommended 32-byte align)
+#[inline]
+pub unsafe fn unsplit_block_with_separate_pointers(
+    colors_ptr: *const u32,
+    indices_ptr: *const u32,
+    output_ptr: *mut u8,
+    len: usize,
+) {
+    debug_assert!(len % 8 == 0);
+
+    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+    {
+        unsplit_block_with_separate_pointers_x86(colors_ptr, indices_ptr, output_ptr, len)
+    }
+
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
+    {
+        u32_detransform_with_separate_pointers(colors_ptr, indices_ptr, output_ptr, len)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::testutils::allocate_align_64;
@@ -71,20 +157,18 @@ mod tests {
 
     /// Helper to assert implementation results match reference implementation
     pub(crate) fn assert_implementation_matches_reference(
-        expected: &[u8], 
-        actual: &[u8], 
-        impl_name: &str, 
-        num_blocks: usize
+        expected: &[u8],
+        actual: &[u8],
+        impl_name: &str,
+        num_blocks: usize,
     ) {
         assert_eq!(
-            expected,
-            actual,
+            expected, actual,
             "{} implementation produced different results than reference for {} blocks.\n\
             First differing block will have predictable values:\n\
             Colors: Sequential 0-3 + (block_num * 4)\n\
             Indices: Sequential 128-131 + (block_num * 4)",
-            impl_name,
-            num_blocks
+            impl_name, num_blocks
         );
     }
 

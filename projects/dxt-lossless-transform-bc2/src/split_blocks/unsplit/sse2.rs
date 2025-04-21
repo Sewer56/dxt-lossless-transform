@@ -20,7 +20,7 @@ pub unsafe fn shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 ///
 /// - alpha_ptr must be valid for reads of len/2 bytes
 /// - colors_ptr must be valid for reads of len/4 bytes
-/// - indices_ptr must be valid for reads of len/4 bytes 
+/// - indices_ptr must be valid for reads of len/4 bytes
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
@@ -31,6 +31,11 @@ pub unsafe fn shuffle_with_components(
     mut colors_ptr: *const u8,
     mut indices_ptr: *const u8,
 ) {
+    debug_assert!(
+        len % 16 == 0,
+        "BC2 shuffle expects `len` to be a multiple of 16 (block size)"
+    );
+
     let aligned_len = len - (len % 64);
     let alpha_ptr_aligned_end = alpha_ptr.add(aligned_len / 2);
     // End pointer for the loop based on aligned length

@@ -11,7 +11,7 @@ pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
     // Process as many 32-byte blocks as possible
     let aligned_len = len - (len % 32);
     let mut indices_ptr = input_ptr.add(len / 2);
-    let mut colors_aligned_end = input_ptr.add(aligned_len / 2);
+    let colors_aligned_end = input_ptr.add(aligned_len / 2);
 
     if aligned_len > 0 {
         unsafe {
@@ -41,7 +41,7 @@ pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
                 colors_ptr = inout(reg) input_ptr,
                 indices_ptr = inout(reg) indices_ptr,
                 dst_ptr = inout(reg) output_ptr,
-                end = inout(reg) colors_aligned_end,
+                end = in(reg) colors_aligned_end,
                 xmm0 = out(xmm_reg) _,
                 xmm1 = out(xmm_reg) _,
                 xmm2 = out(xmm_reg) _,
@@ -89,7 +89,7 @@ pub unsafe fn unpck_detransform_unroll_2_with_components(
     mut colors_ptr: *const u8,
 ) {
     let aligned_len = len - (len % 64);
-    let mut colors_aligned_end = colors_ptr.add(aligned_len / 2);
+    let colors_aligned_end = colors_ptr.add(aligned_len / 2);
 
     if aligned_len > 0 {
         unsafe {
@@ -128,7 +128,7 @@ pub unsafe fn unpck_detransform_unroll_2_with_components(
                 colors_ptr = inout(reg) colors_ptr,
                 indices_ptr = inout(reg) indices_ptr,
                 dst_ptr = inout(reg) output_ptr,
-                end = inout(reg) colors_aligned_end,
+                end = in(reg) colors_aligned_end,
                 xmm0 = out(xmm_reg) _,
                 xmm1 = out(xmm_reg) _,
                 xmm2 = out(xmm_reg) _,
@@ -167,7 +167,7 @@ pub unsafe fn unpck_detransform_unroll_4(
     // Process as many 128-byte blocks as possible
     let aligned_len = len - (len % 128);
     let mut indices_ptr = input_ptr.add(len / 2);
-    let mut colors_aligned_end = input_ptr.add(aligned_len / 2);
+    let colors_aligned_end = input_ptr.add(aligned_len / 2);
 
     if aligned_len > 0 {
         unsafe {
@@ -222,7 +222,7 @@ pub unsafe fn unpck_detransform_unroll_4(
                 colors_ptr = inout(reg) input_ptr,
                 indices_ptr = inout(reg) indices_ptr,
                 dst_ptr = inout(reg) output_ptr,
-                end = inout(reg) colors_aligned_end,
+                end = in(reg) colors_aligned_end,
                 xmm0 = out(xmm_reg) _,
                 xmm1 = out(xmm_reg) _,
                 xmm2 = out(xmm_reg) _,

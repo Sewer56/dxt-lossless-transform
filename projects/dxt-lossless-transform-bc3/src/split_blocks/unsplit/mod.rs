@@ -43,7 +43,93 @@ pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        u32_detransform(input_ptr, output_ptr, len)
+        u32_detransform_v2(input_ptr, output_ptr, len)
+    }
+}
+
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[inline(always)]
+unsafe fn unsplit_block_with_separate_pointers_x86(
+    alpha_byte_ptr: *const u8,
+    alpha_bit_ptr: *const u8,
+    color_byte_ptr: *const u8,
+    index_byte_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+) {
+    // SSE2 is required by x86-64, so no check needed
+    // On i686, this is slower, so skipped.
+    #[cfg(target_arch = "x86_64")]
+    {
+        sse2::u64_detransform_sse2_separate_components(
+            alpha_byte_ptr as *const u64,
+            alpha_bit_ptr as *const u64,
+            color_byte_ptr as *const core::arch::x86_64::__m128i,
+            index_byte_ptr as *const core::arch::x86_64::__m128i,
+            output_ptr,
+            len,
+        );
+    }
+
+    #[cfg(target_arch = "x86")]
+    {
+        portable::u32_detransform_with_separate_pointers(
+            alpha_byte_ptr as *const u16,
+            alpha_bit_ptr as *const u16,
+            color_byte_ptr as *const u32,
+            index_byte_ptr as *const u32,
+            output_ptr,
+            len,
+        );
+    }
+}
+
+/// Unsplit BC3 blocks, putting them back into standard interleaved format from separated component pointers
+/// using the best known implementation for the current CPU.
+///
+/// # Safety
+///
+/// - alpha_byte_ptr must be valid for reads of len * 2 / 16 bytes (alpha endpoints)
+/// - alpha_bit_ptr must be valid for reads of len * 6 / 16 bytes (alpha indices)
+/// - color_byte_ptr must be valid for reads of len * 4 / 16 bytes (color endpoints)
+/// - index_byte_ptr must be valid for reads of len * 4 / 16 bytes (color indices)
+/// - output_ptr must be valid for writes of len bytes
+/// - len must be divisible by 16
+/// - It is recommended that input pointers are at least 16-byte aligned (recommended 32-byte align)
+#[inline]
+pub unsafe fn unsplit_block_with_separate_pointers(
+    alpha_byte_ptr: *const u8,
+    alpha_bit_ptr: *const u8,
+    color_byte_ptr: *const u8,
+    index_byte_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+) {
+    debug_assert!(len % 16 == 0);
+
+    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+    {
+        unsplit_block_with_separate_pointers_x86(
+            alpha_byte_ptr,
+            alpha_bit_ptr,
+            color_byte_ptr,
+            index_byte_ptr,
+            output_ptr,
+            len,
+        )
+    }
+
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
+    {
+        // Cast pointers to types expected by portable implementation
+        portable::u32_detransform_with_separate_pointers(
+            alpha_byte_ptr as *const u16,
+            alpha_bit_ptr as *const u16,
+            color_byte_ptr as *const u32,
+            index_byte_ptr as *const u32,
+            output_ptr,
+            len,
+        )
     }
 }
 
@@ -51,6 +137,7 @@ pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 mod tests {
     use crate::testutils::allocate_align_64;
     use safe_allocator_api::RawAlloc;
+    use super::{unsplit_blocks, unsplit_block_with_separate_pointers};
 
     /// Helper to assert implementation results match reference implementation
     pub(crate) fn assert_implementation_matches_reference(
@@ -129,5 +216,34 @@ mod tests {
         ];
         let output = generate_bc3_transformed_test_data(3);
         assert_eq!(output.as_slice(), expected.as_slice());
+    }
+
+    #[test]
+    fn unsplit_block_with_separate_pointers_matches_unsplit_blocks() {
+        for num_blocks in 1..=512 {
+            let mut transformed = generate_bc3_transformed_test_data(num_blocks);
+            let len = transformed.len();
+            let mut output_ref = allocate_align_64(len);
+            let mut output_sep = allocate_align_64(len);
+
+            unsafe {
+                unsplit_blocks(transformed.as_mut_ptr(), output_ref.as_mut_ptr(), len);
+                unsplit_block_with_separate_pointers(
+                    transformed.as_ptr(),
+                    transformed.as_ptr().add(len / 8),
+                    transformed.as_ptr().add(len / 2),
+                    transformed.as_ptr().add(len * 3 / 4),
+                    output_sep.as_mut_ptr(),
+                    len,
+                );
+            }
+
+            assert_implementation_matches_reference(
+                output_ref.as_slice(),
+                output_sep.as_slice(),
+                "unsplit_block_with_separate_pointers",
+                num_blocks,
+            );
+        }
     }
 }

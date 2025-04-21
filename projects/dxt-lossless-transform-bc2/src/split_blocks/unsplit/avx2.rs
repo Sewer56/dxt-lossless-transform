@@ -14,13 +14,34 @@ static INDCOL_PERMUTE_MASK: [u32; 8] = [0, 4, 2, 6, 1, 5, 3, 7u32];
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86_64")]
-pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub unsafe fn avx2_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    let alpha_ptr = input_ptr;
+    let colors_ptr = alpha_ptr.add(len / 2);
+    let indices_ptr = colors_ptr.add(len / 4);
+
+    avx2_shuffle_with_components(output_ptr, len, alpha_ptr, colors_ptr, indices_ptr);
+}
+
+/// # Safety
+///
+/// - output_ptr must be valid for writes of len bytes
+/// - alpha_ptr must be valid for reads of len / 2 bytes
+/// - colors_ptr must be valid for reads of len / 4 bytes
+/// - indices_ptr must be valid for reads of len / 4 bytes
+#[target_feature(enable = "avx2")]
+#[allow(unused_assignments)]
+#[cfg(target_arch = "x86_64")]
+pub unsafe fn avx2_shuffle_with_components(
+    mut output_ptr: *mut u8,
+    len: usize,
+    mut alpha_ptr: *const u8,
+    mut colors_ptr: *const u8,
+    mut indices_ptr: *const u8,
+) {
     // Process 8 blocks (128 bytes) at a time
     let aligned_len = len - (len % 128);
-
-    let mut colors_ptr = input_ptr.add(len / 2);
-    let mut indices_ptr = colors_ptr.add(len / 4);
-    let alpha_ptr_aligned_end = input_ptr.add(aligned_len / 2); // End pointer for the loop based on aligned length
+    let alpha_ptr_aligned_end = alpha_ptr.add(aligned_len / 2);
+    // End pointer for the loop based on aligned length
 
     if aligned_len > 0 {
         asm!(
@@ -143,7 +164,7 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
             "cmp {alpha_ptr}, {alpha_ptr_aligned_end}",
             "jb 2b",
 
-            alpha_ptr = inout(reg) input_ptr,
+            alpha_ptr = inout(reg) alpha_ptr,
             output_ptr = inout(reg) output_ptr,
             colors_ptr = inout(reg) colors_ptr,
             indices_ptr = inout(reg) indices_ptr,
@@ -168,9 +189,9 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
     // Process any remaining blocks (less than 8)
     let remaining_len = len - aligned_len;
     if remaining_len > 0 {
-        // Pointers `input_ptr`, `colors_ptr`, `indices_ptr`, and `output_ptr` have been updated by the asm block
+        // Pointers `alpha_ptr`, `colors_ptr`, `indices_ptr`, and `output_ptr` have been updated by the asm block
         u32_detransform_with_separate_pointers(
-            input_ptr as *const u64, // Final alpha pointer from asm (or initial if aligned_len == 0)
+            alpha_ptr as *const u64, // Final alpha pointer from asm (or initial if aligned_len == 0)
             colors_ptr as *const u32, // Final colors pointer from asm (or initial)
             indices_ptr as *const u32, // Final indices pointer from asm (or initial)
             output_ptr,              // Final output pointer from asm (or initial)
@@ -186,13 +207,34 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86")]
-pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub unsafe fn avx2_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    let alpha_ptr = input_ptr;
+    let colors_ptr = alpha_ptr.add(len / 2);
+    let indices_ptr = colors_ptr.add(len / 4);
+
+    avx2_shuffle_with_components(output_ptr, len, alpha_ptr, colors_ptr, indices_ptr);
+}
+
+/// # Safety
+///
+/// - output_ptr must be valid for writes of len bytes
+/// - alpha_ptr must be valid for reads of len / 2 bytes
+/// - colors_ptr must be valid for reads of len / 4 bytes
+/// - indices_ptr must be valid for reads of len / 4 bytes
+#[target_feature(enable = "avx2")]
+#[allow(unused_assignments)]
+#[cfg(target_arch = "x86")]
+pub unsafe fn avx2_shuffle_with_components(
+    mut output_ptr: *mut u8,
+    len: usize,
+    mut alpha_ptr: *const u8,
+    mut colors_ptr: *const u8,
+    mut indices_ptr: *const u8,
+) {
     // Process 8 blocks (128 bytes) at a time
     let aligned_len = len - (len % 128);
-
-    let mut colors_ptr = input_ptr.add(len / 2);
-    let mut indices_ptr = colors_ptr.add(len / 4);
-    let alpha_ptr_aligned_end = input_ptr.add(aligned_len / 2); // End pointer for the loop based on aligned length
+    let alpha_ptr_aligned_end = alpha_ptr.add(aligned_len / 2);
+    // End pointer for the loop based on aligned length
 
     if aligned_len > 0 {
         asm!(
@@ -305,7 +347,7 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
             "cmp {alpha_ptr}, {alpha_ptr_aligned_end}",
             "jb 2b",
 
-            alpha_ptr = inout(reg) input_ptr,
+            alpha_ptr = inout(reg) alpha_ptr,
             output_ptr = inout(reg) output_ptr,
             colors_ptr = inout(reg) colors_ptr,
             indices_ptr = inout(reg) indices_ptr,
@@ -327,9 +369,9 @@ pub unsafe fn avx2_shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, le
     // Process any remaining blocks (less than 8)
     let remaining_len = len - aligned_len;
     if remaining_len > 0 {
-        // Pointers `input_ptr`, `colors_ptr`, `indices_ptr`, and `output_ptr` have been updated by the asm block
+        // Pointers `alpha_ptr`, `colors_ptr`, `indices_ptr`, and `output_ptr` have been updated by the asm block
         u32_detransform_with_separate_pointers(
-            input_ptr as *const u64, // Final alpha pointer from asm (or initial if aligned_len == 0)
+            alpha_ptr as *const u64, // Final alpha pointer from asm (or initial if aligned_len == 0)
             colors_ptr as *const u32, // Final colors pointer from asm (or initial)
             indices_ptr as *const u32, // Final indices pointer from asm (or initial)
             output_ptr,              // Final output pointer from asm (or initial)

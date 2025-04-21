@@ -14,18 +14,57 @@ use crate::split_blocks::unsplit::portable::u32_detransform_with_separate_pointe
 #[target_feature(enable = "sse2")]
 pub unsafe fn u64_detransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     // Process as many 64-byte blocks as possible
-    let aligned_len = len - (len % 64);
-
-    let mut current_output_ptr = output_ptr;
+    let current_output_ptr = output_ptr;
 
     // Set up input pointers for each section
-    let mut alpha_byte_in_ptr = input_ptr as *const u64;
-    let mut alpha_bit_in_ptr = input_ptr.add(len / 16 * 2) as *const u64;
-    let mut color_byte_in_ptr = input_ptr.add(len / 16 * 8) as *const __m128i;
-    let mut index_byte_in_ptr = input_ptr.add(len / 16 * 12) as *const __m128i;
+    let alpha_byte_in_ptr = input_ptr as *const u64;
+    let alpha_bit_in_ptr = input_ptr.add(len / 16 * 2) as *const u64;
+    let color_byte_in_ptr = input_ptr.add(len / 16 * 8) as *const __m128i;
+    let index_byte_in_ptr = input_ptr.add(len / 16 * 12) as *const __m128i;
 
+    u64_detransform_sse2_separate_components(
+        alpha_byte_in_ptr,
+        alpha_bit_in_ptr,
+        color_byte_in_ptr,
+        index_byte_in_ptr,
+        current_output_ptr,
+        len,
+    );
+}
+
+/// Detransforms BC3 block data from separated components using SSE2 instructions.
+///
+/// # Arguments
+///
+/// * `alpha_byte_in_ptr` - Pointer to the input buffer containing alpha endpoint pairs (2 bytes per block).
+/// * `alpha_bit_in_ptr` - Pointer to the input buffer containing packed alpha indices (6 bytes per block).
+/// * `color_byte_in_ptr` - Pointer to the input buffer containing color endpoint pairs (packed RGB565, 4 bytes per block) and unused padding (4 bytes per block). Loaded as `__m128i`.
+/// * `index_byte_in_ptr` - Pointer to the input buffer containing color indices (4 bytes per block) and unused padding (4 bytes per block). Loaded as `__m128i`.
+/// * `current_output_ptr` - Pointer to the output buffer where the reconstructed BC3 blocks (16 bytes per block) will be written.
+/// * `len` - The total number of bytes to write to the output buffer. Must be a multiple of 16.
+///
+/// # Safety
+///
+/// - All input pointers must be valid for reads corresponding to `len` bytes of output.
+///   - `alpha_byte_in_ptr` needs `len / 16 * 2` readable bytes.
+///   - `alpha_bit_in_ptr` needs `len / 16 * 6` readable bytes.
+///   - `color_byte_in_ptr` needs `len / 16 * 8` readable bytes.
+///   - `index_byte_in_ptr` needs `len / 16 * 8` readable bytes.
+/// - `current_output_ptr` must be valid for writes for `len` bytes.
+/// - `len` must be a multiple of 16 (the size of a BC3 block).
+/// - Pointers do not need to be aligned; unaligned loads/reads are used.
+pub unsafe fn u64_detransform_sse2_separate_components(
+    mut alpha_byte_in_ptr: *const u64,
+    mut alpha_bit_in_ptr: *const u64,
+    mut color_byte_in_ptr: *const __m128i,
+    mut index_byte_in_ptr: *const __m128i,
+    mut current_output_ptr: *mut u8,
+    len: usize,
+) {
+    const BYTES_PER_ITERATION: usize = 64;
+    let aligned_len = len - (len % BYTES_PER_ITERATION);
     if aligned_len > 0 {
-        let alpha_byte_end_ptr = input_ptr.add(aligned_len / 16 * 2) as *const u64;
+        let alpha_byte_end_ptr = alpha_byte_in_ptr.add(aligned_len / 16 * 2 / 8);
 
         while alpha_byte_in_ptr < alpha_byte_end_ptr {
             let alpha_bytes = alpha_byte_in_ptr.read_unaligned();
@@ -77,29 +116,24 @@ pub unsafe fn u64_detransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, le
 
             color_byte_in_ptr = color_byte_in_ptr.add(1);
             index_byte_in_ptr = index_byte_in_ptr.add(1);
-            current_output_ptr = current_output_ptr.add(64);
+            current_output_ptr = current_output_ptr.add(BYTES_PER_ITERATION);
         }
     }
 
-    // Process remaining elements after the aligned blocks
-    let remaining = len - aligned_len;
-    if remaining > 0 {
-        // Convert pointers to the types expected by u32_detransform_with_separate_pointers
-        let alpha_byte_in_ptr_u16 = alpha_byte_in_ptr as *const u16;
-        let alpha_bit_in_ptr_u16 = alpha_bit_in_ptr as *const u16;
-        let color_byte_in_ptr_u32 = color_byte_in_ptr as *const u32;
-        let index_byte_in_ptr_u32 = index_byte_in_ptr as *const u32;
-        let alpha_byte_end_ptr = input_ptr.add(len / 16 * 2) as *const u16;
+    // Convert pointers to the types expected by u32_detransform_with_separate_pointers
+    let alpha_byte_in_ptr_u16 = alpha_byte_in_ptr as *const u16;
+    let alpha_bit_in_ptr_u16 = alpha_bit_in_ptr as *const u16;
+    let color_byte_in_ptr_u32 = color_byte_in_ptr as *const u32;
+    let index_byte_in_ptr_u32 = index_byte_in_ptr as *const u32;
 
-        u32_detransform_with_separate_pointers(
-            alpha_byte_in_ptr_u16,
-            alpha_bit_in_ptr_u16,
-            color_byte_in_ptr_u32,
-            index_byte_in_ptr_u32,
-            current_output_ptr,
-            alpha_byte_end_ptr,
-        );
-    }
+    u32_detransform_with_separate_pointers(
+        alpha_byte_in_ptr_u16,
+        alpha_bit_in_ptr_u16,
+        color_byte_in_ptr_u32,
+        index_byte_in_ptr_u32,
+        current_output_ptr,
+        len - aligned_len,
+    );
 }
 
 /// # Safety
@@ -109,8 +143,9 @@ pub unsafe fn u64_detransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, le
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "sse2")]
 pub unsafe fn u32_detransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    const BYTES_PER_ITERATION: usize = 64;
     // Process as many 64-byte blocks as possible
-    let aligned_len = len - (len % 64);
+    let aligned_len = len - (len % BYTES_PER_ITERATION);
 
     let mut current_output_ptr = output_ptr;
 
@@ -174,29 +209,24 @@ pub unsafe fn u32_detransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, le
 
             color_byte_in_ptr = color_byte_in_ptr.add(1);
             index_byte_in_ptr = index_byte_in_ptr.add(1);
-            current_output_ptr = current_output_ptr.add(64);
+            current_output_ptr = current_output_ptr.add(BYTES_PER_ITERATION);
         }
     }
 
-    // Process remaining elements after the aligned blocks
-    let remaining = len - aligned_len;
-    if remaining > 0 {
-        // Convert pointers to the types expected by u32_detransform_with_separate_pointers
-        let alpha_byte_in_ptr_u16 = alpha_byte_in_ptr as *const u16;
-        let alpha_bit_in_ptr_u16 = alpha_bit_in_ptr as *const u16;
-        let color_byte_in_ptr_u32 = color_byte_in_ptr as *const u32;
-        let index_byte_in_ptr_u32 = index_byte_in_ptr as *const u32;
-        let alpha_byte_end_ptr = input_ptr.add(len / 16 * 2) as *const u16;
+    // Convert pointers to the types expected by u32_detransform_with_separate_pointers
+    let alpha_byte_in_ptr_u16 = alpha_byte_in_ptr as *const u16;
+    let alpha_bit_in_ptr_u16 = alpha_bit_in_ptr as *const u16;
+    let color_byte_in_ptr_u32 = color_byte_in_ptr as *const u32;
+    let index_byte_in_ptr_u32 = index_byte_in_ptr as *const u32;
 
-        u32_detransform_with_separate_pointers(
-            alpha_byte_in_ptr_u16,
-            alpha_bit_in_ptr_u16,
-            color_byte_in_ptr_u32,
-            index_byte_in_ptr_u32,
-            current_output_ptr,
-            alpha_byte_end_ptr,
-        );
-    }
+    u32_detransform_with_separate_pointers(
+        alpha_byte_in_ptr_u16,
+        alpha_bit_in_ptr_u16,
+        color_byte_in_ptr_u32,
+        index_byte_in_ptr_u32,
+        current_output_ptr,
+        len - aligned_len,
+    );
 }
 
 #[inline(always)]

@@ -14,5 +14,6 @@
         // Enable AVX2 in code editor.
         "RUSTFLAGS": "-Ctarget-feature=+avx2"
     },
-    "rust-analyzer.cargo.features": "all"
+    "rust-analyzer.cargo.features": "all",
+    "rust-analyzer.check.command": "clippy"
 }

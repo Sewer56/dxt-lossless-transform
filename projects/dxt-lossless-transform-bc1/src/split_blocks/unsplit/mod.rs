@@ -64,6 +64,8 @@ pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usi
     }
 }
 
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[inline(always)]
 unsafe fn unsplit_block_with_separate_pointers_x86(
     colors_ptr: *const u32,
     indices_ptr: *const u32,

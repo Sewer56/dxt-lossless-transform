@@ -157,6 +157,8 @@ mod tests {
     use crate::testutils::allocate_align_64;
     use safe_allocator_api::RawAlloc;
 
+    use super::{unsplit_block_with_separate_pointers, unsplit_blocks};
+
     /// Helper to assert implementation results match reference implementation
     pub(crate) fn assert_implementation_matches_reference(
         expected: &[u8],
@@ -209,5 +211,34 @@ mod tests {
         ];
         let output = generate_bc1_transformed_test_data(3);
         assert_eq!(output.as_slice(), expected.as_slice());
+    }
+
+    #[test]
+    fn unsplit_block_with_separate_pointers_matches_unsplit_blocks() {
+        for num_blocks in 1..=512 {
+            let mut transformed = generate_bc1_transformed_test_data(num_blocks);
+            let len = transformed.len();
+            let mut output_ref = allocate_align_64(len);
+            let mut output_sep = allocate_align_64(len);
+
+            unsafe {
+                // Reference: contiguous pointers
+                unsplit_blocks(transformed.as_mut_ptr(), output_ref.as_mut_ptr(), len);
+                // Test separate pointers variant
+                unsplit_block_with_separate_pointers(
+                    transformed.as_ptr() as *const u32,
+                    transformed.as_ptr().add(len / 2) as *const u32,
+                    output_sep.as_mut_ptr(),
+                    len,
+                );
+            }
+
+            assert_implementation_matches_reference(
+                output_ref.as_slice(),
+                output_sep.as_slice(),
+                "unsplit_block_with_separate_pointers",
+                num_blocks,
+            );
+        }
     }
 }

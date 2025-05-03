@@ -12,6 +12,10 @@ mod portable64;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod sse2;
 
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+mod avx512;
+
 pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
     let layout = Layout::from_size_align(num_bytes, 64).unwrap();
     RawAlloc::new(layout).unwrap()
@@ -43,6 +47,17 @@ fn criterion_benchmark(c: &mut Criterion) {
 
         if is_x86_feature_detected!("avx2") {
             avx2::run_benchmarks(
+                &mut group,
+                &input,
+                &mut output,
+                size,
+                important_benches_only,
+            );
+        }
+
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512vl") {
+            avx512::run_benchmarks(
                 &mut group,
                 &input,
                 &mut output,

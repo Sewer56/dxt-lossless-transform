@@ -7,6 +7,14 @@ pub mod sse2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx2;
 
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub mod avx512;
+
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub use avx512::*;
+
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
 unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
@@ -21,6 +29,12 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
             sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
+
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512vl") {
+            avx512::permute_512_detransform_unroll_2(input_ptr, output_ptr, len);
+            return;
+        }
     }
 
     #[cfg(feature = "no-runtime-cpu-detection")]
@@ -32,6 +46,12 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 
         if cfg!(target_feature = "sse2") {
             sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
+            return;
+        }
+
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512vl") {
+            avx512::permute_512_detransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
     }
@@ -93,6 +113,17 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
             );
             return;
         }
+
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512vl") {
+            avx512::permute_512_detransform_unroll_2_with_components(
+                output_ptr,
+                len,
+                indices_ptr as *const u8,
+                colors_ptr as *const u8,
+            );
+            return;
+        }
     }
 
     #[cfg(feature = "no-runtime-cpu-detection")]
@@ -109,6 +140,17 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
 
         if cfg!(target_feature = "sse2") {
             sse2::unpck_detransform_unroll_2_with_components(
+                output_ptr,
+                len,
+                indices_ptr as *const u8,
+                colors_ptr as *const u8,
+            );
+            return;
+        }
+
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512vl") {
+            avx512::permute_512_detransform_unroll_2_with_components(
                 output_ptr,
                 len,
                 indices_ptr as *const u8,

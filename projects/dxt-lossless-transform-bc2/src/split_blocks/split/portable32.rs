@@ -3,6 +3,7 @@
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
+#[no_mangle]
 pub unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 

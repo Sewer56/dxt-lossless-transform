@@ -7,6 +7,9 @@ use pprof::criterion::{Output, PProfProfiler};
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+mod avx512;
 mod portable32;
 mod portable64;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -25,8 +28,8 @@ fn criterion_benchmark(c: &mut Criterion) {
     let important_benches_only = true; // Set to false to enable extra benches, unrolls, etc.
 
     group.throughput(criterion::Throughput::Bytes(size as u64));
-    group.warm_up_time(Duration::from_secs(60));
-    group.measurement_time(Duration::from_secs(60));
+    //group.warm_up_time(Duration::from_secs(10));
+    group.measurement_time(Duration::from_secs(30));
 
     // Run architecture-specific benchmarks
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -43,6 +46,16 @@ fn criterion_benchmark(c: &mut Criterion) {
 
         if is_x86_feature_detected!("avx2") {
             avx2::run_benchmarks(
+                &mut group,
+                &input,
+                &mut output,
+                size,
+                important_benches_only,
+            );
+        }
+
+        if is_x86_feature_detected!("avx512f") && is_x86_feature_detected!("avx512vl") {
+            avx512::run_benchmarks(
                 &mut group,
                 &input,
                 &mut output,

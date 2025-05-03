@@ -8,7 +8,7 @@ use core::arch::x86_64::*;
 use core::arch::x86::*;
 
 #[allow(clippy::unusual_byte_groupings)]
-static PERMUTE_MASK: [u32; 8] = [0, 4, 1, 5, 2, 6, 3, 7];
+const PERMUTE_MASK: [u32; 8] = [0, 4, 1, 5, 2, 6, 3, 7];
 
 /// # Safety
 ///

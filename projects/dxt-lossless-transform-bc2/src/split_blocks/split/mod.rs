@@ -13,9 +13,19 @@ pub mod avx2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub use avx2::*;
 
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub mod avx512;
+
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub use avx512::*;
+
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
 unsafe fn split_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    // Note(sewer): The AVX512 implementation is disabled because a bunch of CPUs throttle on it,
+    // leading to it being slower.
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         // Runtime feature detection
@@ -35,6 +45,14 @@ unsafe fn split_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len: u
             sse2::shuffle_v2(input_ptr, output_ptr, len);
             return;
         }
+
+        /*
+        #[cfg(feature = "nightly")]
+        if std::is_x86_feature_detected!("avx512f") && std::is_x86_feature_detected!("avx512vl") {
+            avx512::permute_512(input_ptr, output_ptr, len);
+            return;
+        }
+        */
     }
 
     #[cfg(feature = "no-runtime-cpu-detection")]
@@ -55,6 +73,14 @@ unsafe fn split_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len: u
             sse2::shuffle_v2(input_ptr, output_ptr, len);
             return;
         }
+
+        /*
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512vl") {
+            avx512::permute_512(input_ptr, output_ptr, len);
+            return;
+        }
+        */
     }
 
     // Fallback to portable implementation

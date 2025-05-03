@@ -148,13 +148,12 @@ mod tests {
     ) {
         assert_eq!(
             expected, actual,
-            "{} implementation produced different results than reference for {} blocks.\n\
+            "{impl_name} implementation produced different results than reference for {num_blocks} blocks.\n\
             First differing block will have predictable values:\n\
             Alpha bytes: Sequential 0-1 + (block_num * 2)\n\
             Alpha bits: Sequential 32-37 + (block_num * 6)\n\
             Colors: Sequential 128-131 + (block_num * 4)\n\
-            Indices: Sequential 192-195 + (block_num * 4)",
-            impl_name, num_blocks
+            Indices: Sequential 192-195 + (block_num * 4)"
         );
     }
 

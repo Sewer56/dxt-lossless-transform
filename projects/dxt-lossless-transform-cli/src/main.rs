@@ -42,8 +42,7 @@ impl FromStr for DdsFilter {
             "bc7" => Ok(DdsFilter::BC7),
             "all" => Ok(DdsFilter::All),
             _ => Err(format!(
-                "Invalid DDS type: {}. Valid types are: bc1, bc2, bc3, bc7, all",
-                s
+                "Invalid DDS type: {s}. Valid types are: bc1, bc2, bc3, bc7, all"
             )),
         }
     }
@@ -106,11 +105,11 @@ fn canonicalize_cli_path(value: &str) -> Result<PathBuf, String> {
 
     // If path doesn't exist, create it
     if !path.exists() {
-        fs::create_dir_all(path).map_err(|e| format!("Failed to create directory: {}", e))?;
+        fs::create_dir_all(path).map_err(|e| format!("Failed to create directory: {e}"))?;
     }
 
     // Now we can canonicalize it
-    fs::canonicalize(path).map_err(|e| format!("Invalid path: {}", e))
+    fs::canonicalize(path).map_err(|e| format!("Invalid path: {e}"))
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -208,7 +207,7 @@ fn handle_process_entry_error(result: Result<(), TransformError>) {
     if let Err(e) = result {
         match e {
             TransformError::IgnoredByFilter => (),
-            _ => eprintln!("{}", e),
+            _ => eprintln!("{e}"),
         }
     }
 }

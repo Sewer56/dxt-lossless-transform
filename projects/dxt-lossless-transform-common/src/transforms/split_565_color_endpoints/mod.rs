@@ -167,11 +167,10 @@ mod tests {
     ) {
         assert_eq!(
             output_expected, output_test,
-            "{} implementation produced different results than reference for {} color pairs.\n\
+            "{impl_name} implementation produced different results than reference for {num_pairs} color pairs.\n\
             First differing pair will have predictable values:\n\
             Color0: Sequential bytes 0x00,0x01 + (pair_num * 4)\n\
-            Color1: Sequential bytes 0x80,0x81 + (pair_num * 4)",
-            impl_name, num_pairs
+            Color1: Sequential bytes 0x80,0x81 + (pair_num * 4)"
         );
     }
 

@@ -21,14 +21,11 @@ fn criterion_benchmark(c: &mut Criterion) {
     // Try to load the test file
     let file_data = match fs::read(TEST_FILE_PATH) {
         Ok(data) => {
-            println!("Successfully loaded test file: {}", TEST_FILE_PATH);
+            println!("Successfully loaded test file: {TEST_FILE_PATH}");
             data
         }
         Err(_) => {
-            println!(
-                "Warning: Could not load test file '{}'. Exiting.",
-                TEST_FILE_PATH
-            );
+            println!("Warning: Could not load test file '{TEST_FILE_PATH}'. Exiting.");
             return;
         }
     };

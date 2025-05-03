@@ -8,6 +8,7 @@ use std::arch::asm;
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 pub unsafe fn shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 16 == 0);
     // Process 4 blocks (64 bytes) at a time
     let alpha_ptr = input_ptr;
     let colors_ptr = input_ptr.add(len / 2);

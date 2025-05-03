@@ -13,6 +13,8 @@ use crate::split_blocks::unsplit::portable::u32_detransform_with_separate_pointe
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "sse2")]
 pub unsafe fn u64_detransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 16 == 0);
+
     // Process as many 64-byte blocks as possible
     let current_output_ptr = output_ptr;
 
@@ -61,6 +63,7 @@ pub unsafe fn u64_detransform_sse2_separate_components(
     mut current_output_ptr: *mut u8,
     len: usize,
 ) {
+    debug_assert!(len % 16 == 0);
     const BYTES_PER_ITERATION: usize = 64;
     let aligned_len = len - (len % BYTES_PER_ITERATION);
     if aligned_len > 0 {
@@ -143,6 +146,8 @@ pub unsafe fn u64_detransform_sse2_separate_components(
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "sse2")]
 pub unsafe fn u32_detransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 16 == 0);
+
     const BYTES_PER_ITERATION: usize = 64;
     // Process as many 64-byte blocks as possible
     let aligned_len = len - (len % BYTES_PER_ITERATION);

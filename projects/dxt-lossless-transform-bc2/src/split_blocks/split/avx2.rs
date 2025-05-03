@@ -17,6 +17,8 @@ static PERMUTE_MASK: [u32; 8] = [0, 4, 1, 5, 2, 6, 3, 7];
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
 pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 16 == 0);
+
     let aligned_len = len - (len % 128);
 
     let mut colors_ptr = output_ptr.add(len / 2);

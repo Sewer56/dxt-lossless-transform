@@ -8,6 +8,7 @@ use std::arch::asm;
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
 pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 8 == 0);
     // Process as many 32-byte blocks as possible
     let aligned_len = len - (len % 32);
     let mut indices_ptr = input_ptr.add(len / 2);
@@ -69,6 +70,7 @@ pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
 pub unsafe fn unpck_detransform_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 8 == 0);
     // Process as many 64-byte blocks as possible
     let indices_ptr = input_ptr.add(len / 2);
     let colors_ptr = input_ptr;
@@ -88,6 +90,7 @@ pub unsafe fn unpck_detransform_unroll_2_with_components(
     mut indices_ptr: *const u8,
     mut colors_ptr: *const u8,
 ) {
+    debug_assert!(len % 8 == 0);
     let aligned_len = len - (len % 64);
     let colors_aligned_end = colors_ptr.add(aligned_len / 2);
 
@@ -164,6 +167,7 @@ pub unsafe fn unpck_detransform_unroll_4(
     mut output_ptr: *mut u8,
     len: usize,
 ) {
+    debug_assert!(len % 8 == 0);
     // Process as many 128-byte blocks as possible
     let aligned_len = len - (len % 128);
     let mut indices_ptr = input_ptr.add(len / 2);

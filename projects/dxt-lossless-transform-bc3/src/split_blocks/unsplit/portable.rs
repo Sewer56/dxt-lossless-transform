@@ -65,6 +65,7 @@ pub unsafe fn u32_detransform_with_separate_pointers(
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
 pub unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 16 == 0);
     const BYTES_PER_ITERATION: usize = 32;
     let aligned_len = len - (len % BYTES_PER_ITERATION);
 
@@ -141,8 +142,8 @@ pub unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len:
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
 pub unsafe fn u64_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    const BYTES_PER_ITERATION: usize = 32;
     debug_assert!(len % 16 == 0);
+    const BYTES_PER_ITERATION: usize = 32;
     let aligned_len = len - (len % BYTES_PER_ITERATION);
 
     // Set up input pointers for each section

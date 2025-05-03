@@ -219,7 +219,7 @@ mod tests {
             assert_implementation_matches_reference(
                 &output_expected,
                 &output_test,
-                &format!("{} (aligned)", impl_name),
+                &format!("{impl_name} (aligned)"),
                 num_pairs,
             );
         }
@@ -259,7 +259,7 @@ mod tests {
             assert_implementation_matches_reference(
                 &output_expected,
                 &output_test[1..],
-                &format!("{} (unaligned)", impl_name),
+                &format!("{impl_name} (unaligned)"),
                 num_pairs,
             );
         }

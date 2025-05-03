@@ -105,12 +105,11 @@ pub mod tests {
     ) {
         assert_eq!(
             output_expected, output_test,
-            "{} implementation produced different results than reference for {} blocks.\n\
+            "{impl_name} implementation produced different results than reference for {num_blocks} blocks.\n\
             First differing block will have predictable values:\n\
             Alpha: Sequential 0-7 + (block_num * 8)\n\
             Colors: Sequential 0x80-0x83 + (block_num * 4)\n\
-            Indices: Sequential 0xC0-0xC3 + (block_num * 4)",
-            impl_name, num_blocks
+            Indices: Sequential 0xC0-0xC3 + (block_num * 4)"
         );
     }
 

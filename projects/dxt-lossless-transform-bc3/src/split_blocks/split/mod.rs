@@ -75,13 +75,12 @@ pub mod tests {
     ) {
         assert_eq!(
             expected, actual,
-            "BC3 {} implementation produced different results than reference for {} blocks.\n\
+            "BC3 {impl_name} implementation produced different results than reference for {num_blocks} blocks.\n\
             First differing block will have predictable values:\n\
             Alpha: Sequential 00-31\n\
             Alpha Indices: Sequential 32-127\n\
             Colors: Sequential 128-191\n\
-            Indices: Sequential 192-255",
-            impl_name, num_blocks
+            Indices: Sequential 192-255"
         );
     }
 

@@ -127,8 +127,7 @@ mod tests {
             assert_eq!(
                 transformed.as_slice(),
                 reference.as_slice(),
-                "transform_bc3 produced different results than reference for {} blocks",
-                num_blocks
+                "transform_bc3 produced different results than reference for {num_blocks} blocks"
             );
 
             // Test untransform
@@ -140,8 +139,7 @@ mod tests {
             assert_eq!(
                 reconstructed.as_slice(),
                 input.as_slice(),
-                "untransform_bc3 failed to reconstruct original data for {} blocks",
-                num_blocks
+                "untransform_bc3 failed to reconstruct original data for {num_blocks} blocks"
             );
         }
     }

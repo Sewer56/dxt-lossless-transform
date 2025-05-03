@@ -600,7 +600,7 @@ mod tests {
             assert_implementation_matches_reference(
                 output_expected.as_slice(),
                 output_test.as_slice(),
-                &format!("{} (aligned)", impl_name),
+                &format!("{impl_name} (aligned)"),
                 num_blocks,
             );
         }
@@ -643,7 +643,7 @@ mod tests {
             assert_implementation_matches_reference(
                 output_expected.as_slice(),
                 &output_test[1..],
-                &format!("{} (unaligned)", impl_name),
+                &format!("{impl_name} (unaligned)"),
                 num_blocks,
             );
         }

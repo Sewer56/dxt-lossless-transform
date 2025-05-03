@@ -485,9 +485,7 @@ mod tests {
             assert_eq!(
                 color.raw_value(),
                 original_color.raw_value(),
-                "{:?} - Color at index {} failed to restore.",
-                variant,
-                x
+                "{variant:?} - Color at index {x} failed to restore."
             );
         }
     }
@@ -507,8 +505,7 @@ mod tests {
         assert_ne!(
             transformed.raw_value(),
             original.raw_value(),
-            "{:?} - Color should change after decorrelation",
-            variant
+            "{variant:?} - Color should change after decorrelation"
         );
 
         // Recorrelate
@@ -516,8 +513,7 @@ mod tests {
         assert_eq!(
             transformed.raw_value(),
             original.raw_value(),
-            "{:?} - Color should be restored after recorrelation",
-            variant
+            "{variant:?} - Color should be restored after recorrelation"
         );
     }
 }

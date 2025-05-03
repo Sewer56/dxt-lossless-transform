@@ -286,7 +286,7 @@ mod tests {
             assert_implementation_matches_reference(
                 original.as_slice(),
                 reconstructed.as_slice(),
-                &format!("{} (aligned)", impl_name),
+                &format!("{impl_name} (aligned)"),
                 num_blocks,
             );
         }
@@ -326,7 +326,7 @@ mod tests {
             assert_implementation_matches_reference(
                 original.as_slice(),
                 &reconstructed[1..],
-                &format!("{} (unaligned)", impl_name),
+                &format!("{impl_name} (unaligned)"),
                 num_blocks,
             );
         }

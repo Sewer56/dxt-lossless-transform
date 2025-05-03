@@ -77,10 +77,7 @@ fn validate_normalize(cmd: ValidateCommand) -> Result<(), TransformError> {
         }
     }
 
-    println!(
-        "Validation complete: {} succeeded, {} failed",
-        success_count, failure_count
-    );
+    println!("Validation complete: {success_count} succeeded, {failure_count} failed");
 
     Ok(())
 }

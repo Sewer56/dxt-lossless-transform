@@ -15,6 +15,8 @@ std = []
 pgo = []
 # Use CPU features selected at compile time.
 no-runtime-cpu-detection = []
+# Use nightly compiler features
+nightly = []
 
 [dependencies]
 dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }

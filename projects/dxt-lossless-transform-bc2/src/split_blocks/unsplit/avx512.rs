@@ -61,7 +61,7 @@ pub unsafe fn avx512_shuffle_with_components_intrinsics(
     mut indices_ptr: *const u8,
 ) {
     debug_assert!(len % 16 == 0);
-    // Process 8 blocks (128 bytes) at a time
+    // Process 16 blocks (256 bytes) at a time
     let aligned_len = len - (len % 256);
     let alpha_ptr_aligned_end = alpha_ptr.add(aligned_len / 2);
     // End pointer for the loop based on aligned length

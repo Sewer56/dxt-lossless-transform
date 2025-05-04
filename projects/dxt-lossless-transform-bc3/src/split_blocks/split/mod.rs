@@ -7,12 +7,26 @@ pub mod avx2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub use avx2::*;
 
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub mod avx512;
+
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub use avx512::*;
+
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
 unsafe fn split_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         // Runtime feature detection
+        #[cfg(feature = "nightly")]
+        if std::is_x86_feature_detected!("avx512vbmi") {
+            avx512::avx512_vbmi(input_ptr, output_ptr, len);
+            return;
+        }
+
         if std::is_x86_feature_detected!("avx2") {
             avx2::u32_avx2(input_ptr, output_ptr, len);
             return;
@@ -21,6 +35,12 @@ unsafe fn split_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512vbmi") {
+            avx512::avx512_vbmi(input_ptr, output_ptr, len);
+            return;
+        }
+
         if cfg!(target_feature = "avx2") {
             avx2::u32_avx2(input_ptr, output_ptr, len);
             return;
@@ -103,6 +123,9 @@ pub mod tests {
                 *data_ptr.add(0) = alpha_byte.wrapping_add(0);
                 *data_ptr.add(1) = alpha_byte.wrapping_add(1);
                 alpha_byte = alpha_byte.wrapping_add(2);
+                if alpha_byte >= 32 {
+                    alpha_byte = alpha_byte.wrapping_sub(32);
+                }
 
                 *data_ptr.add(2) = alpha_index_byte.wrapping_add(0);
                 *data_ptr.add(3) = alpha_index_byte.wrapping_add(1);
@@ -111,18 +134,28 @@ pub mod tests {
                 *data_ptr.add(6) = alpha_index_byte.wrapping_add(4);
                 *data_ptr.add(7) = alpha_index_byte.wrapping_add(5);
                 alpha_index_byte = alpha_index_byte.wrapping_add(6);
+                if alpha_index_byte >= 128 {
+                    alpha_index_byte = alpha_index_byte.wrapping_sub(96);
+                }
 
                 *data_ptr.add(8) = color_byte.wrapping_add(0);
                 *data_ptr.add(9) = color_byte.wrapping_add(1);
                 *data_ptr.add(10) = color_byte.wrapping_add(2);
                 *data_ptr.add(11) = color_byte.wrapping_add(3);
                 color_byte = color_byte.wrapping_add(4);
+                if color_byte >= 192 {
+                    color_byte = color_byte.wrapping_sub(64);
+                }
 
                 *data_ptr.add(12) = index_byte.wrapping_add(0);
                 *data_ptr.add(13) = index_byte.wrapping_add(1);
                 *data_ptr.add(14) = index_byte.wrapping_add(2);
                 *data_ptr.add(15) = index_byte.wrapping_add(3);
                 index_byte = index_byte.wrapping_add(4);
+                if index_byte < 192 {
+                    index_byte = index_byte.wrapping_sub(64);
+                }
+
                 data_ptr = data_ptr.add(16);
             }
         }

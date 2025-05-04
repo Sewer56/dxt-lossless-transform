@@ -28,6 +28,9 @@ safe-allocator-api = "0.3.0"
 pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
 
 # Benchmark Stuff
+[lib]
+bench = false
+
 [[bench]]
 name = "split_blocks"
 path = "benches/split_blocks/main.rs"

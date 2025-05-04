@@ -1,0 +1,242 @@
+use crate::split_blocks::unsplit::portable32::u32_detransform_with_separate_pointers;
+
+#[cfg(target_arch = "x86_64")]
+use core::arch::x86_64::*;
+
+#[cfg(target_arch = "x86")]
+use core::arch::x86::*;
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+#[target_feature(enable = "avx512f")]
+#[allow(unused_assignments)]
+pub unsafe fn avx512_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 16 == 0);
+    let alpha_ptr = input_ptr;
+    let colors_ptr = alpha_ptr.add(len / 2);
+    let indices_ptr = colors_ptr.add(len / 4);
+
+    avx512_shuffle_with_components(output_ptr, len, alpha_ptr, colors_ptr, indices_ptr);
+}
+
+/// # Safety
+///
+/// - output_ptr must be valid for writes of len bytes
+/// - alpha_ptr must be valid for reads of len / 2 bytes
+/// - colors_ptr must be valid for reads of len / 4 bytes
+/// - indices_ptr must be valid for reads of len / 4 bytes
+#[target_feature(enable = "avx512f")]
+#[allow(unused_assignments)]
+#[allow(clippy::zero_prefixed_literal)]
+#[allow(clippy::identity_op)]
+pub unsafe fn avx512_shuffle_with_components(
+    mut output_ptr: *mut u8,
+    len: usize,
+    mut alpha_ptr: *const u8,
+    mut colors_ptr: *const u8,
+    mut indices_ptr: *const u8,
+) {
+    debug_assert!(len % 16 == 0);
+    // Process 8 blocks (128 bytes) at a time
+    let aligned_len = len - (len % 256);
+    let alpha_ptr_aligned_end = alpha_ptr.add(aligned_len / 2);
+    // End pointer for the loop based on aligned length
+
+    if aligned_len > 0 {
+        // Mask for mixing output_0 (lower half of alpha & `color+index` splits)
+        let perm_block_mask_low = _mm512_setr_epi64(
+            0,  // alpha 8 bytes
+            8,  // colors + indices 8 bytes
+            1,  // alpha 8 bytes
+            9,  // colors + indices 8 bytes
+            2,  // alpha 8 bytes
+            10, // colors + indices 8 bytes
+            3,  // alpha 8 bytes
+            11, // colors + indices 8 bytes
+        );
+        // Mask for mixing output_1 (upper half of alpha & `color+index` splits)
+        let perm_block_mask_high = _mm512_setr_epi64(
+            4,  // alpha 8 bytes
+            12, // colors + indices 8 bytes
+            5,  // alpha 8 bytes
+            13, // colors + indices 8 bytes
+            6,  // alpha 8 bytes
+            14, // colors + indices 8 bytes
+            7,  // alpha 8 bytes
+            15, // colors + indices 8 bytes
+        );
+        // Mask for mixing colors and indices (lower half)
+        // rust specifies the args for this call in reverse order, e15 == e0. this is a stdlib blunder
+        let perm_color_index_mask_low = _mm512_setr_epi32(
+            00 + 00, // colors 4 bytes,
+            00 + 16, // indices 4 bytes,
+            01 + 00, // colors 4 bytes,
+            01 + 16, // indices 4 bytes,
+            02 + 00, // colors 4 bytes,
+            02 + 16, // indices 4 bytes,
+            03 + 00, // colors 4 bytes,
+            03 + 16, // indices 4 bytes,
+            04 + 00, // colors 4 bytes,
+            04 + 16, // indices 4 bytes,
+            05 + 00, // colors 4 bytes,
+            05 + 16, // indices 4 bytes,
+            06 + 00, // colors 4 bytes,
+            06 + 16, // indices 4 bytes,
+            07 + 00, // colors 4 bytes,
+            07 + 16, // indices 4 bytes,
+        );
+        // Mask for mixing colors and indices (upper half)
+        let perm_color_index_mask_high = _mm512_setr_epi32(
+            08 + 00, // colors 4 bytes,
+            08 + 16, // indices 4 bytes,
+            09 + 00, // colors 4 bytes,
+            09 + 16, // indices 4 bytes,
+            10 + 00, // colors 4 bytes,
+            10 + 16, // indices 4 bytes,
+            11 + 00, // colors 4 bytes,
+            11 + 16, // indices 4 bytes,
+            12 + 00, // colors 4 bytes,
+            12 + 16, // indices 4 bytes,
+            13 + 00, // colors 4 bytes,
+            13 + 16, // indices 4 bytes,
+            14 + 00, // colors 4 bytes,
+            14 + 16, // indices 4 bytes,
+            15 + 00, // colors 4 bytes,
+            15 + 16, // indices 4 bytes,
+        );
+
+        while alpha_ptr < alpha_ptr_aligned_end {
+            // Load 256 bytes (16 blocks)
+            // Read in the individual components.
+            let alpha_0 = _mm512_loadu_si512(alpha_ptr as *const __m512i);
+            let alpha_1 = _mm512_loadu_si512(alpha_ptr.add(64) as *const __m512i);
+            let colors = _mm512_loadu_si512(colors_ptr as *const __m512i);
+            let indices = _mm512_loadu_si512(indices_ptr as *const __m512i);
+            alpha_ptr = alpha_ptr.add(128);
+            colors_ptr = colors_ptr.add(64);
+            indices_ptr = indices_ptr.add(64);
+
+            // re-mix lower & upper colour+index halves
+            let colors_indices_0 =
+                _mm512_permutex2var_epi32(colors, perm_color_index_mask_low, indices);
+            let colors_indices_1 =
+                _mm512_permutex2var_epi32(colors, perm_color_index_mask_high, indices);
+
+            // re-mix alphas and colour+index halves
+            let output_0 =
+                _mm512_permutex2var_epi64(alpha_0, perm_block_mask_low, colors_indices_0);
+            let output_1 =
+                _mm512_permutex2var_epi64(alpha_0, perm_block_mask_high, colors_indices_0);
+            let output_2 =
+                _mm512_permutex2var_epi64(alpha_1, perm_block_mask_low, colors_indices_1);
+            let output_3 =
+                _mm512_permutex2var_epi64(alpha_1, perm_block_mask_high, colors_indices_1);
+
+            // Write results
+            _mm512_storeu_si512(output_ptr as *mut __m512i, output_0);
+            _mm512_storeu_si512(output_ptr.add(64) as *mut __m512i, output_1);
+            _mm512_storeu_si512(output_ptr.add(128) as *mut __m512i, output_2);
+            _mm512_storeu_si512(output_ptr.add(192) as *mut __m512i, output_3);
+
+            // Advance pointer after writing output
+            output_ptr = output_ptr.add(256);
+        }
+    }
+
+    // Process any remaining blocks (less than 8)
+    let remaining_len = len - aligned_len;
+    if remaining_len > 0 {
+        // Pointers `alpha_ptr`, `colors_ptr`, `indices_ptr`, and `output_ptr` have been updated by the asm block
+        u32_detransform_with_separate_pointers(
+            alpha_ptr as *const u64, // Final alpha pointer from asm (or initial if aligned_len == 0)
+            colors_ptr as *const u32, // Final colors pointer from asm (or initial)
+            indices_ptr as *const u32, // Final indices pointer from asm (or initial)
+            output_ptr,              // Final output pointer from asm (or initial)
+            remaining_len,
+        );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::split_blocks::split::tests::generate_bc2_test_data;
+    use crate::split_blocks::split::u32;
+    use crate::split_blocks::unsplit::tests::assert_implementation_matches_reference;
+    use crate::testutils::allocate_align_64;
+    use rstest::rstest;
+
+    type DetransformFn = unsafe fn(*const u8, *mut u8, usize);
+
+    #[rstest]
+    #[case::avx512_shuffle(avx512_shuffle, "avx512_shuffle")]
+    fn test_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+        // Test with different block counts to ensure they all work correctly
+        for block_count in 1..=512 {
+            // Generate test data
+            let original = generate_bc2_test_data(block_count);
+            let mut transformed = allocate_align_64(original.len());
+            let mut reconstructed = allocate_align_64(original.len());
+
+            unsafe {
+                // Transform the original test data
+                u32(original.as_ptr(), transformed.as_mut_ptr(), original.len());
+
+                // Re-transform it back using the implementation under test
+                (detransform_fn)(
+                    transformed.as_ptr(),
+                    reconstructed.as_mut_ptr(),
+                    transformed.len(),
+                );
+            }
+
+            // Verify the results match
+            assert_implementation_matches_reference(
+                original.as_slice(),
+                reconstructed.as_slice(),
+                impl_name,
+                block_count,
+            );
+        }
+    }
+
+    #[rstest]
+    #[case::avx512_shuffle(avx512_shuffle, "avx512_shuffle")]
+    fn test_avx512_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+        // Test with different block counts to ensure they all work correctly
+        for block_count in 1..=512 {
+            // Generate test data
+            let original = generate_bc2_test_data(block_count);
+
+            // Create unaligned buffers (allocate an extra byte and offset by 1)
+            let mut unaligned_transformed = vec![0u8; original.len() + 1];
+            let mut unaligned_reconstructed = vec![0u8; original.len() + 1];
+
+            unsafe {
+                // Transform the original test data
+                u32(
+                    original.as_ptr(),
+                    unaligned_transformed.as_mut_ptr().add(1),
+                    original.len(),
+                );
+
+                // Re-transform it back using the implementation under test
+                (detransform_fn)(
+                    unaligned_transformed.as_mut_ptr().add(1),
+                    unaligned_reconstructed.as_mut_ptr().add(1),
+                    unaligned_transformed.len() - 1,
+                );
+            }
+
+            // Verify the results match
+            assert_implementation_matches_reference(
+                original.as_slice(),
+                &unaligned_reconstructed[1..],
+                impl_name,
+                block_count,
+            );
+        }
+    }
+}

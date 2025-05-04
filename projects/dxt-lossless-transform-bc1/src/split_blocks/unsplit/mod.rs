@@ -20,6 +20,12 @@ pub use avx512::*;
 unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
+        #[cfg(feature = "nightly")]
+        if std::is_x86_feature_detected!("avx512f") && std::is_x86_feature_detected!("avx512vl") {
+            avx512::permute_512_detransform_unroll_2(input_ptr, output_ptr, len);
+            return;
+        }
+
         if std::is_x86_feature_detected!("avx2") {
             avx2::permd_detransform_unroll_2(input_ptr, output_ptr, len);
             return;
@@ -29,16 +35,16 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
             sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
-
-        #[cfg(feature = "nightly")]
-        if std::is_x86_feature_detected!("avx512f") && std::is_x86_feature_detected!("avx512vl") {
-            avx512::permute_512_detransform_unroll_2(input_ptr, output_ptr, len);
-            return;
-        }
     }
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512vl") {
+            avx512::permute_512_detransform_unroll_2(input_ptr, output_ptr, len);
+            return;
+        }
+
         if cfg!(target_feature = "avx2") {
             avx2::permd_detransform_unroll_2(input_ptr, output_ptr, len);
             return;
@@ -46,12 +52,6 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 
         if cfg!(target_feature = "sse2") {
             sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
-            return;
-        }
-
-        #[cfg(feature = "nightly")]
-        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512vl") {
-            avx512::permute_512_detransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
     }
@@ -94,6 +94,17 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
 ) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
+        #[cfg(feature = "nightly")]
+        if std::is_x86_feature_detected!("avx512f") && std::is_x86_feature_detected!("avx512vl") {
+            avx512::permute_512_detransform_unroll_2_with_components(
+                output_ptr,
+                len,
+                indices_ptr as *const u8,
+                colors_ptr as *const u8,
+            );
+            return;
+        }
+
         if std::is_x86_feature_detected!("avx2") {
             avx2::permd_detransform_unroll_2_with_components(
                 output_ptr,
@@ -113,7 +124,10 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
             );
             return;
         }
+    }
 
+    #[cfg(feature = "no-runtime-cpu-detection")]
+    {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512vl") {
             avx512::permute_512_detransform_unroll_2_with_components(
@@ -124,10 +138,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
             );
             return;
         }
-    }
 
-    #[cfg(feature = "no-runtime-cpu-detection")]
-    {
         if cfg!(target_feature = "avx2") {
             avx2::permd_detransform_unroll_2_with_components(
                 output_ptr,
@@ -140,17 +151,6 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
 
         if cfg!(target_feature = "sse2") {
             sse2::unpck_detransform_unroll_2_with_components(
-                output_ptr,
-                len,
-                indices_ptr as *const u8,
-                colors_ptr as *const u8,
-            );
-            return;
-        }
-
-        #[cfg(feature = "nightly")]
-        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512vl") {
-            avx512::permute_512_detransform_unroll_2_with_components(
                 output_ptr,
                 len,
                 indices_ptr as *const u8,

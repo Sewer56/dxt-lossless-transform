@@ -54,6 +54,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             );
         }
 
+        #[cfg(feature = "nightly")]
         if is_x86_feature_detected!("avx512f") && is_x86_feature_detected!("avx512vl") {
             avx512::run_benchmarks(
                 &mut group,

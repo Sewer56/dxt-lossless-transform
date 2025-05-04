@@ -18,9 +18,11 @@ pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 
     // Process 8 blocks (128 bytes) at a time
     let mut aligned_len = len - (len % 128);
+    // The writes to `alpha_byte_out_ptr` (and others) overflow, because we write with full ZMM register.
+    // So we need to shorten the aligned length to avoid this overflow.
     // 16 / 2 == block size / alpha_bytes size
-    // 128 == loop length
-    aligned_len = aligned_len.saturating_sub(16 / 2 * 128); // 1024
+    // 64 == register length
+    aligned_len = aligned_len.saturating_sub(16 / 2 * 64); // 1024
     let remaining_len = len - aligned_len;
 
     // Setup pointers for alpha components
@@ -35,7 +37,15 @@ pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
     // Permute to lift out the alpha bytes from the read blocks.
     #[rustfmt::skip]
     let alpha_bytes_permute_mask: __m512i = _mm512_set_epi8(
-        0, 0, 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        1 + (16 * 7),
+        0 + (16 * 7), // block 7
+        1 + (16 * 6),
+        0 + (16 * 6), // block 6
+        1 + (16 * 5),
+        0 + (16 * 5), // block 5
+        1 + (16 * 4),
+        0 + (16 * 4), // block 4
         1 + (16 * 3),
         0 + (16 * 3), // block 3
         1 + (16 * 2),
@@ -48,7 +58,31 @@ pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 
     #[rustfmt::skip]
     let alpha_bits_permute_mask: __m512i = _mm512_set_epi8(
-        0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        7 + (16 * 7),
+        6 + (16 * 7),
+        5 + (16 * 7),
+        4 + (16 * 7),
+        3 + (16 * 7),
+        2 + (16 * 7), // block 7
+        7 + (16 * 6),
+        6 + (16 * 6),
+        5 + (16 * 6),
+        4 + (16 * 6),
+        3 + (16 * 6),
+        2 + (16 * 6), // block 6
+        7 + (16 * 5),
+        6 + (16 * 5),
+        5 + (16 * 5),
+        4 + (16 * 5),
+        3 + (16 * 5),
+        2 + (16 * 5), // block 5
+        7 + (16 * 4),
+        6 + (16 * 4),
+        5 + (16 * 4),
+        4 + (16 * 4),
+        3 + (16 * 4),
+        2 + (16 * 4), // block 4
         7 + (16 * 3),
         6 + (16 * 3),
         5 + (16 * 3),
@@ -77,7 +111,23 @@ pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 
     #[rustfmt::skip]
     let color_bytes_permute_mask: __m512i = _mm512_set_epi8(
-        0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        11 + (16 * 7),
+        10 + (16 * 7),
+        9 + (16 * 7),
+        8 + (16 * 7), // block 7
+        11 + (16 * 6),
+        10 + (16 * 6),
+        9 + (16 * 6),
+        8 + (16 * 6), // block 6
+        11 + (16 * 5),
+        10 + (16 * 5),
+        9 + (16 * 5),
+        8 + (16 * 5), // block 5
+        11 + (16 * 4),
+        10 + (16 * 4),
+        9 + (16 * 4),
+        8 + (16 * 4), // block 4
         11 + (16 * 3),
         10 + (16 * 3),
         9 + (16 * 3),
@@ -98,7 +148,23 @@ pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 
     #[rustfmt::skip]
     let index_bytes_permute_mask: __m512i = _mm512_set_epi8(
-        0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        15 + (16 * 7),
+        14 + (16 * 7),
+        13 + (16 * 7),
+        12 + (16 * 7), // block 7
+        15 + (16 * 6),
+        14 + (16 * 6),
+        13 + (16 * 6),
+        12 + (16 * 6), // block 6
+        15 + (16 * 5),
+        14 + (16 * 5),
+        13 + (16 * 5),
+        12 + (16 * 5), // block 5
+        15 + (16 * 4),
+        14 + (16 * 4),
+        13 + (16 * 4),
+        12 + (16 * 4), // block 4
         15 + (16 * 3),
         14 + (16 * 3),
         13 + (16 * 3),
@@ -123,25 +189,15 @@ pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
         let block_1 = _mm512_loadu_si512(current_input_ptr.add(64) as *const __m512i);
         current_input_ptr = current_input_ptr.add(128); // Move forward 8 blocks
 
-        let alpha_bytes_0 = _mm512_permutexvar_epi8(alpha_bytes_permute_mask, block_0);
-        let alpha_bits_0 = _mm512_permutexvar_epi8(alpha_bits_permute_mask, block_0);
-        let color_bytes_0 = _mm512_permutexvar_epi8(color_bytes_permute_mask, block_0);
-        let index_bytes_0 = _mm512_permutexvar_epi8(index_bytes_permute_mask, block_0);
-
-        let alpha_bytes_1 = _mm512_permutexvar_epi8(alpha_bytes_permute_mask, block_1);
-        let alpha_bits_1 = _mm512_permutexvar_epi8(alpha_bits_permute_mask, block_1);
-        let color_bytes_1 = _mm512_permutexvar_epi8(color_bytes_permute_mask, block_1);
-        let index_bytes_1 = _mm512_permutexvar_epi8(index_bytes_permute_mask, block_1);
+        let alpha_bytes_0 = _mm512_permutex2var_epi8(block_0, alpha_bytes_permute_mask, block_1);
+        let alpha_bits_0 = _mm512_permutex2var_epi8(block_0, alpha_bits_permute_mask, block_1);
+        let color_bytes_0 = _mm512_permutex2var_epi8(block_0, color_bytes_permute_mask, block_1);
+        let index_bytes_0 = _mm512_permutex2var_epi8(block_0, index_bytes_permute_mask, block_1);
 
         _mm512_storeu_si512(alpha_byte_out_ptr as *mut __m512i, alpha_bytes_0);
         _mm512_storeu_si512(alpha_bit_out_ptr as *mut __m512i, alpha_bits_0);
         _mm512_storeu_si512(color_out_ptr as *mut __m512i, color_bytes_0);
         _mm512_storeu_si512(index_out_ptr as *mut __m512i, index_bytes_0);
-
-        _mm512_storeu_si512(alpha_byte_out_ptr.add(8) as *mut __m512i, alpha_bytes_1);
-        _mm512_storeu_si512(alpha_bit_out_ptr.add(24) as *mut __m512i, alpha_bits_1);
-        _mm512_storeu_si512(color_out_ptr.add(16) as *mut __m512i, color_bytes_1);
-        _mm512_storeu_si512(index_out_ptr.add(16) as *mut __m512i, index_bytes_1);
 
         // Update pointers
         alpha_byte_out_ptr = alpha_byte_out_ptr.add(16);

@@ -97,7 +97,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
     {
         #[cfg(feature = "nightly")]
         if std::is_x86_feature_detected!("avx512f") {
-            avx512::avx512_shuffle_with_components(
+            avx512::avx512_shuffle_with_components_intrinsics(
                 output_ptr,
                 len,
                 alphas_ptr as *const u8,
@@ -134,7 +134,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") {
-            avx512::avx512_shuffle_with_components(
+            avx512::avx512_shuffle_with_components_intrinsics(
                 output_ptr,
                 len,
                 alphas_ptr as *const u8,

@@ -14,6 +14,8 @@ use super::portable32::u32_with_separate_endpoints;
 #[allow(clippy::identity_op)]
 #[allow(clippy::erasing_op)]
 pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    // Note: Leaving as intrinsics because the compiler generated form for ancient CPU
+    // produces OK code.
     debug_assert!(len % 16 == 0);
 
     // Process 8 blocks (128 bytes) at a time

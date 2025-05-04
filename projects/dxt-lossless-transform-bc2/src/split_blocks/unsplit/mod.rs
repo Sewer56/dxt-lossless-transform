@@ -30,6 +30,7 @@ unsafe fn unsplit_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len:
             return;
         }
 
+        #[cfg(feature = "nightly")]
         if std::is_x86_feature_detected!("avx512f") {
             avx512::avx512_shuffle(input_ptr, output_ptr, len);
             return;
@@ -48,6 +49,7 @@ unsafe fn unsplit_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len:
             return;
         }
 
+        #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") {
             avx512::avx512_shuffle(input_ptr, output_ptr, len);
             return;

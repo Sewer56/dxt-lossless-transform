@@ -30,7 +30,7 @@ unsafe fn split_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len: u
     {
         // Runtime feature detection
         #[cfg(feature = "nightly")]
-        if std::is_x86_feature_detected!("avx512f") && std::is_x86_feature_detected!("avx512vl") {
+        if std::is_x86_feature_detected!("avx512f") {
             avx512::permute_512(input_ptr, output_ptr, len);
             return;
         }
@@ -56,7 +56,7 @@ unsafe fn split_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len: u
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
         #[cfg(feature = "nightly")]
-        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512vl") {
+        if cfg!(target_feature = "avx512f") {
             avx512::permute_512(input_ptr, output_ptr, len);
             return;
         }

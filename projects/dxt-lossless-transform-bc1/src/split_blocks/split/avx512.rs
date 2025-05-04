@@ -19,7 +19,6 @@ const PERM_INDICES_BYTES: [i8; 16] = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23,
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)] // no feature for 512
 #[target_feature(enable = "avx512f")]
-#[target_feature(enable = "avx512vl")]
 pub unsafe fn permute_512_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
     let aligned_len = len - (len % 256);

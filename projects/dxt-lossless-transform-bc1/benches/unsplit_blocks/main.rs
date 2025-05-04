@@ -56,7 +56,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         }
 
         #[cfg(feature = "nightly")]
-        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512vl") {
+        if cfg!(target_feature = "avx512f") {
             avx512::run_benchmarks(
                 &mut group,
                 &input,

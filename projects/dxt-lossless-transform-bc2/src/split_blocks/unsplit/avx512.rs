@@ -6,6 +6,7 @@ use core::arch::x86_64::*;
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
 
+#[cfg(target_arch = "x86_64")]
 use core::arch::*;
 
 /// # Safety
@@ -20,7 +21,11 @@ pub unsafe fn avx512_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usi
     let colors_ptr = alpha_ptr.add(len / 2);
     let indices_ptr = colors_ptr.add(len / 4);
 
+    #[cfg(target_arch = "x86_64")]
     avx512_shuffle_with_components(output_ptr, len, alpha_ptr, colors_ptr, indices_ptr);
+
+    #[cfg(target_arch = "x86")]
+    avx512_shuffle_with_components_intrinsics(output_ptr, len, alpha_ptr, colors_ptr, indices_ptr);
 }
 
 /// # Safety
@@ -182,6 +187,7 @@ pub unsafe fn avx512_shuffle_with_components_intrinsics(
 #[target_feature(enable = "avx512f")]
 #[allow(clippy::zero_prefixed_literal)]
 #[allow(clippy::identity_op)]
+#[cfg(target_arch = "x86_64")]
 pub unsafe fn avx512_shuffle_with_components(
     mut output_ptr: *mut u8,
     len: usize,

@@ -13,17 +13,14 @@ use super::portable32::u32_with_separate_endpoints;
 #[target_feature(enable = "avx512vbmi")]
 #[allow(clippy::identity_op)]
 #[allow(clippy::erasing_op)]
-#[no_mangle]
 pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
     // Process 8 blocks (128 bytes) at a time
     let mut aligned_len = len - (len % 128);
-    // The writes to `alpha_byte_out_ptr` (and others) overflow, because we write with full ZMM register.
-    // So we need to shorten the aligned length to avoid this overflow.
-    // 16 / 2 == block size / alpha_bytes size
-    // 64 == register length
-    aligned_len = aligned_len.saturating_sub(16 / 2 * 64); // 1024
+    // The writes to `alpha_bit_out_ptr` overflows as it uses a 64-bit register to write 48-bits
+    // of data.
+    aligned_len = aligned_len.saturating_sub(128);
     let remaining_len = len - aligned_len;
 
     // Setup pointers for alpha components
@@ -195,10 +192,19 @@ pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
         let color_bytes_0 = _mm512_permutex2var_epi8(block_0, color_bytes_permute_mask, block_1);
         let index_bytes_0 = _mm512_permutex2var_epi8(block_0, index_bytes_permute_mask, block_1);
 
-        _mm512_storeu_si512(alpha_byte_out_ptr as *mut __m512i, alpha_bytes_0);
-        _mm512_storeu_si512(alpha_bit_out_ptr as *mut __m512i, alpha_bits_0);
-        _mm512_storeu_si512(color_out_ptr as *mut __m512i, color_bytes_0);
-        _mm512_storeu_si512(index_out_ptr as *mut __m512i, index_bytes_0);
+        _mm_storeu_si128(
+            alpha_byte_out_ptr as *mut __m128i,
+            _mm512_castsi512_si128(alpha_bytes_0),
+        ); // only 16 to write, so xmm
+        _mm512_storeu_si512(alpha_bit_out_ptr as *mut __m512i, alpha_bits_0); // 48 to write, so zmm with a bit of overlap
+        _mm256_storeu_si256(
+            color_out_ptr as *mut __m256i,
+            _mm512_castsi512_si256(color_bytes_0),
+        ); // 32 to write, so ymm
+        _mm256_storeu_si256(
+            index_out_ptr as *mut __m256i,
+            _mm512_castsi512_si256(index_bytes_0),
+        ); // 32 to write, so ymm
 
         // Update pointers
         alpha_byte_out_ptr = alpha_byte_out_ptr.add(16);

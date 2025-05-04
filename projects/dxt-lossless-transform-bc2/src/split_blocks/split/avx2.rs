@@ -48,15 +48,25 @@ pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: us
             "vpunpcklqdq {ymm3}, {ymm4}, {ymm3}", // alpha -> ymm3 (out of order)
 
             // The registers are like:
-            // ymm0: {16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 24, 25, 26, 27, 28, 29, 30, 31, 8, 9, 10, 11, 12, 13, 14, 15}
+            // ymm0: {
+            //          [16, 17, 18, 19],   // 00
+            //          [20, 21, 22, 23],
+            //          [0, 1, 2, 3],       // 01
+            //          [4, 5, 6, 7],
+            //          [24, 25, 26, 27],   // 10
+            //          [28, 29, 30, 31],
+            //          [8, 9, 10, 11],     // 11
+            //          [12, 13, 14, 15]
+            // }
             // ymm3: {48, 49, 50, 51, 52, 53, 54, 55, 32, 33, 34, 35, 36, 37, 38, 39, 56, 57, 58, 59, 60, 61, 62, 63, 40, 41, 42, 43, 44, 45, 46, 47}
             // Because the block right after last one was in same register.
             // We need to permute them to rearrange items into chronological order:
-            "vpermq {ymm0}, {ymm0}, 0x8D", // alpha -> ymm0
-            "vpermq {ymm3}, {ymm3}, 0x8D", // alpha -> ymm3
+            "vpermq {ymm0}, {ymm0}, 0x8D", // alpha -> ymm0 | 0x8D -> 10_00_11_01 | ymm0 = ymm0[1,3,0,2]
+            "vpermq {ymm3}, {ymm3}, 0x8D", // alpha -> ymm3 | 0x8D -> 10_00_11_01 | ymm3 = ymm3[1,3,0,2]
+            // ymm0 is now [0, 1, 2, 3, 4, 5, 6 ... etc.]
 
             // Move the colours+indices to ymm2, ymm5
-            "vshufps {ymm2}, {ymm2}, {ymm1}, 0xEE",
+            "vshufps {ymm2}, {ymm2}, {ymm1}, 0xEE", // 11_10_11_10
             "vshufps {ymm5}, {ymm5}, {ymm4}, 0xEE",
             // ymm2 {
             //   [-128, -127, -126, -125],

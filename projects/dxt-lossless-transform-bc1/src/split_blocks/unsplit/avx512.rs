@@ -1,5 +1,11 @@
 use super::u32_detransform_with_separate_pointers;
-use core::arch::{asm, x86_64::*};
+use core::arch::asm;
+
+#[cfg(target_arch = "x86_64")]
+use core::arch::x86_64::*;
+
+#[cfg(target_arch = "x86")]
+use core::arch::x86::*;
 
 /// # Safety
 ///

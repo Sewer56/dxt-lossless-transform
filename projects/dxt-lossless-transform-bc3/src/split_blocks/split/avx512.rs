@@ -13,6 +13,7 @@ use super::portable32::u32_with_separate_endpoints;
 #[target_feature(enable = "avx512vbmi")]
 #[allow(clippy::identity_op)]
 #[allow(clippy::erasing_op)]
+#[no_mangle]
 pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
@@ -232,6 +233,10 @@ mod tests {
 
     #[rstest]
     fn test_avx512_aligned() {
+        if !is_x86_feature_detected!("avx512vbmi") {
+            return;
+        }
+
         for num_blocks in 1..=512 {
             let input = generate_bc3_test_data(num_blocks);
             let mut output_expected = vec![0u8; input.len()];
@@ -254,6 +259,10 @@ mod tests {
 
     #[rstest]
     fn test_avx512_unaligned() {
+        if !is_x86_feature_detected!("avx512vbmi") {
+            return;
+        }
+
         for num_blocks in 1..=512 {
             let input = generate_bc3_test_data(num_blocks);
             let mut output_expected = vec![0u8; input.len() + 1];

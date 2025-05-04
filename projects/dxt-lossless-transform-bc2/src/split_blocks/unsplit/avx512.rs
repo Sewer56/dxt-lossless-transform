@@ -349,7 +349,11 @@ mod tests {
     #[rstest]
     #[case::avx512_shuffle(avx512_shuffle, "avx512_shuffle")]
     #[case::avx512_shuffle_intrinsics(avx512_shuffle_intrinsics, "avx512_shuffle_intrinsics")]
-    fn test_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+    fn test_avx512_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+        if !is_x86_feature_detected!("avx512f") {
+            return;
+        }
+
         // Test with different block counts to ensure they all work correctly
         for block_count in 1..=512 {
             // Generate test data
@@ -383,6 +387,10 @@ mod tests {
     #[case::avx512_shuffle(avx512_shuffle, "avx512_shuffle")]
     #[case::avx512_shuffle_intrinsics(avx512_shuffle_intrinsics, "avx512_shuffle_intrinsics")]
     fn test_avx512_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+        if !is_x86_feature_detected!("avx512f") {
+            return;
+        }
+
         // Test with different block counts to ensure they all work correctly
         for block_count in 1..=512 {
             // Generate test data

@@ -116,6 +116,10 @@ mod tests {
     #[rstest]
     #[case(permute_512_unroll_2, "avx512 permute unroll 2")]
     fn test_avx512_aligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+        if !is_x86_feature_detected!("avx512f") {
+            return;
+        }
+
         for num_blocks in 1..=512 {
             let mut input = allocate_align_64(num_blocks * 8);
             let mut output_expected = allocate_align_64(input.len());
@@ -151,6 +155,10 @@ mod tests {
     #[rstest]
     #[case(permute_512_unroll_2, "avx512 permute unroll 2")]
     fn test_avx512_unaligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+        if !is_x86_feature_detected!("avx512f") {
+            return;
+        }
+
         for num_blocks in 1..=512 {
             let input = generate_bc1_test_data(num_blocks);
 

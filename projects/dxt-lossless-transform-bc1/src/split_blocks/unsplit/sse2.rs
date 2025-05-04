@@ -1,5 +1,5 @@
 use crate::split_blocks::unsplit::portable32::u32_detransform_with_separate_pointers;
-use std::arch::asm;
+use core::arch::asm;
 
 /// # Safety
 ///

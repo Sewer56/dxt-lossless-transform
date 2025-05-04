@@ -191,12 +191,8 @@ pub unsafe fn permute_512_intrinsics(mut input_ptr: *const u8, output_ptr: *mut 
 pub unsafe fn permute_512_v2_intrinsics(mut input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
-    let mut aligned_len = len - (len % 256);
+    let aligned_len = len - (len % 256);
     let mut alpha_ptr = output_ptr;
-
-    // Note(sewer): We need to subtract 256 (full loop) otherwise we may write over the
-    // end of the buffer.
-    aligned_len = aligned_len.saturating_sub(256);
 
     let mut colors_ptr = alpha_ptr.add(len / 2);
     let mut indices_ptr = colors_ptr.add(len / 4);
@@ -287,12 +283,8 @@ pub unsafe fn permute_512_v2_intrinsics(mut input_ptr: *const u8, output_ptr: *m
 pub unsafe fn permute_512_v2(mut input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
-    let mut aligned_len = len - (len % 256);
+    let aligned_len = len - (len % 256);
     let mut alpha_ptr = output_ptr;
-
-    // Note(sewer): We need to subtract 256 (full loop) otherwise we may write over the
-    // end of the buffer.
-    aligned_len = aligned_len.saturating_sub(256);
 
     let mut colors_ptr = alpha_ptr.add(len / 2);
     let mut indices_ptr = colors_ptr.add(len / 4);

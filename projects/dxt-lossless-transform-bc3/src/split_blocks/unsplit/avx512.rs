@@ -12,31 +12,30 @@ use crate::split_blocks::unsplit::portable::u32_detransform_with_separate_pointe
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512vbmi")]
 pub unsafe fn avx512_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    // Non-64bit has an optimized path, and vl + non-vl variant
-    #[cfg(not(target_arch = "x86_64"))]
-    avx512_detransform_32(input_ptr, output_ptr, len);
+    // Non-64bit has an optimized path, and vl + non-vl variant,
+    // however it turns out it's negigible in speed difference with 64-bit path, and sometimes slower even.
+    // Somehow L1 cache reads are way faster than expected.
+    //#[cfg(not(target_arch = "x86_64"))]
+    //avx512_detransform_32(input_ptr, output_ptr, len);
 
-    #[cfg(target_arch = "x86_64")]
-    {
-        debug_assert!(len % 16 == 0);
-        // Process as many 64-byte blocks as possible
-        let current_output_ptr = output_ptr;
+    debug_assert!(len % 16 == 0);
+    // Process as many 64-byte blocks as possible
+    let current_output_ptr = output_ptr;
 
-        // Set up input pointers for each section
-        let alpha_byte_in_ptr = input_ptr;
-        let alpha_bit_in_ptr = input_ptr.add(len / 16 * 2);
-        let color_byte_in_ptr = input_ptr.add(len / 16 * 8);
-        let index_byte_in_ptr = input_ptr.add(len / 16 * 12);
+    // Set up input pointers for each section
+    let alpha_byte_in_ptr = input_ptr;
+    let alpha_bit_in_ptr = input_ptr.add(len / 16 * 2);
+    let color_byte_in_ptr = input_ptr.add(len / 16 * 8);
+    let index_byte_in_ptr = input_ptr.add(len / 16 * 12);
 
-        avx512_detransform_separate_components(
-            alpha_byte_in_ptr,
-            alpha_bit_in_ptr,
-            color_byte_in_ptr,
-            index_byte_in_ptr,
-            current_output_ptr,
-            len,
-        );
-    }
+    avx512_detransform_separate_components(
+        alpha_byte_in_ptr,
+        alpha_bit_in_ptr,
+        color_byte_in_ptr,
+        index_byte_in_ptr,
+        current_output_ptr,
+        len,
+    );
 }
 
 /// # Safety

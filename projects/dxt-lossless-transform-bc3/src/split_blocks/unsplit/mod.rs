@@ -8,8 +8,34 @@ pub mod sse2;
 pub use sse2::*;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub mod avx512;
+
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub use avx512::*;
+
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
 unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    #[cfg(not(feature = "no-runtime-cpu-detection"))]
+    {
+        #[cfg(feature = "nightly")]
+        #[cfg(target_arch = "x86_64")]
+        if std::is_x86_feature_detected!("avx512vbmi") {
+            avx512::avx512_detransform(input_ptr, output_ptr, len);
+            return;
+        }
+    }
+
+    #[cfg(feature = "no-runtime-cpu-detection")]
+    {
+        #[cfg(target_arch = "x86_64")]
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512vbmi") {
+            avx512::avx512_detransform(input_ptr, output_ptr, len);
+            return;
+        }
+    }
+
     // SSE2 is required by x86-64, so no check needed
     // On i686, this is slower, so skipped.
     #[cfg(target_arch = "x86_64")]
@@ -135,9 +161,9 @@ pub unsafe fn unsplit_block_with_separate_pointers(
 
 #[cfg(test)]
 mod tests {
+    use super::{unsplit_block_with_separate_pointers, unsplit_blocks};
     use crate::testutils::allocate_align_64;
     use safe_allocator_api::RawAlloc;
-    use super::{unsplit_blocks, unsplit_block_with_separate_pointers};
 
     /// Helper to assert implementation results match reference implementation
     pub(crate) fn assert_implementation_matches_reference(

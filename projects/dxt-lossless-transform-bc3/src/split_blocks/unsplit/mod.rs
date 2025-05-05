@@ -83,6 +83,40 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
     output_ptr: *mut u8,
     len: usize,
 ) {
+    #[cfg(not(feature = "no-runtime-cpu-detection"))]
+    {
+        #[cfg(feature = "nightly")]
+        #[cfg(target_arch = "x86_64")]
+        if std::is_x86_feature_detected!("avx512vbmi") {
+            avx512::avx512_detransform_separate_components(
+                alpha_byte_ptr,
+                alpha_bit_ptr,
+                color_byte_ptr,
+                index_byte_ptr,
+                output_ptr,
+                len,
+            );
+            return;
+        }
+    }
+
+    #[cfg(feature = "no-runtime-cpu-detection")]
+    {
+        #[cfg(target_arch = "x86_64")]
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512vbmi") {
+            avx512::avx512_detransform_separate_components(
+                alpha_byte_ptr,
+                alpha_bit_ptr,
+                color_byte_ptr,
+                index_byte_ptr,
+                output_ptr,
+                len,
+            );
+            return;
+        }
+    }
+
     // SSE2 is required by x86-64, so no check needed
     // On i686, this is slower, so skipped.
     #[cfg(target_arch = "x86_64")]

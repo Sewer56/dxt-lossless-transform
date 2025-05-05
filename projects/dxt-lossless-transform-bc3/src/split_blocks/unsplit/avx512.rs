@@ -610,18 +610,21 @@ pub unsafe fn avx512_detransform_separate_components_32(
         // Each zmm register stores 4 blocks.
 
         // The alpha bytes, (4 blocks * 2 bytes == 8 bytes)
-        let alpha_bytes_0 = _mm512_loadu_si512(alpha_byte_in_ptr as *const __m512i); // 32 blocks, 8 regs
+        let alpha_bytes_0 =
+            _mm512_castsi128_si512(_mm_loadu_si128(alpha_byte_in_ptr as *const __m128i)); // 32 blocks, 8 regs
         alpha_byte_in_ptr = alpha_byte_in_ptr.add(8);
 
         // The colors and indices (4 blocks * 4 bytes == 16 bytes)
-        let colors_0 = _mm512_loadu_si512(color_byte_in_ptr as *const __m512i); // 16 blocks, 4 regs
+        let colors_0 = _mm512_castsi128_si512(_mm_loadu_si128(color_byte_in_ptr as *const __m128i)); // 16 blocks, 4 regs
         color_byte_in_ptr = color_byte_in_ptr.add(16);
 
-        let indices_0 = _mm512_loadu_si512(index_byte_in_ptr as *const __m512i); // 16 blocks, 4 regs
+        let indices_0 =
+            _mm512_castsi128_si512(_mm_loadu_si128(index_byte_in_ptr as *const __m128i)); // 16 blocks, 4 regs
         index_byte_in_ptr = index_byte_in_ptr.add(16);
 
         // The alpha bits (4 blocks * 6 bytes == 24 bytes)
-        let alpha_bit_0 = _mm512_loadu_si512(alpha_bit_in_ptr as *const __m512i); // 8 blocks, 2 regs
+        let alpha_bit_0 =
+            _mm512_castsi256_si512(_mm256_loadu_si256(alpha_bit_in_ptr as *const __m256i)); // 8 blocks, 2 regs
         alpha_bit_in_ptr = alpha_bit_in_ptr.add(24);
 
         // 9 regs used, let's use another 8

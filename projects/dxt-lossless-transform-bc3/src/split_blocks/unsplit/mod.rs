@@ -7,9 +7,11 @@ pub mod sse2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub use sse2::*;
 
+#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx512;
 
+#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub use avx512::*;
 

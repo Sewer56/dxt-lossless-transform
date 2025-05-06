@@ -43,6 +43,14 @@ pub mod avx2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub use avx2::*;
 
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub mod avx512;
+
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub use avx512::*;
+
 use crate::color_565::Color565;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -55,6 +63,12 @@ unsafe fn split_color_endpoints_x86(
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         // Runtime feature detection
+        #[cfg(feature = "nightly")]
+        if std::is_x86_feature_detected!("avx512vbmi") {
+            avx512_impl(colors, colors_out, colors_len_bytes);
+            return;
+        }
+
         if std::is_x86_feature_detected!("avx2") {
             avx2_shuf_impl_asm(colors, colors_out, colors_len_bytes);
             return;
@@ -68,6 +82,12 @@ unsafe fn split_color_endpoints_x86(
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512vbmi") {
+            avx512_impl(colors, colors_out, colors_len_bytes);
+            return;
+        }
+
         if cfg!(target_feature = "avx2") {
             avx2_shuf_impl_asm(colors, colors_out, colors_len_bytes);
             return;

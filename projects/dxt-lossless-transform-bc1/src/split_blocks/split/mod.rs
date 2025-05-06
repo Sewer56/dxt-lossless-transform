@@ -16,12 +16,26 @@ pub mod avx2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub use avx2::*;
 
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub mod avx512;
+
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub use avx512::*;
+
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
 unsafe fn split_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         // Runtime feature detection
+        #[cfg(feature = "nightly")]
+        if std::is_x86_feature_detected!("avx512f") {
+            permute_512(input_ptr, output_ptr, len);
+            return;
+        }
+
         if std::is_x86_feature_detected!("avx2") {
             shuffle_permute_unroll_2(input_ptr, output_ptr, len);
             return;
@@ -35,6 +49,12 @@ unsafe fn split_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512f") {
+            permute_512(input_ptr, output_ptr, len);
+            return;
+        }
+
         if cfg!(target_feature = "avx2") {
             shuffle_permute_unroll_2(input_ptr, output_ptr, len);
             return;

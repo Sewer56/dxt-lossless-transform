@@ -7,11 +7,27 @@ pub mod sse2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx2;
 
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub mod avx512;
+
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub use avx512::*;
+
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
 unsafe fn unsplit_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
+        #[cfg(feature = "nightly")]
+        #[cfg(target_arch = "x86_64")]
+        // disabled due to non-guaranteed performance on 32-bit
+        if std::is_x86_feature_detected!("avx512f") {
+            avx512::avx512_shuffle(input_ptr, output_ptr, len);
+            return;
+        }
+
         if std::is_x86_feature_detected!("avx2") {
             avx2::avx2_shuffle(input_ptr, output_ptr, len);
             return;
@@ -25,6 +41,14 @@ unsafe fn unsplit_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len:
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
+        #[cfg(feature = "nightly")]
+        #[cfg(target_arch = "x86_64")]
+        // disabled due to non-guaranteed performance on 32-bit
+        if cfg!(target_feature = "avx512f") {
+            avx512::avx512_shuffle(input_ptr, output_ptr, len);
+            return;
+        }
+
         if cfg!(target_feature = "avx2") {
             avx2::avx2_shuffle(input_ptr, output_ptr, len);
             return;
@@ -75,6 +99,20 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
 ) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
+        #[cfg(feature = "nightly")]
+        #[cfg(target_arch = "x86_64")]
+        // disabled due to non-guaranteed performance on 32-bit
+        if std::is_x86_feature_detected!("avx512f") {
+            avx512::avx512_shuffle_with_components_intrinsics(
+                output_ptr,
+                len,
+                alphas_ptr as *const u8,
+                colors_ptr as *const u8,
+                indices_ptr as *const u8,
+            );
+            return;
+        }
+
         if std::is_x86_feature_detected!("avx2") {
             avx2::avx2_shuffle_with_components(
                 output_ptr,
@@ -100,6 +138,20 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
+        #[cfg(feature = "nightly")]
+        #[cfg(target_arch = "x86_64")]
+        // disabled due to non-guaranteed performance on 32-bit
+        if cfg!(target_feature = "avx512f") {
+            avx512::avx512_shuffle_with_components_intrinsics(
+                output_ptr,
+                len,
+                alphas_ptr as *const u8,
+                colors_ptr as *const u8,
+                indices_ptr as *const u8,
+            );
+            return;
+        }
+
         if cfg!(target_feature = "avx2") {
             avx2::avx2_shuffle_with_components(
                 output_ptr,

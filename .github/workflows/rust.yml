@@ -18,21 +18,24 @@ jobs:
       matrix:
         include:
           # Common Linux Targets
-          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false }
-          - { os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false }
-          - { os: ubuntu-latest, target: aarch64-unknown-linux-gnu, use-cross: true }
-          - { os: ubuntu-latest, target: armv7-unknown-linux-gnueabihf, use-cross: true }
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, rust-toolchain: 'stable' }
+          - { os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, rust-toolchain: 'stable' }
+          - { os: ubuntu-latest, target: aarch64-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable' }
+          - { os: ubuntu-latest, target: armv7-unknown-linux-gnueabihf, use-cross: true, rust-toolchain: 'stable' }
           # Common Windows Targets
-          - { os: windows-latest, target: x86_64-pc-windows-msvc, use-cross: false }
-          - { os: windows-latest, target: i686-pc-windows-msvc, use-cross: false }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, use-cross: false, rust-toolchain: 'stable' }
+          - { os: windows-latest, target: i686-pc-windows-msvc, use-cross: false, rust-toolchain: 'stable' }
           # - { os: windows-latest, target: aarch64-pc-windows-msvc, use-cross: true }
           # Common Apple Targets
-          - { os: macos-13, target: x86_64-apple-darwin, use-cross: false }
-          - { os: macos-14, target: aarch64-apple-darwin, use-cross: false }
+          - { os: macos-13, target: x86_64-apple-darwin, use-cross: false, rust-toolchain: 'stable' }
+          - { os: macos-14, target: aarch64-apple-darwin, use-cross: false, rust-toolchain: 'stable' }
           # Big Endian (64-bit)
-          - { os: ubuntu-latest, target: powerpc64-unknown-linux-gnu, use-cross: true }
+          - { os: ubuntu-latest, target: powerpc64-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable' }
           # Big Endian (32-bit)
-          - { os: ubuntu-latest, target: powerpc-unknown-linux-gnu, use-cross: true }
+          - { os: ubuntu-latest, target: powerpc-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable' }
+          # Nightly features (AVX512)
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, features: "nightly", rust-toolchain: 'nightly' }
+          - { os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, features: "nightly", rust-toolchain: 'nightly' }
 
     runs-on: ${{ matrix.os }}
 
@@ -45,6 +48,8 @@ jobs:
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
+          features: ${{ matrix.features }}
+          rust-toolchain: ${{ matrix.rust-toolchain }}
 
       # Uncomment after first release.
       # - name: Check semver

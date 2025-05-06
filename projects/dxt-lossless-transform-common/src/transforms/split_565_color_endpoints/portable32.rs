@@ -1,5 +1,5 @@
 use crate::color_565::Color565;
-use std::mem::size_of;
+use core::mem::size_of;
 
 /// Splits the colour endpoints using 32-bit operations
 ///

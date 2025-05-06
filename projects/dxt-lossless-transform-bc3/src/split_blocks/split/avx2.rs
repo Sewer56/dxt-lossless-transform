@@ -1,8 +1,8 @@
 #[cfg(target_arch = "x86")]
-use std::arch::x86::*;
+use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
-use std::arch::x86_64::*;
-use std::arch::*;
+use core::arch::x86_64::*;
+use core::arch::*;
 
 use super::portable32::u32_with_separate_endpoints;
 

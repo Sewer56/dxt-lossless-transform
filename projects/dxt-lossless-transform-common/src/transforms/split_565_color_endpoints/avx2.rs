@@ -56,7 +56,7 @@ pub unsafe fn avx2_shuf_impl_asm(colors: *const u8, colors_out: *mut u8, colors_
             5, 4, 1, 0, 7, 6, 3, 2, // xmm low
         );
 
-        std::arch::asm!(
+        core::arch::asm!(
             // Loop alignment
             ".p2align 4",
 

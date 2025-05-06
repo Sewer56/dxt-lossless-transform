@@ -220,6 +220,10 @@ mod tests {
     #[case(avx512_impl, "avx512_impl")]
     #[case(avx512_impl_unroll2, "avx512_impl unroll2")]
     fn test_avx512_aligned(#[case] implementation: TransformFn, #[case] impl_name: &str) {
+        if !is_x86_feature_detected!("avx512vbmi") {
+            return;
+        }
+
         for num_pairs in 1..=512 {
             let input = generate_test_data(num_pairs);
             let mut output_expected = vec![0u8; input.len()];
@@ -250,6 +254,10 @@ mod tests {
     #[case(avx512_impl, "avx512_impl")]
     #[case(avx512_impl_unroll2, "avx512_impl unroll2")]
     fn test_avx512_unaligned(#[case] implementation: TransformFn, #[case] impl_name: &str) {
+        if !is_x86_feature_detected!("avx512vbmi") {
+            return;
+        }
+
         for num_pairs in 1..=512 {
             let input = generate_test_data(num_pairs);
 

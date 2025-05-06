@@ -132,7 +132,11 @@ mod tests {
 
     #[rstest]
     #[case(permute_512_detransform_unroll_2, "avx512_permute_unroll_2")]
-    fn test_avx2_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+    fn test_avx512_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+        if !cfg!(target_feature = "avx512f") {
+            return;
+        }
+
         for num_blocks in 1..=512 {
             let original = generate_bc1_test_data(num_blocks);
             let mut transformed = allocate_align_64(original.len());
@@ -162,7 +166,11 @@ mod tests {
 
     #[rstest]
     #[case(permute_512_detransform_unroll_2, "avx512_permute_unroll_2")]
-    fn test_avx2_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+    fn test_avx512_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+        if !cfg!(target_feature = "avx512f") {
+            return;
+        }
+
         for num_blocks in 1..=512 {
             let original = generate_bc1_test_data(num_blocks);
 

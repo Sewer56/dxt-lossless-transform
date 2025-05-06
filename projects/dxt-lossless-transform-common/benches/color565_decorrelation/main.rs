@@ -1,4 +1,4 @@
-use core::{alloc::Layout, slice};
+use core::{alloc::Layout, slice, time::Duration};
 use criterion::{criterion_group, criterion_main, Criterion};
 use dxt_lossless_transform_common::color_565::Color565;
 use safe_allocator_api::RawAlloc;
@@ -79,6 +79,8 @@ fn criterion_benchmark(c: &mut Criterion) {
     group.throughput(criterion::Throughput::Bytes(
         (NUM_ITEMS * BYTES_PER_ITEM) as u64,
     ));
+    group.warm_up_time(Duration::from_secs(10));
+    group.measurement_time(Duration::from_secs(10));
 
     // Benchmark for decorrelate_ycocg_r_var1_slice
     group.bench_function("decorrelate_ycocg_r_var1_slice", |b| {

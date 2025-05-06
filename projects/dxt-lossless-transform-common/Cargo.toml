@@ -33,3 +33,6 @@ harness = false
 [[bench]]
 name = "split_color565_endpoints"
 harness = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }

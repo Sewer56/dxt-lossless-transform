@@ -413,6 +413,72 @@ impl Color565 {
         // Pack back into RGB565 format, preserving the original g_low bit
         self.value = ((r as u16) << 11) | ((g as u16) << 6) | (g_low << 5) | (b as u16);
     }
+
+    /// Convenience function that applies [`Self::decorrelate_ycocg_r_var1`] to each element in a slice.
+    ///
+    /// May introduce unrolling optimizations. Refer to the original function for details.
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub fn decorrelate_ycocg_r_var1_slice(colors: &mut [Self]) {
+        for color in colors.iter_mut() {
+            color.decorrelate_ycocg_r_var1();
+        }
+    }
+
+    /// Convenience function that applies [`Self::recorrelate_ycocg_r_var1`] to each element in a slice.
+    ///
+    /// May introduce unrolling optimizations. Refer to the original function for details.
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub fn recorrelate_ycocg_r_var1_slice(colors: &mut [Self]) {
+        for color in colors.iter_mut() {
+            color.recorrelate_ycocg_r_var1();
+        }
+    }
+
+    /// Convenience function that applies [`Self::decorrelate_ycocg_r_var2`] to each element in a slice.
+    ///
+    /// May introduce unrolling optimizations. Refer to the original function for details.
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub fn decorrelate_ycocg_r_var2_slice(colors: &mut [Self]) {
+        for color in colors.iter_mut() {
+            color.decorrelate_ycocg_r_var2();
+        }
+    }
+
+    /// Convenience function that applies [`Self::recorrelate_ycocg_r_var2`] to each element in a slice.
+    ///
+    /// May introduce unrolling optimizations. Refer to the original function for details.
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub fn recorrelate_ycocg_r_var2_slice(colors: &mut [Self]) {
+        for color in colors.iter_mut() {
+            color.recorrelate_ycocg_r_var2();
+        }
+    }
+
+    /// Convenience function that applies [`Self::decorrelate_ycocg_r_var3`] to each element in a slice.
+    ///
+    /// May introduce unrolling optimizations. Refer to the original function for details.
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub fn decorrelate_ycocg_r_var3_slice(colors: &mut [Self]) {
+        for color in colors.iter_mut() {
+            color.decorrelate_ycocg_r_var3();
+        }
+    }
+
+    /// Convenience function that applies [`Self::recorrelate_ycocg_r_var3`] to each element in a slice.
+    ///
+    /// May introduce unrolling optimizations. Refer to the original function for details.
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub fn recorrelate_ycocg_r_var3_slice(colors: &mut [Self]) {
+        for color in colors.iter_mut() {
+            color.recorrelate_ycocg_r_var3();
+        }
+    }
 }
 
 #[cfg(test)]

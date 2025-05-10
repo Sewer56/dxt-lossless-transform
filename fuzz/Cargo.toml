@@ -1,0 +1,37 @@
+[package]
+name = "dxt-lossless-transform-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
+rgbcx-sys = "1.1.3"
+bcdec_rs = "0.2.0"
+dxt-lossless-transform-bc1 = { path = "../projects/dxt-lossless-transform-bc1" }
+dxt-lossless-transform-bc2 = { path = "../projects/dxt-lossless-transform-bc2" }
+dxt-lossless-transform-common = { path = "../projects/dxt-lossless-transform-common" }
+
+[[bin]]
+name = "bc1_decode"
+path = "fuzz_targets/bc1_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "bc2_decode"
+path = "fuzz_targets/bc2_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "bc2_decode_color_only"
+path = "fuzz_targets/bc2_decode_color_only.rs"
+test = false
+doc = false
+bench = false

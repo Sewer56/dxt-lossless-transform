@@ -1,6 +1,9 @@
 //! BC1 (DXT1) decoding implementation; based on etcpak
 //! <https://github.com/wolfpld/etcpak> and MSDN
 //! <https://learn.microsoft.com/en-us/windows/win32/direct3d9/opaque-and-1-bit-alpha-textures>
+//!
+//! Uses the 'ideal' rounding/computing method described in the DX9 docs, as opposed to DX10, AMD or Nvidia
+//! method.
 
 use dxt_lossless_transform_common::{
     color_565::Color565, color_8888::Color8888, decoded_4x4_block::Decoded4x4Block,

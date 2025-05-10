@@ -18,6 +18,9 @@ no-runtime-cpu-detection = []
 # Use nightly compiler features (AVX512)
 nightly = []
 
+[dependencies]
+dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dev-dependencies]
 criterion = "0.5.1"
@@ -39,4 +42,9 @@ harness = false
 [[bench]]
 name = "unsplit_blocks"
 path = "benches/unsplit_blocks/main.rs"
+harness = false
+
+[[bench]]
+name = "block_decode"
+path = "benches/block_decode/main.rs"
 harness = false

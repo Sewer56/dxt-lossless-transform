@@ -44,6 +44,23 @@ Click on a project to navigate to its description.
 
 They are low level crates; without a stable API.
 
+## Fuzzing
+
+This project contains a fuzzing crate that can be used to test some of the code against other
+implementations.
+
+```text
+# You may need to install nightly compiler first:
+# https://rust-fuzz.github.io/book/cargo-fuzz/setup.html
+# Install cargo-fuzz
+cargo install cargo-fuzz
+
+# Run the fuzz target
+CARGO_PROFILE_RELEASE_LTO=false cargo fuzz run bc1_decode
+```
+
+To find the targets, look at the `fuzz` folder, `Cargo.toml`.
+
 ## Usage
 
 This crate is not yet released.

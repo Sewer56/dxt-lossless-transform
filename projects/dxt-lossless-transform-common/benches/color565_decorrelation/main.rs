@@ -1,8 +1,8 @@
+use core::mem::size_of;
 use core::{alloc::Layout, slice, time::Duration};
 use criterion::{criterion_group, criterion_main, Criterion};
 use dxt_lossless_transform_common::color_565::Color565;
 use safe_allocator_api::RawAlloc;
-use std::mem::size_of;
 
 #[cfg(not(target_os = "windows"))]
 use pprof::criterion::{Output, PProfProfiler};

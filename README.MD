@@ -55,12 +55,11 @@ implementations.
 # Install cargo-fuzz
 cargo install cargo-fuzz
 
-# Build the fuzz target
-CARGO_PROFILE_RELEASE_LTO=false cargo fuzz build bc1_decode
-
 # Run the fuzz target
 CARGO_PROFILE_RELEASE_LTO=false cargo fuzz run bc1_decode
 ```
+
+To find the targets, look at the `fuzz` folder, `Cargo.toml`.
 
 ## Usage
 

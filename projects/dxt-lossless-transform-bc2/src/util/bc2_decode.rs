@@ -39,9 +39,6 @@ use dxt_lossless_transform_common::{
 /// ```
 #[inline(always)]
 pub unsafe fn decode_bc2_block(src: *const u8) -> Decoded4x4Block {
-    // First 8 bytes contain the explicit alpha values (4 bits per pixel)
-    let alpha_bytes = slice::from_raw_parts(src, 8);
-
     // Last 8 bytes contain the color data (same format as BC1)
     let color_src = src.add(8);
 
@@ -87,6 +84,9 @@ pub unsafe fn decode_bc2_block(src: *const u8) -> Decoded4x4Block {
 
     // Initialize the result block
     let mut result = Decoded4x4Block::new(Color8888::new(0, 0, 0, 0));
+
+    // First 8 bytes contain the explicit alpha values (4 bits per pixel)
+    let alpha_bytes = slice::from_raw_parts(src, 8);
 
     // Decode indices and set pixels with explicit alpha
     let mut index_pos = 0;

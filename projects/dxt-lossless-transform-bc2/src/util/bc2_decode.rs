@@ -133,3 +133,82 @@ pub fn decode_bc2_block_from_slice(src: &[u8]) -> Option<Decoded4x4Block> {
     }
     unsafe { Some(decode_bc2_block(src.as_ptr())) }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // There is also a fuzz test against a good known implementation in bc7enc, so this is minimal.
+
+    #[test]
+    fn can_decode_bc2_block() {
+        // Test case: Simple red color with varying alpha
+        let bc2_block = [
+            // Alpha data (4 bits per pixel): 0x0 to 0xF across the 16 pixels
+            0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE,
+            // Color data (identical to BC1)
+            0x00, 0xF8, // c0 = R:31 G:0 B:0
+            0x00, 0xF8, // c1 = R:31 G:0 B:0 (identical for solid color)
+            0x00, 0x00, 0x00, 0x00, // All pixels use index 0
+        ];
+
+        let decoded = decode_bc2_block_from_slice(&bc2_block).unwrap();
+
+        // Expected alpha values after scaling from 4-bit to 8-bit
+        let expected_alphas = [
+            0, 17, 34, 51, 68, 85, 102, 119, 136, 153, 170, 187, 204, 221, 238, 255,
+        ];
+
+        // All pixels should be red with varying alpha
+        let mut pixel_idx = 0;
+        for y in 0..4 {
+            for x in 0..4 {
+                let pixel = unsafe { decoded.get_pixel_unchecked(x, y) };
+                assert_eq!(pixel.r, 255, "Red component should be 255");
+                assert_eq!(pixel.g, 0, "Green component should be 0");
+                assert_eq!(pixel.b, 0, "Blue component should be 0");
+                assert_eq!(
+                    pixel.a, expected_alphas[pixel_idx],
+                    "Alpha value incorrect at pixel ({x}, {y})",
+                );
+                pixel_idx += 1;
+            }
+        }
+    }
+
+    #[test]
+    fn can_decode_bc2_block_with_zero_alpha() {
+        // Test case: Zero alpha with color data
+        let bc2_block = [
+            // Alpha data: all zeros (fully transparent)
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Color data
+            0x00, 0xF8, // c0 = R:31 G:0 B:0 (Red)
+            0x00, 0xF8, // c1 = R:31 G:0 B:0 (Red)
+            0x00, 0x00, 0x00, 0x00, // All pixels use index 0
+        ];
+
+        let decoded = decode_bc2_block_from_slice(&bc2_block).unwrap();
+
+        // All pixels should have zero alpha but red color
+        for y in 0..4 {
+            for x in 0..4 {
+                let pixel = unsafe { decoded.get_pixel_unchecked(x, y) };
+                assert_eq!(pixel.r, 255, "Red component should be 255");
+                assert_eq!(pixel.g, 0, "Green component should be 0");
+                assert_eq!(pixel.b, 0, "Blue component should be 0");
+                assert_eq!(pixel.a, 0, "Alpha should be 0 (transparent)");
+            }
+        }
+    }
+
+    #[test]
+    fn test_slice_too_small() {
+        // Test with a slice that's too small
+        let bc2_block = [0u8; 15]; // BC2 requires 16 bytes
+        let result = decode_bc2_block_from_slice(&bc2_block);
+        assert!(
+            result.is_none(),
+            "Decoding should fail with too small slice"
+        );
+    }
+}

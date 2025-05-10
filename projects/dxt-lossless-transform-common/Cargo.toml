@@ -10,13 +10,16 @@ readme = "README.MD"
 
 [features]
 default = ["std"]
-std = []
+std = ["multiversion/std"] # Enables runtime checks in multiversion
 # See README.md for more information on using Profile-Guided Optimization.
 pgo = []
 # Use CPU features selected at compile time.
 no-runtime-cpu-detection = []
 # Use nightly compiler features (AVX512)
 nightly = []
+
+[dependencies]
+multiversion = { version = "0.8.0", default-features = false }
 
 [dev-dependencies]
 rstest = "0.25.0"
@@ -33,3 +36,6 @@ harness = false
 [[bench]]
 name = "split_color565_endpoints"
 harness = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }

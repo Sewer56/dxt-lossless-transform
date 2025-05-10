@@ -1,7 +1,6 @@
 #![no_main]
 
 // This fuzz test compares our BC2 decoder against rgbcx-sys for colors and bcdec_rs for alpha.
-// Extra reading: https://fgiesen.wordpress.com/2021/10/04/gpu-bcn-decoding/
 
 use core::mem;
 use dxt_lossless_transform_bc2::util::decode_bc2_block;

@@ -1,7 +1,6 @@
 #![no_main]
 
 // This fuzz test compares our BC1 decoder against our BC2 decoder for colors only, ignoring alpha.
-// Extra reading: https://fgiesen.wordpress.com/2021/10/04/gpu-bcn-decoding/
 
 use dxt_lossless_transform_bc1::util::decode_bc1_block;
 use dxt_lossless_transform_bc2::util::decode_bc2_block;

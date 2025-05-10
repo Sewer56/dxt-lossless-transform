@@ -13,6 +13,7 @@ rgbcx-sys = "1.1.3"
 bcdec_rs = "0.2.0"
 dxt-lossless-transform-bc1 = { path = "../projects/dxt-lossless-transform-bc1" }
 dxt-lossless-transform-bc2 = { path = "../projects/dxt-lossless-transform-bc2" }
+dxt-lossless-transform-bc3 = { path = "../projects/dxt-lossless-transform-bc3" }
 dxt-lossless-transform-common = { path = "../projects/dxt-lossless-transform-common" }
 
 [[bin]]
@@ -32,6 +33,13 @@ bench = false
 [[bin]]
 name = "bc2_decode_color_only"
 path = "fuzz_targets/bc2_decode_color_only.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "bc3_decode"
+path = "fuzz_targets/bc3_decode.rs"
 test = false
 doc = false
 bench = false

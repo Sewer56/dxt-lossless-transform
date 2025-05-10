@@ -19,6 +19,9 @@ no-runtime-cpu-detection = []
 nightly = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }
+
 [dev-dependencies]
 criterion = "0.5.1"
 rstest = "0.25.0"

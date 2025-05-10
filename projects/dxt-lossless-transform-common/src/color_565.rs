@@ -1,4 +1,5 @@
 use crate::color_8888::Color8888;
+use multiversion::multiversion;
 
 /// Represents a 16-bit RGB565 color (5 bits red, 6 bits green, 5 bits blue)
 /// As encountered in many of the BC1 formats.
@@ -420,9 +421,19 @@ impl Color565 {
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn decorrelate_ycocg_r_var1_slice(colors: &mut [Self]) {
-        for color in colors.iter_mut() {
-            color.decorrelate_ycocg_r_var1();
+        #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
+        #[cfg_attr(
+            feature = "nightly",
+            multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
+        )]
+        fn decorr(colors: &mut [Color565]) {
+            // hack around Multiversion
+            for color in colors.iter_mut() {
+                color.decorrelate_ycocg_r_var1();
+            }
         }
+
+        decorr(colors);
     }
 
     /// Convenience function that applies [`Self::recorrelate_ycocg_r_var1`] to each element in a slice.
@@ -431,9 +442,19 @@ impl Color565 {
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_var1_slice(colors: &mut [Self]) {
-        for color in colors.iter_mut() {
-            color.recorrelate_ycocg_r_var1();
+        #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
+        #[cfg_attr(
+            feature = "nightly",
+            multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
+        )]
+        fn recorr(colors: &mut [Color565]) {
+            // hack around Multiversion
+            for color in colors.iter_mut() {
+                color.recorrelate_ycocg_r_var1();
+            }
         }
+
+        recorr(colors);
     }
 
     /// Convenience function that applies [`Self::decorrelate_ycocg_r_var2`] to each element in a slice.
@@ -442,9 +463,19 @@ impl Color565 {
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn decorrelate_ycocg_r_var2_slice(colors: &mut [Self]) {
-        for color in colors.iter_mut() {
-            color.decorrelate_ycocg_r_var2();
+        #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
+        #[cfg_attr(
+            feature = "nightly",
+            multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
+        )]
+        fn decorr(colors: &mut [Color565]) {
+            // hack around Multiversion
+            for color in colors.iter_mut() {
+                color.decorrelate_ycocg_r_var2();
+            }
         }
+
+        decorr(colors);
     }
 
     /// Convenience function that applies [`Self::recorrelate_ycocg_r_var2`] to each element in a slice.
@@ -453,9 +484,19 @@ impl Color565 {
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_var2_slice(colors: &mut [Self]) {
-        for color in colors.iter_mut() {
-            color.recorrelate_ycocg_r_var2();
+        #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
+        #[cfg_attr(
+            feature = "nightly",
+            multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
+        )]
+        fn recorr(colors: &mut [Color565]) {
+            // hack around Multiversion
+            for color in colors.iter_mut() {
+                color.recorrelate_ycocg_r_var2();
+            }
         }
+
+        recorr(colors);
     }
 
     /// Convenience function that applies [`Self::decorrelate_ycocg_r_var3`] to each element in a slice.
@@ -464,9 +505,19 @@ impl Color565 {
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn decorrelate_ycocg_r_var3_slice(colors: &mut [Self]) {
-        for color in colors.iter_mut() {
-            color.decorrelate_ycocg_r_var3();
+        #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
+        #[cfg_attr(
+            feature = "nightly",
+            multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
+        )]
+        fn decorr(colors: &mut [Color565]) {
+            // hack around Multiversion
+            for color in colors.iter_mut() {
+                color.decorrelate_ycocg_r_var3();
+            }
         }
+
+        decorr(colors);
     }
 
     /// Convenience function that applies [`Self::recorrelate_ycocg_r_var3`] to each element in a slice.
@@ -475,9 +526,19 @@ impl Color565 {
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_var3_slice(colors: &mut [Self]) {
-        for color in colors.iter_mut() {
-            color.recorrelate_ycocg_r_var3();
+        #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
+        #[cfg_attr(
+            feature = "nightly",
+            multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
+        )]
+        fn recorr(colors: &mut [Color565]) {
+            // hack around Multiversion
+            for color in colors.iter_mut() {
+                color.recorrelate_ycocg_r_var3();
+            }
         }
+
+        recorr(colors);
     }
 }
 

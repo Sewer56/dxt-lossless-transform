@@ -2,7 +2,7 @@ use crate::color_8888::Color8888;
 use core::mem::transmute;
 
 /// Represents a decoded 4x4 block of BC pixels
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Decoded4x4Block {
     /// The 16 pixels in the block (row-major order)
     pub pixels: [Color8888; 16],

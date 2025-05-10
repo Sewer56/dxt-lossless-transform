@@ -34,5 +34,8 @@ members = [
 
     # CLI Tool
     "projects/dxt-lossless-transform-cli",
+
+    # Fuzzing
+    "fuzz",
 ]
 resolver = "2"

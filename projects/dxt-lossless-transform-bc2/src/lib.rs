@@ -4,6 +4,7 @@
 #![cfg_attr(feature = "nightly", feature(stdarch_x86_avx512))]
 
 pub mod split_blocks;
+pub mod util;
 
 /// The information about the BC2 transform that was just performed.
 /// Each item transformed via [`transform_bc2`] will produce an instance of this struct.

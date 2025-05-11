@@ -46,3 +46,8 @@ harness = false
 name = "block_decode"
 path = "benches/block_decode/main.rs"
 harness = false
+
+[[bench]]
+name = "normalize_blocks"
+path = "benches/normalize_blocks/main.rs"
+harness = false

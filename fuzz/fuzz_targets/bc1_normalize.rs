@@ -28,7 +28,7 @@ fuzz_target!(|block: Bc1Block| {
         normalize_blocks(
             bc1_block.as_ptr(),
             normalized_block.as_mut_ptr(),
-            8,
+            8, // Size of BC1 block in bytes
             false
         );
     }
@@ -53,7 +53,7 @@ fuzz_target!(|block: Bc1Block| {
         normalize_blocks(
             bc1_block.as_ptr(),
             normalized_block_repeated.as_mut_ptr(),
-            8,
+            8, // Size of BC1 block in bytes
             true
         );
     }

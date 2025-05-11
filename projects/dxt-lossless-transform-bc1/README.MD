@@ -67,7 +67,7 @@ We can split the colour endpoints
 +-------+-------+ +-------+-------+
 ```
 
-### Making Solid Blocks Represented the Same Across Texture
+### Making Solid Blocks Represented the Same Across Texture (Normalizing Blocks)
 
 BC1 can represent solid color blocks in multiple ways.
 We make this representation consistent whenever possible.
@@ -87,7 +87,7 @@ to represent a colour using only 1 out of the 2 colour components, i.e. only `C0
 When an entire block is solid, and a clean conversion between `8888` and `565` is possible, we set
 colour `C0` to the colour of the block, and then set `C1`, `I0-I3` all to `0x00`.
 This results in a nice repetition of `0x00` across 6 bytes. In some cases, it's beneficial to replicate
-the colour across `C0` and `C1`. We brute force to find the optimal choice.
+the colour across `C0` and `C1`. We determine based on whichever performs better.
 
 For fully transparent blocks, we instead set all the bits to `1`, so the block becomes filled with `0xFF`. 
 

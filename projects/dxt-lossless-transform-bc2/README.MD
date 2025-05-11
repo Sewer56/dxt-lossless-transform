@@ -54,7 +54,30 @@ Separates colours and indices into continuous streams:
 
 BC2 can represent solid color blocks in multiple ways, which hinders compression.
 
-- TODO
+Recall BC2 block format:
+
+```text
+Address: 0         8         12       16
+         +---------+---------+---------+
+Data:    | A00-A15 | C00-C01 | I00-I15 |
+         +---------+---------+---------+
+```
+
+Sometimes there is a clean conversion between `8888` and `565` colour, meaning that it's possible
+to represent a colour using only 1 out of the 2 colour components, i.e. only `C0` or `C1`.
+
+When an entire block is solid, and a clean conversion between `8888` and `565` is possible, we set
+colour `C0` to the colour of the block, and then set `C1`, `I0-I3` all to `0x00`. This results in a
+nice repetition of `0x00` across 6 bytes. In some cases, it's beneficial to replicate
+the colour across `C0` and `C1`. We determine on whichever performs better.
+
+Note: With BC2, BC3 it's important that we put the colour in `C0`, because the 'alternate alpha mode' of
+BC1 where `c0 <= c1` is unsupported; it leads to undefined behaviour on some GPUs.
+
+There isn't much more we can do for BC2, so we stop here:
+
+- For fully transparent blocks, the `alphas` have the value `0`. Since they are in their own isolated section,
+we can't really improve the compression there.
 
 ### Decorrelating Colours
 

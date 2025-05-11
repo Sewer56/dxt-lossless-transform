@@ -3,6 +3,7 @@
 #![cfg_attr(feature = "nightly", feature(avx512_target_feature))]
 #![cfg_attr(feature = "nightly", feature(stdarch_x86_avx512))]
 
+pub mod normalize_blocks;
 pub mod split_blocks;
 pub mod util;
 

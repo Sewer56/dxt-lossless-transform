@@ -4,6 +4,7 @@
 // to the same pixels as the original blocks.
 
 use dxt_lossless_transform_bc2::{normalize_blocks::normalize_blocks, util::decode_bc2_block};
+use dxt_lossless_transform_common::color_565::Color565;
 use libfuzzer_sys::{arbitrary, fuzz_target};
 
 #[derive(Clone, Debug, arbitrary::Arbitrary)]
@@ -14,6 +15,15 @@ pub struct Bc2Block {
 // Fuzz test for BC2 normalization
 // Tests that normalizing a block preserves its visual appearance when decoded
 fuzz_target!(|block: Bc2Block| {
+    // Skip if c0 <= c1 as that mode is not supported on all GPUs.
+    let c0_raw: u16 = u16::from_le_bytes([block.bytes[8], block.bytes[9]]);
+    let c1_raw: u16 = u16::from_le_bytes([block.bytes[10], block.bytes[11]]);
+    let c0 = Color565::from_raw(c0_raw);
+    let c1 = Color565::from_raw(c1_raw);
+    if !c0.greater_than(&c1) {
+        return;
+    }
+
     // Get a slice to the BC2 block data
     let bc2_block = &block.bytes;
     

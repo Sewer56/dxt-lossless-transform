@@ -57,3 +57,10 @@ path = "fuzz_targets/bc2_normalize.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "bc3_normalize"
+path = "fuzz_targets/bc3_normalize.rs"
+test = false
+doc = false
+bench = false

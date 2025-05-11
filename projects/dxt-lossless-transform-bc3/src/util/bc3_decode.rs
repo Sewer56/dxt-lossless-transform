@@ -189,5 +189,136 @@ pub fn decode_bc3_block_from_slice(src: &[u8]) -> Option<Decoded4x4Block> {
 mod tests {
     use super::*;
 
-    // There is also a fuzz test against a good known implementation in bc7enc, so this is minimal.
+    // There is also a fuzz test against a good known implementation in rgbcx-sys, so this is minimal/very basic.
+
+    #[test]
+    fn can_decode_bc3_block() {
+        // Test case from fuzz test: white color with alpha
+        let bc3_block = [
+            // Alpha data (BC4 compression)
+            0, 0, 0, 255, 255, 255, 255, 255, // Color data (BC1-style format)
+            255, 255, // c0 = R:31 G:63 B:31 (white)
+            18, 0, // c1 = R:0 G:0 B:1
+            0, 0, 0, 250, // Indices: mostly index 0, some index 2 and 3
+        ];
+
+        let decoded = decode_bc3_block_from_slice(&bc3_block).unwrap();
+
+        // Create the expected block with an array of 16 pixels (row-major order)
+        let expected = Decoded4x4Block {
+            pixels: [
+                // Row 0
+                Color8888::new(255, 255, 255, 0),
+                Color8888::new(255, 255, 255, 0),
+                Color8888::new(255, 255, 255, 0),
+                Color8888::new(255, 255, 255, 255),
+                // Row 1
+                Color8888::new(255, 255, 255, 255),
+                Color8888::new(255, 255, 255, 255),
+                Color8888::new(255, 255, 255, 255),
+                Color8888::new(255, 255, 255, 255),
+                // Row 2
+                Color8888::new(255, 255, 255, 255),
+                Color8888::new(255, 255, 255, 255),
+                Color8888::new(255, 255, 255, 255),
+                Color8888::new(255, 255, 255, 255),
+                // Row 3
+                Color8888::new(170, 170, 219, 255),
+                Color8888::new(170, 170, 219, 255),
+                Color8888::new(85, 85, 183, 255),
+                Color8888::new(85, 85, 183, 255),
+            ],
+        };
+
+        // Compare the entire block at once
+        assert_eq!(decoded, expected, "Decoded block doesn't match expected");
+    }
+
+    #[test]
+    fn can_decode_bc3_block_with_varying_alpha() {
+        // Test case: BC3 block with varying alpha values
+        let bc3_block = [
+            // Alpha data (BC4 compression) with alpha0 > alpha1 (8-value mode)
+            41, 1, 253, 178, 0, 0, 0, 0, // Color data (BC1-style format)
+            10, 0, 0, 0, 0, 0, 77, 0, // Blue color with various indices
+        ];
+
+        let decoded = decode_bc3_block_from_slice(&bc3_block).unwrap();
+
+        // Create the expected block with an array of 16 pixels (row-major order)
+        let expected = Decoded4x4Block {
+            pixels: [
+                // Row 0 - varying alpha
+                Color8888::new(0, 0, 82, 18),
+                Color8888::new(0, 0, 82, 6),
+                Color8888::new(0, 0, 82, 29),
+                Color8888::new(0, 0, 82, 1),
+                // Row 1
+                Color8888::new(0, 0, 82, 29),
+                Color8888::new(0, 0, 82, 1),
+                Color8888::new(0, 0, 82, 41),
+                Color8888::new(0, 0, 82, 41),
+                // Row 2 - with blue variations
+                Color8888::new(0, 0, 0, 41),
+                Color8888::new(0, 0, 27, 41),
+                Color8888::new(0, 0, 82, 41),
+                Color8888::new(0, 0, 0, 41),
+                // Row 3
+                Color8888::new(0, 0, 82, 41),
+                Color8888::new(0, 0, 82, 41),
+                Color8888::new(0, 0, 82, 41),
+                Color8888::new(0, 0, 82, 41),
+            ],
+        };
+
+        // Compare the entire block at once
+        assert_eq!(decoded, expected, "Decoded block doesn't match expected");
+    }
+
+    #[test]
+    fn can_decode_bc3_block_with_fixed_alpha() {
+        // Test case: Fixed alpha with blue color
+        let bc3_block = [
+            // Alpha data: all max value
+            221, 0, 0, 0, 0, 0, 0, 0, // Color data
+            10, 0, 0, 0, 0, 0, 212, 0, // Blue with some variation in index
+        ];
+
+        let decoded = decode_bc3_block_from_slice(&bc3_block).unwrap();
+
+        // Create the expected block with an array of 16 pixels (row-major order)
+        let expected = Decoded4x4Block {
+            pixels: [
+                // Row 0
+                Color8888::new(0, 0, 82, 221),
+                Color8888::new(0, 0, 82, 221),
+                Color8888::new(0, 0, 82, 221),
+                Color8888::new(0, 0, 82, 221),
+                // Row 1
+                Color8888::new(0, 0, 82, 221),
+                Color8888::new(0, 0, 82, 221),
+                Color8888::new(0, 0, 82, 221),
+                Color8888::new(0, 0, 82, 221),
+                // Row 2 - with blue variations
+                Color8888::new(0, 0, 82, 221),
+                Color8888::new(0, 0, 0, 221),
+                Color8888::new(0, 0, 0, 221),
+                Color8888::new(0, 0, 27, 221),
+                // Row 3
+                Color8888::new(0, 0, 82, 221),
+                Color8888::new(0, 0, 82, 221),
+                Color8888::new(0, 0, 82, 221),
+                Color8888::new(0, 0, 82, 221),
+            ],
+        };
+
+        // Compare the entire block at once
+        assert_eq!(decoded, expected, "Decoded block doesn't match expected");
+    }
+
+    #[test]
+    fn test_slice_too_small() {
+        let too_small = [0u8; 15];
+        assert!(decode_bc3_block_from_slice(&too_small).is_none());
+    }
 }

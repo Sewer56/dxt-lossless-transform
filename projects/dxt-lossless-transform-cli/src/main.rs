@@ -1,8 +1,6 @@
 #![allow(unexpected_cfgs)]
 #![cfg(not(tarpaulin_include))]
 
-#[cfg(feature = "debug-bc1")]
-mod debug_bc1;
 #[cfg(feature = "debug-bc7")]
 mod debug_bc7;
 
@@ -62,8 +60,6 @@ enum Commands {
     Detransform(DetransformCmd),
     #[cfg(feature = "debug-bc7")]
     DebugBc7(debug_bc7::DebugCmd),
-    #[cfg(feature = "debug-bc1")]
-    DebugBc1(debug_bc1::DebugCmd),
 }
 
 #[derive(FromArgs, Debug)]
@@ -162,10 +158,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         #[cfg(feature = "debug-bc7")]
         Commands::DebugBc7(cmd) => {
             debug_bc7::handle_debug_command(cmd)?;
-        }
-        #[cfg(feature = "debug-bc1")]
-        Commands::DebugBc1(cmd) => {
-            debug_bc1::handle_debug_command(cmd)?;
         }
     }
 

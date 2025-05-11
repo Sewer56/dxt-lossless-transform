@@ -96,8 +96,8 @@ pub unsafe fn decode_bc3_block(src: *const u8) -> Decoded4x4Block {
 
     // Create alpha lookup table
     let mut alpha_values = [0u8; 8];
-    alpha_values[0] = alpha0;
-    alpha_values[1] = alpha1;
+    alpha_values[0] = alpha0; // bit code 000
+    alpha_values[1] = alpha1; // bit code 001
 
     // In BC4/BC3, if alpha0 > alpha1, we have 8 interpolated values
     // Otherwise we have 6 interpolated values plus transparent and opaque

@@ -123,7 +123,6 @@ pub unsafe fn normalize_blocks(
             // Get the first pixel (they all have the same color)
             let pixel = decoded_block.pixels[0];
 
-            // Case 1: Solid color block
             // Convert the color to RGB565
             let color565 = pixel.to_color_565();
 

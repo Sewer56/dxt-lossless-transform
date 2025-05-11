@@ -49,4 +49,19 @@ impl Color8888 {
     pub fn to_color_565(&self) -> Color565 {
         Color565::from_rgb(self.r, self.g, self.b)
     }
+
+    /// Returns a new [`Color8888`] with the alpha component set to 0.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_common::color_8888::Color8888;
+    ///
+    /// let pixel = Color8888::new(255, 0, 0, 255);
+    /// let pixel_without_alpha = pixel.without_alpha();
+    /// assert_eq!(pixel_without_alpha.a, 0);
+    /// ```
+    pub fn without_alpha(&self) -> Color8888 {
+        Color8888::new(self.r, self.g, self.b, 0)
+    }
 }

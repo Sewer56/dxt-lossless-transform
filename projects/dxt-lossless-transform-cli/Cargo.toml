@@ -8,10 +8,6 @@ edition = "2021"
 # Currently a placeholder
 debug-bc7 = []
 
-# Debugging and Research Tools/Utilities for BC1
-# This includes extra test code, extra benchmarks and extra utils. 
-debug-bc1 = ["dxt-lossless-transform-bc1", "safe-allocator-api"]
-
 [dependencies]
 argh = "0.1.13"
 rayon = "1.10.0"

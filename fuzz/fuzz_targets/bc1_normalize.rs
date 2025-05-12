@@ -23,7 +23,7 @@ fuzz_target!(|block: Bc1Block| {
     // Create a buffer for the normalized block
     let mut normalized_block = [0u8; 8];
     
-    // Normalize the block (with repeat_colour=false)
+    // Normalize the block (with ColorNormalizationMode::Color0Only)
     unsafe {
         normalize_blocks(
             bc1_block.as_ptr(),
@@ -40,15 +40,15 @@ fuzz_target!(|block: Bc1Block| {
     assert_eq!(
         original_decoded, 
         normalized_decoded,
-        "Normalized block doesn't decode to the same pixels as the original block\n\
+        "Normalized block (with ColorNormalizationMode::Color0Only) doesn't decode to the same pixels as the original block\n\
          Original block: {bc1_block:?}\n\
          Normalized block: {normalized_block:?}",
     );
     
-    // Also test normalization with repeat_colour=true
+    // Also test normalization with ColorNormalizationMode::ReplicateColor
     let mut normalized_block_repeated = [0u8; 8];
     
-    // Normalize the block (with repeat_colour=true)
+    // Normalize the block (with ColorNormalizationMode::ReplicateColor)
     unsafe {
         normalize_blocks(
             bc1_block.as_ptr(),
@@ -65,7 +65,7 @@ fuzz_target!(|block: Bc1Block| {
     assert_eq!(
         original_decoded, 
         normalized_repeated_decoded,
-        "Normalized block (with repeat_color=true) doesn't decode to the same pixels as the original block\n\
+        "Normalized block (with ColorNormalizationMode::ReplicateColor) doesn't decode to the same pixels as the original block\n\
          Original block: {bc1_block:?}\n\
          Normalized block: {normalized_block_repeated:?}",
     );

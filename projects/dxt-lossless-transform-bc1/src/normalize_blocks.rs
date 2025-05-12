@@ -97,6 +97,7 @@ use likely_stable::unlikely;
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
+/// - input_ptr and output_ptr must not overlap
 ///
 /// # Remarks
 ///
@@ -117,6 +118,10 @@ pub unsafe fn normalize_blocks(
     color_mode: ColorNormalizationMode,
 ) {
     debug_assert!(len % 8 == 0);
+    debug_assert!(
+        input_ptr.add(len) <= output_ptr || output_ptr.add(len) <= input_ptr as *mut u8,
+        "Input and output memory regions must not overlap"
+    );
 
     // Skip normalization if mode is None
     if color_mode == ColorNormalizationMode::None {
@@ -170,7 +175,7 @@ pub unsafe fn normalize_blocks(
                             // Write Color1 = 0
                             *dst_block_ptr.add(2) = 0;
                             *dst_block_ptr.add(3) = 0;
-                            
+
                             // Write indices = 0
                             *dst_block_ptr.add(4) = 0;
                             *dst_block_ptr.add(5) = 0;
@@ -181,7 +186,7 @@ pub unsafe fn normalize_blocks(
                             // Write Color1 = same as Color0
                             *dst_block_ptr.add(2) = color_bytes[0];
                             *dst_block_ptr.add(3) = color_bytes[1];
-                            
+
                             // Write indices = 0
                             *dst_block_ptr.add(4) = 0;
                             *dst_block_ptr.add(5) = 0;
@@ -263,7 +268,7 @@ mod tests {
         let mut expected = [0u8; 8];
         expected[0] = red565[0];
         expected[1] = red565[1];
-        
+
         // Set Color1 based on mode
         if color_mode == ColorNormalizationMode::ReplicateColor {
             expected[2] = red565[0];
@@ -437,7 +442,7 @@ mod tests {
         // First block: normalized solid color
         expected[0] = red565[0];
         expected[1] = red565[1];
-        
+
         // Set Color1 based on mode
         if color_mode == ColorNormalizationMode::ReplicateColor {
             expected[2] = red565[0];
@@ -446,7 +451,7 @@ mod tests {
             expected[2] = 0;
             expected[3] = 0;
         }
-        
+
         // Rest of first block is zeros
         expected[4] = 0;
         expected[5] = 0;

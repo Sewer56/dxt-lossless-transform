@@ -74,9 +74,6 @@ impl Decoded4x4Block {
     /// `true` if all pixels in the block are identical, `false` otherwise
     #[inline]
     pub fn has_identical_pixels_ignore_alpha(&self) -> bool {
-        // Assert at compile time that Color8888 is the same size as u32
-        const _: () = assert!(size_of::<Color8888>() == size_of::<u32>());
-
         // Get first pixel without alpha
         let first_pixel_u32_no_alpha = self.pixels[0].without_alpha();
 
@@ -84,5 +81,12 @@ impl Decoded4x4Block {
         self.pixels
             .iter()
             .all(|pixel| pixel.without_alpha() == first_pixel_u32_no_alpha)
+    }
+
+    /// Checks if all pixels in the block have the same alpha values
+    #[inline]
+    pub fn has_identical_alpha(&self) -> bool {
+        let first_pixel_alpha = self.pixels[0].a;
+        self.pixels.iter().all(|pixel| pixel.a == first_pixel_alpha)
     }
 }

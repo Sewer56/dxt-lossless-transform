@@ -53,11 +53,56 @@ Separates colours and indices into continuous streams:
 +-------+-------+-------+     +-------+
 ```
 
-### Making Solid Blocks Represented the Same Across Texture
+### Making Single Colour Blocks Represented the Same Across Texture
 
-BC3 can represent solid color blocks in multiple ways, which hinders compression.
+BC3 can represent single color blocks in multiple ways, which hinders compression.
 
-- TODO
+Recall BC3 block format:
+
+```text
+Address: 0       2          8   8        12        16
+         +-------+----------+   +---------+---------+
+Data:    | A0-A1 | AI0-AI15 |   | C00-C01 | I00-I15 |
+         +-------+----------+   +---------+---------+
+```
+
+Two bytes of Alpha (8 bits each) followed by 6 bytes of indices (3 bits each).
+The indices are used to interpolate the alpha values.
+
+There are 2 steps to normalizing here:
+
+#### Normalizing the Alphas
+
+Sometimes all items within a block have the same alpha component, for example, all pixels in a block
+are fully opaque (`0xFF`), or are semi transparent (`0xD0`). 
+
+When a block is fully opaque, there are multiple well compressible representations which can be used:
+
+- All 8 bytes set to `0xFF` (`0xFFFFFFFF 0xFFFFFFFF`).
+  - Because `A0` <= `A1`, index 0xFF is hardcoded to opaque on decoder side.
+- Zero alphas but indices set to `0xFF` (`0x0000FFFF 0xFFFFFFFF`).
+
+For all other values (including `0xFF`), the following representation is possible:
+
+- `A0` set to `0xFF` and everything else set to `0x00` (`0xFF000000 0x00000000`).
+  - Everything uses colour from the first item.
+
+Which means there's `3` modes for fully opaque, and single `1` mode for everything else.
+
+#### Normalizing the Colours
+
+(This is the same as BC2)
+
+Sometimes there is a clean conversion between `8888` and `565` colour, meaning that it's possible
+to represent a colour using only 1 out of the 2 colour components, i.e. only `C0` or `C1`.
+
+When an entire block is solid, and a clean conversion between `8888` and `565` is possible, we set
+colour `C0` to the colour of the block, and then set `C1`, `I0-I3` all to `0x00`. This results in a
+nice repetition of `0x00` across 6 bytes. In some cases, it's beneficial to replicate
+the colour across `C0` and `C1`. We determine based on whichever performs better by compressing the data.
+
+Note: With BC2, BC3 it's important that we put the colour in `C0` because the 'alternate alpha mode' of
+BC1 where `c0 <= c1` is unsupported; it leads to undefined behaviour on some GPUs.
 
 ### Decorrelating Colours
 

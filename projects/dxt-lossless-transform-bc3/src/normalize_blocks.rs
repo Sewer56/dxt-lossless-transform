@@ -77,6 +77,7 @@ use likely_stable::unlikely;
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16 (BC3 block size)
+/// - input_ptr and output_ptr must not overlap
 ///
 /// # Remarks
 ///
@@ -96,6 +97,10 @@ pub unsafe fn normalize_blocks(
     color_mode: ColorNormalizationMode,
 ) {
     debug_assert!(len % 16 == 0);
+    debug_assert!(
+        input_ptr.add(len) <= output_ptr || output_ptr.add(len) <= input_ptr as *mut u8,
+        "Input and output memory regions must not overlap"
+    );
 
     // Skip normalization if both modes are None
     if alpha_mode == AlphaNormalizationMode::None && color_mode == ColorNormalizationMode::None {

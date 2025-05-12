@@ -3,7 +3,7 @@
 // This fuzz test validates the BC1 normalizer by checking that the normalized blocks decode 
 // to the same pixels as the original blocks.
 
-use dxt_lossless_transform_bc1::{normalize_blocks::normalize_blocks, util::decode_bc1_block};
+use dxt_lossless_transform_bc1::{normalize_blocks::{normalize_blocks, ColorNormalizationMode}, util::decode_bc1_block};
 use libfuzzer_sys::{arbitrary, fuzz_target};
 
 #[derive(Clone, Debug, arbitrary::Arbitrary)]
@@ -29,7 +29,7 @@ fuzz_target!(|block: Bc1Block| {
             bc1_block.as_ptr(),
             normalized_block.as_mut_ptr(),
             8, // Size of BC1 block in bytes
-            false
+            ColorNormalizationMode::Color0Only
         );
     }
     
@@ -54,7 +54,7 @@ fuzz_target!(|block: Bc1Block| {
             bc1_block.as_ptr(),
             normalized_block_repeated.as_mut_ptr(),
             8, // Size of BC1 block in bytes
-            true
+            ColorNormalizationMode::ReplicateColor
         );
     }
     

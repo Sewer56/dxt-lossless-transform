@@ -1,6 +1,6 @@
 use core::{alloc::Layout, ptr::copy_nonoverlapping};
 use criterion::{criterion_group, criterion_main, Criterion};
-use dxt_lossless_transform_bc1::normalize_blocks::normalize_blocks;
+use dxt_lossless_transform_bc1::normalize_blocks::{normalize_blocks, ColorNormalizationMode};
 use safe_allocator_api::RawAlloc;
 use std::fs;
 
@@ -50,7 +50,12 @@ fn criterion_benchmark(c: &mut Criterion) {
     // Benchmark the normalize_blocks function
     group.bench_function("normalize_blocks", |b| {
         b.iter(|| unsafe {
-            normalize_blocks(input_ptr, output_ptr, file_size, false);
+            normalize_blocks(
+                input_ptr,
+                output_ptr,
+                file_size,
+                ColorNormalizationMode::Color0Only,
+            );
         })
     });
 

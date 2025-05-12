@@ -5,6 +5,7 @@
 
 use core::alloc::Layout;
 
+use normalize_blocks::ColorNormalizationMode;
 use safe_allocator_api::RawAlloc;
 use split_blocks::{split::split_blocks, unsplit_blocks};
 pub mod normalize_blocks;
@@ -49,7 +50,12 @@ pub unsafe fn transform_bc1(
     debug_assert!(len % 8 == 0);
 
     let mut normalized = RawAlloc::new(Layout::from_size_align_unchecked(len, 64)).unwrap();
-    normalize_blocks::normalize_blocks(input_ptr, normalized.as_mut_ptr(), len, false);
+    normalize_blocks::normalize_blocks(
+        input_ptr,
+        normalized.as_mut_ptr(),
+        len,
+        ColorNormalizationMode::Color0Only,
+    );
     split_blocks(normalized.as_ptr(), output_ptr, len);
     Bc1TransformDetails {}
 }

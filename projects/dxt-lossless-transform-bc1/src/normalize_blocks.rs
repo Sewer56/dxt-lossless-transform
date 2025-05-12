@@ -273,8 +273,10 @@ mod tests {
         if color_mode == ColorNormalizationMode::ReplicateColor {
             expected[2] = red565[0];
             expected[3] = red565[1];
+        } else if color_mode == ColorNormalizationMode::Color0Only {
+            expected[2] = 0;
+            expected[3] = 0;
         }
-        // Other bytes remain 0
 
         // Output buffer for normalized block
         let mut output = [0u8; 8];
@@ -447,7 +449,7 @@ mod tests {
         if color_mode == ColorNormalizationMode::ReplicateColor {
             expected[2] = red565[0];
             expected[3] = red565[1];
-        } else {
+        } else if color_mode == ColorNormalizationMode::Color0Only {
             expected[2] = 0;
             expected[3] = 0;
         }

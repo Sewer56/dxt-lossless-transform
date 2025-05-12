@@ -276,6 +276,9 @@ mod tests {
         if color_mode == ColorNormalizationMode::ReplicateColor {
             expected[10] = red565[0];
             expected[11] = red565[1];
+        } else if color_mode == ColorNormalizationMode::Color0Only {
+            expected[10] = 0;
+            expected[11] = 0;
         }
         // All other bytes remain 0
 
@@ -416,6 +419,9 @@ mod tests {
         if color_mode == ColorNormalizationMode::ReplicateColor {
             expected[10] = red565[0];
             expected[11] = red565[1];
+        } else if color_mode == ColorNormalizationMode::Color0Only {
+            expected[10] = 0;
+            expected[11] = 0;
         }
 
         // Output buffer for normalized block
@@ -483,7 +489,11 @@ mod tests {
         if color_mode == ColorNormalizationMode::ReplicateColor {
             expected[10] = red565[0];
             expected[11] = red565[1];
+        } else if color_mode == ColorNormalizationMode::Color0Only {
+            expected[10] = 0;
+            expected[11] = 0;
         }
+
         // Rest of first block's indices are zeros
         expected[12] = 0;
         expected[13] = 0;

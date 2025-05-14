@@ -3,7 +3,7 @@ use multiversion::multiversion;
 
 /// Represents a 16-bit RGB565 color (5 bits red, 6 bits green, 5 bits blue)
 /// As encountered in many of the BC1 formats.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Color565 {
     /// The underlying 16-bit RGB565 value
     value: u16,

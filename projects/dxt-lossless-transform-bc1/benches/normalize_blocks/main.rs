@@ -10,7 +10,8 @@ use std::fs;
 use pprof::criterion::{Output, PProfProfiler};
 
 // Path to the BC1 file to benchmark with
-const TEST_FILE_PATH: &str = "/home/sewer/Downloads/texture-stuff/bc1-raw/202x-architecture-10.01/whiterun/wrwoodlattice01.dds";
+const TEST_FILE_PATH: &str =
+    "/home/sewer/Temp/texture-stuff/bc1-raw/202x-architecture-10.01/whiterun/wrwoodlattice01.dds";
 
 pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
     let layout = Layout::from_size_align(num_bytes, 64).unwrap();

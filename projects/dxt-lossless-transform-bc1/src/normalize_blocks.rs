@@ -156,7 +156,7 @@ pub unsafe fn normalize_blocks(
             }
 
             // Advance destination pointer
-            dst_block_ptr = output_ptr.add(8);
+            dst_block_ptr = dst_block_ptr.add(8);
         },
     );
 }

@@ -129,9 +129,8 @@ pub unsafe fn normalize_blocks(
         return;
     }
 
-    // Setup destination pointer
+    // Setup mutable destination pointer
     let mut dst_block_ptr = output_ptr;
-
     normalize_blocks_impl(
         input_ptr,
         len,
@@ -150,14 +149,14 @@ pub unsafe fn normalize_blocks(
                         color_mode,
                     );
                 }
-                BlockCase::Other => {
+                BlockCase::CannotNormalize => {
                     // Cannot normalize, copy source block as-is
                     copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
                 }
             }
 
             // Advance destination pointer
-            dst_block_ptr = dst_block_ptr.add(8);
+            dst_block_ptr = output_ptr.add(8);
         },
     );
 }
@@ -230,7 +229,12 @@ where
                     );
                 } else {
                     // Case 3: Cannot normalize
-                    handle_output(src_block_ptr, &decoded_block, BlockCase::Other, color565);
+                    handle_output(
+                        src_block_ptr,
+                        &decoded_block,
+                        BlockCase::CannotNormalize,
+                        color565,
+                    );
                 }
             }
         } else {
@@ -238,7 +242,7 @@ where
             handle_output(
                 src_block_ptr,
                 &decoded_block,
-                BlockCase::Other,
+                BlockCase::CannotNormalize,
                 Color565::default(),
             );
         }
@@ -255,11 +259,12 @@ enum BlockCase {
     Transparent,
     /// Solid color block with clean RGB565 roundtrip
     SolidColorRoundtrippable,
-    /// Any other block type (mixed colors, non-roundtrippable solid color)
-    Other,
+    /// Any other block type (mixed colors, non-roundtrippable solid color).
+    CannotNormalize,
 }
 
-/// Helper function to write a solid color block with the specified normalization mode.
+/// Helper function to write a round-trippable (8888 <-> 565) solid color block with the
+/// specified normalization mode.
 ///
 /// # Parameters
 ///
@@ -370,7 +375,7 @@ pub unsafe fn normalize_blocks_all_modes(
                         write_normalized_solid_color_block(*dst_ptr, src_block_ptr, color565, mode);
                     }
                 }
-                BlockCase::Other => {
+                BlockCase::CannotNormalize => {
                     // Cannot normalize, copy source block as-is to all output buffers
                     for dst_ptr in output_ptrs.iter() {
                         copy_nonoverlapping(src_block_ptr, *dst_ptr, 8);

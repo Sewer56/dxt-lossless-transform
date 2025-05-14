@@ -293,8 +293,8 @@ enum BlockCase {
 ///
 /// # Parameters
 ///
-/// - `dst_block_ptr`: Pointer to the destination block (after the alpha values)
-/// - `src_block_ptr`: Pointer to the source block (used for None mode)
+/// - `dst_block_ptr`: Pointer to the **start** of the destination BC2 block
+/// - `src_block_ptr`: Pointer to the **start** of the source BC2 block (used for None mode)
 /// - `color565`: The RGB565 color to write
 /// - `color_mode`: The normalization mode to use
 ///

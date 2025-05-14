@@ -1,6 +1,8 @@
 use core::{alloc::Layout, ptr::copy_nonoverlapping};
 use criterion::{criterion_group, criterion_main, Criterion};
-use dxt_lossless_transform_bc1::normalize_blocks::{normalize_blocks, ColorNormalizationMode};
+use dxt_lossless_transform_bc1::normalize_blocks::{
+    normalize_blocks, normalize_blocks_all_modes, ColorNormalizationMode,
+};
 use safe_allocator_api::RawAlloc;
 use std::fs;
 
@@ -56,6 +58,30 @@ fn criterion_benchmark(c: &mut Criterion) {
                 file_size,
                 ColorNormalizationMode::Color0Only,
             );
+        })
+    });
+
+    // Benchmark normalize_blocks_all_modes
+    // Create buffers for each normalization mode outside the benchmark
+    let mode_count = ColorNormalizationMode::all_values().len();
+    let mut output_buffers = Vec::with_capacity(mode_count);
+
+    for _ in 0..mode_count {
+        output_buffers.push(allocate_align_64(file_size));
+    }
+
+    group.bench_function("normalize_blocks_all_modes", |b| {
+        b.iter(|| unsafe {
+            // Create a fresh stack array of pointers for each iteration (else it segfaults)
+            // The ColorNormalizationMode enum has three variants: None, Color0Only, ReplicateColor
+            let mut output_ptrs_array = [
+                output_buffers[0].as_mut_ptr(), // None
+                output_buffers[1].as_mut_ptr(), // Color0Only
+                output_buffers[2].as_mut_ptr(), // ReplicateColor
+            ];
+
+            // Run the function
+            normalize_blocks_all_modes(input_ptr, &mut output_ptrs_array, file_size);
         })
     });
 

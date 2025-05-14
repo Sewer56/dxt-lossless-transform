@@ -52,8 +52,22 @@ doc = false
 bench = false
 
 [[bin]]
+name = "bc1_normalize_all_modes"
+path = "fuzz_targets/bc1_normalize_all_modes.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "bc2_normalize"
 path = "fuzz_targets/bc2_normalize.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "bc2_normalize_all_modes"
+path = "fuzz_targets/bc2_normalize_all_modes.rs"
 test = false
 doc = false
 bench = false

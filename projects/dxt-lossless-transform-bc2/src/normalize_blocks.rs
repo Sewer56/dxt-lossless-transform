@@ -125,7 +125,12 @@ pub unsafe fn normalize_blocks(
                 copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
 
                 // Write normalized color data (bytes 8-15)
-                write_normalized_color_data(dst_block_ptr, src_block_ptr, color565, color_mode);
+                write_normalized_solid_color_block(
+                    dst_block_ptr,
+                    src_block_ptr,
+                    color565,
+                    color_mode,
+                );
             }
             BlockCase::CannotNormalize => {
                 // Cannot normalize, copy source block as-is
@@ -256,7 +261,12 @@ pub unsafe fn normalize_blocks_all_modes(
                     copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
 
                     // Write normalized color data (bytes 8-15)
-                    write_normalized_color_data(dst_block_ptr, src_block_ptr, color565, *mode);
+                    write_normalized_solid_color_block(
+                        dst_block_ptr,
+                        src_block_ptr,
+                        color565,
+                        *mode,
+                    );
 
                     // Advance this mode's destination pointer
                     output_ptrs[x] = dst_block_ptr.add(16);
@@ -302,7 +312,7 @@ enum BlockCase {
 /// - dst_block_ptr must be valid for writes from offset 8 to 15 (color data in BC2 block)
 /// - src_block_ptr must be valid for reads of 16 bytes if color_mode is None
 #[inline]
-unsafe fn write_normalized_color_data(
+unsafe fn write_normalized_solid_color_block(
     dst_block_ptr: *mut u8,
     src_block_ptr: *const u8,
     color565: Color565,

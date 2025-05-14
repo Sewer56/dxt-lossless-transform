@@ -149,7 +149,6 @@ pub unsafe fn normalize_blocks(
 /// - `len`: The length of the input data in bytes
 /// - `handle_output`: A closure that handles writing the output. The closure receives:
 ///   - The source block pointer
-///   - A reference to the decoded block
 ///   - A block processing case (solid color w/ roundtrip or cannot normalize)
 ///   - The color in RGB565 format (valid only for solid color blocks)
 ///

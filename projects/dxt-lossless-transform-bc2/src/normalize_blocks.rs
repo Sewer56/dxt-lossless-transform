@@ -312,17 +312,17 @@ unsafe fn write_normalized_color_data(
     // Color0 = the color, Color1 = 0 or repeat, indices = 0
     let color_bytes = color565.raw_value().to_le_bytes();
 
-    // Write Color0 (the solid color)
-    *dst_block_ptr.add(8) = color_bytes[0];
-    *dst_block_ptr.add(9) = color_bytes[1];
-
     // Write Color1 = 0 or repeat
     match color_mode {
         ColorNormalizationMode::None => {
             // Shouldn't happen due to early return, but include for completeness
-            copy_nonoverlapping(src_block_ptr.add(10), dst_block_ptr.add(10), 6);
+            copy_nonoverlapping(src_block_ptr.add(8), dst_block_ptr.add(8), 8);
         }
         ColorNormalizationMode::Color0Only => {
+            // Write Color0 (the solid color)
+            *dst_block_ptr.add(8) = color_bytes[0];
+            *dst_block_ptr.add(9) = color_bytes[1];
+
             // Write Color1 = 0
             *dst_block_ptr.add(10) = 0;
             *dst_block_ptr.add(11) = 0;
@@ -334,6 +334,10 @@ unsafe fn write_normalized_color_data(
             *dst_block_ptr.add(15) = 0;
         }
         ColorNormalizationMode::ReplicateColor => {
+            // Write Color0 (the solid color)
+            *dst_block_ptr.add(8) = color_bytes[0];
+            *dst_block_ptr.add(9) = color_bytes[1];
+
             // Write Color1 = same as Color0
             *dst_block_ptr.add(10) = color_bytes[0];
             *dst_block_ptr.add(11) = color_bytes[1];

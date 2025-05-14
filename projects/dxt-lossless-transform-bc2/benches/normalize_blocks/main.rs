@@ -1,6 +1,11 @@
-use core::{alloc::Layout, ptr::copy_nonoverlapping};
+use core::{
+    alloc::Layout,
+    ptr::{copy_nonoverlapping, null_mut},
+};
 use criterion::{criterion_group, criterion_main, Criterion};
-use dxt_lossless_transform_bc2::normalize_blocks::{normalize_blocks, ColorNormalizationMode};
+use dxt_lossless_transform_bc2::normalize_blocks::{
+    normalize_blocks, normalize_blocks_all_modes, ColorNormalizationMode,
+};
 use safe_allocator_api::RawAlloc;
 use std::fs;
 
@@ -101,6 +106,30 @@ fn criterion_benchmark(c: &mut Criterion) {
                 file_size,
                 ColorNormalizationMode::Color0Only,
             );
+        })
+    });
+
+    // Benchmark normalize_blocks_all_modes
+    // Create buffers for each normalization mode outside the benchmark
+    let mode_count = ColorNormalizationMode::all_values().len();
+    let mut output_buffers = Vec::with_capacity(mode_count);
+
+    for _ in 0..mode_count {
+        output_buffers.push(allocate_align_64(file_size));
+    }
+
+    group.bench_function("normalize_blocks_all_modes", |b| {
+        b.iter(|| unsafe {
+            // Create a fresh stack array of pointers for each iteration (else it segfaults because pointers
+            // are not reset back to starting pos across iterations)
+            const NUM_MODES: usize = ColorNormalizationMode::all_values().len();
+            let mut output_ptrs_array: [*mut u8; NUM_MODES] = [null_mut(); NUM_MODES];
+            for x in 0..NUM_MODES {
+                output_ptrs_array[x] = output_buffers[x].as_mut_ptr();
+            }
+
+            // Run the function
+            normalize_blocks_all_modes(input_ptr, &mut output_ptrs_array, file_size);
         })
     });
 

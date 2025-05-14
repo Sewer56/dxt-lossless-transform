@@ -67,7 +67,8 @@
 
 use crate::util::decode_bc2_block;
 use core::ptr::copy_nonoverlapping;
-use dxt_lossless_transform_common::color_8888::Color8888;
+use derive_enum_all_values::AllValues;
+use dxt_lossless_transform_common::{color_565::Color565, color_8888::Color8888};
 use likely_stable::unlikely;
 
 /// Reads an input of blocks from `input_ptr` and writes the normalized blocks to `output_ptr`.
@@ -115,9 +116,61 @@ pub unsafe fn normalize_blocks(
         return;
     }
 
+    // Setup mutable destination pointer
+    let mut dst_block_ptr = output_ptr;
+    normalize_blocks_impl(input_ptr, len, |src_block_ptr, block_case, color565| {
+        match block_case {
+            BlockCase::SolidColorRoundtrippable => {
+                // Copy alpha values (first 8 bytes) unchanged
+                copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+
+                // Write normalized color data (bytes 8-15)
+                write_normalized_solid_color_block(
+                    dst_block_ptr,
+                    src_block_ptr,
+                    color565,
+                    color_mode,
+                );
+            }
+            BlockCase::CannotNormalize => {
+                // Cannot normalize, copy source block as-is
+                copy_nonoverlapping(src_block_ptr, dst_block_ptr, 16);
+            }
+        }
+
+        // Advance destination pointer
+        dst_block_ptr = dst_block_ptr.add(16);
+    });
+}
+
+/// Generic implementation for normalizing blocks with customizable output handling.
+///
+/// This internal function encapsulates the common logic for block analysis
+/// and delegates the output writing to a closure.
+///
+/// # Parameters
+///
+/// - `input_ptr`: A pointer to the input data (input BC2 blocks)
+/// - `len`: The length of the input data in bytes
+/// - `handle_output`: A closure that handles writing the output. The closure receives:
+///   - The source block pointer
+///   - A block processing case (solid color w/ roundtrip or cannot normalize)
+///   - The color in RGB565 format (valid only for solid color blocks)
+///
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - len must be divisible by 16 (BC2 block size)
+/// - The closure must handle memory safety for all output operations
+#[inline]
+unsafe fn normalize_blocks_impl<F>(input_ptr: *const u8, len: usize, mut handle_output: F)
+where
+    F: FnMut(*const u8, BlockCase, Color565),
+{
+    debug_assert!(len % 16 == 0);
+
     // Calculate pointers to current block
     let mut src_block_ptr = input_ptr;
-    let mut dst_block_ptr = output_ptr;
     let src_end_ptr = input_ptr.add(len);
 
     // Process each block
@@ -125,7 +178,7 @@ pub unsafe fn normalize_blocks(
         // Decode the block to analyze its content
         let decoded_block = decode_bc2_block(src_block_ptr);
 
-        // Check if all pixels in the block have identical RGB values
+        // Check if all pixels in the block have identical RGB values (ignoring alpha)
         if decoded_block.has_identical_pixels_ignore_alpha() {
             // Get the first pixel (they all have the same color)
             let pixel = decoded_block.pixels[0];
@@ -141,58 +194,169 @@ pub unsafe fn normalize_blocks(
             // Note: As the colour and alpha components are stored separately, we ignore the alpha
             //       when checking if the color can be round-tripped.
             if unlikely(color8888_ignore_alpha == pixel_ignore_alpha) {
-                // Copy alpha values (first 8 bytes) unchanged
-                copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
-
-                // Can be normalized - write the standard pattern for the color part:
-                // Color0 = the color, Color1 = 0 or repeat, indices = 0
-                let color_bytes = color565.raw_value().to_le_bytes();
-
-                // Write Color0 (the solid color)
-                *dst_block_ptr.add(8) = color_bytes[0];
-                *dst_block_ptr.add(9) = color_bytes[1];
-
-                // Write Color1 = 0 or repeat
-                match color_mode {
-                    ColorNormalizationMode::None => {
-                        // Shouldn't happen due to early return, but include for completeness
-                        copy_nonoverlapping(src_block_ptr.add(10), dst_block_ptr.add(10), 6);
-                    }
-                    ColorNormalizationMode::Color0Only => {
-                        // Write Color1 = 0
-                        *dst_block_ptr.add(10) = 0;
-                        *dst_block_ptr.add(11) = 0;
-
-                        // Write indices = 0
-                        *dst_block_ptr.add(12) = 0;
-                        *dst_block_ptr.add(13) = 0;
-                        *dst_block_ptr.add(14) = 0;
-                        *dst_block_ptr.add(15) = 0;
-                    }
-                    ColorNormalizationMode::ReplicateColor => {
-                        // Write Color1 = same as Color0
-                        *dst_block_ptr.add(10) = color_bytes[0];
-                        *dst_block_ptr.add(11) = color_bytes[1];
-
-                        // Write indices = 0
-                        *dst_block_ptr.add(12) = 0;
-                        *dst_block_ptr.add(13) = 0;
-                        *dst_block_ptr.add(14) = 0;
-                        *dst_block_ptr.add(15) = 0;
-                    }
-                }
+                // Can be normalized
+                handle_output(src_block_ptr, BlockCase::SolidColorRoundtrippable, color565);
             } else {
-                // Cannot normalize, copy source block as-is
-                copy_nonoverlapping(src_block_ptr, dst_block_ptr, 16);
+                // Cannot normalize
+                handle_output(src_block_ptr, BlockCase::CannotNormalize, color565);
             }
         } else {
-            // Mixed colors - copy source block as-is
-            copy_nonoverlapping(src_block_ptr, dst_block_ptr, 16);
+            // Mixed colors - can't normalize
+            handle_output(
+                src_block_ptr,
+                BlockCase::CannotNormalize,
+                Color565::default(),
+            );
         }
 
         // Move to the next block
         src_block_ptr = src_block_ptr.add(16);
-        dst_block_ptr = dst_block_ptr.add(16);
+    }
+}
+
+/// Reads an input of blocks from `input_ptr` and writes the normalized blocks to multiple output pointers,
+/// one for each available [`ColorNormalizationMode`].
+///
+/// # Parameters
+///
+/// - `input_ptr`: A pointer to the input data (input BC2 blocks)
+/// - `output_ptrs`: An array of output pointers, one for each [`ColorNormalizationMode`]
+/// - `len`: The length of the input data in bytes
+///
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - each pointer in output_ptrs must be valid for writes of len bytes
+/// - len must be divisible by 16 (BC2 block size)
+/// - input_ptr and output_ptrs must not overlap
+///
+/// # Remarks
+///
+/// This function processes each block once and writes it to multiple output buffers,
+/// applying a different normalization mode to each output. This allows you to compare
+/// the results of different normalization strategies for the same input.
+///
+/// The output_ptrs array must contain exactly one pointer for each variant in [`ColorNormalizationMode`],
+/// in the same order as they are defined in the enum.
+///
+/// See the module-level documentation for more details on the normalization process.
+#[inline]
+pub unsafe fn normalize_blocks_all_modes(
+    input_ptr: *const u8,
+    output_ptrs: &mut [*mut u8; ColorNormalizationMode::all_values().len()],
+    len: usize,
+) {
+    debug_assert!(len % 16 == 0);
+    debug_assert!(output_ptrs.len() == ColorNormalizationMode::all_values().len());
+
+    // Process all blocks once, writing to multiple output buffers
+    normalize_blocks_impl(input_ptr, len, |src_block_ptr, block_case, color565| {
+        match block_case {
+            BlockCase::SolidColorRoundtrippable => {
+                // Process each mode
+                for (x, mode) in ColorNormalizationMode::all_values().iter().enumerate() {
+                    let dst_block_ptr = output_ptrs[x];
+
+                    // Copy alpha values (first 8 bytes) unchanged
+                    copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+
+                    // Write normalized color data (bytes 8-15)
+                    write_normalized_solid_color_block(
+                        dst_block_ptr,
+                        src_block_ptr,
+                        color565,
+                        *mode,
+                    );
+
+                    // Advance this mode's destination pointer
+                    output_ptrs[x] = dst_block_ptr.add(16);
+                }
+            }
+            BlockCase::CannotNormalize => {
+                // For blocks that can't be normalized, just copy the original for all modes
+                for (x, _) in ColorNormalizationMode::all_values().iter().enumerate() {
+                    let dst_block_ptr = output_ptrs[x];
+
+                    // Cannot normalize, copy source block as-is for all modes
+                    copy_nonoverlapping(src_block_ptr, dst_block_ptr, 16);
+
+                    // Advance this mode's destination pointer
+                    output_ptrs[x] = dst_block_ptr.add(16);
+                }
+            }
+        }
+    });
+}
+
+/// Block processing case for the normalization functions
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum BlockCase {
+    /// Solid color block that can be round-tripped cleanly through RGB565
+    SolidColorRoundtrippable,
+    /// Block that cannot be normalized (mixed colors or non-roundtrippable color)
+    CannotNormalize,
+}
+
+/// Helper function to write normalized color data for solid color blocks with the
+/// specified normalization mode.
+///
+/// # Parameters
+///
+/// - `dst_block_ptr`: Pointer to the **start** of the destination BC2 block
+/// - `src_block_ptr`: Pointer to the **start** of the source BC2 block (used for None mode)
+/// - `color565`: The RGB565 color to write
+/// - `color_mode`: The normalization mode to use
+///
+/// # Safety
+///
+/// - dst_block_ptr must be valid for writes from offset 8 to 15 (color data in BC2 block)
+/// - src_block_ptr must be valid for reads of 16 bytes if color_mode is None
+#[inline]
+unsafe fn write_normalized_solid_color_block(
+    dst_block_ptr: *mut u8,
+    src_block_ptr: *const u8,
+    color565: Color565,
+    color_mode: ColorNormalizationMode,
+) {
+    // Can be normalized - write the standard pattern for the color part:
+    // Color0 = the color, Color1 = 0 or repeat, indices = 0
+    let color_bytes = color565.raw_value().to_le_bytes();
+
+    // Write Color1 = 0 or repeat
+    match color_mode {
+        ColorNormalizationMode::None => {
+            copy_nonoverlapping(src_block_ptr.add(8), dst_block_ptr.add(8), 8);
+        }
+        ColorNormalizationMode::Color0Only => {
+            // Write Color0 (the solid color)
+            *dst_block_ptr.add(8) = color_bytes[0];
+            *dst_block_ptr.add(9) = color_bytes[1];
+
+            // Write Color1 = 0
+            *dst_block_ptr.add(10) = 0;
+            *dst_block_ptr.add(11) = 0;
+
+            // Write indices = 0
+            *dst_block_ptr.add(12) = 0;
+            *dst_block_ptr.add(13) = 0;
+            *dst_block_ptr.add(14) = 0;
+            *dst_block_ptr.add(15) = 0;
+        }
+        ColorNormalizationMode::ReplicateColor => {
+            // Write Color0 (the solid color)
+            *dst_block_ptr.add(8) = color_bytes[0];
+            *dst_block_ptr.add(9) = color_bytes[1];
+
+            // Write Color1 = same as Color0
+            *dst_block_ptr.add(10) = color_bytes[0];
+            *dst_block_ptr.add(11) = color_bytes[1];
+
+            // Write indices = 0
+            *dst_block_ptr.add(12) = 0;
+            *dst_block_ptr.add(13) = 0;
+            *dst_block_ptr.add(14) = 0;
+            *dst_block_ptr.add(15) = 0;
+        }
     }
 }
 
@@ -200,7 +364,7 @@ pub unsafe fn normalize_blocks(
 ///
 /// BC2 blocks can represent solid colors in multiple ways. This enum
 /// defines the strategies for normalizing these representations to improve compression.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, AllValues)]
 pub enum ColorNormalizationMode {
     /// No color normalization, preserves original color data
     None,
@@ -513,5 +677,71 @@ mod tests {
 
         // Check that the output matches expected
         assert_eq!(output, expected, "Multiple block normalization failed");
+    }
+
+    /// Test normalizing blocks with all normalization modes at once
+    #[test]
+    fn can_normalize_blocks_all_modes() {
+        // Red in RGB565: (31, 0, 0) -> 0xF800
+        // This cleanly round trips into (255, 0, 0) and back to (31, 0, 0).
+        let red565 = 0xF800u16.to_le_bytes(); // Little endian: [0x00, 0xF8]
+
+        // Create a BC2 block with solid red color and uniform alpha
+        let mut block = [0u8; 16];
+
+        // Fill alpha values with 0xFF (fully opaque)
+        for x in 0..8 {
+            block[x] = 0xFF;
+        }
+
+        // Color part
+        block[8] = red565[0]; // Color0 (low byte)
+        block[9] = red565[1]; // Color0 (high byte)
+        block[10] = 0x01; // Color1 (low byte)
+        block[11] = 0x01; // Color1 (high byte)
+
+        // All indices = 0, pointing to Color0
+        block[12] = 0x00;
+        block[13] = 0x00;
+        block[14] = 0x00;
+        block[15] = 0x00;
+
+        // Create multiple blocks to test processing more than one block at once
+        let mut input = [0u8; 32]; // 2 blocks
+        input[0..16].copy_from_slice(&block);
+        input[16..32].copy_from_slice(&block);
+
+        // Create output buffers, one for each normalization mode
+        let num_modes = ColorNormalizationMode::all_values().len();
+        let mut outputs = vec![[0u8; 32]; num_modes];
+
+        // Create array of pointers to output buffers
+        let mut output_ptrs = std::array::from_fn(|x| outputs[x].as_mut_ptr());
+
+        // Normalize the blocks using all modes at once
+        unsafe {
+            normalize_blocks_all_modes(input.as_ptr(), &mut output_ptrs, 32);
+        }
+
+        // Verify the results for each mode
+        for (mode_idx, mode) in ColorNormalizationMode::all_values().iter().enumerate() {
+            // Create expected output for this mode by using regular normalize_blocks with the same mode.
+            let mut expected = [0u8; 32];
+
+            unsafe {
+                normalize_blocks(
+                    input[0..32].as_ptr(),
+                    expected[0..32].as_mut_ptr(),
+                    32,
+                    *mode,
+                );
+            }
+
+            // Check that the output from normalize_blocks_all_modes matches the expected output
+            assert_eq!(
+                outputs[mode_idx], expected,
+                "normalize_blocks_all_modes failed for mode {mode:?}",
+            );
+        }
     }
 }

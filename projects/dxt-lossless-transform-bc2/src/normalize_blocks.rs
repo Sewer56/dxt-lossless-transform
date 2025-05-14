@@ -325,7 +325,6 @@ unsafe fn write_normalized_solid_color_block(
     // Write Color1 = 0 or repeat
     match color_mode {
         ColorNormalizationMode::None => {
-            // Shouldn't happen due to early return, but include for completeness
             copy_nonoverlapping(src_block_ptr.add(8), dst_block_ptr.add(8), 8);
         }
         ColorNormalizationMode::Color0Only => {

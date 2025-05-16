@@ -133,7 +133,7 @@ mod tests {
     #[rstest]
     #[case(permute_512_detransform_unroll_2, "avx512_permute_unroll_2")]
     fn test_avx512_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
-        if !cfg!(target_feature = "avx512f") {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
             return;
         }
 
@@ -167,7 +167,7 @@ mod tests {
     #[rstest]
     #[case(permute_512_detransform_unroll_2, "avx512_permute_unroll_2")]
     fn test_avx512_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
-        if !cfg!(target_feature = "avx512f") {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
             return;
         }
 

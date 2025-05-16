@@ -821,7 +821,9 @@ mod tests {
     #[case(avx512_detransform_32_vl, "avx512_32_vl")]
     #[case(avx512_detransform_32_vbmi, "avx512_32_vbmi")]
     fn test_avx512_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
-        if !is_x86_feature_detected!("avx512vbmi") || !is_x86_feature_detected!("avx512vl") {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512vbmi()
+            || !dxt_lossless_transform_common::cpu_detect::has_avx512vl()
+        {
             return;
         }
 
@@ -857,7 +859,9 @@ mod tests {
     #[case(avx512_detransform_32_vbmi, "avx512_32_vbmi")]
     #[case(avx512_detransform_32_vl, "avx512_32_vl")]
     fn test_avx512_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
-        if !is_x86_feature_detected!("avx512vbmi") || !is_x86_feature_detected!("avx512vl") {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512vbmi()
+            || !dxt_lossless_transform_common::cpu_detect::has_avx512vl()
+        {
             return;
         }
 

@@ -16,11 +16,10 @@ pgo = []
 # Use CPU features selected at compile time.
 no-runtime-cpu-detection = []
 # Use nightly compiler features (AVX512)
-nightly = []
+nightly = ["dxt-lossless-transform-common/nightly"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-cpufeatures = "0.2.17"
 dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }
 likely_stable = "0.1.3"
 derive-enum-all-values = "0.2.0"

@@ -194,7 +194,7 @@ mod tests {
     #[case(permute_512, "avx512 permute")]
     #[case(permute_512_unroll_2, "avx512 permute unroll 2")]
     fn test_avx512_aligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
-        if !is_x86_feature_detected!("avx512f") {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
             return;
         }
 
@@ -234,7 +234,7 @@ mod tests {
     #[case(permute_512, "avx512 permute")]
     #[case(permute_512_unroll_2, "avx512 permute unroll 2")]
     fn test_avx512_unaligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
-        if !is_x86_feature_detected!("avx512f") {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
             return;
         }
 

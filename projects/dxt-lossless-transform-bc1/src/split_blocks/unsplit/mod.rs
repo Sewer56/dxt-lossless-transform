@@ -21,17 +21,17 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         #[cfg(feature = "nightly")]
-        if crate::util::has_avx512f() {
+        if dxt_lossless_transform_common::cpu_detect::has_avx512f() {
             avx512::permute_512_detransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
-        if crate::util::has_avx2() {
+        if dxt_lossless_transform_common::cpu_detect::has_avx2() {
             avx2::permd_detransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
-        if crate::util::has_sse2() {
+        if dxt_lossless_transform_common::cpu_detect::has_sse2() {
             sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
@@ -95,7 +95,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         #[cfg(feature = "nightly")]
-        if crate::util::has_avx512f() {
+        if dxt_lossless_transform_common::cpu_detect::has_avx512f() {
             avx512::permute_512_detransform_unroll_2_with_components(
                 output_ptr,
                 len,
@@ -105,7 +105,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
             return;
         }
 
-        if crate::util::has_avx2() {
+        if dxt_lossless_transform_common::cpu_detect::has_avx2() {
             avx2::permd_detransform_unroll_2_with_components(
                 output_ptr,
                 len,
@@ -115,7 +115,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
             return;
         }
 
-        if crate::util::has_sse2() {
+        if dxt_lossless_transform_common::cpu_detect::has_sse2() {
             sse2::unpck_detransform_unroll_2_with_components(
                 output_ptr,
                 len,

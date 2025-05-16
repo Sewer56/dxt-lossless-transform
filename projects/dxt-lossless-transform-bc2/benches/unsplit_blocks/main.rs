@@ -1,6 +1,6 @@
 use core::{alloc::Layout, time::Duration};
 use criterion::{criterion_group, criterion_main, Criterion};
-use dxt_lossless_transform_bc2::util::*;
+use dxt_lossless_transform_common::cpu_detect::*;
 use safe_allocator_api::RawAlloc;
 
 #[cfg(not(target_os = "windows"))]
@@ -98,7 +98,7 @@ criterion_group! {
     config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
     targets = criterion_benchmark
 }
-    
+
 #[cfg(target_os = "windows")]
 criterion_group! {
     name = benches;

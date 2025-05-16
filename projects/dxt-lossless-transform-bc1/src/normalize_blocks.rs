@@ -352,10 +352,23 @@ unsafe fn write_normalized_solid_color_block(
 #[inline]
 pub unsafe fn normalize_blocks_all_modes(
     input_ptr: *const u8,
-    output_ptrs: &mut [*mut u8; ColorNormalizationMode::all_values().len()],
+    output_ptrs: &[*mut u8; ColorNormalizationMode::all_values().len()],
     len: usize,
 ) {
     debug_assert!(len % 8 == 0);
+    debug_assert!(output_ptrs.len() == ColorNormalizationMode::all_values().len());
+    debug_assert!(
+        output_ptrs.iter().all(|&out_ptr| {
+            input_ptr.add(len) <= out_ptr || out_ptr.add(len) <= input_ptr as *mut _
+        }),
+        "Input and output memory regions must not overlap"
+    );
+
+    let mut dst_block_ptrs =
+        [core::ptr::null_mut::<u8>(); ColorNormalizationMode::all_values().len()];
+    for (x, dst_ptr) in dst_block_ptrs.iter_mut().enumerate() {
+        *dst_ptr = output_ptrs[x];
+    }
 
     normalize_blocks_impl(
         input_ptr,
@@ -364,27 +377,27 @@ pub unsafe fn normalize_blocks_all_modes(
             match block_case {
                 BlockCase::Transparent => {
                     // Case 2: Fully transparent block - fill with 0xFF in all output buffers
-                    for dst_ptr in output_ptrs.iter() {
+                    for dst_ptr in dst_block_ptrs.iter_mut() {
                         core::ptr::write_bytes(*dst_ptr, 0xFF, 8);
                     }
                 }
                 BlockCase::SolidColorRoundtrippable => {
                     // Can be normalized - write the standard pattern for each mode
-                    for (x, dst_ptr) in output_ptrs.iter().enumerate() {
+                    for (x, dst_ptr) in dst_block_ptrs.iter_mut().enumerate() {
                         let mode = ColorNormalizationMode::all_values()[x];
                         write_normalized_solid_color_block(*dst_ptr, src_block_ptr, color565, mode);
                     }
                 }
                 BlockCase::CannotNormalize => {
                     // Cannot normalize, copy source block as-is to all output buffers
-                    for dst_ptr in output_ptrs.iter() {
+                    for dst_ptr in dst_block_ptrs.iter_mut() {
                         copy_nonoverlapping(src_block_ptr, *dst_ptr, 8);
                     }
                 }
             }
 
             // Advance all destination pointers
-            for dst_ptr in output_ptrs.iter_mut() {
+            for dst_ptr in dst_block_ptrs.iter_mut() {
                 *dst_ptr = dst_ptr.add(8);
             }
         },
@@ -696,7 +709,7 @@ mod tests {
         let mut output_buffers = vec![[0u8; 16]; num_modes];
 
         // Create an array of pointers to output buffers
-        let mut output_ptrs_array = output_buffers
+        let output_ptrs_array = output_buffers
             .iter_mut()
             .map(|buffer| buffer.as_mut_ptr())
             .collect::<Vec<*mut u8>>()
@@ -705,7 +718,7 @@ mod tests {
 
         // Normalize the blocks with all modes simultaneously
         unsafe {
-            normalize_blocks_all_modes(source.as_ptr(), &mut output_ptrs_array, 16);
+            normalize_blocks_all_modes(source.as_ptr(), &output_ptrs_array, 16);
         }
 
         // Verify each output buffer has the correct normalization applied

@@ -53,7 +53,7 @@ fuzz_target!(|block: Bc2Block| {
     unsafe {
         normalize_blocks_all_modes(
             bc2_block.as_ptr(),
-            &mut output_ptrs,
+            &output_ptrs,
             16, // Size of BC2 block in bytes
         );
     }

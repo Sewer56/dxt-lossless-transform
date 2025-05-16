@@ -235,16 +235,12 @@ unsafe fn normalize_alpha(
             *dst_block_ptr.add(1) = 0;
 
             // Zero all index bytes
-            for x in 2..8 {
-                *dst_block_ptr.add(x) = 0;
-            }
+            core::ptr::write_bytes(dst_block_ptr.add(2), 0, 6);
         }
         AlphaNormalizationMode::OpaqueFillAll => {
             if alpha_value == 255 {
                 // Fill all alpha bytes with 0xFF
-                for x in 0..8 {
-                    *dst_block_ptr.add(x) = 0xFF;
-                }
+                core::ptr::write_bytes(dst_block_ptr, 0xFF, 8);
             } else {
                 // For non-opaque, use the same approach as UniformAlphaZeroIndices
                 normalize_alpha(
@@ -262,9 +258,7 @@ unsafe fn normalize_alpha(
                 *dst_block_ptr.add(1) = 0;
 
                 // Set all indices to max value (0xFF)
-                for x in 2..8 {
-                    *dst_block_ptr.add(x) = 0xFF;
-                }
+                core::ptr::write_bytes(dst_block_ptr.add(2), 0xFF, 6);
             } else {
                 // For non-opaque, use the same approach as UniformAlphaZeroIndices
                 normalize_alpha(
@@ -460,21 +454,27 @@ where
 /// This function processes each block once and writes it to multiple output buffers,
 /// applying different combinations of normalization modes to each output.
 ///
-/// The output_ptrs array must be a 2D array with dimensions [AlphaNormalizationMode::all_values().len()][ColorNormalizationMode::all_values().len()],
+/// The output_ptrs array must be a 2D array with dimensions `[AlphaNormalizationMode::all_values().len()][ColorNormalizationMode::all_values().len()]`,
 /// with pointers organized in the same order as the modes are defined in their respective enums.
 ///
 /// See the module-level documentation for more details on the normalization process.
 #[inline]
 pub unsafe fn normalize_blocks_all_modes(
     input_ptr: *const u8,
-    output_ptrs: &mut [[*mut u8; ColorNormalizationMode::all_values().len()];
-             AlphaNormalizationMode::all_values().len()],
+    output_ptrs: &[[*mut u8; ColorNormalizationMode::all_values().len()];
+         AlphaNormalizationMode::all_values().len()],
     len: usize,
 ) {
     debug_assert!(len % 16 == 0);
+    debug_assert!(
+        output_ptrs.iter().flatten().all(|&out_ptr| {
+            input_ptr.add(len) <= out_ptr || out_ptr.add(len) <= input_ptr as *mut _
+        }),
+        "Input and output memory regions must not overlap"
+    );
 
     // Setup arrays to track current position in each output buffer
-    let mut dst_block_ptrs = [[std::ptr::null_mut::<u8>();
+    let mut dst_block_ptrs = [[core::ptr::null_mut::<u8>();
         ColorNormalizationMode::all_values().len()];
         AlphaNormalizationMode::all_values().len()];
 
@@ -1139,7 +1139,7 @@ mod tests {
 
         // Normalize the block using all mode combinations
         unsafe {
-            normalize_blocks_all_modes(block.as_ptr(), &mut output_ptrs, 16);
+            normalize_blocks_all_modes(block.as_ptr(), &output_ptrs, 16);
         }
 
         // Verify each output buffer has been normalized according to its mode combination

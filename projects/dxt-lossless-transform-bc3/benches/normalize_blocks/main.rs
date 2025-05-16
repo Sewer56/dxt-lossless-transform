@@ -120,7 +120,8 @@ fn criterion_benchmark(c: &mut Criterion) {
     }
 
     // Create 2D array of output pointers
-    let mut output_ptrs = [[std::ptr::null_mut::<u8>(); ColorNormalizationMode::all_values().len()];
+    let mut output_ptrs = [[core::ptr::null_mut::<u8>();
+        ColorNormalizationMode::all_values().len()];
         AlphaNormalizationMode::all_values().len()];
 
     // Initialize the output pointers 2D array
@@ -133,7 +134,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     group.bench_function("normalize_blocks_all_modes", |b| {
         b.iter(|| unsafe {
-            normalize_blocks_all_modes(input_ptr, &mut output_ptrs, file_size);
+            normalize_blocks_all_modes(input_ptr, &output_ptrs, file_size);
         })
     });
 

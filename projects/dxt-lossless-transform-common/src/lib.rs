@@ -9,6 +9,7 @@ pub mod decoded_4x4_block;
 pub mod transforms {
     pub mod split_565_color_endpoints;
 }
+pub mod cpu_detect;
 
 #[cfg(test)]
 mod tests;

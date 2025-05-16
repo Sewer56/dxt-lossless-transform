@@ -22,7 +22,7 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
     {
         #[cfg(feature = "nightly")]
         #[cfg(target_arch = "x86_64")]
-        if std::is_x86_feature_detected!("avx512vbmi") {
+        if crate::util::has_avx512vbmi() {
             avx512::avx512_detransform(input_ptr, output_ptr, len);
             return;
         }
@@ -89,7 +89,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
     {
         #[cfg(feature = "nightly")]
         #[cfg(target_arch = "x86_64")]
-        if std::is_x86_feature_detected!("avx512vbmi") {
+        if crate::util::has_avx512vbmi() {
             avx512::avx512_detransform_separate_components(
                 alpha_byte_ptr,
                 alpha_bit_ptr,

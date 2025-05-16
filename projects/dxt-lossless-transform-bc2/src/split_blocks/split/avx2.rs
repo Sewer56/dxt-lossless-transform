@@ -177,7 +177,7 @@ mod tests {
     #[rstest]
     #[case(shuffle, "avx2_shuffle")]
     fn test_avx2_aligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
-        if !std::is_x86_feature_detected!("avx2") {
+        if !crate::util::has_avx2() {
             return;
         }
 
@@ -217,7 +217,7 @@ mod tests {
     #[rstest]
     #[case(shuffle, "avx2_shuffle")]
     fn test_avx2_unaligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
-        if !std::is_x86_feature_detected!("avx2") {
+        if !crate::util::has_avx2() {
             return;
         }
 

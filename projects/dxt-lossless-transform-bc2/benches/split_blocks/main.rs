@@ -1,5 +1,6 @@
 use core::{alloc::Layout, time::Duration};
 use criterion::{criterion_group, criterion_main, Criterion};
+use dxt_lossless_transform_bc2::util::*;
 use safe_allocator_api::RawAlloc;
 
 #[cfg(not(target_os = "windows"))]
@@ -34,7 +35,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     // Run architecture-specific benchmarks
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
-        if is_x86_feature_detected!("sse2") {
+        if has_sse2() {
             sse2::run_benchmarks(
                 &mut group,
                 &input,
@@ -44,7 +45,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             );
         }
 
-        if is_x86_feature_detected!("avx2") {
+        if has_avx2() {
             avx2::run_benchmarks(
                 &mut group,
                 &input,
@@ -55,7 +56,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         }
 
         #[cfg(feature = "nightly")]
-        if is_x86_feature_detected!("avx512f") {
+        if has_avx512f() {
             avx512::run_benchmarks(
                 &mut group,
                 &input,

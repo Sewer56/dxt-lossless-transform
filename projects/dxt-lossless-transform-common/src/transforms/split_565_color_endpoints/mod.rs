@@ -64,17 +64,17 @@ unsafe fn split_color_endpoints_x86(
     {
         // Runtime feature detection
         #[cfg(feature = "nightly")]
-        if std::is_x86_feature_detected!("avx512vbmi") {
+        if crate::cpu_detect::has_avx512vbmi() {
             avx512_impl(colors, colors_out, colors_len_bytes);
             return;
         }
 
-        if std::is_x86_feature_detected!("avx2") {
+        if crate::cpu_detect::has_avx2() {
             avx2_shuf_impl_asm(colors, colors_out, colors_len_bytes);
             return;
         }
 
-        if std::is_x86_feature_detected!("sse2") {
+        if crate::cpu_detect::has_sse2() {
             sse2_shuf_unroll2_impl_asm(colors, colors_out, colors_len_bytes);
             return;
         }

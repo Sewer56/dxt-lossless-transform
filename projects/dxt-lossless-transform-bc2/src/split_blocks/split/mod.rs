@@ -30,24 +30,24 @@ unsafe fn split_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len: u
     {
         // Runtime feature detection
         #[cfg(feature = "nightly")]
-        if std::is_x86_feature_detected!("avx512f") {
+        if crate::util::has_avx512f() {
             avx512::permute_512(input_ptr, output_ptr, len);
             return;
         }
 
-        if std::is_x86_feature_detected!("avx2") {
+        if crate::util::has_avx2() {
             avx2::shuffle(input_ptr, output_ptr, len);
             return;
         }
 
         #[cfg(target_arch = "x86_64")]
-        if std::is_x86_feature_detected!("sse2") {
+        if crate::util::has_sse2() {
             sse2::shuffle_v3(input_ptr, output_ptr, len);
             return;
         }
 
         #[cfg(target_arch = "x86")]
-        if std::is_x86_feature_detected!("sse2") {
+        if crate::util::has_sse2() {
             sse2::shuffle_v2(input_ptr, output_ptr, len);
             return;
         }

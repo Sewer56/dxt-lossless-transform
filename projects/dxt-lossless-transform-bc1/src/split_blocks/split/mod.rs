@@ -31,17 +31,17 @@ unsafe fn split_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize
     {
         // Runtime feature detection
         #[cfg(feature = "nightly")]
-        if std::is_x86_feature_detected!("avx512f") {
+        if crate::util::has_avx512f() {
             permute_512(input_ptr, output_ptr, len);
             return;
         }
 
-        if std::is_x86_feature_detected!("avx2") {
+        if crate::util::has_avx2() {
             shuffle_permute_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
-        if std::is_x86_feature_detected!("sse2") {
+        if crate::util::has_sse2() {
             shufps_unroll_4(input_ptr, output_ptr, len);
             return;
         }

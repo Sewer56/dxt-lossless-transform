@@ -196,7 +196,7 @@ pub unsafe fn sse2_shuf_unroll2_impl_asm(
     let aligned_end_ptr = end_ptr.sub(64);
 
     if input_ptr < aligned_end_ptr {
-        std::arch::asm!(
+        core::arch::asm!(
             // Loop alignment
             ".p2align 4",
 

@@ -730,7 +730,7 @@ mod tests {
         let mut outputs = vec![[0u8; 32]; num_modes];
 
         // Create array of pointers to output buffers
-        let output_ptrs = std::array::from_fn(|x| outputs[x].as_mut_ptr());
+        let output_ptrs = core::array::from_fn(|x| outputs[x].as_mut_ptr());
 
         // Normalize the blocks using all modes at once
         unsafe {

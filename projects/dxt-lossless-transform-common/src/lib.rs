@@ -1,4 +1,4 @@
-#![doc = include_str!(concat!("../", std::env!("CARGO_PKG_README")))]
+#![doc = include_str!(concat!("../", core::env!("CARGO_PKG_README")))]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(feature = "nightly", feature(avx512_target_feature))]
 #![cfg_attr(feature = "nightly", feature(stdarch_x86_avx512))]

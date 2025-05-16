@@ -1,4 +1,4 @@
-#![doc = include_str!(concat!("../", std::env!("CARGO_PKG_README")))]
+#![doc = include_str!(concat!("../", core::env!("CARGO_PKG_README")))]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(feature = "nightly", feature(avx512_target_feature))]
 #![cfg_attr(feature = "nightly", feature(stdarch_x86_avx512))]
@@ -82,8 +82,8 @@ pub unsafe fn untransform_bc3(
 
 #[cfg(test)]
 mod testutils {
+    use core::alloc::Layout;
     use safe_allocator_api::RawAlloc;
-    use std::alloc::Layout;
 
     pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
         let layout = Layout::from_size_align(num_bytes, 64).unwrap();

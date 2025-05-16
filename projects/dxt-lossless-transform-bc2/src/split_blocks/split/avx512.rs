@@ -396,7 +396,7 @@ mod tests {
     #[case(permute_512_v2_intrinsics, "avx512_permute_intrinsics_v2")]
     #[case(permute_512_v2, "avx512_permute_asm_v2")]
     fn test_avx512_aligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
-        if !std::is_x86_feature_detected!("avx512f") {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
             return;
         }
 
@@ -439,7 +439,7 @@ mod tests {
     #[case(permute_512_v2_intrinsics, "avx512_permute_intrinsics_v2")]
     #[case(permute_512_v2, "avx512_permute_asm_v2")]
     fn test_avx512_unaligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
-        if !std::is_x86_feature_detected!("avx512f") {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
             return;
         }
 

@@ -49,8 +49,8 @@ fn hybrid_decode_bc3_to_block(bc3_block: &[u8]) -> Decoded4x4Block {
         // rgbcx::unpack_bc3 decodes both color and alpha, taking the entire BC3 block
         // We've already filtered invalid inputs at the start of the fuzz test
         rgbcx::unpack_bc3(
-            bc3_block.as_ptr() as *const ::std::os::raw::c_void,
-            rgba_buffer.as_mut_ptr() as *mut ::std::os::raw::c_void,
+            bc3_block.as_ptr() as *const core::ffi::c_void,
+            rgba_buffer.as_mut_ptr() as *mut core::ffi::c_void,
             rgbcx::bc1_approx_mode::cBC1Ideal,
         );
 

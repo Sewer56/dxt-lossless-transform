@@ -241,7 +241,7 @@ mod tests {
 
     #[rstest]
     fn test_avx512_aligned() {
-        if !is_x86_feature_detected!("avx512vbmi") {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
             return;
         }
 
@@ -267,7 +267,7 @@ mod tests {
 
     #[rstest]
     fn test_avx512_unaligned() {
-        if !is_x86_feature_detected!("avx512vbmi") {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
             return;
         }
 

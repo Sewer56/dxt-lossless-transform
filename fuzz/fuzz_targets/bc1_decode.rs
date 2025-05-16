@@ -38,8 +38,8 @@ fn rgbcx_decode_bc1_to_block(bc1_block: &[u8]) -> Decoded4x4Block {
     // Decode using rgbcx-sys with Ideal method
     unsafe {
         rgbcx::unpack_bc1(
-            bc1_block.as_ptr() as *const ::std::os::raw::c_void,
-            rgba_buffer.as_mut_ptr() as *mut ::std::os::raw::c_void,
+            bc1_block.as_ptr() as *const core::ffi::c_void,
+            rgba_buffer.as_mut_ptr() as *mut core::ffi::c_void,
             true, // set_alpha
             rgbcx::bc1_approx_mode::cBC1Ideal,
         );

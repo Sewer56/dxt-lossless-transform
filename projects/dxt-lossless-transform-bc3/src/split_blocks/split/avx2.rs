@@ -190,6 +190,10 @@ mod tests {
 
     #[rstest]
     fn test_avx2_aligned() {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx2() {
+            return;
+        }
+
         for num_blocks in 1..=512 {
             let input = generate_bc3_test_data(num_blocks);
             let mut output_expected = vec![0u8; input.len()];
@@ -212,6 +216,10 @@ mod tests {
 
     #[rstest]
     fn test_avx2_unaligned() {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx2() {
+            return;
+        }
+
         for num_blocks in 1..=512 {
             let input = generate_bc3_test_data(num_blocks);
             let mut output_expected = vec![0u8; input.len() + 1];

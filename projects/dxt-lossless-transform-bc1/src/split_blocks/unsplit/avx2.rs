@@ -394,6 +394,10 @@ mod tests {
     #[case(unpck_detransform_unroll_2, "avx_unpack_unroll_2")]
     #[case(permd_detransform_unroll_2, "avx_permd_unroll_2")]
     fn test_avx2_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx2() {
+            return;
+        }
+
         for num_blocks in 1..=512 {
             let original = generate_bc1_test_data(num_blocks);
             let mut transformed = allocate_align_64(original.len());

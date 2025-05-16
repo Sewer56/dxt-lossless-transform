@@ -396,6 +396,10 @@ mod tests {
     #[rstest]
     #[case::avx2_shuffle(avx2_shuffle, "avx2_shuffle")]
     fn test_avx2_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx2() {
+            return;
+        }
+
         // Test with different block counts to ensure they all work correctly
         for block_count in 1..=512 {
             // Generate test data
@@ -428,6 +432,10 @@ mod tests {
     #[rstest]
     #[case::avx2_shuffle(avx2_shuffle, "avx2_shuffle")]
     fn test_avx2_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx2() {
+            return;
+        }
+
         // Test with different block counts to ensure they all work correctly
         for block_count in 1..=512 {
             // Generate test data

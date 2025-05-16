@@ -421,6 +421,10 @@ mod tests {
     #[case(permute_unroll_2, "permute unroll 2")]
     #[case(gather, "gather")]
     fn test_avx2_aligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx2() {
+            return;
+        }
+
         for num_blocks in 1..=512 {
             let mut input = allocate_align_64(num_blocks * 8);
             let mut output_expected = allocate_align_64(input.len());
@@ -463,6 +467,10 @@ mod tests {
     #[case(permute_unroll_2, "permute unroll 2")]
     #[case(gather, "gather")]
     fn test_avx2_unaligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx2() {
+            return;
+        }
+
         for num_blocks in 1..=512 {
             let input = generate_bc1_test_data(num_blocks);
 

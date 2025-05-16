@@ -1,5 +1,6 @@
 use core::{alloc::Layout, time::Duration};
 use criterion::{criterion_group, criterion_main, Criterion};
+use dxt_lossless_transform_common::cpu_detect::*;
 use safe_allocator_api::RawAlloc;
 
 #[cfg(not(target_os = "windows"))]
@@ -8,6 +9,7 @@ use pprof::criterion::{Output, PProfProfiler};
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[cfg(feature = "nightly")]
 mod avx512;
 mod portable32;
 mod portable64;
@@ -33,7 +35,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     // Run architecture-specific benchmarks
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
-        if is_x86_feature_detected!("sse2") {
+        if has_sse2() {
             sse2::run_benchmarks(
                 &mut group,
                 &input,
@@ -43,7 +45,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             );
         }
 
-        if is_x86_feature_detected!("avx2") {
+        if has_avx2() {
             avx2::run_benchmarks(
                 &mut group,
                 &input,
@@ -53,7 +55,8 @@ fn criterion_benchmark(c: &mut Criterion) {
             );
         }
 
-        if is_x86_feature_detected!("avx512vbmi") {
+        #[cfg(feature = "nightly")]
+        if has_avx512vbmi() {
             avx512::run_benchmarks(
                 &mut group,
                 &input,

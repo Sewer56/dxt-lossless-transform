@@ -350,7 +350,7 @@ mod tests {
     #[case::avx512_shuffle(avx512_shuffle, "avx512_shuffle")]
     #[case::avx512_shuffle_intrinsics(avx512_shuffle_intrinsics, "avx512_shuffle_intrinsics")]
     fn test_avx512_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
-        if !is_x86_feature_detected!("avx512f") {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
             return;
         }
 
@@ -387,7 +387,7 @@ mod tests {
     #[case::avx512_shuffle(avx512_shuffle, "avx512_shuffle")]
     #[case::avx512_shuffle_intrinsics(avx512_shuffle_intrinsics, "avx512_shuffle_intrinsics")]
     fn test_avx512_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
-        if !is_x86_feature_detected!("avx512f") {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
             return;
         }
 

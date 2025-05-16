@@ -729,12 +729,13 @@ mod tests {
 
         // Decorrelate
         transformed.decorrelate_ycocg_r(variant);
-        assert_ne!(
-            transformed.raw_value(),
-            original.raw_value(),
-            "{variant:?} - Color should change after decorrelation"
-        );
-
+        if variant != YCoCgVariant::None {
+            assert_ne!(
+                transformed.raw_value(),
+                original.raw_value(),
+                "{variant:?} - Color should change after decorrelation"
+            );
+        }
         // Recorrelate
         transformed.recorrelate_ycocg_r(variant);
         assert_eq!(

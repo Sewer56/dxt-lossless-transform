@@ -547,7 +547,7 @@ impl Color565 {
     ///
     /// # Parameters
     ///
-    /// - `variant`: The YCoCgVariant to use
+    /// - `variant`: The [`YCoCgVariant`] to use
     ///
     /// # Examples
     ///
@@ -573,7 +573,7 @@ impl Color565 {
     ///
     /// # Parameters
     ///
-    /// - `variant`: The YCoCgVariant to use
+    /// - `variant`: The [`YCoCgVariant`] to use
     ///
     /// # Examples
     ///
@@ -600,7 +600,7 @@ impl Color565 {
     /// # Parameters
     ///
     /// - `colors`: The slice of colors to transform
-    /// - `variant`: The YCoCgVariant to use
+    /// - `variant`: The [`YCoCgVariant`] to use
     ///
     /// # Examples
     ///
@@ -626,7 +626,7 @@ impl Color565 {
     /// # Parameters
     ///
     /// - `colors`: The slice of colors to transform
-    /// - `variant`: The YCoCgVariant to use
+    /// - `variant`: The [`YCoCgVariant`] to use
     ///
     /// # Examples
     ///

@@ -611,6 +611,7 @@ impl Color565 {
     /// Color565::decorrelate_ycocg_r_slice(&mut colors, YCoCgVariant::Variant1);
     /// ```
     #[inline]
+    #[cfg(not(tarpaulin_include))]
     pub fn decorrelate_ycocg_r_slice(colors: &mut [Self], variant: YCoCgVariant) {
         match variant {
             YCoCgVariant::Variant1 => Self::decorrelate_ycocg_r_var1_slice(colors),
@@ -638,6 +639,7 @@ impl Color565 {
     /// Color565::recorrelate_ycocg_r_slice(&mut colors, YCoCgVariant::Variant1);
     /// ```
     #[inline]
+    #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_slice(colors: &mut [Self], variant: YCoCgVariant) {
         match variant {
             YCoCgVariant::Variant1 => Self::recorrelate_ycocg_r_var1_slice(colors),

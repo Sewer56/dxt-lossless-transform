@@ -540,38 +540,130 @@ impl Color565 {
 
         recorr(colors);
     }
+
+    /// Applies the specified decorrelation variant to a color
+    ///
+    /// Wrapper around the variant-specific decorrelate methods.
+    ///
+    /// # Parameters
+    ///
+    /// - `variant`: The [`YCoCgVariant`] to use
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
+    ///
+    /// let mut color = Color565::from_rgb(255, 128, 64);
+    /// color.decorrelate_ycocg_r(YCoCgVariant::Variant1);
+    /// // Color is now in YCoCg-R form
+    /// ```
+    #[inline]
+    pub fn decorrelate_ycocg_r(&mut self, variant: YCoCgVariant) {
+        match variant {
+            YCoCgVariant::Variant1 => self.decorrelate_ycocg_r_var1(),
+            YCoCgVariant::Variant2 => self.decorrelate_ycocg_r_var2(),
+            YCoCgVariant::Variant3 => self.decorrelate_ycocg_r_var3(),
+        }
+    }
+
+    /// Applies the specified recorrelation variant to a color
+    ///
+    /// Wrapper around the variant-specific recorrelate methods.
+    ///
+    /// # Parameters
+    ///
+    /// - `variant`: The [`YCoCgVariant`] to use
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
+    ///
+    /// let mut color = Color565::from_rgb(255, 128, 64);
+    /// color.decorrelate_ycocg_r(YCoCgVariant::Variant1);
+    /// color.recorrelate_ycocg_r(YCoCgVariant::Variant1);
+    /// ```
+    #[inline]
+    pub fn recorrelate_ycocg_r(&mut self, variant: YCoCgVariant) {
+        match variant {
+            YCoCgVariant::Variant1 => self.recorrelate_ycocg_r_var1(),
+            YCoCgVariant::Variant2 => self.recorrelate_ycocg_r_var2(),
+            YCoCgVariant::Variant3 => self.recorrelate_ycocg_r_var3(),
+        }
+    }
+
+    /// Applies the specified decorrelation variant to a slice of colors
+    ///
+    /// Wrapper around the variant-specific decorrelate_slice methods.
+    ///
+    /// # Parameters
+    ///
+    /// - `colors`: The slice of colors to transform
+    /// - `variant`: The [`YCoCgVariant`] to use
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
+    ///
+    /// let mut colors = [Color565::from_rgb(255, 0, 0), Color565::from_rgb(0, 255, 0)];
+    /// Color565::decorrelate_ycocg_r_slice(&mut colors, YCoCgVariant::Variant1);
+    /// ```
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub fn decorrelate_ycocg_r_slice(colors: &mut [Self], variant: YCoCgVariant) {
+        match variant {
+            YCoCgVariant::Variant1 => Self::decorrelate_ycocg_r_var1_slice(colors),
+            YCoCgVariant::Variant2 => Self::decorrelate_ycocg_r_var2_slice(colors),
+            YCoCgVariant::Variant3 => Self::decorrelate_ycocg_r_var3_slice(colors),
+        }
+    }
+
+    /// Applies the specified recorrelation variant to a slice of colors
+    ///
+    /// Wrapper around the variant-specific recorrelate_slice methods.
+    ///
+    /// # Parameters
+    ///
+    /// - `colors`: The slice of colors to transform
+    /// - `variant`: The [`YCoCgVariant`] to use
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
+    ///
+    /// let mut colors = [Color565::from_rgb(255, 0, 0), Color565::from_rgb(0, 255, 0)];
+    /// Color565::decorrelate_ycocg_r_slice(&mut colors, YCoCgVariant::Variant1);
+    /// Color565::recorrelate_ycocg_r_slice(&mut colors, YCoCgVariant::Variant1);
+    /// ```
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub fn recorrelate_ycocg_r_slice(colors: &mut [Self], variant: YCoCgVariant) {
+        match variant {
+            YCoCgVariant::Variant1 => Self::recorrelate_ycocg_r_var1_slice(colors),
+            YCoCgVariant::Variant2 => Self::recorrelate_ycocg_r_var2_slice(colors),
+            YCoCgVariant::Variant3 => Self::recorrelate_ycocg_r_var3_slice(colors),
+        }
+    }
+}
+
+/// Represents a function variant for decoration/recorrelation operations
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum YCoCgVariant {
+    /// Variant 1: Usually compresses best
+    Variant1,
+    /// Variant 2: Faster recorrelate (marginally) for compression speed
+    Variant2,
+    /// Variant 3: Sometimes better than variant 2
+    Variant3,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use rstest::rstest;
-
-    /// Represents a function variant for decoration/recorrelation operations
-    #[derive(Debug, Clone, Copy)]
-    enum YCoCgVariant {
-        Variant1,
-        Variant2,
-        Variant3,
-    }
-
-    /// Apply the specified decorrelation variant to a color
-    fn apply_decorrelation(color: &mut Color565, variant: YCoCgVariant) {
-        match variant {
-            YCoCgVariant::Variant1 => color.decorrelate_ycocg_r_var1(),
-            YCoCgVariant::Variant2 => color.decorrelate_ycocg_r_var2(),
-            YCoCgVariant::Variant3 => color.decorrelate_ycocg_r_var3(),
-        }
-    }
-
-    /// Apply the specified recorrelation variant to a color
-    fn apply_recorrelation(color: &mut Color565, variant: YCoCgVariant) {
-        match variant {
-            YCoCgVariant::Variant1 => color.recorrelate_ycocg_r_var1(),
-            YCoCgVariant::Variant2 => color.recorrelate_ycocg_r_var2(),
-            YCoCgVariant::Variant3 => color.recorrelate_ycocg_r_var3(),
-        }
-    }
 
     /// Tests that colors can be properly decorrelated and recorrelated
     /// back to their original values for all three variants.
@@ -603,10 +695,10 @@ mod tests {
             let mut color = *original_color;
 
             // Step 1: Decorrelate
-            apply_decorrelation(&mut color, variant);
+            color.decorrelate_ycocg_r(variant);
 
             // Step 2: Recorrelate
-            apply_recorrelation(&mut color, variant);
+            color.recorrelate_ycocg_r(variant);
 
             // Verify the color is restored to its original value
             assert_eq!(
@@ -628,7 +720,7 @@ mod tests {
         let mut transformed = original;
 
         // Decorrelate
-        apply_decorrelation(&mut transformed, variant);
+        transformed.decorrelate_ycocg_r(variant);
         assert_ne!(
             transformed.raw_value(),
             original.raw_value(),
@@ -636,7 +728,7 @@ mod tests {
         );
 
         // Recorrelate
-        apply_recorrelation(&mut transformed, variant);
+        transformed.recorrelate_ycocg_r(variant);
         assert_eq!(
             transformed.raw_value(),
             original.raw_value(),

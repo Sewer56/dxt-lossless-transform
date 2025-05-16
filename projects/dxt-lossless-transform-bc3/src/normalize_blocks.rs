@@ -59,6 +59,8 @@
 
 use crate::util::decode_bc3_block;
 use core::ptr::copy_nonoverlapping;
+use derive_enum_all_values::AllValues;
+use dxt_lossless_transform_common::color_565::Color565;
 use dxt_lossless_transform_common::color_8888::Color8888;
 use likely_stable::unlikely;
 
@@ -108,75 +110,55 @@ pub unsafe fn normalize_blocks(
         return;
     }
 
-    // Calculate pointers to current block
-    let mut src_block_ptr = input_ptr;
+    // Setup mutable destination pointer
     let mut dst_block_ptr = output_ptr;
-    let src_end_ptr = input_ptr.add(len);
-
-    // Process each block
-    while src_block_ptr < src_end_ptr {
-        // Decode the block to analyze its content
-        let decoded_block = decode_bc3_block(src_block_ptr);
-
-        // Check for uniform alpha
-        let has_uniform_alpha = decoded_block.has_identical_alpha();
-
-        // Check for solid color (ignoring alpha)
-        let has_solid_color = decoded_block.has_identical_pixels_ignore_alpha();
-
-        if (alpha_mode != AlphaNormalizationMode::None && has_uniform_alpha)
-            || (color_mode != ColorNormalizationMode::None && has_solid_color)
-        {
+    normalize_blocks_impl(
+        input_ptr,
+        len,
+        |src_block_ptr, alpha_case, color_case, color565, alpha_value| {
             // Handle alpha normalization
-            if has_uniform_alpha {
-                let alpha_value = decoded_block.pixels[0].a;
-                normalize_alpha(src_block_ptr, dst_block_ptr, alpha_value, alpha_mode);
-            } else {
-                // Copy alpha data as-is (first 8 bytes)
-                copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+            match alpha_case {
+                AlphaBlockCase::UniformAlpha => {
+                    if alpha_mode != AlphaNormalizationMode::None {
+                        normalize_alpha(src_block_ptr, dst_block_ptr, alpha_value, alpha_mode);
+                    } else {
+                        // Copy alpha data as-is (first 8 bytes)
+                        copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+                    }
+                }
+                AlphaBlockCase::CannotNormalize => {
+                    // Copy alpha data as-is (first 8 bytes)
+                    copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+                }
             }
 
             // Handle color normalization
-            if color_mode != ColorNormalizationMode::None && has_solid_color {
-                // Get the first pixel (they all have the same color)
-                let pixel = decoded_block.pixels[0];
-
-                // Convert the color to RGB565
-                let color565 = pixel.to_color_565();
-
-                // Check if color can be round-tripped cleanly through RGB565
-                let color8888 = color565.to_color_8888();
-                let pixel_ignore_alpha = Color8888::new(pixel.r, pixel.g, pixel.b, 255);
-                let color8888_ignore_alpha =
-                    Color8888::new(color8888.r, color8888.g, color8888.b, 255);
-
-                if unlikely(color8888_ignore_alpha == pixel_ignore_alpha) {
-                    // Can be normalized
-                    normalize_color(color565.raw_value(), dst_block_ptr, color_mode);
-                } else {
-                    // Cannot normalize, copy color part as-is
+            match color_case {
+                ColorBlockCase::SolidColorRoundtrippable => {
+                    if color_mode != ColorNormalizationMode::None {
+                        normalize_color(color565.raw_value(), dst_block_ptr, color_mode);
+                    } else {
+                        // Copy color data as-is (last 8 bytes)
+                        copy_nonoverlapping(src_block_ptr.add(8), dst_block_ptr.add(8), 8);
+                    }
+                }
+                ColorBlockCase::CannotNormalize => {
+                    // Copy color data as-is (last 8 bytes)
                     copy_nonoverlapping(src_block_ptr.add(8), dst_block_ptr.add(8), 8);
                 }
-            } else {
-                // Copy color data as-is (last 8 bytes)
-                copy_nonoverlapping(src_block_ptr.add(8), dst_block_ptr.add(8), 8);
             }
-        } else {
-            // Block doesn't need normalization, copy as-is
-            copy_nonoverlapping(src_block_ptr, dst_block_ptr, 16);
-        }
 
-        // Move to the next block
-        src_block_ptr = src_block_ptr.add(16);
-        dst_block_ptr = dst_block_ptr.add(16);
-    }
+            // Advance destination pointer
+            dst_block_ptr = dst_block_ptr.add(16);
+        },
+    );
 }
 
 /// Defines how alpha values should be normalized for BC3 blocks
 ///
 /// BC3 blocks can represent uniform alpha values in multiple ways. This enum
 /// defines the strategies for normalizing these representations to improve compression.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, AllValues)]
 pub enum AlphaNormalizationMode {
     /// No alpha normalization, preserves original alpha data
     None,
@@ -202,7 +184,7 @@ pub enum AlphaNormalizationMode {
 ///
 /// BC3 blocks can represent solid colors in multiple ways. This enum
 /// defines the strategies for normalizing these representations to improve compression.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, AllValues)]
 pub enum ColorNormalizationMode {
     /// No color normalization, preserves original color data
     None,
@@ -353,6 +335,208 @@ unsafe fn normalize_color(color565: u16, dst_block_ptr: *mut u8, mode: ColorNorm
             *color_ptr.add(7) = 0;
         }
     }
+}
+
+/// Alpha block processing case for the normalization functions
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum AlphaBlockCase {
+    /// Block with uniform (all equal) alpha
+    UniformAlpha,
+    /// Block with non-uniform alpha (cannot normalize)
+    CannotNormalize,
+}
+
+/// Color block processing case for the normalization functions
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum ColorBlockCase {
+    /// Block with solid color that can be round-tripped
+    SolidColorRoundtrippable,
+    /// Block with non-uniform color or cannot be round-tripped
+    CannotNormalize,
+}
+
+/// Generic implementation for normalizing blocks with customizable output handling.
+///
+/// This internal function encapsulates the common logic for block analysis
+/// and delegates the output writing to a closure.
+///
+/// # Parameters
+///
+/// - `input_ptr`: A pointer to the input data (input BC3 blocks)
+/// - `len`: The length of the input data in bytes
+/// - `handle_output`: A closure that handles writing the output. The closure receives:
+///   - The source block pointer
+///   - The alpha block case (uniform or cannot normalize)
+///   - The color block case (solid color or cannot normalize)
+///   - The color in RGB565 format (valid only for solid color blocks)
+///   - The alpha value (valid only for uniform alpha blocks)
+///
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - len must be divisible by 16
+/// - The closure must handle memory safety for all output operations
+#[inline]
+unsafe fn normalize_blocks_impl<F>(input_ptr: *const u8, len: usize, mut handle_output: F)
+where
+    F: FnMut(*const u8, AlphaBlockCase, ColorBlockCase, Color565, u8),
+{
+    debug_assert!(len % 16 == 0);
+
+    // Calculate pointers to current block
+    let mut src_block_ptr = input_ptr;
+    let src_end_ptr = input_ptr.add(len);
+
+    // Process each block
+    while src_block_ptr < src_end_ptr {
+        // Decode the block to analyze its content
+        let decoded_block = decode_bc3_block(src_block_ptr);
+
+        // Check for uniform alpha
+        let has_uniform_alpha = decoded_block.has_identical_alpha();
+
+        // Determine alpha case
+        let alpha_case = if has_uniform_alpha {
+            AlphaBlockCase::UniformAlpha
+        } else {
+            AlphaBlockCase::CannotNormalize
+        };
+
+        // Check for solid color (ignoring alpha)
+        let has_solid_color = decoded_block.has_identical_pixels_ignore_alpha();
+
+        // Get the first pixel (will be used if solid color)
+        let pixel = decoded_block.pixels[0];
+        let color565 = pixel.to_color_565();
+
+        // Determine color case
+        let color_case = if has_solid_color {
+            // Check if color can be round-tripped cleanly through RGB565
+            let color8888 = color565.to_color_8888();
+            let pixel_ignore_alpha = Color8888::new(pixel.r, pixel.g, pixel.b, 255);
+            let color8888_ignore_alpha = Color8888::new(color8888.r, color8888.g, color8888.b, 255);
+
+            if unlikely(color8888_ignore_alpha == pixel_ignore_alpha) {
+                ColorBlockCase::SolidColorRoundtrippable
+            } else {
+                ColorBlockCase::CannotNormalize
+            }
+        } else {
+            ColorBlockCase::CannotNormalize
+        };
+
+        // Call the output handler with the determined cases
+        handle_output(
+            src_block_ptr,
+            alpha_case,
+            color_case,
+            color565,
+            decoded_block.pixels[0].a,
+        );
+
+        // Move to the next block
+        src_block_ptr = src_block_ptr.add(16);
+    }
+}
+
+/// Reads an input of blocks from `input_ptr` and writes the normalized blocks to multiple output pointers,
+/// one for each combination of [`AlphaNormalizationMode`] and [`ColorNormalizationMode`].
+///
+/// # Parameters
+///
+/// - `input_ptr`: A pointer to the input data (input BC3 blocks)
+/// - `output_ptrs`: A 2D array of output pointers, indexed by [alpha_mode][color_mode]
+/// - `len`: The length of the input data in bytes
+///
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - each pointer in output_ptrs must be valid for writes of len bytes
+/// - len must be divisible by 16
+/// - input_ptr and output_ptrs must not overlap
+///
+/// # Remarks
+///
+/// This function processes each block once and writes it to multiple output buffers,
+/// applying different combinations of normalization modes to each output.
+///
+/// The output_ptrs array must be a 2D array with dimensions [AlphaNormalizationMode::all_values().len()][ColorNormalizationMode::all_values().len()],
+/// with pointers organized in the same order as the modes are defined in their respective enums.
+///
+/// See the module-level documentation for more details on the normalization process.
+#[inline]
+pub unsafe fn normalize_blocks_all_modes(
+    input_ptr: *const u8,
+    output_ptrs: &mut [[*mut u8; ColorNormalizationMode::all_values().len()];
+             AlphaNormalizationMode::all_values().len()],
+    len: usize,
+) {
+    debug_assert!(len % 16 == 0);
+
+    // Setup arrays to track current position in each output buffer
+    let mut dst_block_ptrs = [[std::ptr::null_mut::<u8>();
+        ColorNormalizationMode::all_values().len()];
+        AlphaNormalizationMode::all_values().len()];
+
+    // Initialize destination pointers
+    for (a_idx, a_ptrs) in dst_block_ptrs.iter_mut().enumerate() {
+        for (c_idx, dst_ptr) in a_ptrs.iter_mut().enumerate() {
+            *dst_ptr = output_ptrs[a_idx][c_idx];
+        }
+    }
+
+    normalize_blocks_impl(
+        input_ptr,
+        len,
+        |src_block_ptr, alpha_case, color_case, color565, alpha_value| {
+            // Process for each combination of modes
+            for (a_idx, alpha_mode) in AlphaNormalizationMode::all_values().iter().enumerate() {
+                for (c_idx, color_mode) in ColorNormalizationMode::all_values().iter().enumerate() {
+                    let dst_block_ptr = dst_block_ptrs[a_idx][c_idx];
+
+                    // Handle alpha normalization
+                    match alpha_case {
+                        AlphaBlockCase::UniformAlpha => {
+                            if *alpha_mode != AlphaNormalizationMode::None {
+                                normalize_alpha(
+                                    src_block_ptr,
+                                    dst_block_ptr,
+                                    alpha_value,
+                                    *alpha_mode,
+                                );
+                            } else {
+                                // Copy alpha data as-is (first 8 bytes)
+                                copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+                            }
+                        }
+                        AlphaBlockCase::CannotNormalize => {
+                            // Copy alpha data as-is (first 8 bytes)
+                            copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+                        }
+                    }
+
+                    // Handle color normalization
+                    match color_case {
+                        ColorBlockCase::SolidColorRoundtrippable => {
+                            if *color_mode != ColorNormalizationMode::None {
+                                normalize_color(color565.raw_value(), dst_block_ptr, *color_mode);
+                            } else {
+                                // Copy color data as-is (last 8 bytes)
+                                copy_nonoverlapping(src_block_ptr.add(8), dst_block_ptr.add(8), 8);
+                            }
+                        }
+                        ColorBlockCase::CannotNormalize => {
+                            // Copy color data as-is (last 8 bytes)
+                            copy_nonoverlapping(src_block_ptr.add(8), dst_block_ptr.add(8), 8);
+                        }
+                    }
+
+                    // Update position in this output buffer
+                    dst_block_ptrs[a_idx][c_idx] = dst_block_ptrs[a_idx][c_idx].add(16);
+                }
+            }
+        },
+    );
 }
 
 #[cfg(test)]
@@ -741,14 +925,14 @@ mod tests {
         // Create output buffer
         let mut output = [0u8; 16];
 
-        // Test all alpha modes
-        let modes = [
+        // Test non-None alpha modes
+        let normalization_modes = [
             AlphaNormalizationMode::UniformAlphaZeroIndices,
             AlphaNormalizationMode::OpaqueFillAll,
             AlphaNormalizationMode::OpaqueZeroAlphaMaxIndices,
         ];
 
-        for mode in modes {
+        for mode in normalization_modes {
             // Normalize the block
             unsafe {
                 normalize_blocks(
@@ -760,20 +944,49 @@ mod tests {
                 );
             }
 
-            // For non-opaque alpha, all modes should behave like UniformAlphaZeroIndices
-            assert_eq!(output[0], 128); // A0 = alpha value
-            assert_eq!(output[1], 0); // A1 = 0
+            // For non-opaque alpha, all normalization modes should behave like UniformAlphaZeroIndices
+            assert_eq!(output[0], 128, "Alpha value incorrect for mode {mode:?}"); // A0 = alpha value
+            assert_eq!(output[1], 0, "A1 value incorrect for mode {mode:?}"); // A1 = 0
 
             // All index bytes should be 0
             for x in 2..8 {
-                assert_eq!(output[x], 0);
+                assert_eq!(output[x], 0, "Index byte {x} incorrect for mode {mode:?}");
             }
 
             // Decode the normalized block to verify alphas are still 128
             let decoded = unsafe { decode_bc3_block(output.as_ptr()) };
             for x in 0..16 {
-                assert_eq!(decoded.pixels[x].a, 128);
+                assert_eq!(
+                    decoded.pixels[x].a, 128,
+                    "Decoded alpha incorrect for mode {mode:?}",
+                );
             }
+        }
+
+        // Test None mode separately - it should preserve the original data
+        unsafe {
+            normalize_blocks(
+                block.as_ptr(),
+                output.as_mut_ptr(),
+                16,
+                AlphaNormalizationMode::None,
+                ColorNormalizationMode::None,
+            );
+        }
+
+        // With None mode, the alpha data should be unchanged
+        assert_eq!(output[0], 128); // A0 = original value
+        assert_eq!(output[1], 128); // A1 = original value
+
+        // Indices should also be unchanged
+        for x in 2..8 {
+            assert_eq!(output[x], 0);
+        }
+
+        // Decoded alpha should still be 128
+        let decoded = unsafe { decode_bc3_block(output.as_ptr()) };
+        for x in 0..16 {
+            assert_eq!(decoded.pixels[x].a, 128);
         }
     }
 

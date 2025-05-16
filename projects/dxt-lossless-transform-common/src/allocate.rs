@@ -28,7 +28,7 @@ pub fn allocate_array<T>(num_bytes: usize) -> Result<[*mut u8; num_bytes], Alloc
 }
     */
 
-/// Allocates data with an aligment of 64 bytes.
+/// Allocates data with an alignment of 64 bytes.
 ///
 /// # Parameters
 ///

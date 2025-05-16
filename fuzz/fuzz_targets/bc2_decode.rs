@@ -51,8 +51,8 @@ fn hybrid_decode_bc2_to_block(bc2_block: &[u8]) -> Decoded4x4Block {
         // The BC2 (DXT3) format has the same color block format as BC1 (DXT1)
         // We'll decode the color part (last 8 bytes) with unpack_bc1
         rgbcx::unpack_bc1(
-            bc2_block.as_ptr().add(8) as *const ::std::os::raw::c_void,
-            rgba_buffer.as_mut_ptr() as *mut ::std::os::raw::c_void,
+            bc2_block.as_ptr().add(8) as *const core::ffi::c_void,
+            rgba_buffer.as_mut_ptr() as *mut core::ffi::c_void,
             true, // set_alpha
             rgbcx::bc1_approx_mode::cBC1Ideal,
         );

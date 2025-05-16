@@ -1,7 +1,7 @@
 use core::{alloc::Layout, ptr::copy_nonoverlapping};
 use criterion::{criterion_group, criterion_main, Criterion};
 use dxt_lossless_transform_bc3::normalize_blocks::{
-    normalize_blocks, AlphaNormalizationMode, ColorNormalizationMode,
+    normalize_blocks, normalize_blocks_all_modes, AlphaNormalizationMode, ColorNormalizationMode,
 };
 use safe_allocator_api::RawAlloc;
 use std::fs;
@@ -105,6 +105,35 @@ fn criterion_benchmark(c: &mut Criterion) {
                 AlphaNormalizationMode::UniformAlphaZeroIndices,
                 ColorNormalizationMode::Color0Only,
             );
+        })
+    });
+
+    // Benchmark normalize_blocks_all_modes
+    // This function needs a 2D array of output pointers for all mode combinations
+    let alpha_modes_len = AlphaNormalizationMode::all_values().len();
+    let color_modes_len = ColorNormalizationMode::all_values().len();
+
+    // Allocate memory for all output combinations
+    let mut all_outputs = Vec::with_capacity(alpha_modes_len * color_modes_len);
+    for _ in 0..(alpha_modes_len * color_modes_len) {
+        all_outputs.push(allocate_align_64(file_size));
+    }
+
+    // Create 2D array of output pointers
+    let mut output_ptrs = [[std::ptr::null_mut::<u8>(); ColorNormalizationMode::all_values().len()];
+        AlphaNormalizationMode::all_values().len()];
+
+    // Initialize the output pointers 2D array
+    for a_idx in 0..alpha_modes_len {
+        for c_idx in 0..color_modes_len {
+            let index = a_idx * color_modes_len + c_idx;
+            output_ptrs[a_idx][c_idx] = all_outputs[index].as_mut_ptr();
+        }
+    }
+
+    group.bench_function("normalize_blocks_all_modes", |b| {
+        b.iter(|| unsafe {
+            normalize_blocks_all_modes(input_ptr, &mut output_ptrs, file_size);
         })
     });
 

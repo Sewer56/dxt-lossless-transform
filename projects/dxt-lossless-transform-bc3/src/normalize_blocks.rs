@@ -542,6 +542,8 @@ pub unsafe fn normalize_blocks_all_modes(
 #[cfg(test)]
 #[allow(clippy::needless_range_loop)]
 mod tests {
+    use core::ptr;
+
     use rstest::rstest;
 
     use super::*;
@@ -1090,6 +1092,82 @@ mod tests {
                 output[x], blocks_copy[x],
                 "Block 2 byte {x} was modified when it should be unchanged",
             );
+        }
+    }
+
+    /// Test normalizing blocks using all combinations of modes
+    #[test]
+    fn can_normalize_blocks_all_modes() {
+        // Create a single BC3 block with solid red color and uniform alpha
+        let mut block = [0u8; 16]; // 1 block, 16 bytes
+
+        // Set alpha endpoints to fully opaque
+        block[0] = 0xFF;
+        block[1] = 0xFF;
+
+        // Set alpha indices
+        for x in 2..8 {
+            block[x] = 0;
+        }
+
+        // Set Color0 to red, Color1 to something else
+        let red565 = 0xF800u16.to_le_bytes();
+        block[8] = red565[0];
+        block[9] = red565[1];
+        block[10] = 0x12;
+        block[11] = 0x34;
+
+        // Set indices to all point to Color0
+        for x in 12..16 {
+            block[x] = 0;
+        }
+
+        // Create output buffers for all mode combinations
+        const ALPHA_MODE_COUNT: usize = AlphaNormalizationMode::all_values().len();
+        const COLOR_MODE_COUNT: usize = ColorNormalizationMode::all_values().len();
+
+        let mut output_buffers = vec![vec![0u8; 16]; ALPHA_MODE_COUNT * COLOR_MODE_COUNT];
+        let mut output_ptrs = [[ptr::null_mut::<u8>(); COLOR_MODE_COUNT]; ALPHA_MODE_COUNT];
+
+        // Set up output pointers
+        for a_idx in 0..ALPHA_MODE_COUNT {
+            for c_idx in 0..COLOR_MODE_COUNT {
+                let buffer_idx = (a_idx * COLOR_MODE_COUNT) + c_idx;
+                output_ptrs[a_idx][c_idx] = output_buffers[buffer_idx].as_mut_ptr();
+            }
+        }
+
+        // Normalize the block using all mode combinations
+        unsafe {
+            normalize_blocks_all_modes(block.as_ptr(), &mut output_ptrs, 16);
+        }
+
+        // Verify each output buffer has been normalized according to its mode combination
+        for (a_idx, a_mode) in AlphaNormalizationMode::all_values().iter().enumerate() {
+            for (c_idx, c_mode) in ColorNormalizationMode::all_values().iter().enumerate() {
+                let buffer_idx = a_idx * COLOR_MODE_COUNT + c_idx;
+                let output = &output_buffers[buffer_idx];
+
+                // Create a reference output by normalizing with the same modes individually
+                let mut reference_output = [0u8; 16];
+                unsafe {
+                    normalize_blocks(
+                        block.as_ptr(),
+                        reference_output.as_mut_ptr(),
+                        16,
+                        *a_mode,
+                        *c_mode,
+                    );
+                }
+
+                // Compare the output with the reference
+                for x in 0..16 {
+                    assert_eq!(
+                        output[x], reference_output[x],
+                        "Output for mode combination [{a_mode:?}][{c_mode:?}] at byte {x} does not match expected value"
+                    );
+                }
+            }
         }
     }
 }

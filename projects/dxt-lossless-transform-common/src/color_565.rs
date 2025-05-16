@@ -677,6 +677,7 @@ mod tests {
     #[case(YCoCgVariant::Variant1)]
     #[case(YCoCgVariant::Variant2)]
     #[case(YCoCgVariant::Variant3)]
+    #[case(YCoCgVariant::None)]
     fn can_decorrelate_recorrelate(#[case] variant: YCoCgVariant) {
         // Create a variety of test colors to ensure coverage across the color space
         let test_colors = [
@@ -720,6 +721,7 @@ mod tests {
     #[case(YCoCgVariant::Variant1)]
     #[case(YCoCgVariant::Variant2)]
     #[case(YCoCgVariant::Variant3)]
+    #[case(YCoCgVariant::None)]
     fn can_individual_color_operations(#[case] variant: YCoCgVariant) {
         // Test individual color transformations
         let original = Color565::from_rgb(255, 128, 64);

@@ -11,23 +11,21 @@ std = [
     "dxt-lossless-transform-bc1/std",
     "dxt-lossless-transform-bc2/std",
     "dxt-lossless-transform-bc3/std",
-    "dxt-lossless-transform-bc7/std",
+    #"dxt-lossless-transform-bc7/std",
 ]
 # Use CPU features selected at compile time.
 no-runtime-cpu-detection = [
     "dxt-lossless-transform-bc1/no-runtime-cpu-detection",
     "dxt-lossless-transform-bc2/no-runtime-cpu-detection",
     "dxt-lossless-transform-bc3/no-runtime-cpu-detection",
-    "dxt-lossless-transform-bc7/no-runtime-cpu-detection",
+    #"dxt-lossless-transform-bc7/no-runtime-cpu-detection",
 ]
 # Use CPU features selected at compile time.
 c-exports = []
 
 [dependencies]
-argh = "0.1.13"
-rayon = "1.10.0"
 dxt-lossless-transform-bc1 = { path = "../dxt-lossless-transform-bc1" }
 dxt-lossless-transform-bc2 = { path = "../dxt-lossless-transform-bc2" }
 dxt-lossless-transform-bc3 = { path = "../dxt-lossless-transform-bc3" }
-dxt-lossless-transform-bc7 = { path = "../dxt-lossless-transform-bc7" }
+# dxt-lossless-transform-bc7 = { path = "../dxt-lossless-transform-bc7" }
 dxt-lossless-transform-dds = { path = "../dxt-lossless-transform-dds" }

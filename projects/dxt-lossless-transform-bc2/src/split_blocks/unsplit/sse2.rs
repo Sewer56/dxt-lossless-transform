@@ -140,7 +140,6 @@ mod tests {
     use crate::split_blocks::split::tests::generate_bc2_test_data;
     use crate::split_blocks::split::u32;
     use crate::split_blocks::unsplit::tests::assert_implementation_matches_reference;
-    use crate::testutils::allocate_align_64;
     use rstest::rstest;
 
     type DetransformFn = unsafe fn(*const u8, *mut u8, usize);
@@ -149,11 +148,13 @@ mod tests {
     #[case::shuffle(shuffle, "shuffle")]
     fn test_sse2_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
         // Test with different block counts to ensure they all work correctly
+
+        use dxt_lossless_transform_common::allocate::allocate_align_64;
         for block_count in 1..=512 {
             // Generate test data
             let original = generate_bc2_test_data(block_count);
-            let mut transformed = allocate_align_64(original.len());
-            let mut reconstructed = allocate_align_64(original.len());
+            let mut transformed = allocate_align_64(original.len()).unwrap();
+            let mut reconstructed = allocate_align_64(original.len()).unwrap();
 
             unsafe {
                 // Transform the original test data

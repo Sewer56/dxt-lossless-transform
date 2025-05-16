@@ -552,8 +552,8 @@ mod tests {
         assert_implementation_matches_reference, generate_bc1_test_data,
         transform_with_reference_implementation,
     };
-    use crate::testutils::allocate_align_64;
     use core::ptr::copy_nonoverlapping;
+    use dxt_lossless_transform_common::allocate::allocate_align_64;
     use rstest::rstest;
 
     // Define the function pointer type
@@ -571,9 +571,9 @@ mod tests {
     #[case(shift_with_count_unroll_8, "shift_with_count unroll-8")]
     fn test_portable64_aligned(#[case] transform_fn: TransformFn, #[case] impl_name: &str) {
         for num_blocks in 1..=512 {
-            let mut input = allocate_align_64(num_blocks * 8);
-            let mut output_expected = allocate_align_64(input.len());
-            let mut output_test = allocate_align_64(input.len());
+            let mut input = allocate_align_64(num_blocks * 8).unwrap();
+            let mut output_expected = allocate_align_64(input.len()).unwrap();
+            let mut output_test = allocate_align_64(input.len()).unwrap();
 
             // Fill the input with test data
             unsafe {

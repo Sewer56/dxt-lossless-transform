@@ -3,11 +3,10 @@
 #![cfg_attr(feature = "nightly", feature(avx512_target_feature))]
 #![cfg_attr(feature = "nightly", feature(stdarch_x86_avx512))]
 
-use core::alloc::Layout;
-
+use dxt_lossless_transform_common::color_565::YCoCgVariant;
 use normalize_blocks::ColorNormalizationMode;
-use safe_allocator_api::RawAlloc;
-use split_blocks::{split::split_blocks, unsplit_blocks};
+use split_blocks::unsplit_blocks;
+pub mod determine_optimal_transform;
 pub mod normalize_blocks;
 pub mod split_blocks;
 pub mod util;
@@ -15,7 +14,35 @@ pub mod util;
 /// The information about the BC1 transform that was just performed.
 /// Each item transformed via [`transform_bc1`] will produce an instance of this struct.
 /// To undo the transform, you'll need to pass the same instance to [`untransform_bc1`].
-pub struct Bc1TransformDetails {}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Bc1TransformDetails {
+    /*
+        Operations (per readme)
+        1. Normalize
+        2. Split (Always)
+        3. Decorrelate
+        4. Split Colours (Optional)
+    */
+    /// The color normalization mode that was used to normalize the data.
+    pub color_normalization_mode: ColorNormalizationMode,
+
+    /// The decorrelation mode that was used to decorrelate the colors.
+    pub decorrelation_mode: YCoCgVariant,
+
+    /// Whether or not the colour endpoints are to be split or not.
+    pub split_colours: bool,
+}
+
+impl Default for Bc1TransformDetails {
+    fn default() -> Self {
+        // Best (on average) results, but of course not perfect, as is with brute-force method.
+        Self {
+            color_normalization_mode: ColorNormalizationMode::Color0Only,
+            decorrelation_mode: YCoCgVariant::Variant1,
+            split_colours: true,
+        }
+    }
+}
 
 /// Transform BC1 data into a more compressible format.
 ///
@@ -43,12 +70,13 @@ pub struct Bc1TransformDetails {}
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
 pub unsafe fn transform_bc1(
-    input_ptr: *const u8,
-    output_ptr: *mut u8,
+    _input_ptr: *const u8,
+    _output_ptr: *mut u8,
     len: usize,
 ) -> Bc1TransformDetails {
     debug_assert!(len % 8 == 0);
 
+    /*
     let mut normalized = RawAlloc::new(Layout::from_size_align_unchecked(len, 64)).unwrap();
     normalize_blocks::normalize_blocks(
         input_ptr,
@@ -57,7 +85,8 @@ pub unsafe fn transform_bc1(
         ColorNormalizationMode::Color0Only,
     );
     split_blocks(normalized.as_ptr(), output_ptr, len);
-    Bc1TransformDetails {}
+    */
+    Bc1TransformDetails::default()
 }
 
 /// Untransform BC1 file back to its original format.
@@ -91,15 +120,4 @@ pub unsafe fn untransform_bc1(
 ) {
     debug_assert!(len % 8 == 0);
     unsplit_blocks(input_ptr, output_ptr, len);
-}
-
-#[cfg(test)]
-mod testutils {
-    use core::alloc::Layout;
-    use safe_allocator_api::RawAlloc;
-
-    pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
-        let layout = Layout::from_size_align(num_bytes, 64).unwrap();
-        RawAlloc::new(layout).unwrap()
-    }
 }

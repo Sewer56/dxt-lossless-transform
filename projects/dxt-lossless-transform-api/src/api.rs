@@ -66,7 +66,7 @@ pub unsafe fn untransform_format(
                 input_ptr,
                 output_ptr,
                 len,
-                &Bc1TransformDetails {},
+                &Bc1TransformDetails::default(),
             );
         }
         DdsFormat::BC2 => {

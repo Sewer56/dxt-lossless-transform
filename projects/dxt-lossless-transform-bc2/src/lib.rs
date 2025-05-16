@@ -79,14 +79,3 @@ pub unsafe fn untransform_bc2(
     debug_assert!(len % 16 == 0);
     split_blocks::unsplit_blocks(input_ptr, output_ptr, len);
 }
-
-#[cfg(test)]
-mod testutils {
-    use core::alloc::Layout;
-    use safe_allocator_api::RawAlloc;
-
-    pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
-        let layout = Layout::from_size_align(num_bytes, 64).unwrap();
-        RawAlloc::new(layout).unwrap()
-    }
-}

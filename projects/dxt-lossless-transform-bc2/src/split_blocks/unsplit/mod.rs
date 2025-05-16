@@ -219,10 +219,9 @@ pub unsafe fn unsplit_block_with_separate_pointers(
 
 #[cfg(test)]
 mod tests {
-    use crate::testutils::allocate_align_64;
-    use safe_allocator_api::RawAlloc;
-
     use super::{unsplit_block_with_separate_pointers, unsplit_blocks};
+    use dxt_lossless_transform_common::allocate::allocate_align_64;
+    use safe_allocator_api::RawAlloc;
 
     /// Helper to assert implementation results match reference implementation
     pub(crate) fn assert_implementation_matches_reference(
@@ -243,7 +242,7 @@ mod tests {
 
     // Helper to generate test data of specified size (in blocks)
     pub(crate) fn generate_bc2_transformed_test_data(num_blocks: usize) -> RawAlloc {
-        let mut data = allocate_align_64(num_blocks * 16);
+        let mut data = allocate_align_64(num_blocks * 16).unwrap();
         let mut data_ptr = data.as_mut_ptr();
 
         let num_alpha = data.len() / 2;
@@ -297,8 +296,8 @@ mod tests {
         for num_blocks in 1..=512 {
             let mut transformed = generate_bc2_transformed_test_data(num_blocks);
             let len = transformed.len();
-            let mut output_ref = allocate_align_64(len);
-            let mut output_sep = allocate_align_64(len);
+            let mut output_ref = allocate_align_64(len).unwrap();
+            let mut output_sep = allocate_align_64(len).unwrap();
 
             unsafe {
                 // Reference: contiguous pointers

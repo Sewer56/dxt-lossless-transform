@@ -99,7 +99,6 @@ mod tests {
     use crate::split_blocks::split::tests::{
         generate_bc2_test_data, transform_with_reference_implementation,
     };
-    use crate::testutils::allocate_align_64;
     use rstest::rstest;
 
     #[rstest]
@@ -110,10 +109,12 @@ mod tests {
     #[case::min_size(16)] // 128 bytes - AVX Unrolled Operation
     #[case::min_size(32)] // 256 bytes - Multiple Unrolled Operations
     fn test_transform_untransform(#[case] num_blocks: usize) {
+        use dxt_lossless_transform_common::allocate::allocate_align_64;
+
         let input = generate_bc2_test_data(num_blocks);
-        let mut transformed = allocate_align_64(input.len());
-        let mut reconstructed = allocate_align_64(input.len());
-        let mut reference = allocate_align_64(input.len());
+        let mut transformed = allocate_align_64(input.len()).unwrap();
+        let mut reconstructed = allocate_align_64(input.len()).unwrap();
+        let mut reference = allocate_align_64(input.len()).unwrap();
 
         // Generate reference output
         transform_with_reference_implementation(input.as_slice(), reference.as_mut_slice());

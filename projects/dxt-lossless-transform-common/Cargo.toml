@@ -16,10 +16,12 @@ pgo = []
 # Use CPU features selected at compile time.
 no-runtime-cpu-detection = []
 # Use nightly compiler features (AVX512)
-nightly = []
+nightly = ["safe-allocator-api/nightly"]
 
 [dependencies]
 multiversion = { version = "0.8.0", default-features = false }
+thiserror = "2.0.12"
+safe-allocator-api = "0.4.0"
 
 [target.'cfg(any(target_arch = "x86_64", target_arch = "x86"))'.dependencies]
 cpufeatures = "0.2.17"
@@ -27,7 +29,6 @@ cpufeatures = "0.2.17"
 [dev-dependencies]
 rstest = "0.25.0"
 criterion = "0.5.1"
-safe-allocator-api = "0.3.0"
 
 [target.'cfg(unix)'.dev-dependencies]
 pprof = { version = "0.14", features = ["flamegraph", "criterion"] }

@@ -341,7 +341,7 @@ mod tests {
     use crate::split_blocks::split::tests::generate_bc2_test_data;
     use crate::split_blocks::split::u32;
     use crate::split_blocks::unsplit::tests::assert_implementation_matches_reference;
-    use crate::testutils::allocate_align_64;
+    use dxt_lossless_transform_common::allocate::allocate_align_64;
     use rstest::rstest;
 
     type DetransformFn = unsafe fn(*const u8, *mut u8, usize);
@@ -358,8 +358,8 @@ mod tests {
         for block_count in 1..=512 {
             // Generate test data
             let original = generate_bc2_test_data(block_count);
-            let mut transformed = allocate_align_64(original.len());
-            let mut reconstructed = allocate_align_64(original.len());
+            let mut transformed = allocate_align_64(original.len()).unwrap();
+            let mut reconstructed = allocate_align_64(original.len()).unwrap();
 
             unsafe {
                 // Transform the original test data

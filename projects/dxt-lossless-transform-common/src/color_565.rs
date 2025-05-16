@@ -564,6 +564,7 @@ impl Color565 {
             YCoCgVariant::Variant1 => self.decorrelate_ycocg_r_var1(),
             YCoCgVariant::Variant2 => self.decorrelate_ycocg_r_var2(),
             YCoCgVariant::Variant3 => self.decorrelate_ycocg_r_var3(),
+            YCoCgVariant::None => (), // No transformation
         }
     }
 
@@ -590,6 +591,7 @@ impl Color565 {
             YCoCgVariant::Variant1 => self.recorrelate_ycocg_r_var1(),
             YCoCgVariant::Variant2 => self.recorrelate_ycocg_r_var2(),
             YCoCgVariant::Variant3 => self.recorrelate_ycocg_r_var3(),
+            YCoCgVariant::None => (), // No transformation
         }
     }
 
@@ -617,6 +619,7 @@ impl Color565 {
             YCoCgVariant::Variant1 => Self::decorrelate_ycocg_r_var1_slice(colors),
             YCoCgVariant::Variant2 => Self::decorrelate_ycocg_r_var2_slice(colors),
             YCoCgVariant::Variant3 => Self::decorrelate_ycocg_r_var3_slice(colors),
+            YCoCgVariant::None => (), // No transformation
         }
     }
 
@@ -645,6 +648,7 @@ impl Color565 {
             YCoCgVariant::Variant1 => Self::recorrelate_ycocg_r_var1_slice(colors),
             YCoCgVariant::Variant2 => Self::recorrelate_ycocg_r_var2_slice(colors),
             YCoCgVariant::Variant3 => Self::recorrelate_ycocg_r_var3_slice(colors),
+            YCoCgVariant::None => (), // No transformation
         }
     }
 }
@@ -658,6 +662,8 @@ pub enum YCoCgVariant {
     Variant2,
     /// Variant 3: Sometimes better than variant 2
     Variant3,
+    /// None: No transformation (original RGB values preserved)
+    None,
 }
 
 #[cfg(test)]

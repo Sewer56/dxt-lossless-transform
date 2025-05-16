@@ -96,9 +96,10 @@ pub unsafe fn split_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 
 #[cfg(test)]
 pub mod tests {
-    use super::*;
-    use crate::testutils::allocate_align_64;
+    use dxt_lossless_transform_common::allocate::allocate_align_64;
     use safe_allocator_api::RawAlloc;
+
+    use super::*;
 
     /// Transforms the input data using a good known reference implementation.
     pub(crate) fn transform_with_reference_implementation(input: &[u8], output: &mut [u8]) {
@@ -123,7 +124,7 @@ pub mod tests {
 
     // Helper to generate test data of specified size (in blocks)
     pub(crate) fn generate_bc1_test_data(num_blocks: usize) -> RawAlloc {
-        let mut data = allocate_align_64(num_blocks * 8);
+        let mut data = allocate_align_64(num_blocks * 8).unwrap();
         let mut data_ptr = data.as_mut_ptr();
 
         let mut color_byte = 0_u8;

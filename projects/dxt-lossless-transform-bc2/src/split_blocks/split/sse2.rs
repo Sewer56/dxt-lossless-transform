@@ -379,8 +379,8 @@ mod tests {
         assert_implementation_matches_reference, generate_bc2_test_data,
         transform_with_reference_implementation,
     };
-    use crate::testutils::allocate_align_64;
     use core::ptr::copy_nonoverlapping;
+    use dxt_lossless_transform_common::allocate::allocate_align_64;
     use rstest::rstest;
 
     type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
@@ -392,9 +392,9 @@ mod tests {
     #[cfg_attr(target_arch = "x86_64", case(shuffle_v3, "shuffle_v3"))]
     fn test_sse2_aligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
         for num_blocks in 1..=512 {
-            let mut input = allocate_align_64(num_blocks * 16);
-            let mut output_expected = allocate_align_64(input.len());
-            let mut output_test = allocate_align_64(input.len());
+            let mut input = allocate_align_64(num_blocks * 16).unwrap();
+            let mut output_expected = allocate_align_64(input.len()).unwrap();
+            let mut output_test = allocate_align_64(input.len()).unwrap();
 
             // Fill the input with test data
             unsafe {

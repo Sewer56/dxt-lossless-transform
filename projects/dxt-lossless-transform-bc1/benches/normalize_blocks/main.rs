@@ -74,18 +74,17 @@ fn criterion_benchmark(c: &mut Criterion) {
         output_buffers.push(allocate_align_64(file_size));
     }
 
+    // Create a fresh stack array of pointers for each iteration (else it segfaults because pointers
+    // are not reset back to starting pos across iterations)
+    const NUM_MODES: usize = ColorNormalizationMode::all_values().len();
+    let mut output_ptrs_array: [*mut u8; NUM_MODES] = [null_mut(); NUM_MODES];
+    for x in 0..NUM_MODES {
+        output_ptrs_array[x] = output_buffers[x].as_mut_ptr();
+    }
+
     group.bench_function("normalize_blocks_all_modes", |b| {
         b.iter(|| unsafe {
-            // Create a fresh stack array of pointers for each iteration (else it segfaults because pointers
-            // are not reset back to starting pos across iterations)
-            const NUM_MODES: usize = ColorNormalizationMode::all_values().len();
-            let mut output_ptrs_array: [*mut u8; NUM_MODES] = [null_mut(); NUM_MODES];
-            for x in 0..NUM_MODES {
-                output_ptrs_array[x] = output_buffers[x].as_mut_ptr();
-            }
-
-            // Run the function
-            normalize_blocks_all_modes(input_ptr, &mut output_ptrs_array, file_size);
+            normalize_blocks_all_modes(input_ptr, &output_ptrs_array, file_size);
         })
     });
 

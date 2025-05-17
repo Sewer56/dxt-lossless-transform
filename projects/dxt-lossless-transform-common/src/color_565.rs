@@ -418,16 +418,22 @@ impl Color565 {
 
     /// Raw pointer implementation of the YCoCg-R variant 1 decorrelation for maximum performance.
     ///
-    /// Takes input and output raw pointers, applying the transformation while copying `len` elements.
+    /// Takes input and output raw pointers, applying the transformation while copying `num_items` elements.
     /// It is the raw pointer equivalent of [`Self::decorrelate_ycocg_r_var1_slice`].
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
+    ///
+    /// # Parameters
+    ///
+    /// - `src_ptr`: Pointer to the source array of [`Color565`] items to transform
+    /// - `dst_ptr`: Pointer to the destination array where transformed items will be stored
+    /// - `num_items`: Number of [`Color565`] items to process (not bytes)
     ///
     /// # Safety
     ///
     /// This function is unsafe because it takes raw pointers and doesn't check bounds.
     /// Caller must ensure that:
-    /// - Both pointers are properly aligned and valid for reads/writes for at least `len` elements
+    /// - Both pointers are properly aligned and valid for reads/writes for at least `num_items` elements
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
@@ -435,16 +441,16 @@ impl Color565 {
     pub unsafe fn decorrelate_ycocg_r_var1_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
-        len: usize,
+        num_items: usize,
     ) {
         #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
         #[cfg_attr(
             feature = "nightly",
             multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
         )]
-        unsafe fn decorr(src_ptr: *const Color565, dst_ptr: *mut Color565, len: usize) {
+        unsafe fn decorr(src_ptr: *const Color565, dst_ptr: *mut Color565, num_items: usize) {
             // hack around Multiversion
-            for x in 0..len {
+            for x in 0..num_items {
                 unsafe {
                     let color = &*src_ptr.add(x);
                     *dst_ptr.add(x) = color.decorrelate_ycocg_r_var1();
@@ -452,7 +458,7 @@ impl Color565 {
             }
         }
 
-        decorr(src_ptr, dst_ptr, len);
+        decorr(src_ptr, dst_ptr, num_items);
     }
 
     /// Convenience function that applies [`Self::decorrelate_ycocg_r_var1`] to each element in a slice.
@@ -475,18 +481,24 @@ impl Color565 {
         }
     }
 
-    /// Convenience function that applies [`Self::decorrelate_ycocg_r_var1`] to each element at a pointer.
+    /// Convenience function that applies [`Self::recorrelate_ycocg_r_var1`] to each element at a pointer.
     ///
-    /// Takes input and output raw pointers, applying the transformation while copying `len` elements.
-    /// It is the raw pointer equivalent of [`Self::decorrelate_ycocg_r_var1_slice`].
+    /// Takes input and output raw pointers, applying the transformation while copying `num_items` elements.
+    /// It is the raw pointer equivalent of [`Self::recorrelate_ycocg_r_var1_slice`].
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
+    ///
+    /// # Parameters
+    ///
+    /// - `src_ptr`: Pointer to the source array of [`Color565`] items to transform
+    /// - `dst_ptr`: Pointer to the destination array where transformed items will be stored
+    /// - `num_items`: Number of [`Color565`] items to process (not bytes)
     ///
     /// # Safety
     ///
     /// This function is unsafe because it takes raw pointers and doesn't check bounds.
     /// Caller must ensure that:
-    /// - Both pointers are properly aligned and valid for reads/writes for at least `len` elements
+    /// - Both pointers are properly aligned and valid for reads/writes for at least `num_items` elements
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
@@ -494,16 +506,16 @@ impl Color565 {
     pub unsafe fn recorrelate_ycocg_r_var1_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
-        len: usize,
+        num_items: usize,
     ) {
         #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
         #[cfg_attr(
             feature = "nightly",
             multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
         )]
-        unsafe fn recorr(src_ptr: *const Color565, dst_ptr: *mut Color565, len: usize) {
+        unsafe fn recorr(src_ptr: *const Color565, dst_ptr: *mut Color565, num_items: usize) {
             // hack around Multiversion
-            for x in 0..len {
+            for x in 0..num_items {
                 unsafe {
                     let color = &*src_ptr.add(x);
                     *dst_ptr.add(x) = color.recorrelate_ycocg_r_var1();
@@ -511,7 +523,7 @@ impl Color565 {
             }
         }
 
-        recorr(src_ptr, dst_ptr, len);
+        recorr(src_ptr, dst_ptr, num_items);
     }
 
     /// Convenience function that applies [`Self::recorrelate_ycocg_r_var1`] to each element in a slice.
@@ -536,16 +548,22 @@ impl Color565 {
 
     /// Convenience function that applies [`Self::decorrelate_ycocg_r_var2`] to each element at a pointer.
     ///
-    /// Takes input and output raw pointers, applying the transformation while copying `len` elements.
+    /// Takes input and output raw pointers, applying the transformation while copying `num_items` elements.
     /// It is the raw pointer equivalent of [`Self::decorrelate_ycocg_r_var2_slice`].
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
+    ///
+    /// # Parameters
+    ///
+    /// - `src_ptr`: Pointer to the source array of [`Color565`] items to transform
+    /// - `dst_ptr`: Pointer to the destination array where transformed items will be stored
+    /// - `num_items`: Number of [`Color565`] items to process (not bytes)
     ///
     /// # Safety
     ///
     /// This function is unsafe because it takes raw pointers and doesn't check bounds.
     /// Caller must ensure that:
-    /// - Both pointers are properly aligned and valid for reads/writes for at least `len` elements
+    /// - Both pointers are properly aligned and valid for reads/writes for at least `num_items` elements
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
@@ -553,16 +571,16 @@ impl Color565 {
     pub unsafe fn decorrelate_ycocg_r_var2_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
-        len: usize,
+        num_items: usize,
     ) {
         #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
         #[cfg_attr(
             feature = "nightly",
             multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
         )]
-        unsafe fn decorr(src_ptr: *const Color565, dst_ptr: *mut Color565, len: usize) {
+        unsafe fn decorr(src_ptr: *const Color565, dst_ptr: *mut Color565, num_items: usize) {
             // hack around Multiversion
-            for x in 0..len {
+            for x in 0..num_items {
                 unsafe {
                     let color = &*src_ptr.add(x);
                     *dst_ptr.add(x) = color.decorrelate_ycocg_r_var2();
@@ -570,7 +588,7 @@ impl Color565 {
             }
         }
 
-        decorr(src_ptr, dst_ptr, len);
+        decorr(src_ptr, dst_ptr, num_items);
     }
 
     /// Convenience function that applies [`Self::decorrelate_ycocg_r_var2`] to each element in a slice.
@@ -595,16 +613,22 @@ impl Color565 {
 
     /// Convenience function that applies [`Self::recorrelate_ycocg_r_var2`] to each element at a pointer.
     ///
-    /// Takes an input pointer and an output pointer, applying the transformation while copying `len` elements.
+    /// Takes an input pointer and an output pointer, applying the transformation while copying `num_items` elements.
     /// It is the raw pointer equivalent of [`Self::recorrelate_ycocg_r_var2_slice`].
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
+    ///
+    /// # Parameters
+    ///
+    /// - `src_ptr`: Pointer to the source array of [`Color565`] items to transform
+    /// - `dst_ptr`: Pointer to the destination array where transformed items will be stored
+    /// - `num_items`: Number of [`Color565`] items to process (not bytes)
     ///
     /// # Safety
     ///
     /// This function is unsafe because it takes raw pointers and doesn't check bounds.
     /// Caller must ensure that:
-    /// - Both pointers are properly aligned and valid for reads/writes for at least `len` elements
+    /// - Both pointers are properly aligned and valid for reads/writes for at least `num_items` elements
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
@@ -612,16 +636,16 @@ impl Color565 {
     pub unsafe fn recorrelate_ycocg_r_var2_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
-        len: usize,
+        num_items: usize,
     ) {
         #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
         #[cfg_attr(
             feature = "nightly",
             multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
         )]
-        unsafe fn recorr(src_ptr: *const Color565, dst_ptr: *mut Color565, len: usize) {
+        unsafe fn recorr(src_ptr: *const Color565, dst_ptr: *mut Color565, num_items: usize) {
             // hack around Multiversion
-            for x in 0..len {
+            for x in 0..num_items {
                 unsafe {
                     let color = &*src_ptr.add(x);
                     *dst_ptr.add(x) = color.recorrelate_ycocg_r_var2();
@@ -629,7 +653,7 @@ impl Color565 {
             }
         }
 
-        recorr(src_ptr, dst_ptr, len);
+        recorr(src_ptr, dst_ptr, num_items);
     }
 
     /// Convenience function that applies [`Self::recorrelate_ycocg_r_var2`] to each element in a slice.
@@ -654,16 +678,22 @@ impl Color565 {
 
     /// Convenience function that applies [`Self::decorrelate_ycocg_r_var3`] to each element at a pointer.
     ///
-    /// Takes an input pointer and an output pointer, applying the transformation while copying `len` elements.
+    /// Takes an input pointer and an output pointer, applying the transformation while copying `num_items` elements.
     /// It is the raw pointer equivalent of [`Self::decorrelate_ycocg_r_var3_slice`].
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
+    ///
+    /// # Parameters
+    ///
+    /// - `src_ptr`: Pointer to the source array of [`Color565`] items to transform
+    /// - `dst_ptr`: Pointer to the destination array where transformed items will be stored
+    /// - `num_items`: Number of [`Color565`] items to process (not bytes)
     ///
     /// # Safety
     ///
     /// This function is unsafe because it takes raw pointers and doesn't check bounds.
     /// Caller must ensure that:
-    /// - Both pointers are properly aligned and valid for reads/writes for at least `len` elements
+    /// - Both pointers are properly aligned and valid for reads/writes for at least `num_items` elements
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
@@ -671,16 +701,16 @@ impl Color565 {
     pub unsafe fn decorrelate_ycocg_r_var3_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
-        len: usize,
+        num_items: usize,
     ) {
         #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
         #[cfg_attr(
             feature = "nightly",
             multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
         )]
-        unsafe fn decorr(src_ptr: *const Color565, dst_ptr: *mut Color565, len: usize) {
+        unsafe fn decorr(src_ptr: *const Color565, dst_ptr: *mut Color565, num_items: usize) {
             // hack around Multiversion
-            for x in 0..len {
+            for x in 0..num_items {
                 unsafe {
                     let color = &*src_ptr.add(x);
                     *dst_ptr.add(x) = color.decorrelate_ycocg_r_var3();
@@ -688,7 +718,7 @@ impl Color565 {
             }
         }
 
-        decorr(src_ptr, dst_ptr, len);
+        decorr(src_ptr, dst_ptr, num_items);
     }
 
     /// Convenience function that applies [`Self::decorrelate_ycocg_r_var3`] to each element in a slice.
@@ -711,18 +741,24 @@ impl Color565 {
         }
     }
 
-    /// Convenience function that applies [`Self::decorrelate_ycocg_r_var3`] to each element at a pointer.
+    /// Convenience function that applies [`Self::recorrelate_ycocg_r_var3`] to each element at a pointer.
     ///
-    /// Takes input and output raw pointers, applying the transformation while copying `len` elements.
-    /// It is the raw pointer equivalent of [`Self::decorrelate_ycocg_r_var3_slice`].
+    /// Takes input and output raw pointers, applying the transformation while copying `num_items` elements.
+    /// It is the raw pointer equivalent of [`Self::recorrelate_ycocg_r_var3_slice`].
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
+    ///
+    /// # Parameters
+    ///
+    /// - `src_ptr`: Pointer to the source array of [`Color565`] items to transform
+    /// - `dst_ptr`: Pointer to the destination array where transformed items will be stored
+    /// - `num_items`: Number of [`Color565`] items to process (not bytes)
     ///
     /// # Safety
     ///
     /// This function is unsafe because it takes raw pointers and doesn't check bounds.
     /// Caller must ensure that:
-    /// - Both pointers are properly aligned and valid for reads/writes for at least `len` elements
+    /// - Both pointers are properly aligned and valid for reads/writes for at least `num_items` elements
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
@@ -730,16 +766,16 @@ impl Color565 {
     pub unsafe fn recorrelate_ycocg_r_var3_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
-        len: usize,
+        num_items: usize,
     ) {
         #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
         #[cfg_attr(
             feature = "nightly",
             multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
         )]
-        unsafe fn recorr(src_ptr: *const Color565, dst_ptr: *mut Color565, len: usize) {
+        unsafe fn recorr(src_ptr: *const Color565, dst_ptr: *mut Color565, num_items: usize) {
             // hack around Multiversion
-            for x in 0..len {
+            for x in 0..num_items {
                 unsafe {
                     let color = &*src_ptr.add(x);
                     *dst_ptr.add(x) = color.recorrelate_ycocg_r_var3();
@@ -747,7 +783,7 @@ impl Color565 {
             }
         }
 
-        recorr(src_ptr, dst_ptr, len);
+        recorr(src_ptr, dst_ptr, num_items);
     }
 
     /// Convenience function that applies [`Self::recorrelate_ycocg_r_var3`] to each element in a slice.
@@ -826,11 +862,18 @@ impl Color565 {
 
     /// Raw pointer implementation for applying the specified decorrelation variant to a block of colors
     ///
+    /// # Parameters
+    ///
+    /// - `src_ptr`: Pointer to the source array of [`Color565`] items to transform
+    /// - `dst_ptr`: Pointer to the destination array where transformed items will be stored
+    /// - `num_items`: Number of [`Color565`] items to process (not bytes)
+    /// - `variant`: The [`YCoCgVariant`] to use for the transformation
+    ///
     /// # Safety
     ///
     /// This function is unsafe because it takes raw pointers and doesn't check bounds.
     /// Caller must ensure that:
-    /// - Both pointers are properly aligned and valid for reads/writes for at least `len` elements
+    /// - Both pointers are properly aligned and valid for reads/writes for at least `num_items` elements
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
@@ -889,11 +932,18 @@ impl Color565 {
 
     /// Raw pointer implementation for applying the specified recorrelation variant to a block of colors
     ///
+    /// # Parameters
+    ///
+    /// - `src_ptr`: Pointer to the source array of [`Color565`] items to transform
+    /// - `dst_ptr`: Pointer to the destination array where transformed items will be stored
+    /// - `num_items`: Number of [`Color565`] items to process (not bytes)
+    /// - `variant`: The [`YCoCgVariant`] to use for the transformation
+    ///
     /// # Safety
     ///
     /// This function is unsafe because it takes raw pointers and doesn't check bounds.
     /// Caller must ensure that:
-    /// - Both pointers are properly aligned and valid for reads/writes for at least `len` elements
+    /// - Both pointers are properly aligned and valid for reads/writes for at least `num_items` elements
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]

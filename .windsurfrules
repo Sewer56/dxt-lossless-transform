@@ -3,3 +3,5 @@ change how loops are formed, unless asked.
 
 Do not reorder any of my lines of code, unless asked, especially if it's assembly code.
 Do not remove any of my comments, unless asked.
+
+Use the proper rustdoc format, putting elements in brackets like [`Color565`] and not `Color565`.

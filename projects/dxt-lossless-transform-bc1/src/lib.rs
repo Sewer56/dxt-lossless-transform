@@ -4,8 +4,8 @@
 #![cfg_attr(feature = "nightly", feature(stdarch_x86_avx512))]
 
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
-use normalize_blocks::ColorNormalizationMode;
-use split_blocks::unsplit_blocks;
+use normalize_blocks::{normalize_blocks, ColorNormalizationMode};
+use split_blocks::{split_blocks, unsplit_blocks};
 pub mod determine_optimal_transform;
 pub mod normalize_blocks;
 pub mod split_blocks;
@@ -16,13 +16,6 @@ pub mod util;
 /// To undo the transform, you'll need to pass the same instance to [`untransform_bc1`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bc1TransformDetails {
-    /*
-        Operations (per readme)
-        1. Normalize
-        2. Split (Always)
-        3. Decorrelate
-        4. Split Colours (Optional)
-    */
     /// The color normalization mode that was used to normalize the data.
     pub color_normalization_mode: ColorNormalizationMode,
 
@@ -30,7 +23,7 @@ pub struct Bc1TransformDetails {
     pub decorrelation_mode: YCoCgVariant,
 
     /// Whether or not the colour endpoints are to be split or not.
-    pub split_colours: bool,
+    pub split_colour_endpoints: bool,
 }
 
 impl Default for Bc1TransformDetails {
@@ -39,7 +32,7 @@ impl Default for Bc1TransformDetails {
         Self {
             color_normalization_mode: ColorNormalizationMode::Color0Only,
             decorrelation_mode: YCoCgVariant::Variant1,
-            split_colours: true,
+            split_colour_endpoints: true,
         }
     }
 }
@@ -50,31 +43,71 @@ impl Default for Bc1TransformDetails {
 ///
 /// - `input_ptr`: A pointer to the input data (input BC1 blocks)
 /// - `output_ptr`: A pointer to the output data (output BC1 blocks)
-/// - `len`: The length of the input data in bytes
-///
-/// # Returns
-///
-/// A struct informing you how the file was transformed. You will need this to call the
-/// [`untransform_bc1`] function.
+/// - `work_ptr`: A pointer to a work buffer (used by function)
+/// - `len`: The length of the input data in bytes (size of `input_ptr`, `output_ptr` and half size of `work_ptr`)
+/// - `transform_options`: The transform options to use.
+///   Obtained from [`determine_optimal_transform::determine_best_transform_details`] or
+///   [`Bc1TransformDetails::default`] for less optimal result(s).
 ///
 /// # Remarks
 ///
 /// The transform is lossless, in the sense that each pixel will produce an identical value upon
 /// decode, however, it is not guaranteed that after decode, the file will produce an identical hash.
 ///
+/// `output_ptr` will be written to twice if normalization is used (it normally is).
+/// This may have performance implications if `output_ptr` is a pointer to a memory mapped file
+/// and amount of available memory is scarce. Outside of that, memory should be fairly unaffected.
+///
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
+/// - work_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
 pub unsafe fn transform_bc1(
-    _input_ptr: *const u8,
-    _output_ptr: *mut u8,
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    work_ptr: *mut u8,
     len: usize,
-) -> Bc1TransformDetails {
+    transform_options: Bc1TransformDetails,
+) {
     debug_assert!(len % 8 == 0);
+
+    // First perform the required normalization.
+    let mut split_blocks_in_ptr = input_ptr;
+    if transform_options.color_normalization_mode != ColorNormalizationMode::None {
+        // Need to normalize.
+        normalize_blocks(
+            input_ptr,
+            output_ptr,
+            len,
+            transform_options.color_normalization_mode,
+        );
+        split_blocks_in_ptr = output_ptr;
+    }
+
+    // Now split the blocks
+    let mut split_blocks_out_ptr = output_ptr;
+
+    // If we will do another split (of colours), then we need a different output buffer
+    // i.e. the work_ptr buffer, else we're writing to our destination.
+    if transform_options.split_colour_endpoints {
+        split_blocks_out_ptr = work_ptr;
+    }
+    split_blocks(split_blocks_in_ptr, split_blocks_out_ptr, len);
+
+    // Now perform the required decorrelation.
+    if transform_options.decorrelation_mode != YCoCgVariant::None {
+        // Need to decorrelate.
+        decorrelate_blocks(
+            split_blocks_out_ptr,
+            output_ptr,
+            len,
+            transform_options.decorrelation_mode,
+        );
+    }
 
     /*
     let mut normalized = RawAlloc::new(Layout::from_size_align_unchecked(len, 64)).unwrap();
@@ -86,7 +119,13 @@ pub unsafe fn transform_bc1(
     );
     split_blocks(normalized.as_ptr(), output_ptr, len);
     */
-    Bc1TransformDetails::default()
+
+    // If(normalize)
+    // -> Make a temp buffer, normalize into it.
+    // -> Then split from the temp buffer to output
+    // Else
+    // -> Split input buffer directly to output
+    // Endif
 }
 
 /// Untransform BC1 file back to its original format.
@@ -97,8 +136,7 @@ pub unsafe fn transform_bc1(
 ///   Output from [`transform_bc1`].
 /// - `output_ptr`: A pointer to the output data (output BC1 blocks)
 /// - `len`: The length of the input data in bytes
-/// - `_details`: A struct containing information about the transform that was performed
-///   obtained from the original call to [`transform_bc1`].
+/// - `_details`: A struct containing information about the transform that was performed.
 ///
 /// # Remarks
 ///

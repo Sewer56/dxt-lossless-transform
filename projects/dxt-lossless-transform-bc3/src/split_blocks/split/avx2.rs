@@ -2,7 +2,6 @@
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
-use core::arch::*;
 
 use super::portable32::u32_with_separate_endpoints;
 
@@ -39,28 +38,28 @@ pub unsafe fn u32_avx2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 
     // Create gather mask (all 1s)
     let mask = _mm256_set1_epi32(-1);
-    let mut colours: __m256i = _mm256_setzero_si256();
-    let mut indices: __m256i = _mm256_setzero_si256();
+    let mut colours: __m256i;
+    let mut indices: __m256i;
 
     while current_input_ptr < input_aligned_end_ptr {
-        // Use inline assembly for the gather operations
+        // Use intrinsics for the gather operations
         unsafe {
-            asm!(
-                "vpgatherdd {colours}, [{current_input_ptr} + {colour_offsets} * 1], {mask}",
-                colours = inout(ymm_reg) colours,
-                current_input_ptr = in(reg) current_input_ptr,
-                colour_offsets = in(ymm_reg) colour_offsets,
-                mask = in(ymm_reg) mask,
-                options(nostack)
+            // Gather colors using _mm256_mask_i32gather_epi32 intrinsic
+            // Parameters: src, base_addr, vindex, mask, scale
+            colours = _mm256_mask_i32gather_epi32::<1>(
+                _mm256_setzero_si256(),          // src: source where no elements are gathered
+                current_input_ptr as *const i32, // base_addr: base pointer
+                colour_offsets,                  // vindex: offsets to gather from
+                mask,                            // mask: which elements to gather
             );
 
-            asm!(
-                "vpgatherdd {indices}, [{current_input_ptr} + {indices_offsets} * 1], {mask}",
-                indices = inout(ymm_reg) indices,
-                current_input_ptr = in(reg) current_input_ptr,
-                indices_offsets = in(ymm_reg) indices_offsets,
-                mask = in(ymm_reg) mask,
-                options(nostack)
+            // Gather indices using _mm256_mask_i32gather_epi32 intrinsic
+            // Parameters: src, base_addr, vindex, mask, scale
+            indices = _mm256_mask_i32gather_epi32::<1>(
+                _mm256_setzero_si256(),          // src: source where no elements are gathered
+                current_input_ptr as *const i32, // base_addr: base pointer
+                indices_offsets,                 // vindex: offsets to gather from
+                mask,                            // mask: which elements to gather
             );
         }
 

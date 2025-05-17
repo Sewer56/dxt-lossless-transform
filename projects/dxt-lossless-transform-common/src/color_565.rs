@@ -143,7 +143,7 @@ impl Color565 {
     /// // Color is now in YCoCg-R form
     /// ```
     #[inline]
-    pub fn decorrelate_ycocg_r_var1(&mut self) {
+    pub fn decorrelate_ycocg_r_var1(&self) -> Self {
         // 0x1F == 0b11111
         // Extract RGB components
         let r = (self.value >> 11) & 0x1F; // 5 bits for red
@@ -168,7 +168,7 @@ impl Color565 {
         // - Y (5 bits) in red position
         // - Co (5 bits) in green position (shifted to use upper 5 bits of the 6-bit field)
         // - Cg (5 bits) in blue position
-        self.value = ((y as u16) << 11) | ((co as u16) << 6) | (g_low << 5) | (cg as u16);
+        Color565::from_raw(((y as u16) << 11) | ((co as u16) << 6) | (g_low << 5) | (cg as u16))
     }
 
     /// [Variant 1: Usually compresses best]
@@ -194,7 +194,7 @@ impl Color565 {
     /// assert_eq!(decorrelated.raw_value(), original.raw_value());
     /// ```
     #[inline]
-    pub fn recorrelate_ycocg_r_var1(&mut self) {
+    pub fn recorrelate_ycocg_r_var1(&self) -> Self {
         // 0x1F == 0b11111
         // Extract YCoCg-R components
         let y = (self.value >> 11) & 0x1F; // 5 bits (Y in red position)
@@ -216,7 +216,7 @@ impl Color565 {
         let r = (b + co as i16) & 0x1F;
 
         // Pack back into RGB565 format, preserving the original g_low bit
-        self.value = ((r as u16) << 11) | ((g as u16) << 6) | (g_low << 5) | (b as u16);
+        Color565::from_raw(((r as u16) << 11) | ((g as u16) << 6) | (g_low << 5) | (b as u16))
     }
 
     /// [Variant 2: Faster recorrelate (marginally) for compression speed.]
@@ -241,7 +241,7 @@ impl Color565 {
     /// // Color is now in YCoCg-R form
     /// ```
     #[inline]
-    pub fn decorrelate_ycocg_r_var2(&mut self) {
+    pub fn decorrelate_ycocg_r_var2(&self) -> Self {
         // 0x1F == 0b11111
         // Extract RGB components
         let r = (self.value >> 11) & 0x1F; // 5 bits for red
@@ -266,7 +266,7 @@ impl Color565 {
         // - Y (5 bits) in red position
         // - Co (5 bits) in green position (shifted to use upper 5 bits of the 6-bit field)
         // - Cg (5 bits) in blue position
-        self.value = (g_low << 15) | ((y as u16) << 10) | ((co as u16) << 5) | (cg as u16);
+        Color565::from_raw((g_low << 15) | ((y as u16) << 10) | ((co as u16) << 5) | (cg as u16))
         // Note: Marginal speed improvement on recorrelate by placing low bit in the top.
     }
 
@@ -293,7 +293,7 @@ impl Color565 {
     /// assert_eq!(decorrelated.raw_value(), original.raw_value());
     /// ```
     #[inline]
-    pub fn recorrelate_ycocg_r_var2(&mut self) {
+    pub fn recorrelate_ycocg_r_var2(&self) -> Self {
         // 0x1F == 0b11111
         // Extract YCoCg-R components
         let g_low = self.value >> 15; // Extract the preserved low bit of green
@@ -315,7 +315,7 @@ impl Color565 {
         let r = (b + co as i16) & 0x1F;
 
         // Pack back into RGB565 format, preserving the original g_low bit
-        self.value = ((r as u16) << 11) | ((g as u16) << 6) | (g_low << 5) | (b as u16);
+        Color565::from_raw(((r as u16) << 11) | ((g as u16) << 6) | (g_low << 5) | (b as u16))
     }
 
     /// Transforms RGB color to YCoCg-R (reversible YCoCg) color space.
@@ -339,7 +339,7 @@ impl Color565 {
     /// // Color is now in YCoCg-R form
     /// ```
     #[inline]
-    pub fn decorrelate_ycocg_r_var3(&mut self) {
+    pub fn decorrelate_ycocg_r_var3(&self) -> Self {
         // 0x1F == 0b11111
         // Extract RGB components
         let r = (self.value >> 11) & 0x1F; // 5 bits for red
@@ -364,7 +364,7 @@ impl Color565 {
         // - Y (5 bits) in red position
         // - Co (5 bits) in green position (shifted to use upper 5 bits of the 6-bit field)
         // - Cg (5 bits) in blue position
-        self.value = ((y as u16) << 11) | ((co as u16) << 6) | ((cg as u16) << 1) | g_low;
+        Color565::from_raw(((y as u16) << 11) | ((co as u16) << 6) | ((cg as u16) << 1) | g_low)
     }
 
     /// Transforms color from YCoCg-R back to RGB color space.
@@ -391,7 +391,7 @@ impl Color565 {
     /// assert_eq!(decorrelated.raw_value(), original.raw_value());
     /// ```
     #[inline]
-    pub fn recorrelate_ycocg_r_var3(&mut self) {
+    pub fn recorrelate_ycocg_r_var3(&self) -> Self {
         // 0x1F == 0b11111
         // Extract YCoCg-R components
         let y = (self.value >> 11) & 0x1F; // 5 bits (Y in red position)
@@ -413,133 +413,181 @@ impl Color565 {
         let r = (b + co as i16) & 0x1F;
 
         // Pack back into RGB565 format, preserving the original g_low bit
-        self.value = ((r as u16) << 11) | ((g as u16) << 6) | (g_low << 5) | (b as u16);
+        Color565::from_raw(((r as u16) << 11) | ((g as u16) << 6) | (g_low << 5) | (b as u16))
     }
 
     /// Convenience function that applies [`Self::decorrelate_ycocg_r_var1`] to each element in a slice.
     ///
+    /// Takes an input slice and an output slice, applying the transformation while copying.
+    /// The output slice must be at least as large as the input slice.
+    ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
     #[inline]
     #[cfg(not(tarpaulin_include))]
-    pub fn decorrelate_ycocg_r_var1_slice(colors: &mut [Self]) {
+    pub fn decorrelate_ycocg_r_var1_slice(src: &[Self], dst: &mut [Self]) {
+        assert!(
+            dst.len() >= src.len(),
+            "Destination slice must be at least as large as source slice"
+        );
+
         #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
         #[cfg_attr(
             feature = "nightly",
             multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
         )]
-        fn decorr(colors: &mut [Color565]) {
+        fn decorr(src: &[Color565], dst: &mut [Color565]) {
             // hack around Multiversion
-            for color in colors.iter_mut() {
-                color.decorrelate_ycocg_r_var1();
+            for (x, color) in src.iter().enumerate() {
+                dst[x] = color.decorrelate_ycocg_r_var1();
             }
         }
 
-        decorr(colors);
+        decorr(src, dst);
     }
 
     /// Convenience function that applies [`Self::recorrelate_ycocg_r_var1`] to each element in a slice.
     ///
+    /// Takes an input slice and an output slice, applying the transformation while copying.
+    /// The output slice must be at least as large as the input slice.
+    ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
     #[inline]
     #[cfg(not(tarpaulin_include))]
-    pub fn recorrelate_ycocg_r_var1_slice(colors: &mut [Self]) {
+    pub fn recorrelate_ycocg_r_var1_slice(src: &[Self], dst: &mut [Self]) {
+        assert!(
+            dst.len() >= src.len(),
+            "Destination slice must be at least as large as source slice"
+        );
+
         #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
         #[cfg_attr(
             feature = "nightly",
             multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
         )]
-        fn recorr(colors: &mut [Color565]) {
+        fn recorr(src: &[Color565], dst: &mut [Color565]) {
             // hack around Multiversion
-            for color in colors.iter_mut() {
-                color.recorrelate_ycocg_r_var1();
+            for (x, color) in src.iter().enumerate() {
+                dst[x] = color.recorrelate_ycocg_r_var1();
             }
         }
 
-        recorr(colors);
+        recorr(src, dst);
     }
 
     /// Convenience function that applies [`Self::decorrelate_ycocg_r_var2`] to each element in a slice.
     ///
+    /// Takes an input slice and an output slice, applying the transformation while copying.
+    /// The output slice must be at least as large as the input slice.
+    ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
     #[inline]
     #[cfg(not(tarpaulin_include))]
-    pub fn decorrelate_ycocg_r_var2_slice(colors: &mut [Self]) {
+    pub fn decorrelate_ycocg_r_var2_slice(src: &[Self], dst: &mut [Self]) {
+        assert!(
+            dst.len() >= src.len(),
+            "Destination slice must be at least as large as source slice"
+        );
+
         #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
         #[cfg_attr(
             feature = "nightly",
             multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
         )]
-        fn decorr(colors: &mut [Color565]) {
+        fn decorr(src: &[Color565], dst: &mut [Color565]) {
             // hack around Multiversion
-            for color in colors.iter_mut() {
-                color.decorrelate_ycocg_r_var2();
+            for (x, color) in src.iter().enumerate() {
+                dst[x] = color.decorrelate_ycocg_r_var2();
             }
         }
 
-        decorr(colors);
+        decorr(src, dst);
     }
 
     /// Convenience function that applies [`Self::recorrelate_ycocg_r_var2`] to each element in a slice.
     ///
+    /// Takes an input slice and an output slice, applying the transformation while copying.
+    /// The output slice must be at least as large as the input slice.
+    ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
     #[inline]
     #[cfg(not(tarpaulin_include))]
-    pub fn recorrelate_ycocg_r_var2_slice(colors: &mut [Self]) {
+    pub fn recorrelate_ycocg_r_var2_slice(src: &[Self], dst: &mut [Self]) {
+        assert!(
+            dst.len() >= src.len(),
+            "Destination slice must be at least as large as source slice"
+        );
+
         #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
         #[cfg_attr(
             feature = "nightly",
             multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
         )]
-        fn recorr(colors: &mut [Color565]) {
+        fn recorr(src: &[Color565], dst: &mut [Color565]) {
             // hack around Multiversion
-            for color in colors.iter_mut() {
-                color.recorrelate_ycocg_r_var2();
+            for (x, color) in src.iter().enumerate() {
+                dst[x] = color.recorrelate_ycocg_r_var2();
             }
         }
 
-        recorr(colors);
+        recorr(src, dst);
     }
 
     /// Convenience function that applies [`Self::decorrelate_ycocg_r_var3`] to each element in a slice.
     ///
-    /// May introduce unrolling optimizations. Refer to the original function for details.
-    #[inline]
-    #[cfg(not(tarpaulin_include))]
-    pub fn decorrelate_ycocg_r_var3_slice(colors: &mut [Self]) {
-        #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
-        #[cfg_attr(
-            feature = "nightly",
-            multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
-        )]
-        fn decorr(colors: &mut [Color565]) {
-            // hack around Multiversion
-            for color in colors.iter_mut() {
-                color.decorrelate_ycocg_r_var3();
-            }
-        }
-
-        decorr(colors);
-    }
-
-    /// Convenience function that applies [`Self::recorrelate_ycocg_r_var3`] to each element in a slice.
+    /// Takes an input slice and an output slice, applying the transformation while copying.
+    /// The output slice must be at least as large as the input slice.
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
     #[inline]
     #[cfg(not(tarpaulin_include))]
-    pub fn recorrelate_ycocg_r_var3_slice(colors: &mut [Self]) {
+    pub fn decorrelate_ycocg_r_var3_slice(src: &[Self], dst: &mut [Self]) {
+        assert!(
+            dst.len() >= src.len(),
+            "Destination slice must be at least as large as source slice"
+        );
+
         #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
         #[cfg_attr(
             feature = "nightly",
             multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
         )]
-        fn recorr(colors: &mut [Color565]) {
+        fn decorr(src: &[Color565], dst: &mut [Color565]) {
             // hack around Multiversion
-            for color in colors.iter_mut() {
-                color.recorrelate_ycocg_r_var3();
+            for (x, color) in src.iter().enumerate() {
+                dst[x] = color.decorrelate_ycocg_r_var3();
             }
         }
 
-        recorr(colors);
+        decorr(src, dst);
+    }
+
+    /// Convenience function that applies [`Self::recorrelate_ycocg_r_var3`] to each element in a slice.
+    ///
+    /// Takes an input slice and an output slice, applying the transformation while copying.
+    /// The output slice must be at least as large as the input slice.
+    ///
+    /// May introduce unrolling optimizations. Refer to the original function for details.
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub fn recorrelate_ycocg_r_var3_slice(src: &[Self], dst: &mut [Self]) {
+        assert!(
+            dst.len() >= src.len(),
+            "Destination slice must be at least as large as source slice"
+        );
+
+        #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
+        #[cfg_attr(
+            feature = "nightly",
+            multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
+        )]
+        fn recorr(src: &[Color565], dst: &mut [Color565]) {
+            // hack around Multiversion
+            for (x, color) in src.iter().enumerate() {
+                dst[x] = color.recorrelate_ycocg_r_var3();
+            }
+        }
+
+        recorr(src, dst);
     }
 
     /// Applies the specified decorrelation variant to a color
@@ -560,12 +608,12 @@ impl Color565 {
     /// // Color is now in YCoCg-R form
     /// ```
     #[inline]
-    pub fn decorrelate_ycocg_r(&mut self, variant: YCoCgVariant) {
+    pub fn decorrelate_ycocg_r(&self, variant: YCoCgVariant) -> Self {
         match variant {
             YCoCgVariant::Variant1 => self.decorrelate_ycocg_r_var1(),
             YCoCgVariant::Variant2 => self.decorrelate_ycocg_r_var2(),
             YCoCgVariant::Variant3 => self.decorrelate_ycocg_r_var3(),
-            YCoCgVariant::None => (), // No transformation
+            YCoCgVariant::None => *self, // No transformation
         }
     }
 
@@ -587,12 +635,12 @@ impl Color565 {
     /// color.recorrelate_ycocg_r(YCoCgVariant::Variant1);
     /// ```
     #[inline]
-    pub fn recorrelate_ycocg_r(&mut self, variant: YCoCgVariant) {
+    pub fn recorrelate_ycocg_r(&self, variant: YCoCgVariant) -> Self {
         match variant {
             YCoCgVariant::Variant1 => self.recorrelate_ycocg_r_var1(),
             YCoCgVariant::Variant2 => self.recorrelate_ycocg_r_var2(),
             YCoCgVariant::Variant3 => self.recorrelate_ycocg_r_var3(),
-            YCoCgVariant::None => (), // No transformation
+            YCoCgVariant::None => *self, // No transformation
         }
     }
 
@@ -602,7 +650,8 @@ impl Color565 {
     ///
     /// # Parameters
     ///
-    /// - `colors`: The slice of colors to transform
+    /// - `src`: The input slice of colors to transform
+    /// - `dst`: The output slice where transformed colors will be stored
     /// - `variant`: The [`YCoCgVariant`] to use
     ///
     /// # Examples
@@ -610,17 +659,21 @@ impl Color565 {
     /// ```
     /// use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
     ///
-    /// let mut colors = [Color565::from_rgb(255, 0, 0), Color565::from_rgb(0, 255, 0)];
-    /// Color565::decorrelate_ycocg_r_slice(&mut colors, YCoCgVariant::Variant1);
+    /// let colors = [Color565::from_rgb(255, 0, 0), Color565::from_rgb(0, 255, 0)];
+    /// let mut transformed = [Color565::from_raw(0); 2];
+    /// Color565::decorrelate_ycocg_r_slice(&colors, &mut transformed, YCoCgVariant::Variant1);
     /// ```
     #[inline]
     #[cfg(not(tarpaulin_include))]
-    pub fn decorrelate_ycocg_r_slice(colors: &mut [Self], variant: YCoCgVariant) {
+    pub fn decorrelate_ycocg_r_slice(src: &[Self], dst: &mut [Self], variant: YCoCgVariant) {
         match variant {
-            YCoCgVariant::Variant1 => Self::decorrelate_ycocg_r_var1_slice(colors),
-            YCoCgVariant::Variant2 => Self::decorrelate_ycocg_r_var2_slice(colors),
-            YCoCgVariant::Variant3 => Self::decorrelate_ycocg_r_var3_slice(colors),
-            YCoCgVariant::None => (), // No transformation
+            YCoCgVariant::Variant1 => Self::decorrelate_ycocg_r_var1_slice(src, dst),
+            YCoCgVariant::Variant2 => Self::decorrelate_ycocg_r_var2_slice(src, dst),
+            YCoCgVariant::Variant3 => Self::decorrelate_ycocg_r_var3_slice(src, dst),
+            YCoCgVariant::None => {
+                // Just copy without transformation
+                dst[..src.len()].copy_from_slice(src);
+            }
         }
     }
 
@@ -630,7 +683,8 @@ impl Color565 {
     ///
     /// # Parameters
     ///
-    /// - `colors`: The slice of colors to transform
+    /// - `src`: The input slice of colors to transform
+    /// - `dst`: The output slice where transformed colors will be stored
     /// - `variant`: The [`YCoCgVariant`] to use
     ///
     /// # Examples
@@ -638,18 +692,26 @@ impl Color565 {
     /// ```
     /// use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
     ///
-    /// let mut colors = [Color565::from_rgb(255, 0, 0), Color565::from_rgb(0, 255, 0)];
-    /// Color565::decorrelate_ycocg_r_slice(&mut colors, YCoCgVariant::Variant1);
-    /// Color565::recorrelate_ycocg_r_slice(&mut colors, YCoCgVariant::Variant1);
+    /// let decorrelated = [Color565::from_rgb(255, 0, 0), Color565::from_rgb(0, 255, 0)];
+    /// // First transform them to YCoCg-R
+    /// let mut transformed = [Color565::from_raw(0); 2];
+    /// Color565::decorrelate_ycocg_r_slice(&decorrelated, &mut transformed, YCoCgVariant::Variant1);
+    ///
+    /// // Then transform back to RGB
+    /// let mut recorrelated = [Color565::from_raw(0); 2];
+    /// Color565::recorrelate_ycocg_r_slice(&transformed, &mut recorrelated, YCoCgVariant::Variant1);
     /// ```
     #[inline]
     #[cfg(not(tarpaulin_include))]
-    pub fn recorrelate_ycocg_r_slice(colors: &mut [Self], variant: YCoCgVariant) {
+    pub fn recorrelate_ycocg_r_slice(src: &[Self], dst: &mut [Self], variant: YCoCgVariant) {
         match variant {
-            YCoCgVariant::Variant1 => Self::recorrelate_ycocg_r_var1_slice(colors),
-            YCoCgVariant::Variant2 => Self::recorrelate_ycocg_r_var2_slice(colors),
-            YCoCgVariant::Variant3 => Self::recorrelate_ycocg_r_var3_slice(colors),
-            YCoCgVariant::None => (), // No transformation
+            YCoCgVariant::Variant1 => Self::recorrelate_ycocg_r_var1_slice(src, dst),
+            YCoCgVariant::Variant2 => Self::recorrelate_ycocg_r_var2_slice(src, dst),
+            YCoCgVariant::Variant3 => Self::recorrelate_ycocg_r_var3_slice(src, dst),
+            YCoCgVariant::None => {
+                // Just copy without transformation
+                dst[..src.len()].copy_from_slice(src);
+            }
         }
     }
 }
@@ -699,18 +761,15 @@ mod tests {
 
         // Test each color individually in a loop for easier debugging
         for (x, original_color) in test_colors.iter().enumerate() {
-            // Create a copy to transform
-            let mut color = *original_color;
-
             // Step 1: Decorrelate
-            color.decorrelate_ycocg_r(variant);
+            let decorr = original_color.decorrelate_ycocg_r(variant);
 
             // Step 2: Recorrelate
-            color.recorrelate_ycocg_r(variant);
+            let recorr = decorr.recorrelate_ycocg_r(variant);
 
             // Verify the color is restored to its original value
             assert_eq!(
-                color.raw_value(),
+                recorr.raw_value(),
                 original_color.raw_value(),
                 "{variant:?} - Color at index {x} failed to restore."
             );
@@ -729,7 +788,7 @@ mod tests {
         let mut transformed = original;
 
         // Decorrelate
-        transformed.decorrelate_ycocg_r(variant);
+        transformed = transformed.decorrelate_ycocg_r(variant);
         if variant != YCoCgVariant::None {
             assert_ne!(
                 transformed.raw_value(),
@@ -738,7 +797,7 @@ mod tests {
             );
         }
         // Recorrelate
-        transformed.recorrelate_ycocg_r(variant);
+        transformed = transformed.recorrelate_ycocg_r(variant);
         assert_eq!(
             transformed.raw_value(),
             original.raw_value(),

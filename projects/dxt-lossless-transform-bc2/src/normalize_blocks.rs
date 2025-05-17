@@ -66,7 +66,7 @@
 //! 5. Write the normalized block to the output
 
 use crate::util::decode_bc2_block;
-use core::ptr::copy_nonoverlapping;
+use core::ptr::{copy_nonoverlapping, eq, null_mut, read_unaligned};
 use derive_enum_all_values::AllValues;
 use dxt_lossless_transform_common::{color_565::Color565, color_8888::Color8888};
 use likely_stable::unlikely;
@@ -85,7 +85,8 @@ use likely_stable::unlikely;
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16 (BC2 block size)
-/// - input_ptr and output_ptr must not overlap
+/// - The implementation supports `input_ptr` == `output_ptr` (in-place transformation)
+/// - The implementation does NOT support partially overlapping buffers (they must either be completely separate or identical)
 ///
 /// # Remarks
 ///
@@ -105,13 +106,23 @@ pub unsafe fn normalize_blocks(
     color_mode: ColorNormalizationMode,
 ) {
     debug_assert!(len % 16 == 0);
+    // Assert that buffers either don't overlap or are identical (in-place transformation)
     debug_assert!(
-        input_ptr.add(len) <= output_ptr || output_ptr.add(len) <= input_ptr as *mut u8,
-        "Input and output memory regions must not overlap"
+        eq(input_ptr, output_ptr as *const u8) || 
+        input_ptr.add(len) <= output_ptr || 
+        output_ptr.add(len) <= input_ptr as *mut u8,
+        "normalize_blocks: overlapping buffers are not supported (must be either completely separate or identical)"
     );
 
     // Skip normalization if mode is None
     if color_mode == ColorNormalizationMode::None {
+        // No need to copy if buffers are identical
+        if eq(input_ptr, output_ptr as *const u8) {
+            return;
+        }
+
+        // This can hit the case where pointers overlap at runtime.
+        // That is caught by the copy call.
         copy_nonoverlapping(input_ptr, output_ptr, len);
         return;
     }
@@ -122,7 +133,7 @@ pub unsafe fn normalize_blocks(
         match block_case {
             BlockCase::SolidColorRoundtrippable => {
                 // Copy alpha values (first 8 bytes) unchanged
-                copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+                (dst_block_ptr as *mut u64).write_unaligned(read_unaligned(src_block_ptr as *const u64));
 
                 // Write normalized color data (bytes 8-15)
                 write_normalized_solid_color_block(
@@ -134,7 +145,8 @@ pub unsafe fn normalize_blocks(
             }
             BlockCase::CannotNormalize => {
                 // Cannot normalize, copy source block as-is
-                copy_nonoverlapping(src_block_ptr, dst_block_ptr, 16);
+                (dst_block_ptr as *mut u64).write_unaligned(read_unaligned(src_block_ptr as *const u64));
+                (dst_block_ptr.add(8) as *mut u64).write_unaligned(read_unaligned(src_block_ptr.add(8) as *const u64));
             }
         }
 
@@ -228,7 +240,8 @@ where
 /// - input_ptr must be valid for reads of len bytes
 /// - each pointer in output_ptrs must be valid for writes of len bytes
 /// - len must be divisible by 16 (BC2 block size)
-/// - input_ptr and output_ptrs must not overlap
+/// - The implementation supports in-place transformation (input_ptr == output_ptr)
+/// - The implementation does NOT support partially overlapping buffers (they must either be completely separate or identical)
 ///
 /// # Remarks
 ///
@@ -250,13 +263,17 @@ pub unsafe fn normalize_blocks_all_modes(
     debug_assert!(output_ptrs.len() == ColorNormalizationMode::all_values().len());
     debug_assert!(
         output_ptrs.iter().all(|&out_ptr| {
-            input_ptr.add(len) <= out_ptr || out_ptr.add(len) <= input_ptr as *mut _
+            // Allow case where input_ptr == out_ptr (in-place transform)
+            eq(input_ptr, out_ptr as *const u8) ||
+            // Otherwise no partial overlap
+            input_ptr.add(len) <= out_ptr || 
+            out_ptr.add(len) <= input_ptr as *mut _
         }),
-        "Input and output memory regions must not overlap"
+        "normalize_blocks_all_modes: overlapping buffers are not supported (must be either completely separate or identical)"
     );
 
     let mut dst_block_ptrs =
-        [core::ptr::null_mut::<u8>(); ColorNormalizationMode::all_values().len()];
+        [null_mut::<u8>(); ColorNormalizationMode::all_values().len()];
 
     // Initialize destination pointers
     for (c_idx, dst_ptr) in dst_block_ptrs.iter_mut().enumerate() {
@@ -272,7 +289,7 @@ pub unsafe fn normalize_blocks_all_modes(
                     let dst_block_ptr = dst_block_ptrs[x];
 
                     // Copy alpha values (first 8 bytes) unchanged
-                    copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+                    (dst_block_ptr as *mut u64).write_unaligned(read_unaligned(src_block_ptr as *const u64));
 
                     // Write normalized color data (bytes 8-15)
                     write_normalized_solid_color_block(
@@ -292,7 +309,8 @@ pub unsafe fn normalize_blocks_all_modes(
                     let dst_block_ptr = dst_block_ptrs[x];
 
                     // Cannot normalize, copy source block as-is for all modes
-                    copy_nonoverlapping(src_block_ptr, dst_block_ptr, 16);
+                    (dst_block_ptr as *mut u64).write_unaligned(read_unaligned(src_block_ptr as *const u64));
+                    (dst_block_ptr.add(8) as *mut u64).write_unaligned(read_unaligned(src_block_ptr.add(8) as *const u64));
 
                     // Advance this mode's destination pointer
                     dst_block_ptrs[x] = dst_block_ptr.add(16);
@@ -339,7 +357,7 @@ unsafe fn write_normalized_solid_color_block(
     // Write Color1 = 0 or repeat
     match color_mode {
         ColorNormalizationMode::None => {
-            copy_nonoverlapping(src_block_ptr.add(8), dst_block_ptr.add(8), 8);
+            (dst_block_ptr.add(8) as *mut u64).write_unaligned(read_unaligned(src_block_ptr.add(8) as *const u64));
         }
         ColorNormalizationMode::Color0Only => {
             // Write Color0 (the solid color)
@@ -398,7 +416,6 @@ pub enum ColorNormalizationMode {
 #[allow(clippy::needless_range_loop)]
 mod tests {
     use rstest::rstest;
-
     use super::*;
 
     /// Test normalizing a solid color block with uniform alpha
@@ -647,7 +664,7 @@ mod tests {
         source[25] = red565[1]; // Color0 (high byte)
         source[26] = blue565[0]; // Color1 (low byte)
         source[27] = blue565[1]; // Color1 (high byte)
-                                 // Mix of indices pointing to both colors
+        // Mix of indices pointing to both colors
         source[28] = 0b00010001; // 00010001 (alternating indices)
         source[29] = 0b00010001;
         source[30] = 0b00010001;
@@ -757,5 +774,52 @@ mod tests {
                 "normalize_blocks_all_modes failed for mode {mode:?}",
             );
         }
+    }
+
+    /// Test that in-place transformation works correctly
+    #[rstest]
+    #[case::color0_only(ColorNormalizationMode::Color0Only)]
+    #[case::replicate_color(ColorNormalizationMode::ReplicateColor)]
+    #[case::none(ColorNormalizationMode::None)]
+    fn can_perform_inplace_transformation(#[case] color_mode: ColorNormalizationMode) {
+        // Red in RGB565: (31, 0, 0) -> 0xF800
+        // This cleanly round trips into (255, 0, 0) and back to (31, 0, 0).
+        let red565 = 0xF800u16.to_le_bytes(); // Little endian: [0x00, 0xF8]
+
+        // Create a BC2 block with solid red color and uniform alpha
+        let mut block = [0u8; 16];
+
+        // Fill alpha values with 0xFF (fully opaque)
+        for x in 0..8 {
+            block[x] = 0xFF;
+        }
+
+        // Color part
+        block[8] = red565[0]; // Color0 (low byte)
+        block[9] = red565[1]; // Color0 (high byte)
+        block[10] = 0x01; // Color1 (low byte)
+        block[11] = 0x01; // Color1 (high byte)
+
+        // All indices = 0, pointing to Color0
+        block[12] = 0x00;
+        block[13] = 0x00;
+        block[14] = 0x00;
+        block[15] = 0x00;
+        
+        // Create a copy for the expected result
+        let mut expected = [0u8; 16];
+        
+        // Normalize to a separate buffer to get the expected result
+        unsafe {
+            normalize_blocks(block.as_ptr(), expected.as_mut_ptr(), block.len(), color_mode);
+        }
+        
+        // Now perform in-place transformation
+        unsafe {
+            normalize_blocks(block.as_ptr(), block.as_mut_ptr(), block.len(), color_mode);
+        }
+        
+        // The in-place transformation should produce the same result as the separate buffer transformation
+        assert_eq!(block, expected, "In-place transformation result does not match expected result");
     }
 }

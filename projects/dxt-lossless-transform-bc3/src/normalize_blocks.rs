@@ -58,7 +58,7 @@
 //! 4. Writes the normalized block to the output
 
 use crate::util::decode_bc3_block;
-use core::ptr::copy_nonoverlapping;
+use core::ptr::{copy_nonoverlapping, eq, null_mut, read_unaligned, write_bytes};
 use derive_enum_all_values::AllValues;
 use dxt_lossless_transform_common::color_565::Color565;
 use dxt_lossless_transform_common::color_8888::Color8888;
@@ -79,7 +79,8 @@ use likely_stable::unlikely;
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16 (BC3 block size)
-/// - input_ptr and output_ptr must not overlap
+/// - The implementation supports `input_ptr` == `output_ptr` (in-place transformation)
+/// - The implementation does NOT support partially overlapping buffers (they must either be completely separate or identical)
 ///
 /// # Remarks
 ///
@@ -100,12 +101,21 @@ pub unsafe fn normalize_blocks(
 ) {
     debug_assert!(len % 16 == 0);
     debug_assert!(
-        input_ptr.add(len) <= output_ptr || output_ptr.add(len) <= input_ptr as *mut u8,
-        "Input and output memory regions must not overlap"
+        input_ptr == output_ptr
+            || input_ptr.add(len) <= output_ptr
+            || output_ptr.add(len) <= input_ptr as *mut u8,
+        "Input and output memory regions must either be the same (in-place) or not overlap"
     );
 
     // Skip normalization if both modes are None
     if alpha_mode == AlphaNormalizationMode::None && color_mode == ColorNormalizationMode::None {
+        // No need to copy if buffers are identical
+        if eq(input_ptr, output_ptr as *const u8) {
+            return;
+        }
+
+        // This can hit the case where pointers overlap at runtime.
+        // That is caught by the copy call.
         copy_nonoverlapping(input_ptr, output_ptr, len);
         return;
     }
@@ -123,12 +133,14 @@ pub unsafe fn normalize_blocks(
                         normalize_alpha(src_block_ptr, dst_block_ptr, alpha_value, alpha_mode);
                     } else {
                         // Copy alpha data as-is (first 8 bytes)
-                        copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+                        (dst_block_ptr as *mut u64)
+                            .write_unaligned(read_unaligned(src_block_ptr as *const u64));
                     }
                 }
                 AlphaBlockCase::CannotNormalize => {
-                    // Copy alpha data as-is (first 8 bytes)
-                    copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+                    // Copy alpha data as-is (first 8 bytes) using write_unaligned
+                    (dst_block_ptr as *mut u64)
+                        .write_unaligned(read_unaligned(src_block_ptr as *const u64));
                 }
             }
 
@@ -139,12 +151,14 @@ pub unsafe fn normalize_blocks(
                         normalize_color(color565.raw_value(), dst_block_ptr, color_mode);
                     } else {
                         // Copy color data as-is (last 8 bytes)
-                        copy_nonoverlapping(src_block_ptr.add(8), dst_block_ptr.add(8), 8);
+                        (dst_block_ptr.add(8) as *mut u64)
+                            .write_unaligned(read_unaligned(src_block_ptr.add(8) as *const u64));
                     }
                 }
                 ColorBlockCase::CannotNormalize => {
-                    // Copy color data as-is (last 8 bytes)
-                    copy_nonoverlapping(src_block_ptr.add(8), dst_block_ptr.add(8), 8);
+                    // Copy color data as-is (last 8 bytes) using write_unaligned
+                    (dst_block_ptr.add(8) as *mut u64)
+                        .write_unaligned(read_unaligned(src_block_ptr.add(8) as *const u64));
                 }
             }
 
@@ -226,8 +240,9 @@ unsafe fn normalize_alpha(
 ) {
     match mode {
         AlphaNormalizationMode::None => {
-            // Copy alpha data as-is (first 8 bytes)
-            copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+            // Copy alpha data as-is (first 8 bytes) using write_unaligned
+            (dst_block_ptr as *mut u64)
+                .write_unaligned(read_unaligned(src_block_ptr as *const u64));
         }
         AlphaNormalizationMode::UniformAlphaZeroIndices => {
             // Set A0 to the alpha value, everything else to 0
@@ -235,12 +250,12 @@ unsafe fn normalize_alpha(
             *dst_block_ptr.add(1) = 0;
 
             // Zero all index bytes
-            core::ptr::write_bytes(dst_block_ptr.add(2), 0, 6);
+            write_bytes(dst_block_ptr.add(2), 0, 6);
         }
         AlphaNormalizationMode::OpaqueFillAll => {
             if alpha_value == 255 {
                 // Fill all alpha bytes with 0xFF
-                core::ptr::write_bytes(dst_block_ptr, 0xFF, 8);
+                write_bytes(dst_block_ptr, 0xFF, 8);
             } else {
                 // For non-opaque, use the same approach as UniformAlphaZeroIndices
                 normalize_alpha(
@@ -258,7 +273,7 @@ unsafe fn normalize_alpha(
                 *dst_block_ptr.add(1) = 0;
 
                 // Set all indices to max value (0xFF)
-                core::ptr::write_bytes(dst_block_ptr.add(2), 0xFF, 6);
+                write_bytes(dst_block_ptr.add(2), 0xFF, 6);
             } else {
                 // For non-opaque, use the same approach as UniformAlphaZeroIndices
                 normalize_alpha(
@@ -447,7 +462,8 @@ where
 /// - input_ptr must be valid for reads of len bytes
 /// - each pointer in output_ptrs must be valid for writes of len bytes
 /// - len must be divisible by 16
-/// - input_ptr and output_ptrs must not overlap
+/// - The implementation supports in-place transformation (input_ptr can match any output_ptr)
+/// - The implementation does NOT support partially overlapping buffers (they must either be completely separate or identical)
 ///
 /// # Remarks
 ///
@@ -474,8 +490,7 @@ pub unsafe fn normalize_blocks_all_modes(
     );
 
     // Setup arrays to track current position in each output buffer
-    let mut dst_block_ptrs = [[core::ptr::null_mut::<u8>();
-        ColorNormalizationMode::all_values().len()];
+    let mut dst_block_ptrs = [[null_mut::<u8>(); ColorNormalizationMode::all_values().len()];
         AlphaNormalizationMode::all_values().len()];
 
     // Initialize destination pointers
@@ -506,12 +521,14 @@ pub unsafe fn normalize_blocks_all_modes(
                                 );
                             } else {
                                 // Copy alpha data as-is (first 8 bytes)
-                                copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+                                (dst_block_ptr as *mut u64)
+                                    .write_unaligned(read_unaligned(src_block_ptr as *const u64));
                             }
                         }
                         AlphaBlockCase::CannotNormalize => {
                             // Copy alpha data as-is (first 8 bytes)
-                            copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+                            (dst_block_ptr as *mut u64)
+                                .write_unaligned(read_unaligned(src_block_ptr as *const u64));
                         }
                     }
 
@@ -522,12 +539,16 @@ pub unsafe fn normalize_blocks_all_modes(
                                 normalize_color(color565.raw_value(), dst_block_ptr, *color_mode);
                             } else {
                                 // Copy color data as-is (last 8 bytes)
-                                copy_nonoverlapping(src_block_ptr.add(8), dst_block_ptr.add(8), 8);
+                                (dst_block_ptr.add(8) as *mut u64).write_unaligned(read_unaligned(
+                                    src_block_ptr.add(8) as *const u64,
+                                ));
                             }
                         }
                         ColorBlockCase::CannotNormalize => {
                             // Copy color data as-is (last 8 bytes)
-                            copy_nonoverlapping(src_block_ptr.add(8), dst_block_ptr.add(8), 8);
+                            (dst_block_ptr.add(8) as *mut u64).write_unaligned(read_unaligned(
+                                src_block_ptr.add(8) as *const u64,
+                            ));
                         }
                     }
 
@@ -542,11 +563,9 @@ pub unsafe fn normalize_blocks_all_modes(
 #[cfg(test)]
 #[allow(clippy::needless_range_loop)]
 mod tests {
-    use core::ptr;
-
-    use rstest::rstest;
-
     use super::*;
+    use core::ptr::null_mut;
+    use rstest::rstest;
 
     /// Test normalizing a solid color block with uniform alpha
     #[rstest]
@@ -1127,7 +1146,7 @@ mod tests {
         const COLOR_MODE_COUNT: usize = ColorNormalizationMode::all_values().len();
 
         let mut output_buffers = vec![vec![0u8; 16]; ALPHA_MODE_COUNT * COLOR_MODE_COUNT];
-        let mut output_ptrs = [[ptr::null_mut::<u8>(); COLOR_MODE_COUNT]; ALPHA_MODE_COUNT];
+        let mut output_ptrs = [[null_mut::<u8>(); COLOR_MODE_COUNT]; ALPHA_MODE_COUNT];
 
         // Set up output pointers
         for a_idx in 0..ALPHA_MODE_COUNT {
@@ -1165,9 +1184,91 @@ mod tests {
                     assert_eq!(
                         output[x], reference_output[x],
                         "Output for mode combination [{a_mode:?}][{c_mode:?}] at byte {x} does not match expected value"
-                    );
+                );
                 }
             }
         }
+    }
+
+    #[rstest]
+    #[case(
+        AlphaNormalizationMode::OpaqueFillAll,
+        ColorNormalizationMode::ReplicateColor
+    )]
+    #[case(
+        AlphaNormalizationMode::UniformAlphaZeroIndices,
+        ColorNormalizationMode::Color0Only
+    )]
+    #[case(
+        AlphaNormalizationMode::OpaqueZeroAlphaMaxIndices,
+        ColorNormalizationMode::None
+    )]
+    #[test]
+    fn can_normalize_blocks_inplace(
+        #[case] alpha_mode: AlphaNormalizationMode,
+        #[case] color_mode: ColorNormalizationMode,
+    ) {
+        // Create sample blocks - we'll use solid color with opaque alpha for simplicity
+        let mut input_blocks = [0u8; 32]; // Two BC3 blocks
+
+        // First block: solid red
+        input_blocks[0] = 0xFF; // A0 = 255 (opaque)
+        input_blocks[1] = 0xFF; // A1 = 255
+                                // alpha indices set to pattern that's not all zeros
+        for x in 2..8 {
+            input_blocks[x] = 0xAA;
+        }
+
+        input_blocks[8] = 0x00; // C0 low byte (RGB565: 0xF800 = pure red)
+        input_blocks[9] = 0xF8; // C0 high byte
+        input_blocks[10] = 0x00; // C1 low byte (zero)
+        input_blocks[11] = 0x00; // C1 high byte
+                                 // No need to set color indices as they'll be set to zero (default)
+
+        // Second block: solid green
+        input_blocks[16] = 0xFF; // A0 = 255 (opaque)
+        input_blocks[17] = 0xFF; // A1 = 255
+                                 // alpha indices set to pattern that's not all zeros
+        for x in 18..24 {
+            input_blocks[x] = 0x55;
+        }
+
+        input_blocks[24] = 0xE0; // C0 low byte (RGB565: 0x07E0 = pure green)
+        input_blocks[25] = 0x07; // C0 high byte
+        input_blocks[26] = 0x00; // C1 low byte (zero)
+        input_blocks[27] = 0x00; // C1 high byte
+                                 // No need to set color indices as they'll be set to zero (default)
+
+        // Create a copy for reference output
+        let mut reference_output = input_blocks;
+
+        // Normalize using separate buffers for reference
+        unsafe {
+            normalize_blocks(
+                input_blocks.as_ptr(),
+                reference_output.as_mut_ptr(),
+                32,
+                alpha_mode,
+                color_mode,
+            );
+        }
+
+        // Now normalize in-place
+        unsafe {
+            normalize_blocks(
+                input_blocks.as_ptr(),
+                input_blocks.as_mut_ptr(), // Same pointer for in-place operation
+                32,
+                alpha_mode,
+                color_mode,
+            );
+        }
+
+        // Verify the in-place normalization matches the reference
+        assert_eq!(
+            reference_output,
+            input_blocks,
+            "In-place normalization result doesn't match reference output for alpha_mode={alpha_mode:?}, color_mode={color_mode:?}"
+        );
     }
 }

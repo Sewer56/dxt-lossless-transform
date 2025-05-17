@@ -14,4 +14,6 @@ rayon = "1.10.0"
 lightweight-mmap = "0.6.0"
 dxt-lossless-transform-api = { path = "../dxt-lossless-transform-api" }
 dxt-lossless-transform-bc1 = { optional = true, path = "../dxt-lossless-transform-bc1" }
+dxt-lossless-transform-common = { optional = true, path = "../dxt-lossless-transform-common" }
+
 safe-allocator-api = { optional = true, version = "0.3.0" }

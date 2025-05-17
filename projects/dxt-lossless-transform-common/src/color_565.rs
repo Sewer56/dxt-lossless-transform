@@ -881,17 +881,23 @@ impl Color565 {
     pub unsafe fn decorrelate_ycocg_r_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
-        len: usize,
+        num_items: usize,
         variant: YCoCgVariant,
     ) {
         match variant {
-            YCoCgVariant::Variant1 => Self::decorrelate_ycocg_r_var1_ptr(src_ptr, dst_ptr, len),
-            YCoCgVariant::Variant2 => Self::decorrelate_ycocg_r_var2_ptr(src_ptr, dst_ptr, len),
-            YCoCgVariant::Variant3 => Self::decorrelate_ycocg_r_var3_ptr(src_ptr, dst_ptr, len),
+            YCoCgVariant::Variant1 => {
+                Self::decorrelate_ycocg_r_var1_ptr(src_ptr, dst_ptr, num_items)
+            }
+            YCoCgVariant::Variant2 => {
+                Self::decorrelate_ycocg_r_var2_ptr(src_ptr, dst_ptr, num_items)
+            }
+            YCoCgVariant::Variant3 => {
+                Self::decorrelate_ycocg_r_var3_ptr(src_ptr, dst_ptr, num_items)
+            }
             YCoCgVariant::None => {
                 // Just copy without transformation if len > 0
-                if len > 0 {
-                    std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, len);
+                if num_items > 0 && src_ptr != dst_ptr {
+                    std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, num_items);
                 }
             }
         }
@@ -951,17 +957,23 @@ impl Color565 {
     pub unsafe fn recorrelate_ycocg_r_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
-        len: usize,
+        num_items: usize,
         variant: YCoCgVariant,
     ) {
         match variant {
-            YCoCgVariant::Variant1 => Self::recorrelate_ycocg_r_var1_ptr(src_ptr, dst_ptr, len),
-            YCoCgVariant::Variant2 => Self::recorrelate_ycocg_r_var2_ptr(src_ptr, dst_ptr, len),
-            YCoCgVariant::Variant3 => Self::recorrelate_ycocg_r_var3_ptr(src_ptr, dst_ptr, len),
+            YCoCgVariant::Variant1 => {
+                Self::recorrelate_ycocg_r_var1_ptr(src_ptr, dst_ptr, num_items)
+            }
+            YCoCgVariant::Variant2 => {
+                Self::recorrelate_ycocg_r_var2_ptr(src_ptr, dst_ptr, num_items)
+            }
+            YCoCgVariant::Variant3 => {
+                Self::recorrelate_ycocg_r_var3_ptr(src_ptr, dst_ptr, num_items)
+            }
             YCoCgVariant::None => {
                 // Just copy without transformation if len > 0
-                if len > 0 {
-                    std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, len);
+                if num_items > 0 && src_ptr != dst_ptr {
+                    std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, num_items);
                 }
             }
         }

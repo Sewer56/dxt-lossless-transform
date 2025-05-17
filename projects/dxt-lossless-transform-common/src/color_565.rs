@@ -1,4 +1,5 @@
 use crate::color_8888::Color8888;
+use derive_enum_all_values::AllValues;
 use multiversion::multiversion;
 
 /// Represents a 16-bit RGB565 color (5 bits red, 6 bits green, 5 bits blue)
@@ -654,7 +655,7 @@ impl Color565 {
 }
 
 /// Represents a function variant for decoration/recorrelation operations
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, AllValues)]
 pub enum YCoCgVariant {
     /// Variant 1: Usually compresses best
     Variant1,

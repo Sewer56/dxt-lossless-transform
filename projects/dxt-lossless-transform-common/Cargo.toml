@@ -22,6 +22,7 @@ nightly = ["safe-allocator-api/nightly"]
 multiversion = { version = "0.8.0", default-features = false }
 thiserror = "2.0.12"
 safe-allocator-api = "0.4.0"
+derive-enum-all-values = "0.2.0"
 
 [target.'cfg(any(target_arch = "x86_64", target_arch = "x86"))'.dependencies]
 cpufeatures = "0.2.17"

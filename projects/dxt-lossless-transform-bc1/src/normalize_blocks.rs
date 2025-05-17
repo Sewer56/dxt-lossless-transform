@@ -80,7 +80,7 @@
 //! 4. Write the normalized block to the output
 
 use crate::util::decode_bc1_block;
-use core::ptr::copy_nonoverlapping;
+use core::ptr::{copy_nonoverlapping, eq, null_mut, read_unaligned, write_bytes};
 use dxt_lossless_transform_common::{color_565::Color565, decoded_4x4_block::Decoded4x4Block};
 use likely_stable::unlikely;
 
@@ -98,7 +98,8 @@ use likely_stable::unlikely;
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
-/// - input_ptr and output_ptr must not overlap
+/// - The implementation supports `input_ptr` == `output_ptr` (in-place transformation)
+/// - The implementation does NOT support partially overlapping buffers (they must either be completely separate or identical)
 ///
 /// # Remarks
 ///
@@ -118,13 +119,23 @@ pub unsafe fn normalize_blocks(
     len: usize,
     color_mode: ColorNormalizationMode,
 ) {
+    // Assert that buffers either don't overlap or are identical (in-place transformation)
     debug_assert!(
-        input_ptr.add(len) <= output_ptr || output_ptr.add(len) <= input_ptr as *mut u8,
-        "Input and output memory regions must not overlap"
+        eq(input_ptr, output_ptr as *const u8) || 
+        input_ptr.add(len) <= output_ptr || 
+        output_ptr.add(len) <= input_ptr as *mut u8,
+        "normalize_blocks: overlapping buffers are not supported (must be either completely separate or identical)"
     );
 
     // Skip normalization if mode is None
     if color_mode == ColorNormalizationMode::None {
+        // No need to copy if buffers are identical
+        if eq(input_ptr, output_ptr) {
+            return;
+        }
+
+        // This can hit the case where pointers overlap at runtime.
+        // That is caught by the copy call.
         copy_nonoverlapping(input_ptr, output_ptr, len);
         return;
     }
@@ -138,7 +149,7 @@ pub unsafe fn normalize_blocks(
             match block_case {
                 BlockCase::Transparent => {
                     // Case 2: Fully transparent block - fill with 0xFF
-                    core::ptr::write_bytes(dst_block_ptr, 0xFF, 8);
+                    write_bytes(dst_block_ptr, 0xFF, 8);
                 }
                 BlockCase::SolidColorRoundtrippable => {
                     // Can be normalized - use the helper function to write the block
@@ -151,7 +162,7 @@ pub unsafe fn normalize_blocks(
                 }
                 BlockCase::CannotNormalize => {
                     // Cannot normalize, copy source block as-is
-                    copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+                    (dst_block_ptr as *mut u64).write_unaligned(read_unaligned(src_block_ptr as *const u64));
                 }
             }
 
@@ -296,7 +307,7 @@ unsafe fn write_normalized_solid_color_block(
     match color_mode {
         ColorNormalizationMode::None => {
             // For None mode, copy the original source block
-            copy_nonoverlapping(src_block_ptr, dst_block_ptr, 8);
+            (dst_block_ptr as *mut u64).write_unaligned(read_unaligned(src_block_ptr as *const u64));
         }
         ColorNormalizationMode::Color0Only => {
             // Write Color1 = 0
@@ -337,7 +348,8 @@ unsafe fn write_normalized_solid_color_block(
 /// - input_ptr must be valid for reads of len bytes
 /// - each pointer in output_ptrs must be valid for writes of len bytes
 /// - len must be divisible by 8
-/// - input_ptr and output_ptrs must not overlap
+/// - The implementation supports in-place transformation (input_ptr == output_ptr)
+/// - The implementation does NOT support partially overlapping buffers (they must either be completely separate or identical)
 ///
 /// # Remarks
 ///
@@ -357,15 +369,18 @@ pub unsafe fn normalize_blocks_all_modes(
 ) {
     debug_assert!(len % 8 == 0);
     debug_assert!(output_ptrs.len() == ColorNormalizationMode::all_values().len());
+    
+    // Assert that no output buffer partially overlaps with the input
     debug_assert!(
-        output_ptrs.iter().all(|&out_ptr| {
-            input_ptr.add(len) <= out_ptr || out_ptr.add(len) <= input_ptr as *mut _
-        }),
-        "Input and output memory regions must not overlap"
+        output_ptrs.iter().all(|&output_ptr| 
+            eq(input_ptr, output_ptr as *const u8) || 
+            input_ptr.add(len) <= output_ptr || 
+            output_ptr.add(len) <= input_ptr as *mut u8
+        ),
+        "normalize_blocks_all_modes: overlapping buffers are not supported (must be either completely separate or identical)"
     );
 
-    let mut dst_block_ptrs =
-        [core::ptr::null_mut::<u8>(); ColorNormalizationMode::all_values().len()];
+    let mut dst_block_ptrs = [null_mut::<u8>(); ColorNormalizationMode::all_values().len()];
     for (x, dst_ptr) in dst_block_ptrs.iter_mut().enumerate() {
         *dst_ptr = output_ptrs[x];
     }
@@ -378,7 +393,7 @@ pub unsafe fn normalize_blocks_all_modes(
                 BlockCase::Transparent => {
                     // Case 2: Fully transparent block - fill with 0xFF in all output buffers
                     for dst_ptr in dst_block_ptrs.iter_mut() {
-                        core::ptr::write_bytes(*dst_ptr, 0xFF, 8);
+                        write_bytes(*dst_ptr, 0xFF, 8);
                     }
                 }
                 BlockCase::SolidColorRoundtrippable => {
@@ -391,7 +406,7 @@ pub unsafe fn normalize_blocks_all_modes(
                 BlockCase::CannotNormalize => {
                     // Cannot normalize, copy source block as-is to all output buffers
                     for dst_ptr in dst_block_ptrs.iter_mut() {
-                        copy_nonoverlapping(src_block_ptr, *dst_ptr, 8);
+                        (*dst_ptr as *mut u64).write_unaligned(read_unaligned(src_block_ptr as *const u64));
                     }
                 }
             }
@@ -771,6 +786,68 @@ mod tests {
                     "Transparent block normalization failed for mode {mode:?}"
                 );
             }
+        }
+    }
+
+    #[test]
+    fn can_normalize_in_place() {
+        // Create test data with a solid color block
+        let mut test_data = [0u8; 8];
+
+        // Set up color endpoints (0xF800 = bright red in RGB565)
+        test_data[0] = 0x00;
+        test_data[1] = 0xF8;
+        test_data[2] = 0x00;
+        test_data[3] = 0xF8;
+
+        // Set indices to all zeros (all pixels use color0)
+        test_data[4] = 0x00;
+        test_data[5] = 0x00;
+        test_data[6] = 0x00;
+        test_data[7] = 0x00;
+
+        // Get a pointer to the test data for reading and writing
+        let ptr = test_data.as_mut_ptr();
+
+        // Call normalize_blocks with the same buffer for input and output
+        unsafe {
+            normalize_blocks(ptr, ptr, 8, ColorNormalizationMode::Color0Only);
+        }
+
+        // The block should be normalized (Color0 = red, Color1 = 0, indices = 0)
+        assert_eq!(test_data[0], 0x00);
+        assert_eq!(test_data[1], 0xF8);
+        assert_eq!(test_data[2], 0x00);
+        assert_eq!(test_data[3], 0x00);
+        assert_eq!(test_data[4], 0x00);
+        assert_eq!(test_data[5], 0x00);
+        assert_eq!(test_data[6], 0x00);
+        assert_eq!(test_data[7], 0x00);
+
+        // Test transparent block normalization
+        let mut transparent_data = [0u8; 8];
+
+        // Set up endpoints to indicate alpha mode (Color0 <= Color1)
+        transparent_data[0] = 0x00;
+        transparent_data[1] = 0x00;
+        transparent_data[2] = 0x01;
+        transparent_data[3] = 0x00;
+
+        // Set indices to use transparent pixels (11 pattern for all indices)
+        transparent_data[4] = 0xFF;
+        transparent_data[5] = 0xFF;
+        transparent_data[6] = 0xFF;
+        transparent_data[7] = 0xFF;
+
+        let ptr = transparent_data.as_mut_ptr();
+
+        unsafe {
+            normalize_blocks(ptr, ptr, 8, ColorNormalizationMode::Color0Only);
+        }
+
+        // The block should be normalized to all 0xFF for fully transparent blocks
+        for (x, byte) in transparent_data.iter().enumerate() {
+            assert_eq!(*byte, 0xFF, "Byte {x} should be 0xFF");
         }
     }
 }

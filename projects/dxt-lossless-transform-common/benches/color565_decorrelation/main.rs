@@ -53,11 +53,6 @@ impl Color565Buffer {
         buffer
     }
 
-    /// Get an immutable reference to the underlying slice
-    fn as_slice(&self) -> &[Color565] {
-        unsafe { &*self.colors }
-    }
-
     /// Returns a raw pointer to the underlying slice
     fn as_mut_ptr(&mut self) -> *mut Color565 {
         unsafe { (*self.colors).as_mut_ptr() }
@@ -91,6 +86,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     // Allocate memory for input data
     let mut input_buffer = Color565Buffer::new(NUM_ITEMS);
     let input_colors = input_buffer.as_mut_slice();
+    let mut output_buffer = Color565Buffer::from_slice(input_colors);
 
     // Fill with test data - sequential RGB565 values
     for (x, color) in input_colors.iter_mut().enumerate() {
@@ -106,102 +102,81 @@ fn criterion_benchmark(c: &mut Criterion) {
     group.warm_up_time(Duration::from_secs(10));
     group.measurement_time(Duration::from_secs(10));
 
-    group.bench_function("decorrelate_ycocg_r_var1_slice", |b| {
-        b.iter_batched(
-            || Color565Buffer::from_slice(input_colors),
-            |mut buffer| unsafe {
-                Color565::decorrelate_ycocg_r_var1_ptr(
-                    buffer.as_ptr(),
-                    buffer.as_mut_ptr(),
-                    buffer.len(),
-                );
-            },
-            criterion::BatchSize::SmallInput,
-        )
+    group.bench_function("decorrelate_ycocg_r_var1_ptr", |b| {
+        b.iter(|| unsafe {
+            Color565::decorrelate_ycocg_r_var1_ptr(
+                input_colors.as_ptr(),
+                output_buffer.as_mut_ptr(),
+                input_colors.len(),
+            );
+        })
     });
 
-    group.bench_function("decorrelate_ycocg_r_var2_slice", |b| {
-        b.iter_batched(
-            || Color565Buffer::from_slice(input_colors),
-            |mut buffer| unsafe {
-                Color565::decorrelate_ycocg_r_var2_ptr(
-                    buffer.as_ptr(),
-                    buffer.as_mut_ptr(),
-                    buffer.len(),
-                );
-            },
-            criterion::BatchSize::SmallInput,
-        )
+    group.bench_function("decorrelate_ycocg_r_var2_ptr", |b| {
+        b.iter(|| unsafe {
+            Color565::decorrelate_ycocg_r_var2_ptr(
+                input_colors.as_ptr(),
+                output_buffer.as_mut_ptr(),
+                input_colors.len(),
+            );
+        })
     });
 
-    group.bench_function("decorrelate_ycocg_r_var3_slice", |b| {
-        b.iter_batched(
-            || Color565Buffer::from_slice(input_colors),
-            |mut buffer| unsafe {
-                Color565::decorrelate_ycocg_r_var3_ptr(
-                    buffer.as_ptr(),
-                    buffer.as_mut_ptr(),
-                    buffer.len(),
-                );
-            },
-            criterion::BatchSize::SmallInput,
-        )
+    group.bench_function("decorrelate_ycocg_r_var3_ptr", |b| {
+        b.iter(|| unsafe {
+            Color565::decorrelate_ycocg_r_var3_ptr(
+                input_colors.as_ptr(),
+                output_buffer.as_mut_ptr(),
+                input_colors.len(),
+            );
+        })
     });
 
     // Create decorrelated arrays for recorrelation benchmarks
-    let decorrelated_var1 = Color565Buffer::from_slice_with_transform(
+    let mut decorrelated_var1 = Color565Buffer::from_slice_with_transform(
         input_colors,
         Color565::decorrelate_ycocg_r_var1_slice,
     );
-    let decorrelated_var2 = Color565Buffer::from_slice_with_transform(
+
+    group.bench_function("recorrelate_ycocg_r_var1_ptr", |b| {
+        b.iter(|| unsafe {
+            Color565::recorrelate_ycocg_r_var1_ptr(
+                decorrelated_var1.as_ptr(),
+                decorrelated_var1.as_mut_ptr(),
+                decorrelated_var1.len(),
+            );
+        })
+    });
+
+    drop(decorrelated_var1);
+    let mut decorrelated_var2 = Color565Buffer::from_slice_with_transform(
         input_colors,
         Color565::decorrelate_ycocg_r_var2_slice,
     );
-    let decorrelated_var3 = Color565Buffer::from_slice_with_transform(
+
+    group.bench_function("recorrelate_ycocg_r_var2_ptr", |b| {
+        b.iter(|| unsafe {
+            Color565::recorrelate_ycocg_r_var2_ptr(
+                decorrelated_var2.as_ptr(),
+                decorrelated_var2.as_mut_ptr(),
+                decorrelated_var2.len(),
+            );
+        })
+    });
+
+    drop(decorrelated_var2);
+    let mut decorrelated_var3 = Color565Buffer::from_slice_with_transform(
         input_colors,
         Color565::decorrelate_ycocg_r_var3_slice,
     );
-
-    group.bench_function("recorrelate_ycocg_r_var1_slice", |b| {
-        b.iter_batched(
-            || Color565Buffer::from_slice(decorrelated_var1.as_slice()),
-            |mut buffer| unsafe {
-                Color565::recorrelate_ycocg_r_var1_ptr(
-                    buffer.as_ptr(),
-                    buffer.as_mut_ptr(),
-                    buffer.len(),
-                );
-            },
-            criterion::BatchSize::SmallInput,
-        )
-    });
-
-    group.bench_function("recorrelate_ycocg_r_var2_slice", |b| {
-        b.iter_batched(
-            || Color565Buffer::from_slice(decorrelated_var2.as_slice()),
-            |mut buffer| unsafe {
-                Color565::recorrelate_ycocg_r_var2_ptr(
-                    buffer.as_ptr(),
-                    buffer.as_mut_ptr(),
-                    buffer.len(),
-                );
-            },
-            criterion::BatchSize::SmallInput,
-        )
-    });
-
-    group.bench_function("recorrelate_ycocg_r_var3_slice", |b| {
-        b.iter_batched(
-            || Color565Buffer::from_slice(decorrelated_var3.as_slice()),
-            |mut buffer| unsafe {
-                Color565::recorrelate_ycocg_r_var3_ptr(
-                    buffer.as_ptr(),
-                    buffer.as_mut_ptr(),
-                    buffer.len(),
-                );
-            },
-            criterion::BatchSize::SmallInput,
-        )
+    group.bench_function("recorrelate_ycocg_r_var3_ptr", |b| {
+        b.iter(|| unsafe {
+            Color565::recorrelate_ycocg_r_var3_ptr(
+                decorrelated_var3.as_ptr(),
+                decorrelated_var3.as_mut_ptr(),
+                decorrelated_var3.len(),
+            );
+        })
     });
 
     group.finish();

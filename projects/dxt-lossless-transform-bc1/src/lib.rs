@@ -86,6 +86,45 @@ pub unsafe fn transform_bc1(
 
     // Both normalization and split colours. 11
     if has_normalization && has_split_colours {
+        // This one kinda sucks because we're doing an unnecessary copy of half the data,
+        // but not much we can do there for now.
+
+        // We do a double write to output area here, using a two buffer strategy.
+
+
+        // TODO: Either:
+        // - Normalize pre-split blocks (easier)
+        // or
+        // - Split with secondary pointer where only the indices go, so we can write those directly to output.
+
+        // Normalize the blocks into the output area directly
+        normalize_blocks(
+            input_ptr,
+            output_ptr,
+            len,
+            transform_options.color_normalization_mode,
+        );
+
+        // Split the normalized blocks into the work area.
+        split_blocks(output_ptr, work_ptr, len);
+
+        // Decorrelate the colours in-place (if needed, no-ops if mode is 'none')
+        Color565::decorrelate_ycocg_r_ptr(
+            work_ptr as *const Color565,
+            work_ptr as *mut Color565,
+            (len / 2) / size_of::<Color565>(),
+            transform_options.decorrelation_mode,
+        );
+
+        // Split the colour endpoints, writing them to the output buffer alongside the indices
+        split_color_endpoints(
+            output_ptr as *const Color565,
+            output_ptr as *mut Color565,
+            len / 2,
+        );
+
+        // Copy the index data (this can be avoided if we normalize pre-split)
+        copy_nonoverlapping(work_ptr.add(len / 2), output_ptr.add(len / 2), len / 2);
     }
     // Only normalization. 10
     else if has_normalization {
@@ -110,7 +149,7 @@ pub unsafe fn transform_bc1(
     }
     // Only split colours. 01
     else if has_split_colours {
-        // Split the blocks directly into expected output.
+        // Split the blocks into the work area.
         split_blocks(input_ptr, work_ptr, len);
 
         // Split the colour endpoints, writing them to the output buffer.
@@ -120,7 +159,7 @@ pub unsafe fn transform_bc1(
             len / 2,
         );
 
-        // Decorrelate the colours in-place (if needed, no-ops if mode is 'none')
+        // Decorrelate the colours in output buffer in-place (if needed, no-ops if mode is 'none')
         Color565::decorrelate_ycocg_r_ptr(
             output_ptr as *const Color565,
             output_ptr as *mut Color565,
@@ -128,7 +167,7 @@ pub unsafe fn transform_bc1(
             transform_options.decorrelation_mode,
         );
 
-        // Copy the remainder of the block
+        // Copy the remainder of the split block data (indices)
         copy_nonoverlapping(work_ptr.add(len / 2), output_ptr.add(len / 2), len / 2);
     }
     // None. 00

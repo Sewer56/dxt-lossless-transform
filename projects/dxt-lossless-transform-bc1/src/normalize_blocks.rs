@@ -370,7 +370,7 @@ pub unsafe fn normalize_split_blocks_in_place(
         return;
     }
 
-    // Process each blockw
+    // Process each block
     for block_idx in 0..num_blocks {
         // Calculate current block pointers
         let curr_colors_ptr = colors_ptr.add(block_idx * 4);
@@ -408,7 +408,6 @@ pub unsafe fn normalize_split_blocks_in_place(
                     // Can be normalized, write the standard pattern. 
                     // Color0 = the color, Color1 = 0, indices = 0
                     let color_bytes = color565.raw_value().to_le_bytes();
-
                     
                     // Write Color1 and indices based on the mode
                     match color_mode {

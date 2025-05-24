@@ -92,3 +92,10 @@ path = "fuzz_targets/bc1_normalize_in_place.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "bc2_normalize_in_place"
+path = "fuzz_targets/bc2_normalize_in_place.rs"
+test = false
+doc = false
+bench = false

@@ -85,3 +85,10 @@ path = "fuzz_targets/bc3_normalize_all_modes.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "bc1_normalize_in_place"
+path = "fuzz_targets/bc1_normalize_in_place.rs"
+test = false
+doc = false
+bench = false

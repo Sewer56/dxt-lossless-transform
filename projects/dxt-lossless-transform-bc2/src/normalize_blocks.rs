@@ -412,6 +412,130 @@ pub enum ColorNormalizationMode {
     ReplicateColor,
 }
 
+/// Normalizes BC2 blocks that are already split into separate alpha, color and indices sections.
+///
+/// # Parameters
+///
+/// - `alpha_ptr`: A pointer to the section containing the alpha values (8 bytes per block)
+/// - `colors_ptr`: A pointer to the section containing the colors (4 bytes per block)
+/// - `indices_ptr`: A pointer to the section containing the indices (4 bytes per block)
+/// - `num_blocks`: The number of blocks to process (1 block = 16 bytes)
+/// - `color_mode`: How to normalize color values
+///
+/// # Safety
+///
+/// - alpha_ptr must be valid for reads and writes of num_blocks * 8 bytes
+/// - colors_ptr must be valid for reads and writes of num_blocks * 4 bytes
+/// - indices_ptr must be valid for reads and writes of num_blocks * 4 bytes
+/// - This function works in-place, modifying the color and indices buffers directly
+/// - The alpha buffer is preserved unchanged
+///
+/// # Remarks
+///
+/// This function normalizes blocks that have already been split, with alpha, colors and indices
+/// in separate memory locations. It applies the same normalization rules as [`normalize_blocks`]
+/// - Solid color blocks are normalized to a standard format in the color section
+/// - Alpha values are preserved as they are
+/// - Mixed color blocks are preserved as-is
+///
+/// See the module-level documentation for more details on the normalization process.
+#[inline]
+pub unsafe fn normalize_split_blocks_in_place(
+    alpha_ptr: *const u8,
+    colors_ptr: *mut u8,
+    indices_ptr: *mut u8,
+    num_blocks: usize,
+    color_mode: ColorNormalizationMode,
+) {
+    // Skip normalization if mode is None
+    if color_mode == ColorNormalizationMode::None {
+        return;
+    }
+
+    // TODO: This can be optimized by using the BC1 decoder, with disabled
+    //       alpha mode.
+    // Process each block
+    for block_idx in 0..num_blocks {
+        // Calculate current block pointers
+        let curr_alpha_ptr = alpha_ptr.add(block_idx * 8);
+        let curr_colors_ptr = colors_ptr.add(block_idx * 4);
+        let curr_indices_ptr = indices_ptr.add(block_idx * 4);
+
+        // Reconstruct a temporary block for analysis
+        let mut temp_block = [0u8; 16];
+        copy_nonoverlapping(curr_alpha_ptr, temp_block.as_mut_ptr(), 8);
+        copy_nonoverlapping(curr_colors_ptr, temp_block.as_mut_ptr().add(8), 4);
+        copy_nonoverlapping(curr_indices_ptr, temp_block.as_mut_ptr().add(12), 4);
+
+        // Decode the block to analyze its content
+        let decoded_block = decode_bc2_block(temp_block.as_ptr());
+
+        // Check if all pixels in the block have identical RGB values (ignoring alpha)
+        if decoded_block.has_identical_pixels_ignore_alpha() {
+            // Get the first pixel (they all have the same color)
+            let pixel = decoded_block.pixels[0];
+
+            // Convert the color to RGB565
+            let color565 = pixel.to_color_565();
+
+            // Check if color can be round-tripped cleanly through RGB565
+            let color8888 = color565.to_color_8888();
+            let pixel_ignore_alpha = Color8888::new(pixel.r, pixel.g, pixel.b, 255);
+            let color8888_ignore_alpha = Color8888::new(color8888.r, color8888.g, color8888.b, 255);
+
+            if unlikely(color8888_ignore_alpha == pixel_ignore_alpha) {
+                // Since this is an 'in-place' operation, we don't need
+                // to overwrite the alpha, we can just skip it.
+
+                // Can be normalized, write the standard pattern
+                let color_bytes = color565.raw_value().to_le_bytes();
+
+                // Write Color0 and Color1 based on the mode
+                match color_mode {
+                    ColorNormalizationMode::None => {
+                        // For None mode, the operation is a no-op.
+                        // Since this is a transform in place, we do nothing.
+                    }
+                    ColorNormalizationMode::Color0Only => {
+                        // Write Color0 (the solid color)
+                        *curr_colors_ptr = color_bytes[0];
+                        *curr_colors_ptr.add(1) = color_bytes[1];
+                        
+                        // Write Color1 = 0
+                        *curr_colors_ptr.add(2) = 0;
+                        *curr_colors_ptr.add(3) = 0;
+
+                        // Write indices = 0
+                        *curr_indices_ptr = 0;
+                        *curr_indices_ptr.add(1) = 0;
+                        *curr_indices_ptr.add(2) = 0;
+                        *curr_indices_ptr.add(3) = 0;
+                    }
+                    ColorNormalizationMode::ReplicateColor => {
+                        // Write Color0 (the solid color)
+                        *curr_colors_ptr = color_bytes[0];
+                        *curr_colors_ptr.add(1) = color_bytes[1];
+
+                        // Write Color1 = same as Color0
+                        *curr_colors_ptr.add(2) = color_bytes[0];
+                        *curr_colors_ptr.add(3) = color_bytes[1];
+
+                        // Write indices = 0
+                        *curr_indices_ptr = 0;
+                        *curr_indices_ptr.add(1) = 0;
+                        *curr_indices_ptr.add(2) = 0;
+                        *curr_indices_ptr.add(3) = 0;
+                    }
+                }
+            }
+            // else: Case: Cannot normalize
+            // This is a no-op, since this is an 'in-place' operation.
+        }
+        // else: Case: Mixed colors
+        // Cannot normalize, so this is a no-op as this is an 'in-place' operation.
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::needless_range_loop)]
 mod tests {
@@ -650,7 +774,8 @@ mod tests {
         source[9] = red565[1]; // Color0 (high byte)
         source[10] = 0x00; // Color1 (low byte)
         source[11] = 0x00; // Color1 (high byte)
-                           // All indices pointing to Color0
+
+        // All indices = 0, pointing to Color0
         source[12] = 0x00;
         source[13] = 0x00;
         source[14] = 0x00;
@@ -821,5 +946,173 @@ mod tests {
         
         // The in-place transformation should produce the same result as the separate buffer transformation
         assert_eq!(block, expected, "In-place transformation result does not match expected result");
+    }
+
+    #[test]
+    fn can_normalize_split_blocks_in_place() {
+        // Create test data with three solid color blocks
+        let mut test_alpha = [0u8; 24]; // 3 blocks * 8 bytes per block for alpha
+        let mut test_colors = [0u8; 12]; // 3 blocks * 4 bytes per block for colors  
+        let mut test_indices = [0u8; 12]; // 3 blocks * 4 bytes per block for indices
+
+        // Set up alpha values (uniform alpha for all pixels in each block)
+        test_alpha.fill(0xFF); // Full opacity for all blocks
+
+        // Set up color endpoints (0xF800 = bright red in RGB565)
+        // Block #0
+        test_colors[0] = 0x00; // color0 (low byte)
+        test_colors[1] = 0xF8; // color0 (high byte)
+        test_colors[2] = 0x00; // color1 (low byte)
+        test_colors[3] = 0xF8; // color1 (high byte)
+
+        // Block #1
+        test_colors[4] = 0x00; // color0 (low byte)
+        test_colors[5] = 0xF8; // color0 (high byte)
+        test_colors[6] = 0x00; // color1 (low byte)
+        test_colors[7] = 0xF8; // color1 (high byte)
+        
+        // Block #2 (should remain untouched)
+        test_colors[8] = 0x00; // color0 (low byte)
+        test_colors[9] = 0xF8; // color0 (high byte)
+        test_colors[10] = 0x00; // color1 (low byte)
+        test_colors[11] = 0xF8; // color1 (high byte)
+
+        // Set indices to non-zero values
+        test_indices.fill(0xAA);
+
+        // Get pointers to the test data
+        let alpha_ptr = test_alpha.as_ptr();
+        let colors_ptr = test_colors.as_mut_ptr();
+        let indices_ptr = test_indices.as_mut_ptr();
+
+        // Call normalize_split_blocks_in_place for the first 2 blocks only
+        unsafe {
+            normalize_split_blocks_in_place(alpha_ptr, colors_ptr, indices_ptr, 2, ColorNormalizationMode::Color0Only);
+        }
+
+        // First block should be normalized (Color0 = red, Color1 = 0, indices = 0)
+        assert_eq!(test_colors[0], 0x00);
+        assert_eq!(test_colors[1], 0xF8);
+        assert_eq!(test_colors[2], 0x00);
+        assert_eq!(test_colors[3], 0x00);
+        
+        // Second block should also be normalized
+        assert_eq!(test_colors[4], 0x00);
+        assert_eq!(test_colors[5], 0xF8);
+        assert_eq!(test_colors[6], 0x00);
+        assert_eq!(test_colors[7], 0x00);
+        
+        // Third block should remain untouched
+        assert_eq!(test_colors[8], 0x00);
+        assert_eq!(test_colors[9], 0xF8);
+        assert_eq!(test_colors[10], 0x00);
+        assert_eq!(test_colors[11], 0xF8);
+        
+        // First block indices should be zeros
+        assert_eq!(test_indices[0], 0x00);
+        assert_eq!(test_indices[1], 0x00);
+        assert_eq!(test_indices[2], 0x00);
+        assert_eq!(test_indices[3], 0x00);
+        
+        // Second block indices should also be zeros
+        assert_eq!(test_indices[4], 0x00);
+        assert_eq!(test_indices[5], 0x00);
+        assert_eq!(test_indices[6], 0x00);
+        assert_eq!(test_indices[7], 0x00);
+        
+        // Third block indices should remain untouched
+        assert_eq!(test_indices[8], 0xAA);
+        assert_eq!(test_indices[9], 0xAA);
+        assert_eq!(test_indices[10], 0xAA);
+        assert_eq!(test_indices[11], 0xAA);
+
+        // Alpha values should remain unchanged
+        for x in 0..24 {
+            assert_eq!(test_alpha[x], 0xFF);
+        }
+    }
+
+    #[test]
+    fn can_normalize_split_blocks_in_place_with_replicate_color() {
+        // Create test data with three solid color blocks
+        let mut test_alpha = [0u8; 24]; // 3 blocks * 8 bytes per block for alpha
+        let mut test_colors = [0u8; 12]; // 3 blocks * 4 bytes per block for colors
+        let mut test_indices = [0u8; 12]; // 3 blocks * 4 bytes per block for indices
+
+        // Set up alpha values (uniform alpha for all pixels in each block)
+        test_alpha.fill(0xFF); // Full opacity for all blocks
+
+        // Set up color endpoints (0xF800 = bright red in RGB565)
+        // Block #0
+        test_colors[0] = 0x00; // color0 (low byte)
+        test_colors[1] = 0xF8; // color0 (high byte)
+        test_colors[2] = 0x00; // color1 (low byte)
+        test_colors[3] = 0xF8; // color1 (high byte)
+        
+        // Block #1
+        test_colors[4] = 0x00; // color0 (low byte)
+        test_colors[5] = 0xF8; // color0 (high byte)
+        test_colors[6] = 0x00; // color1 (low byte)
+        test_colors[7] = 0xF8; // color1 (high byte)
+        
+        // Block #2 (should remain untouched)
+        test_colors[8] = 0x00; // color0 (low byte)
+        test_colors[9] = 0xF8; // color0 (high byte)
+        test_colors[10] = 0x00; // color1 (low byte)
+        test_colors[11] = 0xF8; // color1 (high byte)
+
+        // Set indices to non-zero values
+        test_indices.fill(0x55);
+
+        // Get pointers to the test data
+        let alpha_ptr = test_alpha.as_ptr();
+        let colors_ptr = test_colors.as_mut_ptr();
+        let indices_ptr = test_indices.as_mut_ptr();
+
+        // Call normalize_split_blocks_in_place using ReplicateColor mode for the first 2 blocks only
+        unsafe {
+            normalize_split_blocks_in_place(alpha_ptr, colors_ptr, indices_ptr, 2, ColorNormalizationMode::ReplicateColor);
+        }
+
+        // First block should be normalized (Color0 = red, Color1 = red (replicated), indices = 0)
+        assert_eq!(test_colors[0], 0x00);
+        assert_eq!(test_colors[1], 0xF8);
+        assert_eq!(test_colors[2], 0x00); // Color1 should be the same as Color0 for ReplicateColor
+        assert_eq!(test_colors[3], 0xF8); // Color1 should be the same as Color0 for ReplicateColor
+        
+        // Second block should also be normalized
+        assert_eq!(test_colors[4], 0x00);
+        assert_eq!(test_colors[5], 0xF8);
+        assert_eq!(test_colors[6], 0x00); // Color1 should be the same as Color0 for ReplicateColor
+        assert_eq!(test_colors[7], 0xF8); // Color1 should be the same as Color0 for ReplicateColor
+        
+        // Third block should remain untouched
+        assert_eq!(test_colors[8], 0x00);
+        assert_eq!(test_colors[9], 0xF8);
+        assert_eq!(test_colors[10], 0x00);
+        assert_eq!(test_colors[11], 0xF8);
+        
+        // First block indices should be zeros
+        assert_eq!(test_indices[0], 0x00);
+        assert_eq!(test_indices[1], 0x00);
+        assert_eq!(test_indices[2], 0x00);
+        assert_eq!(test_indices[3], 0x00);
+        
+        // Second block indices should also be zeros
+        assert_eq!(test_indices[4], 0x00);
+        assert_eq!(test_indices[5], 0x00);
+        assert_eq!(test_indices[6], 0x00);
+        assert_eq!(test_indices[7], 0x00);
+        
+        // Third block indices should remain untouched
+        assert_eq!(test_indices[8], 0x55);
+        assert_eq!(test_indices[9], 0x55);
+        assert_eq!(test_indices[10], 0x55);
+        assert_eq!(test_indices[11], 0x55);
+
+        // Alpha values should remain unchanged
+        for x in 0..24 {
+            assert_eq!(test_alpha[x], 0xFF);
+        }
     }
 }

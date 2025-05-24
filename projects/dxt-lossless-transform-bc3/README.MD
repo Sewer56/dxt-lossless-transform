@@ -30,7 +30,8 @@ Data:    | A0-A1 |AIdx0-47| C0-C1 |I0-I15 |   | A2-A3 |AIdx48-95| C2-C3 |I16-I31
 ```
 
 Each 16-byte block contains:
-- 8 bytes of explicit alpha (sixteen 4-bit alpha values)
+- 2 bytes of alpha endpoints (8 bits each)
+- 6 bytes of alpha indices (16x 3-bit)
 - 4 bytes colours (2x RGB565 values)
 - 4 bytes of packed color indices (sixteen 2-bit indices)
 

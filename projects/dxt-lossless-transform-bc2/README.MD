@@ -90,6 +90,29 @@ We apply the [YCoCg-R] transform to decorrelate the colours.
 Since the colours are stored in `565`, we use the upper 5 bits of the green endpoint, leaving the
 remaining bit untouched.
 
+### Delta Encoding the Transparency Values [Not Yet Implemented]
+
+A lot of textures have transparent regions which all have the same (or very similar) alpha values.
+
+In such cases, we can represent the stored alpha values as the delta (difference) from the first alpha value.
+
+```rust
+fn encode_delta_dif(data: &mut [u8]) {
+    let mut prev = 0u8;
+    for item in data.iter_mut() {
+        let v = *item;
+        *item = v.wrapping_sub(prev);
+        prev = v;
+    }
+}
+```
+
+We take the previous (first) value, subtract the previous (first) value from each subsequent value,
+and lastly, store the result.
+
+In our current case, the values are 4-bit, which can be a bit hard to do efficiently, given that our processors
+work with bytes. Therefore, we do the diff at the byte level.
+
 ## Development
 
 For information on how to work with this codebase, see [README-DEV.MD][readme-dev].

@@ -560,6 +560,197 @@ pub unsafe fn normalize_blocks_all_modes(
     );
 }
 
+/// Normalizes BC3 blocks that are already split into separate alpha endpoint, alpha indices, color and index sections.
+///
+/// # Parameters
+///
+/// - `alpha_endpoints_ptr`: A pointer to the section containing the alpha endpoints (2 bytes per block)
+/// - `alpha_indices_ptr`: A pointer to the section containing the alpha indices (6 bytes per block)
+/// - `color_endpoints_ptr`: A pointer to the section containing the color endpoints (4 bytes per block)
+/// - `color_indices_ptr`: A pointer to the section containing the color indices (4 bytes per block)
+/// - `num_blocks`: The number of blocks to process (1 block = 16 bytes total across all sections)
+/// - `alpha_mode`: How to normalize alpha values
+/// - `color_mode`: How to normalize color values
+///
+/// # Safety
+///
+/// - alpha_endpoints_ptr must be valid for reads and writes of num_blocks * 2 bytes
+/// - alpha_indices_ptr must be valid for reads and writes of num_blocks * 6 bytes
+/// - color_endpoints_ptr must be valid for reads and writes of num_blocks * 4 bytes
+/// - color_indices_ptr must be valid for reads and writes of num_blocks * 4 bytes
+/// - This function works in-place, modifying all buffers directly
+///
+/// # Remarks
+///
+/// This function normalizes blocks that have already been split into 4 separate sections:
+/// - Alpha endpoints (A0-A1): 2 bytes per block
+/// - Alpha indices (16x 3-bit): 6 bytes per block  
+/// - Color endpoints (C0-C1): 4 bytes per block
+/// - Color indices (16x 2-bit): 4 bytes per block
+///
+/// It applies the same normalization rules as [`normalize_blocks`]:
+/// - Blocks with uniform alpha are normalized according to the alpha_mode
+/// - Solid color blocks are normalized according to the color_mode
+/// - Other blocks are preserved as-is
+///
+/// See the module-level documentation for more details on the normalization process.
+#[inline]
+pub unsafe fn normalize_split_blocks_in_place(
+    alpha_endpoints_ptr: *mut u8,
+    alpha_indices_ptr: *mut u8,
+    color_endpoints_ptr: *mut u8,
+    color_indices_ptr: *mut u8,
+    num_blocks: usize,
+    alpha_mode: AlphaNormalizationMode,
+    color_mode: ColorNormalizationMode,
+) {
+    // Skip normalization if both modes are None
+    if alpha_mode == AlphaNormalizationMode::None && color_mode == ColorNormalizationMode::None {
+        return;
+    }
+
+    // Process each block
+    for block_idx in 0..num_blocks {
+        // Calculate current block pointers for each section
+        let curr_alpha_endpoints_ptr = alpha_endpoints_ptr.add(block_idx * 2);
+        let curr_alpha_indices_ptr = alpha_indices_ptr.add(block_idx * 6);
+        let curr_color_endpoints_ptr = color_endpoints_ptr.add(block_idx * 4);
+        let curr_color_indices_ptr = color_indices_ptr.add(block_idx * 4);
+
+        // Reconstruct a temporary block for analysis
+        // BC3 layout: [alpha endpoints: 2 bytes][alpha indices: 6 bytes][color endpoints: 4 bytes][color indices: 4 bytes]
+        let mut temp_block = [0u8; 16];
+        copy_nonoverlapping(curr_alpha_endpoints_ptr, temp_block.as_mut_ptr(), 2);
+        copy_nonoverlapping(curr_alpha_indices_ptr, temp_block.as_mut_ptr().add(2), 6);
+        copy_nonoverlapping(curr_color_endpoints_ptr, temp_block.as_mut_ptr().add(8), 4);
+        copy_nonoverlapping(curr_color_indices_ptr, temp_block.as_mut_ptr().add(12), 4);
+
+        // Decode the block to analyze its content
+        let decoded_block = decode_bc3_block(temp_block.as_ptr());
+
+        // Check alpha normalization is enabled and alpha can be normalized
+        // (all pixels have the same value)
+        if alpha_mode != AlphaNormalizationMode::None && decoded_block.has_identical_alpha() {
+            normalize_alpha_in_place(
+                alpha_mode,
+                curr_alpha_endpoints_ptr,
+                curr_alpha_indices_ptr,
+                decoded_block.pixels[0].a, // same in entire block, so can use first pixel
+            );
+        }
+
+        // Check color normalization is enabled and colour can be normalized
+        // (all pixels have the same value, excluding alpha)
+        if color_mode != ColorNormalizationMode::None
+            && decoded_block.has_identical_pixels_ignore_alpha()
+        {
+            // Check if all pixels have the same color (ignoring alpha)
+            let pixel = decoded_block.pixels[0];
+            let pixel_ignore_alpha = Color8888::new(pixel.r, pixel.g, pixel.b, 255);
+
+            // Solid color - check if it can be normalized
+            let color565 = pixel_ignore_alpha.to_color_565();
+            let color8888_roundtrip = color565.to_color_8888();
+
+            if unlikely(color8888_roundtrip == pixel_ignore_alpha) {
+                // Can be normalized, write the standard pattern
+                let color_bytes = color565.raw_value().to_le_bytes();
+
+                // Write Color0 and Color1 based on the mode
+                match color_mode {
+                    ColorNormalizationMode::None => {
+                        // For None mode, the operation is a no-op.
+                        // Since this is a transform in place, we do nothing.
+                    }
+                    ColorNormalizationMode::Color0Only => {
+                        // Write Color0 (the solid color)
+                        *curr_color_endpoints_ptr = color_bytes[0];
+                        *curr_color_endpoints_ptr.add(1) = color_bytes[1];
+
+                        // Write Color1 = 0
+                        *curr_color_endpoints_ptr.add(2) = 0;
+                        *curr_color_endpoints_ptr.add(3) = 0;
+
+                        // Write indices = 0
+                        *curr_color_indices_ptr = 0;
+                        *curr_color_indices_ptr.add(1) = 0;
+                        *curr_color_indices_ptr.add(2) = 0;
+                        *curr_color_indices_ptr.add(3) = 0;
+                    }
+                    ColorNormalizationMode::ReplicateColor => {
+                        // Write Color0 (the solid color)
+                        *curr_color_endpoints_ptr = color_bytes[0];
+                        *curr_color_endpoints_ptr.add(1) = color_bytes[1];
+
+                        // Write Color1 = same as Color0
+                        *curr_color_endpoints_ptr.add(2) = color_bytes[0];
+                        *curr_color_endpoints_ptr.add(3) = color_bytes[1];
+
+                        // Write indices = 0
+                        *curr_color_indices_ptr = 0;
+                        *curr_color_indices_ptr.add(1) = 0;
+                        *curr_color_indices_ptr.add(2) = 0;
+                        *curr_color_indices_ptr.add(3) = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    #[inline]
+    unsafe fn normalize_alpha_in_place(
+        alpha_mode: AlphaNormalizationMode,
+        curr_alpha_endpoints_ptr: *mut u8,
+        curr_alpha_indices_ptr: *mut u8,
+        alpha_value: u8,
+    ) {
+        match alpha_mode {
+            AlphaNormalizationMode::UniformAlphaZeroIndices => {
+                // Set A0 to the alpha value, everything else to 0
+                *curr_alpha_endpoints_ptr = alpha_value;
+                *curr_alpha_endpoints_ptr.add(1) = 0;
+
+                // Zero all index bytes
+                write_bytes(curr_alpha_indices_ptr, 0, 6);
+            }
+            AlphaNormalizationMode::OpaqueFillAll => {
+                if alpha_value == 255 {
+                    // Fill all alpha bytes with 0xFF (both endpoints and values)
+                    write_bytes(curr_alpha_endpoints_ptr, 0xFF, 2);
+                    write_bytes(curr_alpha_indices_ptr, 0xFF, 6);
+                } else {
+                    // For non-opaque, use the same approach as UniformAlphaZeroIndices
+                    normalize_alpha_in_place(
+                        AlphaNormalizationMode::UniformAlphaZeroIndices,
+                        curr_alpha_endpoints_ptr,
+                        curr_alpha_indices_ptr,
+                        alpha_value,
+                    );
+                }
+            }
+            AlphaNormalizationMode::OpaqueZeroAlphaMaxIndices => {
+                if alpha_value == 255 {
+                    // Set alpha endpoints to 0
+                    *curr_alpha_endpoints_ptr = 0;
+                    *curr_alpha_endpoints_ptr.add(1) = 0;
+
+                    // Set all indices to max value (0xFF)
+                    write_bytes(curr_alpha_indices_ptr, 0xFF, 6);
+                } else {
+                    // For non-opaque, use the same approach as UniformAlphaZeroIndices
+                    normalize_alpha_in_place(
+                        AlphaNormalizationMode::UniformAlphaZeroIndices,
+                        curr_alpha_endpoints_ptr,
+                        curr_alpha_indices_ptr,
+                        alpha_value,
+                    );
+                }
+            }
+            AlphaNormalizationMode::None => { /* no-op */ }
+        }
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::needless_range_loop)]
 mod tests {
@@ -1270,5 +1461,321 @@ mod tests {
             input_blocks,
             "In-place normalization result doesn't match reference output for alpha_mode={alpha_mode:?}, color_mode={color_mode:?}"
         );
+    }
+
+    /// Test normalizing split BC3 blocks in place with all combinations of alpha and color modes
+    #[rstest]
+    #[case::none_none(AlphaNormalizationMode::None, ColorNormalizationMode::None)]
+    #[case::none_color0(AlphaNormalizationMode::None, ColorNormalizationMode::Color0Only)]
+    #[case::none_replicate(AlphaNormalizationMode::None, ColorNormalizationMode::ReplicateColor)]
+    #[case::uniform_zero_none(
+        AlphaNormalizationMode::UniformAlphaZeroIndices,
+        ColorNormalizationMode::None
+    )]
+    #[case::uniform_zero_color0(
+        AlphaNormalizationMode::UniformAlphaZeroIndices,
+        ColorNormalizationMode::Color0Only
+    )]
+    #[case::uniform_zero_replicate(
+        AlphaNormalizationMode::UniformAlphaZeroIndices,
+        ColorNormalizationMode::ReplicateColor
+    )]
+    #[case::opaque_fill_none(AlphaNormalizationMode::OpaqueFillAll, ColorNormalizationMode::None)]
+    #[case::opaque_fill_color0(
+        AlphaNormalizationMode::OpaqueFillAll,
+        ColorNormalizationMode::Color0Only
+    )]
+    #[case::opaque_fill_replicate(
+        AlphaNormalizationMode::OpaqueFillAll,
+        ColorNormalizationMode::ReplicateColor
+    )]
+    #[case::opaque_zero_none(
+        AlphaNormalizationMode::OpaqueZeroAlphaMaxIndices,
+        ColorNormalizationMode::None
+    )]
+    #[case::opaque_zero_color0(
+        AlphaNormalizationMode::OpaqueZeroAlphaMaxIndices,
+        ColorNormalizationMode::Color0Only
+    )]
+    #[case::opaque_zero_replicate(
+        AlphaNormalizationMode::OpaqueZeroAlphaMaxIndices,
+        ColorNormalizationMode::ReplicateColor
+    )]
+    fn can_normalize_split_blocks_in_place(
+        #[case] alpha_mode: AlphaNormalizationMode,
+        #[case] color_mode: ColorNormalizationMode,
+    ) {
+        // Create test data with BC3 blocks - now using the split layout
+        // BC3 block is 16 bytes split into 4 sections:
+        // - Alpha endpoints: 2 bytes per block
+        // - Alpha indices: 6 bytes per block
+        // - Color endpoints: 4 bytes per block
+        // - Color indices: 4 bytes per block
+
+        // Test with uniform alpha (255) and solid color for 2 blocks
+        let mut test_alpha_endpoints = [0u8; 4]; // 2 blocks * 2 bytes each
+        let mut test_alpha_indices = [0u8; 12]; // 2 blocks * 6 bytes each
+        let mut test_color_endpoints = [0u8; 8]; // 2 blocks * 4 bytes each
+        let mut test_color_indices = [0u8; 8]; // 2 blocks * 4 bytes each
+
+        // Set up alpha endpoints for uniform alpha = 255 (fully opaque)
+        // Block #0: A0=255, A1=255
+        test_alpha_endpoints[0] = 0xFF; // A0
+        test_alpha_endpoints[1] = 0xFF; // A1
+                                        // Block #1: A0=255, A1=255
+        test_alpha_endpoints[2] = 0xFF; // A0
+        test_alpha_endpoints[3] = 0xFF; // A1
+
+        // Set up alpha indices (all 0 means use A0)
+        test_alpha_indices.fill(0x00);
+
+        // Set up color endpoints for solid red color (0xF800 = bright red in RGB565)
+        // Block #0: C0=red, C1=red
+        test_color_endpoints[0] = 0x00; // C0 low byte
+        test_color_endpoints[1] = 0xF8; // C0 high byte
+        test_color_endpoints[2] = 0x00; // C1 low byte
+        test_color_endpoints[3] = 0xF8; // C1 high byte
+                                        // Block #1: C0=red, C1=red
+        test_color_endpoints[4] = 0x00; // C0 low byte
+        test_color_endpoints[5] = 0xF8; // C0 high byte
+        test_color_endpoints[6] = 0x00; // C1 low byte
+        test_color_endpoints[7] = 0xF8; // C1 high byte
+
+        // Set up color indices (all 0 means use C0)
+        test_color_indices.fill(0x00);
+
+        // Clone the original data for later comparison when mode is None
+        let original_alpha_endpoints = test_alpha_endpoints;
+        let original_alpha_indices = test_alpha_indices;
+        let original_color_endpoints = test_color_endpoints;
+        let original_color_indices = test_color_indices;
+
+        // Get pointers to the test data
+        let alpha_endpoints_ptr = test_alpha_endpoints.as_mut_ptr();
+        let alpha_indices_ptr = test_alpha_indices.as_mut_ptr();
+        let color_endpoints_ptr = test_color_endpoints.as_mut_ptr();
+        let color_indices_ptr = test_color_indices.as_mut_ptr();
+
+        // Call normalize_split_blocks_in_place with the test case's modes
+        unsafe {
+            normalize_split_blocks_in_place(
+                alpha_endpoints_ptr,
+                alpha_indices_ptr,
+                color_endpoints_ptr,
+                color_indices_ptr,
+                2, // 2 blocks
+                alpha_mode,
+                color_mode,
+            );
+        }
+
+        // Check normalized data based on the alpha mode
+        match alpha_mode {
+            AlphaNormalizationMode::None => {
+                // No alpha normalization, data should be unchanged
+                assert_eq!(test_alpha_endpoints, original_alpha_endpoints);
+                assert_eq!(test_alpha_indices, original_alpha_indices);
+            }
+            AlphaNormalizationMode::UniformAlphaZeroIndices => {
+                // Alpha endpoints should be A0=0xFF, A1=0, and indices 0
+                for x in 0..2 {
+                    assert_eq!(
+                        test_alpha_endpoints[x * 2],
+                        0xFF,
+                        "A0 for block {x} should be 0xFF"
+                    );
+                    assert_eq!(
+                        test_alpha_endpoints[x * 2 + 1],
+                        0,
+                        "A1 for block {x} should be 0"
+                    );
+                }
+                for x in 0..12 {
+                    assert_eq!(test_alpha_indices[x], 0, "Alpha index byte {x} should be 0");
+                }
+            }
+            AlphaNormalizationMode::OpaqueFillAll => {
+                // For fully opaque (0xFF), all alpha bytes should be 0xFF
+                for x in 0..4 {
+                    assert_eq!(
+                        test_alpha_endpoints[x], 0xFF,
+                        "Alpha endpoint byte {x} should be 0xFF"
+                    );
+                }
+                for x in 0..12 {
+                    assert_eq!(
+                        test_alpha_indices[x], 0xFF,
+                        "Alpha index byte {x} should be 0xFF"
+                    );
+                }
+            }
+            AlphaNormalizationMode::OpaqueZeroAlphaMaxIndices => {
+                // Alpha endpoints should be 0 and indices 0xFF
+                for x in 0..4 {
+                    assert_eq!(
+                        test_alpha_endpoints[x], 0,
+                        "Alpha endpoint byte {x} should be 0"
+                    );
+                }
+                for x in 0..12 {
+                    assert_eq!(
+                        test_alpha_indices[x], 0xFF,
+                        "Alpha index byte {x} should be 0xFF"
+                    );
+                }
+            }
+        }
+
+        // Check normalized data based on the color mode
+        match color_mode {
+            ColorNormalizationMode::None => {
+                // No color normalization, data should be unchanged
+                assert_eq!(test_color_endpoints, original_color_endpoints);
+                assert_eq!(test_color_indices, original_color_indices);
+            }
+            ColorNormalizationMode::Color0Only => {
+                // Block 0: C0=red, C1=0
+                assert_eq!(test_color_endpoints[0], 0x00); // C0 low
+                assert_eq!(test_color_endpoints[1], 0xF8); // C0 high
+                assert_eq!(test_color_endpoints[2], 0x00); // C1 low (should be 0)
+                assert_eq!(test_color_endpoints[3], 0x00); // C1 high (should be 0)
+                                                           // Block 1: C0=red, C1=0
+                assert_eq!(test_color_endpoints[4], 0x00); // C0 low
+                assert_eq!(test_color_endpoints[5], 0xF8); // C0 high
+                assert_eq!(test_color_endpoints[6], 0x00); // C1 low (should be 0)
+                assert_eq!(test_color_endpoints[7], 0x00); // C1 high (should be 0)
+
+                // Color indices should be 0
+                for x in 0..8 {
+                    assert_eq!(
+                        test_color_indices[x], 0x00,
+                        "Color index byte {x} should be 0x00"
+                    );
+                }
+            }
+            ColorNormalizationMode::ReplicateColor => {
+                // Block 0: C0=red, C1=red
+                assert_eq!(test_color_endpoints[0], 0x00); // C0 low
+                assert_eq!(test_color_endpoints[1], 0xF8); // C0 high
+                assert_eq!(test_color_endpoints[2], 0x00); // C1 low (same as C0)
+                assert_eq!(test_color_endpoints[3], 0xF8); // C1 high (same as C0)
+                                                           // Block 1: C0=red, C1=red
+                assert_eq!(test_color_endpoints[4], 0x00); // C0 low
+                assert_eq!(test_color_endpoints[5], 0xF8); // C0 high
+                assert_eq!(test_color_endpoints[6], 0x00); // C1 low (same as C0)
+                assert_eq!(test_color_endpoints[7], 0xF8); // C1 high (same as C0)
+
+                // Color indices should be 0
+                for x in 0..8 {
+                    assert_eq!(
+                        test_color_indices[x], 0x00,
+                        "Color index byte {x} should be 0x00"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn can_normalize_split_blocks_in_place_with_replicate_color() {
+        // Create test data with BC3 blocks using the split layout
+        let mut test_alpha_endpoints = [0u8; 2]; // 1 block * 2 bytes
+        let mut test_alpha_indices = [0u8; 6]; // 1 block * 6 bytes
+        let mut test_color_endpoints = [0u8; 4]; // 1 block * 4 bytes
+        let mut test_color_indices = [0u8; 4]; // 1 block * 4 bytes
+
+        // Set up alpha endpoints for uniform alpha = 128 (half transparent)
+        test_alpha_endpoints[0] = 128; // A0
+        test_alpha_endpoints[1] = 128; // A1
+
+        // Set up alpha indices (all 0 means use A0)
+        test_alpha_indices.fill(0x00);
+
+        // Set up color endpoints for solid red color
+        test_color_endpoints[0] = 0x00; // C0 low byte
+        test_color_endpoints[1] = 0xF8; // C0 high byte
+        test_color_endpoints[2] = 0x00; // C1 low byte
+        test_color_endpoints[3] = 0xF8; // C1 high byte
+
+        // Set up color indices with non-zero values
+        test_color_indices.fill(0x55);
+
+        // Get pointers to the test data
+        let alpha_endpoints_ptr = test_alpha_endpoints.as_mut_ptr();
+        let alpha_indices_ptr = test_alpha_indices.as_mut_ptr();
+        let color_endpoints_ptr = test_color_endpoints.as_mut_ptr();
+        let color_indices_ptr = test_color_indices.as_mut_ptr();
+
+        // Call normalize_split_blocks_in_place with ReplicateColor mode
+        unsafe {
+            normalize_split_blocks_in_place(
+                alpha_endpoints_ptr,
+                alpha_indices_ptr,
+                color_endpoints_ptr,
+                color_indices_ptr,
+                1, // 1 block
+                AlphaNormalizationMode::UniformAlphaZeroIndices,
+                ColorNormalizationMode::ReplicateColor,
+            );
+        }
+
+        // Check that alpha was normalized (A0 = 128, A1 should be 0, indices should be 0)
+        assert_eq!(test_alpha_endpoints[0], 128); // A0 should be the alpha value
+        assert_eq!(test_alpha_endpoints[1], 0); // A1 should be 0
+        for x in 0..6 {
+            assert_eq!(test_alpha_indices[x], 0, "Alpha index byte {x} should be 0",);
+        }
+
+        // Check that color was normalized with ReplicateColor (both C0 and C1 = red, indices = 0)
+        assert_eq!(test_color_endpoints[0], 0x00); // C0 low
+        assert_eq!(test_color_endpoints[1], 0xF8); // C0 high
+        assert_eq!(test_color_endpoints[2], 0x00); // C1 low (replicated)
+        assert_eq!(test_color_endpoints[3], 0xF8); // C1 high (replicated)
+        for x in 0..4 {
+            assert_eq!(
+                test_color_indices[x], 0x00,
+                "Color index byte {x} should be 0x00",
+            );
+        }
+    }
+
+    #[test]
+    fn can_normalize_split_blocks_no_op_when_modes_are_none() {
+        // Create test data using the split layout
+        let mut test_alpha_endpoints = [0xAA; 2]; // Fill with pattern
+        let mut test_alpha_indices = [0xBB; 6]; // Fill with different pattern
+        let mut test_color_endpoints = [0xCC; 4]; // Fill with different pattern
+        let mut test_color_indices = [0xDD; 4]; // Fill with different pattern
+
+        // Store original data for comparison
+        let original_alpha_endpoints = test_alpha_endpoints;
+        let original_alpha_indices = test_alpha_indices;
+        let original_color_endpoints = test_color_endpoints;
+        let original_color_indices = test_color_indices;
+
+        // Get pointers to the test data
+        let alpha_endpoints_ptr = test_alpha_endpoints.as_mut_ptr();
+        let alpha_indices_ptr = test_alpha_indices.as_mut_ptr();
+        let color_endpoints_ptr = test_color_endpoints.as_mut_ptr();
+        let color_indices_ptr = test_color_indices.as_mut_ptr();
+
+        // Call normalize_split_blocks_in_place with None modes
+        unsafe {
+            normalize_split_blocks_in_place(
+                alpha_endpoints_ptr,
+                alpha_indices_ptr,
+                color_endpoints_ptr,
+                color_indices_ptr,
+                1, // 1 block
+                AlphaNormalizationMode::None,
+                ColorNormalizationMode::None,
+            );
+        }
+
+        // Check that data was not modified
+        assert_eq!(test_alpha_endpoints, original_alpha_endpoints);
+        assert_eq!(test_alpha_indices, original_alpha_indices);
+        assert_eq!(test_color_endpoints, original_color_endpoints);
+        assert_eq!(test_color_indices, original_color_indices);
     }
 }

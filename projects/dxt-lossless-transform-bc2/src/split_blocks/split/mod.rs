@@ -180,8 +180,13 @@ unsafe fn split_blocks_with_separate_pointers_x86(
 
         #[cfg(target_arch = "x86_64")]
         if dxt_lossless_transform_common::cpu_detect::has_sse2() {
-            // TODO: sse2::shuffle_v3_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len);
-            u32_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len);
+            sse2::shuffle_v3_with_separate_pointers(
+                input_ptr,
+                alphas_ptr,
+                colors_ptr,
+                indices_ptr,
+                len,
+            );
             return;
         }
 
@@ -214,8 +219,13 @@ unsafe fn split_blocks_with_separate_pointers_x86(
 
         #[cfg(target_arch = "x86_64")]
         if cfg!(target_feature = "sse2") {
-            // TODO: sse2::shuffle_v3_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len);
-            u32_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len);
+            sse2::shuffle_v3_with_separate_pointers(
+                input_ptr,
+                alphas_ptr,
+                colors_ptr,
+                indices_ptr,
+                len,
+            );
             return;
         }
 

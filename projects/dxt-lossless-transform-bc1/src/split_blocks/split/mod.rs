@@ -151,8 +151,7 @@ unsafe fn split_blocks_with_separate_pointers_x86(
         }
 
         if dxt_lossless_transform_common::cpu_detect::has_sse2() {
-            // Future: add SSE2 optimized version for separate pointers
-            portable32::u32_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+            shufps_unroll_4_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
             return;
         }
     }
@@ -171,7 +170,7 @@ unsafe fn split_blocks_with_separate_pointers_x86(
         }
 
         if cfg!(target_feature = "sse2") {
-            portable32::u32_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+            shufps_unroll_4_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
             return;
         }
     }

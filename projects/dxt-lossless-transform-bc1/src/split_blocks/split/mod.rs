@@ -146,8 +146,7 @@ unsafe fn split_blocks_with_separate_pointers_x86(
         }
 
         if dxt_lossless_transform_common::cpu_detect::has_avx2() {
-            // Future: add AVX2 optimized version for separate pointers
-            portable32::u32_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+            shuffle_permute_unroll_2_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
             return;
         }
 
@@ -167,7 +166,7 @@ unsafe fn split_blocks_with_separate_pointers_x86(
         }
 
         if cfg!(target_feature = "avx2") {
-            portable32::u32_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+            shuffle_permute_unroll_2_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
             return;
         }
 

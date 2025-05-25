@@ -322,16 +322,32 @@ pub unsafe fn shuffle_permute(mut input_ptr: *const u8, mut output_ptr: *mut u8,
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
-pub unsafe fn shuffle_permute_unroll_2(
+pub unsafe fn shuffle_permute_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    let colors_ptr = output_ptr as *mut u32;
+    let indices_ptr = output_ptr.add(len / 2) as *mut u32;
+
+    // Call with separate pointers for colors and indices
+    shuffle_permute_unroll_2_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - colors_ptr must be valid for writes of len/2 bytes (4 bytes per block)
+/// - indices_ptr must be valid for writes of len/2 bytes (4 bytes per block)
+/// - len must be divisible by 8 (BC1 block size)
+#[allow(unused_assignments)]
+#[target_feature(enable = "avx2")]
+pub unsafe fn shuffle_permute_unroll_2_with_separate_pointers(
     mut input_ptr: *const u8,
-    mut output_ptr: *mut u8,
+    mut colors_ptr: *mut u32,
+    mut indices_ptr: *mut u32,
     len: usize,
 ) {
     debug_assert!(len % 8 == 0);
     // Process as many 128-byte blocks as possible
     let aligned_len = len - (len % 128);
 
-    let mut indices_ptr = output_ptr.add(len / 2);
     if aligned_len > 0 {
         let mut aligned_end = input_ptr.add(aligned_len);
         unsafe {
@@ -373,7 +389,7 @@ pub unsafe fn shuffle_permute_unroll_2(
                 "jb 2b",
 
                 src_ptr = inout(reg) input_ptr,
-                colors_ptr = inout(reg) output_ptr,
+                colors_ptr = inout(reg) colors_ptr,
                 indices_ptr = inout(reg) indices_ptr,
                 end = inout(reg) aligned_end,
                 ymm0 = out(ymm_reg) _,
@@ -392,12 +408,7 @@ pub unsafe fn shuffle_permute_unroll_2(
     // Process any remaining elements after the aligned blocks
     let remaining = len - aligned_len;
     if remaining > 0 {
-        u32_with_separate_pointers(
-            input_ptr,
-            output_ptr as *mut u32,
-            indices_ptr as *mut u32,
-            remaining,
-        );
+        u32_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, remaining);
     }
 }
 

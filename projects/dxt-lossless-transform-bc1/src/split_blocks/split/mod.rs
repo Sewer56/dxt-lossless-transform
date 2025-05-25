@@ -24,52 +24,6 @@ pub mod avx512;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub use avx512::*;
 
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-#[inline(always)]
-unsafe fn split_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    #[cfg(not(feature = "no-runtime-cpu-detection"))]
-    {
-        // Runtime feature detection
-        #[cfg(feature = "nightly")]
-        if dxt_lossless_transform_common::cpu_detect::has_avx512f() {
-            permute_512(input_ptr, output_ptr, len);
-            return;
-        }
-
-        if dxt_lossless_transform_common::cpu_detect::has_avx2() {
-            shuffle_permute_unroll_2(input_ptr, output_ptr, len);
-            return;
-        }
-
-        if dxt_lossless_transform_common::cpu_detect::has_sse2() {
-            shufps_unroll_4(input_ptr, output_ptr, len);
-            return;
-        }
-    }
-
-    #[cfg(feature = "no-runtime-cpu-detection")]
-    {
-        #[cfg(feature = "nightly")]
-        if cfg!(target_feature = "avx512f") {
-            permute_512(input_ptr, output_ptr, len);
-            return;
-        }
-
-        if cfg!(target_feature = "avx2") {
-            shuffle_permute_unroll_2(input_ptr, output_ptr, len);
-            return;
-        }
-
-        if cfg!(target_feature = "sse2") {
-            shufps_unroll_4(input_ptr, output_ptr, len);
-            return;
-        }
-    }
-
-    // Fallback to portable implementation
-    u32(input_ptr, output_ptr, len)
-}
-
 /// Split BC1 blocks from standard interleaved format to separated color/index format
 /// using the best known implementation for the current CPU.
 ///
@@ -131,6 +85,52 @@ pub unsafe fn split_blocks_with_separate_pointers(
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
+unsafe fn split_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    #[cfg(not(feature = "no-runtime-cpu-detection"))]
+    {
+        // Runtime feature detection
+        #[cfg(feature = "nightly")]
+        if dxt_lossless_transform_common::cpu_detect::has_avx512f() {
+            permute_512(input_ptr, output_ptr, len);
+            return;
+        }
+
+        if dxt_lossless_transform_common::cpu_detect::has_avx2() {
+            shuffle_permute_unroll_2(input_ptr, output_ptr, len);
+            return;
+        }
+
+        if dxt_lossless_transform_common::cpu_detect::has_sse2() {
+            shufps_unroll_4(input_ptr, output_ptr, len);
+            return;
+        }
+    }
+
+    #[cfg(feature = "no-runtime-cpu-detection")]
+    {
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512f") {
+            permute_512(input_ptr, output_ptr, len);
+            return;
+        }
+
+        if cfg!(target_feature = "avx2") {
+            shuffle_permute_unroll_2(input_ptr, output_ptr, len);
+            return;
+        }
+
+        if cfg!(target_feature = "sse2") {
+            shufps_unroll_4(input_ptr, output_ptr, len);
+            return;
+        }
+    }
+
+    // Fallback to portable implementation
+    u32(input_ptr, output_ptr, len)
+}
+
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[inline(always)]
 unsafe fn split_blocks_with_separate_pointers_x86(
     input_ptr: *const u8,
     colors_ptr: *mut u32,
@@ -146,7 +146,12 @@ unsafe fn split_blocks_with_separate_pointers_x86(
         }
 
         if dxt_lossless_transform_common::cpu_detect::has_avx2() {
-            shuffle_permute_unroll_2_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+            shuffle_permute_unroll_2_with_separate_pointers(
+                input_ptr,
+                colors_ptr,
+                indices_ptr,
+                len,
+            );
             return;
         }
 
@@ -165,7 +170,12 @@ unsafe fn split_blocks_with_separate_pointers_x86(
         }
 
         if cfg!(target_feature = "avx2") {
-            shuffle_permute_unroll_2_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+            shuffle_permute_unroll_2_with_separate_pointers(
+                input_ptr,
+                colors_ptr,
+                indices_ptr,
+                len,
+            );
             return;
         }
 

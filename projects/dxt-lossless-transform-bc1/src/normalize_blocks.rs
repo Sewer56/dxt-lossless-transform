@@ -80,7 +80,7 @@
 //! 4. Write the normalized block to the output
 
 use crate::util::decode_bc1_block;
-use core::ptr::{copy_nonoverlapping, eq, null_mut, read_unaligned, write_bytes};
+use core::{hint::unreachable_unchecked, ptr::{copy_nonoverlapping, eq, null_mut, read_unaligned, write_bytes}};
 use dxt_lossless_transform_common::{color_565::Color565, decoded_4x4_block::Decoded4x4Block};
 use likely_stable::unlikely;
 
@@ -393,7 +393,6 @@ pub unsafe fn normalize_split_blocks_in_place(
             // Check if the block is fully transparent
             if unlikely(pixel.a == 0) {
                 // Case 2: Fully transparent block, write all 0xFF.
-                // In this specific case, we 
                 write_bytes(curr_colors_ptr, 0xFF, 4);
                 write_bytes(curr_indices_ptr, 0xFF, 4);
             } else {
@@ -414,6 +413,7 @@ pub unsafe fn normalize_split_blocks_in_place(
                         ColorNormalizationMode::None => {
                             // For None mode, the operation is a no-op.
                             // Since this is a transform in place, we do nothing.
+                            unreachable_unchecked()
                         }
                         ColorNormalizationMode::Color0Only => {
                             // Write Color0 (the solid color)

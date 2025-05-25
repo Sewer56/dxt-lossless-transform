@@ -1,4 +1,5 @@
 use crate::color_8888::Color8888;
+use core::ptr::copy_nonoverlapping;
 use derive_enum_all_values::AllValues;
 use multiversion::multiversion;
 
@@ -897,7 +898,7 @@ impl Color565 {
             YCoCgVariant::None => {
                 // Just copy without transformation if len > 0
                 if num_items > 0 && src_ptr != dst_ptr {
-                    std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, num_items);
+                    copy_nonoverlapping(src_ptr, dst_ptr, num_items);
                 }
             }
         }
@@ -960,6 +961,8 @@ impl Color565 {
         num_items: usize,
         variant: YCoCgVariant,
     ) {
+        use core::ptr::copy_nonoverlapping;
+
         match variant {
             YCoCgVariant::Variant1 => {
                 Self::recorrelate_ycocg_r_var1_ptr(src_ptr, dst_ptr, num_items)
@@ -973,7 +976,7 @@ impl Color565 {
             YCoCgVariant::None => {
                 // Just copy without transformation if len > 0
                 if num_items > 0 && src_ptr != dst_ptr {
-                    std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, num_items);
+                    copy_nonoverlapping(src_ptr, dst_ptr, num_items);
                 }
             }
         }

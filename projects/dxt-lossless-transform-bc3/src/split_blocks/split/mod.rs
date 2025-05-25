@@ -66,15 +66,14 @@ unsafe fn split_blocks_with_separate_pointers_x86(
         // Runtime feature detection
         #[cfg(feature = "nightly")]
         if dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
-            // For now, fall back to portable until AVX512 separate pointers is implemented
             let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
-            u32_with_separate_endpoints(
+            avx512::avx512_vbmi_with_separate_pointers(
                 input_ptr,
-                alpha_byte_ptr,
-                alpha_bit_ptr,
-                color_ptr,
-                index_ptr,
-                alpha_byte_end_ptr,
+                alpha_byte_ptr as *mut u8,
+                alpha_bit_ptr as *mut u8,
+                color_ptr as *mut u8,
+                index_ptr as *mut u8,
+                len,
             );
             return;
         }
@@ -98,15 +97,14 @@ unsafe fn split_blocks_with_separate_pointers_x86(
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512vbmi") {
-            // For now, fall back to portable until AVX512 separate pointers is implemented
             let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
-            u32_with_separate_endpoints(
+            avx512::avx512_vbmi_with_separate_pointers(
                 input_ptr,
-                alpha_byte_ptr,
-                alpha_bit_ptr,
-                color_ptr,
-                index_ptr,
-                alpha_byte_end_ptr,
+                alpha_byte_ptr as *mut u8,
+                alpha_bit_ptr as *mut u8,
+                color_ptr as *mut u8,
+                index_ptr as *mut u8,
+                len,
             );
             return;
         }

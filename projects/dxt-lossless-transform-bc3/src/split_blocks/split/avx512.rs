@@ -14,6 +14,42 @@ use super::portable32::u32_with_separate_endpoints;
 #[allow(clippy::identity_op)]
 #[allow(clippy::erasing_op)]
 pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 16 == 0);
+
+    // Setup pointers for alpha components
+    let alpha_byte_out_ptr = output_ptr;
+    let alpha_bit_out_ptr = output_ptr.add(len / 16 * 2);
+    let color_out_ptr = output_ptr.add(len / 16 * 8);
+    let index_out_ptr = output_ptr.add(len / 16 * 12);
+
+    avx512_vbmi_with_separate_pointers(
+        input_ptr,
+        alpha_byte_out_ptr,
+        alpha_bit_out_ptr,
+        color_out_ptr,
+        index_out_ptr,
+        len,
+    );
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - alpha_byte_out_ptr, alpha_bit_out_ptr, color_out_ptr, and index_out_ptr must be valid for writes  
+/// - The distance between pointers must follow the layout expected based on DXT block size  
+/// - alpha_byte_end_ptr must be a valid pointer representing the end of the alpha byte section
+/// - len must be divisible by 16 (BC3 block size)
+#[target_feature(enable = "avx512vbmi")]
+#[allow(clippy::identity_op)]
+#[allow(clippy::erasing_op)]
+pub unsafe fn avx512_vbmi_with_separate_pointers(
+    input_ptr: *const u8,
+    mut alpha_byte_out_ptr: *mut u8,
+    mut alpha_bit_out_ptr: *mut u8,
+    mut color_out_ptr: *mut u8,
+    mut index_out_ptr: *mut u8,
+    len: usize,
+) {
     // Note: Leaving as intrinsics because the compiler generated form for ancient CPU
     // produces OK code.
     debug_assert!(len % 16 == 0);
@@ -25,14 +61,11 @@ pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
     aligned_len = aligned_len.saturating_sub(128);
     let remaining_len = len - aligned_len;
 
-    // Setup pointers for alpha components
-    let mut alpha_byte_out_ptr = output_ptr;
-    let mut alpha_bit_out_ptr = output_ptr.add(len / 16 * 2);
-    let mut color_out_ptr = output_ptr.add(len / 16 * 8);
-    let mut index_out_ptr = output_ptr.add(len / 16 * 12);
-
     let mut current_input_ptr = input_ptr;
     let input_aligned_end_ptr = input_ptr.add(aligned_len);
+
+    // Note(sewer): We need to pre-calculate this because `alpha_byte_out_ptr` will advance later on.
+    let alpha_byte_end_ptr = alpha_byte_out_ptr.add(len / 16 * 2);
 
     // Permute to lift out the alpha bytes from the read blocks.
     #[rustfmt::skip]
@@ -217,7 +250,6 @@ pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 
     // Process any remaining blocks (less than 8)
     if remaining_len > 0 {
-        let alpha_byte_end_ptr = output_ptr.add(len / 16 * 2);
         u32_with_separate_endpoints(
             current_input_ptr,              // Start of remaining input data
             alpha_byte_out_ptr as *mut u16, // Start of remaining alpha byte output

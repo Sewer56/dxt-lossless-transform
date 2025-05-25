@@ -12,10 +12,19 @@ const PERM_ALPHA_BYTES: [i8; 8] = [0, 2, 4, 6, 8, 10, 12, 14]; // For vpermt2q t
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
-/// - output_ptr must be valid for writes of len bytes
+/// - alphas_ptr must be valid for writes of len/2 bytes
+/// - colors_ptr must be valid for writes of len/4 bytes
+/// - indices_ptr must be valid for writes of len/4 bytes
+/// - len must be divisible by 16
 #[target_feature(enable = "avx512f")]
 #[allow(unused_assignments)]
-pub unsafe fn permute_512(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub unsafe fn permute_512_with_separate_pointers(
+    mut input_ptr: *const u8,
+    mut alphas_ptr: *mut u64,
+    mut colors_ptr: *mut u32,
+    mut indices_ptr: *mut u32,
+    len: usize,
+) {
     debug_assert!(len % 16 == 0);
 
     let mut aligned_len = len - (len % 128);
@@ -25,9 +34,6 @@ pub unsafe fn permute_512(mut input_ptr: *const u8, mut output_ptr: *mut u8, len
     // the limit. We need to guard against this. However, because the indices also represent 4 / 16
     // of the blocks, we need to multiply the amount we subtract by 4 to account for split buffers.
     aligned_len = aligned_len.saturating_sub(32 * 4);
-
-    let mut colors_ptr = output_ptr.add(len / 2);
-    let mut indices_ptr = colors_ptr.add(len / 4);
 
     if aligned_len > 0 {
         let mut aligned_end = input_ptr.add(aligned_len);
@@ -60,12 +66,12 @@ pub unsafe fn permute_512(mut input_ptr: *const u8, mut output_ptr: *mut u8, len
             "vpermt2d {zmm4}, {perm_indices}, {zmm5}", // Gather indices from zmm4 + zmm5
 
             // Store results
-            "vmovdqu64 [{alpha_ptr}], {zmm3}",
+            "vmovdqu64 [{alphas_ptr}], {zmm3}",
             "vmovdqu64 [{colors_ptr}], {zmm6}",
             "vmovdqu64 [{indices_ptr}], {zmm4}",
 
             // Update pointers
-            "add {alpha_ptr}, 64",
+            "add {alphas_ptr}, 64",
             "add {colors_ptr}, 32",
             "add {indices_ptr}, 32",
 
@@ -74,7 +80,7 @@ pub unsafe fn permute_512(mut input_ptr: *const u8, mut output_ptr: *mut u8, len
             "jb 2b",
 
             input_ptr = inout(reg) input_ptr,
-            alpha_ptr = inout(reg) output_ptr,
+            alphas_ptr = inout(reg) alphas_ptr,
             colors_ptr = inout(reg) colors_ptr,
             indices_ptr = inout(reg) indices_ptr,
             aligned_end = inout(reg) aligned_end,
@@ -92,14 +98,30 @@ pub unsafe fn permute_512(mut input_ptr: *const u8, mut output_ptr: *mut u8, len
     // Process any remaining elements
     let remaining = len - aligned_len;
     if remaining > 0 {
-        u32_with_separate_pointers(
-            input_ptr,
-            output_ptr as *mut u64,
-            colors_ptr as *mut u32,
-            indices_ptr as *mut u32,
-            remaining,
-        );
+        u32_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, remaining);
     }
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+#[target_feature(enable = "avx512f")]
+#[allow(unused_assignments)]
+pub unsafe fn permute_512(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 16 == 0);
+
+    let alphas_ptr = output_ptr as *mut u64;
+    let colors_ptr = output_ptr.add(len / 2);
+    let indices_ptr = colors_ptr.add(len / 4);
+
+    permute_512_with_separate_pointers(
+        input_ptr,
+        alphas_ptr,
+        colors_ptr as *mut u32,
+        indices_ptr as *mut u32,
+        len,
+    );
 }
 
 /// # Safety

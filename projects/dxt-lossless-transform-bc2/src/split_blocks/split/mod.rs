@@ -168,8 +168,13 @@ unsafe fn split_blocks_with_separate_pointers_x86(
         }
 
         if dxt_lossless_transform_common::cpu_detect::has_avx2() {
-            // TODO: avx2::shuffle_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len);
-            u32_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len);
+            avx2::shuffle_with_separate_pointers(
+                input_ptr,
+                alphas_ptr,
+                colors_ptr,
+                indices_ptr,
+                len,
+            );
             return;
         }
 
@@ -197,8 +202,13 @@ unsafe fn split_blocks_with_separate_pointers_x86(
         }
 
         if cfg!(target_feature = "avx2") {
-            // TODO: avx2::shuffle_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len);
-            u32_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len);
+            avx2::shuffle_with_separate_pointers(
+                input_ptr,
+                alphas_ptr,
+                colors_ptr,
+                indices_ptr,
+                len,
+            );
             return;
         }
 

@@ -13,16 +13,22 @@ const PERMUTE_MASK: [u32; 8] = [0, 4, 1, 5, 2, 6, 3, 7];
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
-/// - output_ptr must be valid for writes of len bytes
+/// - alphas_ptr must be valid for writes of len/2 bytes
+/// - colors_ptr must be valid for writes of len/4 bytes
+/// - indices_ptr must be valid for writes of len/4 bytes
+/// - len must be divisible by 16
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
-pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub unsafe fn shuffle_with_separate_pointers(
+    mut input_ptr: *const u8,
+    mut alphas_ptr: *mut u64,
+    mut colors_ptr: *mut u32,
+    mut indices_ptr: *mut u32,
+    len: usize,
+) {
     debug_assert!(len % 16 == 0);
 
     let aligned_len = len - (len % 128);
-
-    let mut colors_ptr = output_ptr.add(len / 2);
-    let mut indices_ptr = colors_ptr.add(len / 4);
 
     // Load the permute mask for 32-bit element reordering
     let permute_mask: __m256i = _mm256_loadu_si256(PERMUTE_MASK.as_ptr() as *const __m256i);
@@ -133,7 +139,7 @@ pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: us
             "jb 2b",
 
             input_ptr = inout(reg) input_ptr,
-            alpha_ptr = inout(reg) output_ptr,
+            alpha_ptr = inout(reg) alphas_ptr,
             colors_ptr = inout(reg) colors_ptr,
             indices_ptr = inout(reg) indices_ptr,
             aligned_end = inout(reg) aligned_end,
@@ -151,14 +157,22 @@ pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: us
     // Process any remaining elements after the aligned blocks
     let remaining = len - aligned_len;
     if remaining > 0 {
-        u32_with_separate_pointers(
-            input_ptr,
-            output_ptr as *mut u64,
-            colors_ptr as *mut u32,
-            indices_ptr as *mut u32,
-            remaining,
-        );
+        u32_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, remaining);
     }
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+#[target_feature(enable = "avx2")]
+#[allow(unused_assignments)]
+pub unsafe fn shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    let alphas_ptr = output_ptr as *mut u64;
+    let colors_ptr = output_ptr.add(len / 2) as *mut u32;
+    let indices_ptr = output_ptr.add(len / 2 + len / 4) as *mut u32;
+
+    shuffle_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len);
 }
 
 #[cfg(test)]

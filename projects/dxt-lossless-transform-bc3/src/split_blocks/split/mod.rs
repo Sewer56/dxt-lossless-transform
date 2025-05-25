@@ -61,12 +61,12 @@ unsafe fn split_blocks_with_separate_pointers_x86(
     index_ptr: *mut u32,
     len: usize,
 ) {
+    let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         // Runtime feature detection
         #[cfg(feature = "nightly")]
         if dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
-            let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
             avx512::avx512_vbmi_with_separate_pointers(
                 input_ptr,
                 alpha_byte_ptr as *mut u8,
@@ -79,7 +79,6 @@ unsafe fn split_blocks_with_separate_pointers_x86(
         }
 
         if dxt_lossless_transform_common::cpu_detect::has_avx2() {
-            let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
             avx2::u32_avx2_with_separate_pointers(
                 input_ptr,
                 alpha_byte_ptr,
@@ -96,7 +95,6 @@ unsafe fn split_blocks_with_separate_pointers_x86(
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512vbmi") {
-            let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
             avx512::avx512_vbmi_with_separate_pointers(
                 input_ptr,
                 alpha_byte_ptr as *mut u8,
@@ -109,7 +107,6 @@ unsafe fn split_blocks_with_separate_pointers_x86(
         }
 
         if cfg!(target_feature = "avx2") {
-            let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
             avx2::u32_avx2_with_separate_pointers(
                 input_ptr,
                 alpha_byte_ptr,
@@ -123,7 +120,6 @@ unsafe fn split_blocks_with_separate_pointers_x86(
     }
 
     // Fallback to portable implementation
-    let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
     u32_with_separate_endpoints(
         input_ptr,
         alpha_byte_ptr,

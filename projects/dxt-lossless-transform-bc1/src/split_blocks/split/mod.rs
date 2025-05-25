@@ -141,10 +141,7 @@ unsafe fn split_blocks_with_separate_pointers_x86(
     {
         #[cfg(feature = "nightly")]
         if dxt_lossless_transform_common::cpu_detect::has_avx512f() {
-            // Use the most optimized version available for separate pointers
-            // We'll use the existing portable implementation for now since
-            // the optimized versions need to be adapted for separate pointers
-            portable32::u32_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+            permute_512_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
             return;
         }
 
@@ -165,7 +162,7 @@ unsafe fn split_blocks_with_separate_pointers_x86(
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") {
-            portable32::u32_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+            permute_512_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
             return;
         }
 

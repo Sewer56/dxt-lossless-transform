@@ -35,9 +35,12 @@ pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
-/// - alpha_byte_out_ptr, alpha_bit_out_ptr, color_out_ptr, and index_out_ptr must be valid for writes  
-/// - The distance between pointers must follow the layout expected based on DXT block size  
-/// - alpha_byte_end_ptr must be a valid pointer representing the end of the alpha byte section
+/// - alpha_byte_out_ptr must be valid for writes of len/8 bytes (2 bytes per BC3 block)
+/// - alpha_bit_out_ptr must be valid for writes of len*3/8 bytes (6 bytes per BC3 block)
+/// - color_out_ptr must be valid for writes of len/4 bytes (4 bytes per BC3 block)
+/// - index_out_ptr must be valid for writes of len/4 bytes (4 bytes per BC3 block)
+/// - alpha_byte_end_ptr must equal alpha_byte_out_ptr + (len/16) when cast to u16 pointers
+/// - All output buffers must not overlap with each other or the input buffer
 /// - len must be divisible by 16 (BC3 block size)
 #[target_feature(enable = "avx512vbmi")]
 #[allow(clippy::identity_op)]

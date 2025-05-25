@@ -79,12 +79,11 @@ unsafe fn split_blocks_with_separate_pointers_x86(
         }
 
         if dxt_lossless_transform_common::cpu_detect::has_avx2() {
-            // For now, fall back to portable until AVX2 separate pointers is implemented
             let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
-            u32_with_separate_endpoints(
+            avx2::u32_avx2_with_separate_pointers(
                 input_ptr,
                 alpha_byte_ptr,
-                alpha_bit_ptr,
+                alpha_bit_ptr as *mut u8,
                 color_ptr,
                 index_ptr,
                 alpha_byte_end_ptr,
@@ -110,12 +109,11 @@ unsafe fn split_blocks_with_separate_pointers_x86(
         }
 
         if cfg!(target_feature = "avx2") {
-            // For now, fall back to portable until AVX2 separate pointers is implemented
             let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
-            u32_with_separate_endpoints(
+            avx2::u32_avx2_with_separate_pointers(
                 input_ptr,
                 alpha_byte_ptr,
-                alpha_bit_ptr,
+                alpha_bit_ptr as *mut u8,
                 color_ptr,
                 index_ptr,
                 alpha_byte_end_ptr,

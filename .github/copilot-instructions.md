@@ -1,4 +1,2 @@
-When asked to refactor code, retain my style of the code. Do not rename any variables. Do not change how loops are formed, unless asked.
-
-Do not reorder any of my lines of code, unless asked, especially if it's assembly code.
-Do not remove any of my comments, unless asked.
+When refactoring, please preserve my coding style: keep variable names and loop structures unchanged unless explicitly instructed otherwise.
+Please maintain the original code order (including assembly sections) and all comments intact, unless explicitly permitted to modify them.

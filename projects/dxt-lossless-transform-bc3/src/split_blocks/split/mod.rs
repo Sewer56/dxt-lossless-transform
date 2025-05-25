@@ -51,6 +51,93 @@ unsafe fn split_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize
     u32(input_ptr, output_ptr, len)
 }
 
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[inline(always)]
+unsafe fn split_blocks_with_separate_pointers_x86(
+    input_ptr: *const u8,
+    alpha_byte_ptr: *mut u16,
+    alpha_bit_ptr: *mut u16,
+    color_ptr: *mut u32,
+    index_ptr: *mut u32,
+    len: usize,
+) {
+    #[cfg(not(feature = "no-runtime-cpu-detection"))]
+    {
+        // Runtime feature detection
+        #[cfg(feature = "nightly")]
+        if dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
+            // For now, fall back to portable until AVX512 separate pointers is implemented
+            let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
+            u32_with_separate_endpoints(
+                input_ptr,
+                alpha_byte_ptr,
+                alpha_bit_ptr,
+                color_ptr,
+                index_ptr,
+                alpha_byte_end_ptr,
+            );
+            return;
+        }
+
+        if dxt_lossless_transform_common::cpu_detect::has_avx2() {
+            // For now, fall back to portable until AVX2 separate pointers is implemented
+            let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
+            u32_with_separate_endpoints(
+                input_ptr,
+                alpha_byte_ptr,
+                alpha_bit_ptr,
+                color_ptr,
+                index_ptr,
+                alpha_byte_end_ptr,
+            );
+            return;
+        }
+    }
+
+    #[cfg(feature = "no-runtime-cpu-detection")]
+    {
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512vbmi") {
+            // For now, fall back to portable until AVX512 separate pointers is implemented
+            let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
+            u32_with_separate_endpoints(
+                input_ptr,
+                alpha_byte_ptr,
+                alpha_bit_ptr,
+                color_ptr,
+                index_ptr,
+                alpha_byte_end_ptr,
+            );
+            return;
+        }
+
+        if cfg!(target_feature = "avx2") {
+            // For now, fall back to portable until AVX2 separate pointers is implemented
+            let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
+            u32_with_separate_endpoints(
+                input_ptr,
+                alpha_byte_ptr,
+                alpha_bit_ptr,
+                color_ptr,
+                index_ptr,
+                alpha_byte_end_ptr,
+            );
+            return;
+        }
+    }
+
+    // Fallback to portable implementation
+    let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
+    u32_with_separate_endpoints(
+        input_ptr,
+        alpha_byte_ptr,
+        alpha_bit_ptr,
+        color_ptr,
+        index_ptr,
+        alpha_byte_end_ptr,
+    )
+}
+
 /// Transform bc3 data from standard interleaved format to separated color/index format
 /// using the best known implementation for the current CPU.
 ///
@@ -72,6 +159,65 @@ pub unsafe fn split_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
         u32(input_ptr, output_ptr, len)
+    }
+}
+
+/// Transform BC3 data from standard interleaved format to separated component format
+/// using separate pointers for each component section.
+///
+/// # Arguments
+///
+/// * `input_ptr` - Pointer to the input buffer containing interleaved BC3 block data
+/// * `alpha_byte_ptr` - Pointer to the output buffer for alpha endpoint data (2 bytes per block)
+/// * `alpha_bit_ptr` - Pointer to the output buffer for alpha index data (6 bytes per block)  
+/// * `color_ptr` - Pointer to the output buffer for color endpoint data (4 bytes per block)
+/// * `index_ptr` - Pointer to the output buffer for color index data (4 bytes per block)
+/// * `len` - The length of the input buffer in bytes
+///
+/// # Safety
+///
+/// - `input_ptr` must be valid for reads of `len` bytes
+/// - `alpha_byte_ptr` must be valid for writes of `len * 2 / 16` bytes
+/// - `alpha_bit_ptr` must be valid for writes of `len * 6 / 16` bytes
+/// - `color_ptr` must be valid for writes of `len * 4 / 16` bytes
+/// - `index_ptr` must be valid for writes of `len * 4 / 16` bytes
+/// - `len` must be divisible by 16 (BC3 block size)
+/// - It is recommended that all pointers are at least 16-byte aligned (recommended 32-byte align)
+/// - The component buffers must not overlap with each other or the input buffer
+#[inline]
+pub unsafe fn split_blocks_with_separate_pointers(
+    input_ptr: *const u8,
+    alpha_byte_ptr: *mut u16,
+    alpha_bit_ptr: *mut u16,
+    color_ptr: *mut u32,
+    index_ptr: *mut u32,
+    len: usize,
+) {
+    debug_assert!(len % 16 == 0);
+
+    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+    {
+        split_blocks_with_separate_pointers_x86(
+            input_ptr,
+            alpha_byte_ptr,
+            alpha_bit_ptr,
+            color_ptr,
+            index_ptr,
+            len,
+        )
+    }
+
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
+    {
+        let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
+        u32_with_separate_endpoints(
+            input_ptr,
+            alpha_byte_ptr,
+            alpha_bit_ptr,
+            color_ptr,
+            index_ptr,
+            alpha_byte_end_ptr,
+        )
     }
 }
 
@@ -224,5 +370,64 @@ pub mod tests {
                 0xC8, 0xC9, 0xCA, 0xCB, // block 3
             ]
         );
+    }
+
+    #[test]
+    fn split_blocks_with_separate_pointers_matches_split_blocks() {
+        for num_blocks in 1..=256 {
+            let input = generate_bc3_test_data(num_blocks);
+            let len = input.len();
+
+            // Test with the contiguous buffer method
+            let mut output_contiguous = allocate_align_64(len);
+
+            // Test with separate pointers
+            let mut alpha_bytes = allocate_align_64(len / 8); // 2 bytes per block
+            let mut alpha_bits = allocate_align_64(len * 3 / 8); // 6 bytes per block
+            let mut colors = allocate_align_64(len / 4); // 4 bytes per block
+            let mut indices = allocate_align_64(len / 4); // 4 bytes per block
+
+            unsafe {
+                // Reference: contiguous buffer
+                super::split_blocks(input.as_ptr(), output_contiguous.as_mut_ptr(), len);
+
+                // Test: separate pointers
+                super::split_blocks_with_separate_pointers(
+                    input.as_ptr(),
+                    alpha_bytes.as_mut_ptr() as *mut u16,
+                    alpha_bits.as_mut_ptr() as *mut u16,
+                    colors.as_mut_ptr() as *mut u32,
+                    indices.as_mut_ptr() as *mut u32,
+                    len,
+                );
+            }
+
+            // Verify that separate pointer results match contiguous buffer layout
+            let expected_alpha_bytes = &output_contiguous.as_slice()[0..len / 8];
+            let expected_alpha_bits = &output_contiguous.as_slice()[len / 8..len / 2];
+            let expected_colors = &output_contiguous.as_slice()[len / 2..len * 3 / 4];
+            let expected_indices = &output_contiguous.as_slice()[len * 3 / 4..];
+
+            assert_eq!(
+                alpha_bytes.as_slice(),
+                expected_alpha_bytes,
+                "Alpha bytes section mismatch for {num_blocks} blocks"
+            );
+            assert_eq!(
+                alpha_bits.as_slice(),
+                expected_alpha_bits,
+                "Alpha bits section mismatch for {num_blocks} blocks"
+            );
+            assert_eq!(
+                colors.as_slice(),
+                expected_colors,
+                "Color section mismatch for {num_blocks} blocks"
+            );
+            assert_eq!(
+                indices.as_slice(),
+                expected_indices,
+                "Index section mismatch for {num_blocks} blocks"
+            );
+        }
     }
 }

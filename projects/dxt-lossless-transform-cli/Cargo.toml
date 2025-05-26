@@ -10,7 +10,7 @@ debug-bc7 = ["debug"]
 # Debugging BC1 behaviour
 debug-bc1 = ["debug"]
 # Common debugging utilities
-debug = []
+debug = ["zstd-sys", "derive_more", "derive-new", "thiserror-no-std"]
 
 nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/nightly", 
            "safe-allocator-api/nightly"]
@@ -23,3 +23,9 @@ dxt-lossless-transform-api = { path = "../dxt-lossless-transform-api" }
 dxt-lossless-transform-bc1 = { path = "../dxt-lossless-transform-bc1" }
 dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }
 safe-allocator-api = { version = "0.4.0" }
+
+# Debug only
+zstd-sys = { optional = true, version = "2.0.15", features = ["experimental"] } # 1.5.7
+derive_more = { optional = true, version = "2.0.1", features = ["deref", "deref_mut"] }
+derive-new = { optional = true, version = "0.7.0" }
+thiserror-no-std = { optional = true, version = "2.0.2" }

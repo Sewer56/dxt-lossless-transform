@@ -3,6 +3,8 @@ use core::ops::Sub;
 use dxt_lossless_transform_api::*;
 use std::fs;
 
+pub mod zstd;
+
 /// Extracts BC1-BC7 blocks from a DDS file in memory.
 /// Raw block data from found DDS files is passed to the `test_fn` parameter for processing.
 ///

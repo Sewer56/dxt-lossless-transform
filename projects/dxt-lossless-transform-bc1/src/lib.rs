@@ -215,18 +215,22 @@ pub unsafe fn untransform_bc1(
     let has_split_colours = transform_options.split_colour_endpoints;
 
     if has_split_colours {
-        // Unsplit the colours first, placing them into the work area.
-
-        // Recorrelate colours into work area.
-        Color565::recorrelate_ycocg_r_ptr(
-            input_ptr as *const Color565,
+        // Recorrelate colours into work area, doing the unsplit in the same process.
+        Color565::recorrelate_ycocg_r_ptr_split(
             work_ptr as *mut Color565,
+            work_ptr.add(len / 4) as *mut Color565,
+            output_ptr as *mut Color565,
             (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
             transform_options.decorrelation_mode,
         );
 
         // Now unsplit the colours, placing them into the final buffer
-        // unsplit_block_with_separate_pointers(colors_ptr, indices_ptr, output_ptr, len);
+        unsplit_block_with_separate_pointers(
+            work_ptr as *const u32,
+            input_ptr.add(len / 2) as *const u32,
+            output_ptr,
+            len,
+        );
     } else {
         // Recorrelate colours into work area.
         Color565::recorrelate_ycocg_r_ptr(

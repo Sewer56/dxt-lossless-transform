@@ -1524,6 +1524,126 @@ impl Color565 {
             Self::recorrelate_ycocg_r_ptr(src.as_ptr(), dst.as_mut_ptr(), src.len(), variant);
         }
     }
+
+    /// Raw pointer implementation for applying the specified recorrelation variant to a block of
+    /// colors with split inputs.
+    ///
+    /// Takes two separate input raw pointers, applies the transformation to colors from both sources,
+    /// and interleaves the results into a single output array.
+    ///
+    /// # Parameters
+    ///
+    /// - `src_ptr_0`: Pointer to the first source array of [`Color565`] items to transform
+    /// - `src_ptr_1`: Pointer to the second source array of [`Color565`] items to transform
+    /// - `dst_ptr`: Pointer to the destination array where interleaved transformed items will be stored
+    /// - `num_items`: Total number of [`Color565`] items to write to destination (must be even)
+    /// - `variant`: The [`YCoCgVariant`] to use for the transformation
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because it takes raw pointers and doesn't check bounds.
+    /// Caller must ensure that:
+    /// - All pointers are properly aligned and valid for their respective operations
+    /// - `src_ptr_0` and `src_ptr_1` point to arrays with at least `num_items / 2` elements each
+    /// - `dst_ptr` points to an array with at least `num_items` elements
+    /// - The memory regions don't overlap
+    /// - All source pointers point to initialized data
+    /// - `num_items` is even (function processes pairs of elements)
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub unsafe fn recorrelate_ycocg_r_ptr_split(
+        src_ptr_0: *const Self,
+        src_ptr_1: *const Self,
+        dst_ptr: *mut Self,
+        num_items: usize,
+        variant: YCoCgVariant,
+    ) {
+        match variant {
+            YCoCgVariant::Variant1 => {
+                Self::recorrelate_ycocg_r_var1_ptr_split(src_ptr_0, src_ptr_1, dst_ptr, num_items)
+            }
+            YCoCgVariant::Variant2 => {
+                Self::recorrelate_ycocg_r_var2_ptr_split(src_ptr_0, src_ptr_1, dst_ptr, num_items)
+            }
+            YCoCgVariant::Variant3 => {
+                Self::recorrelate_ycocg_r_var3_ptr_split(src_ptr_0, src_ptr_1, dst_ptr, num_items)
+            }
+            YCoCgVariant::None => {
+                // For None variant, we just interleave without transformation
+                if num_items > 0 {
+                    debug_assert!(
+                        num_items % 2 == 0,
+                        "num_items must be even for split operations"
+                    );
+
+                    for x in 0..num_items / 2 {
+                        let color_0 = *src_ptr_0.add(x);
+                        let color_1 = *src_ptr_1.add(x);
+                        *dst_ptr.add(x * 2) = color_0;
+                        *dst_ptr.add((x * 2) + 1) = color_1;
+                    }
+                }
+            }
+        }
+    }
+
+    /// Applies the specified recorrelation variant to two slices of colors and interleaves the results
+    ///
+    /// Takes two separate input slices, applies the transformation to colors from both sources,
+    /// and interleaves the results into a single output slice.
+    ///
+    /// # Parameters
+    ///
+    /// - `src_0`: The first input slice of colors to transform
+    /// - `src_1`: The second input slice of colors to transform
+    /// - `dst`: The output slice where interleaved transformed colors will be stored
+    /// - `variant`: The [`YCoCgVariant`] to use
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
+    ///
+    /// let decorrelated_0 = [Color565::from_rgb(255, 0, 0), Color565::from_rgb(0, 255, 0)];
+    /// let decorrelated_1 = [Color565::from_rgb(0, 0, 255), Color565::from_rgb(255, 255, 0)];
+    /// // First transform them to YCoCg-R (separately)
+    /// let mut transformed_0 = [Color565::from_raw(0); 2];
+    /// let mut transformed_1 = [Color565::from_raw(0); 2];
+    /// Color565::decorrelate_ycocg_r_slice(&decorrelated_0, &mut transformed_0, YCoCgVariant::Variant1);
+    /// Color565::decorrelate_ycocg_r_slice(&decorrelated_1, &mut transformed_1, YCoCgVariant::Variant1);
+    ///
+    /// // Then transform back to RGB and interleave results
+    /// let mut recorrelated = [Color565::from_raw(0); 4]; // Need room for both input slices
+    /// Color565::recorrelate_ycocg_r_slice_split(&transformed_0, &transformed_1, &mut recorrelated, YCoCgVariant::Variant1);
+    /// ```
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub fn recorrelate_ycocg_r_slice_split(
+        src_0: &[Self],
+        src_1: &[Self],
+        dst: &mut [Self],
+        variant: YCoCgVariant,
+    ) {
+        debug_assert!(
+            src_0.len() == src_1.len(),
+            "Source slices must have the same length"
+        );
+        debug_assert!(
+            dst.len() >= src_0.len() * 2,
+            "Destination slice must be at least twice as large as each source slice"
+        );
+
+        // Call the raw pointer implementation
+        unsafe {
+            Self::recorrelate_ycocg_r_ptr_split(
+                src_0.as_ptr(),
+                src_1.as_ptr(),
+                dst.as_mut_ptr(),
+                src_0.len() * 2,
+                variant,
+            );
+        }
+    }
 }
 
 /// Represents a function variant for decoration/recorrelation operations

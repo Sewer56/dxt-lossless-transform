@@ -487,7 +487,7 @@ impl Color565 {
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn decorrelate_ycocg_r_var1_slice(src: &[Self], dst: &mut [Self]) {
-        assert!(
+        debug_assert!(
             dst.len() >= src.len(),
             "Destination slice must be at least as large as source slice"
         );
@@ -675,7 +675,7 @@ impl Color565 {
             src_1.len(),
             "Both source slices must have the same length"
         );
-        assert!(
+        debug_assert!(
             dst.len() >= src_0.len() + src_1.len(),
             "Destination slice must be at least as large as the combined source slices"
         );
@@ -700,7 +700,7 @@ impl Color565 {
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_var1_slice(src: &[Self], dst: &mut [Self]) {
-        assert!(
+        debug_assert!(
             dst.len() >= src.len(),
             "Destination slice must be at least as large as source slice"
         );
@@ -781,7 +781,7 @@ impl Color565 {
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn decorrelate_ycocg_r_var2_slice(src: &[Self], dst: &mut [Self]) {
-        assert!(
+        debug_assert!(
             dst.len() >= src.len(),
             "Destination slice must be at least as large as source slice"
         );
@@ -862,7 +862,7 @@ impl Color565 {
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_var2_slice(src: &[Self], dst: &mut [Self]) {
-        assert!(
+        debug_assert!(
             dst.len() >= src.len(),
             "Destination slice must be at least as large as source slice"
         );
@@ -943,7 +943,7 @@ impl Color565 {
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn decorrelate_ycocg_r_var3_slice(src: &[Self], dst: &mut [Self]) {
-        assert!(
+        debug_assert!(
             dst.len() >= src.len(),
             "Destination slice must be at least as large as source slice"
         );
@@ -1024,7 +1024,7 @@ impl Color565 {
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_var3_slice(src: &[Self], dst: &mut [Self]) {
-        assert!(
+        debug_assert!(
             dst.len() >= src.len(),
             "Destination slice must be at least as large as source slice"
         );
@@ -1154,7 +1154,7 @@ impl Color565 {
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn decorrelate_ycocg_r_slice(src: &[Self], dst: &mut [Self], variant: YCoCgVariant) {
-        assert!(
+        debug_assert!(
             dst.len() >= src.len(),
             "Destination slice must be at least as large as source slice"
         );
@@ -1235,7 +1235,7 @@ impl Color565 {
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_slice(src: &[Self], dst: &mut [Self], variant: YCoCgVariant) {
-        assert!(
+        debug_assert!(
             dst.len() >= src.len(),
             "Destination slice must be at least as large as source slice"
         );

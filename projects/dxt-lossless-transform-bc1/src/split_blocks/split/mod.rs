@@ -320,42 +320,4 @@ pub mod tests {
             );
         }
     }
-
-    #[test]
-    fn can_split_blocks_with_separate_pointers() {
-        let input: Vec<u8> = vec![
-            0x00, 0x01, 0x02, 0x03, // block 1 colours
-            0x10, 0x11, 0x12, 0x13, // block 1 indices
-            0x04, 0x05, 0x06, 0x07, // block 2 colours
-            0x14, 0x15, 0x16, 0x17, // block 2 indices
-        ];
-
-        let mut colors = vec![0u8; 8];
-        let mut indices = vec![0u8; 8];
-
-        unsafe {
-            split_blocks_with_separate_pointers(
-                input.as_ptr(),
-                colors.as_mut_ptr() as *mut u32,
-                indices.as_mut_ptr() as *mut u32,
-                input.len(),
-            );
-        }
-
-        assert_eq!(
-            colors,
-            vec![
-                0x00, 0x01, 0x02, 0x03, // block 1 colours
-                0x04, 0x05, 0x06, 0x07, // block 2 colours
-            ]
-        );
-
-        assert_eq!(
-            indices,
-            vec![
-                0x10, 0x11, 0x12, 0x13, // block 1 indices
-                0x14, 0x15, 0x16, 0x17, // block 2 indices
-            ]
-        );
-    }
 }

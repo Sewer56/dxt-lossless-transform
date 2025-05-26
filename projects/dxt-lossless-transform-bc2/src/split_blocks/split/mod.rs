@@ -384,54 +384,6 @@ pub mod tests {
     }
 
     #[test]
-    fn can_split_blocks_with_separate_pointers() {
-        let input: Vec<u8> = vec![
-            0x00, 0x01, 0x02, 0x03, // block 1 alpha
-            0x04, 0x05, 0x06, 0x07, // block 1 alpha
-            0x80, 0x81, 0x82, 0x83, // block 1 colours
-            0xC0, 0xC1, 0xC2, 0xC3, // block 1 indices
-            // block 2
-            0x08, 0x09, 0x0A, 0x0B, // block 2 alpha
-            0x0C, 0x0D, 0x0E, 0x0F, // block 2 alpha
-            0x84, 0x85, 0x86, 0x87, // block 2 colours
-            0xC4, 0xC5, 0xC6, 0xC7, // block 2 indices
-        ];
-
-        // Allocate separate buffers
-        let mut alphas = vec![0u64; 2]; // 2 blocks * 8 bytes per block = 16 bytes total
-        let mut colors = vec![0u32; 2]; // 2 blocks * 4 bytes per block = 8 bytes total
-        let mut indices = vec![0u32; 2]; // 2 blocks * 4 bytes per block = 8 bytes total
-
-        unsafe {
-            split_blocks_with_separate_pointers(
-                input.as_ptr(),
-                alphas.as_mut_ptr(),
-                colors.as_mut_ptr(),
-                indices.as_mut_ptr(),
-                input.len(),
-            );
-        }
-
-        // Verify alphas (8 bytes per block, read as u64)
-        assert_eq!(
-            alphas[0],
-            u64::from_le_bytes([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07])
-        );
-        assert_eq!(
-            alphas[1],
-            u64::from_le_bytes([0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F])
-        );
-
-        // Verify colors (4 bytes per block, read as u32)
-        assert_eq!(colors[0], u32::from_le_bytes([0x80, 0x81, 0x82, 0x83]));
-        assert_eq!(colors[1], u32::from_le_bytes([0x84, 0x85, 0x86, 0x87]));
-
-        // Verify indices (4 bytes per block, read as u32)
-        assert_eq!(indices[0], u32::from_le_bytes([0xC0, 0xC1, 0xC2, 0xC3]));
-        assert_eq!(indices[1], u32::from_le_bytes([0xC4, 0xC5, 0xC6, 0xC7]));
-    }
-
-    #[test]
     fn split_blocks_with_separate_pointers_matches_split_blocks() {
         for num_blocks in 1..=256 {
             let input = generate_bc2_test_data(num_blocks);

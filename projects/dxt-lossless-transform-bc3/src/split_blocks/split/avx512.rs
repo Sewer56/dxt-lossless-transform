@@ -14,6 +14,45 @@ use super::portable32::u32_with_separate_endpoints;
 #[allow(clippy::identity_op)]
 #[allow(clippy::erasing_op)]
 pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 16 == 0);
+
+    // Setup pointers for alpha components
+    let alpha_byte_out_ptr = output_ptr;
+    let alpha_bit_out_ptr = output_ptr.add(len / 16 * 2);
+    let color_out_ptr = output_ptr.add(len / 16 * 8);
+    let index_out_ptr = output_ptr.add(len / 16 * 12);
+
+    avx512_vbmi_with_separate_pointers(
+        input_ptr,
+        alpha_byte_out_ptr,
+        alpha_bit_out_ptr,
+        color_out_ptr,
+        index_out_ptr,
+        len,
+    );
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - alpha_byte_out_ptr must be valid for writes of len/8 bytes (2 bytes per BC3 block)
+/// - alpha_bit_out_ptr must be valid for writes of len*3/8 bytes (6 bytes per BC3 block)
+/// - color_out_ptr must be valid for writes of len/4 bytes (4 bytes per BC3 block)
+/// - index_out_ptr must be valid for writes of len/4 bytes (4 bytes per BC3 block)
+/// - alpha_byte_end_ptr must equal alpha_byte_out_ptr + (len/16) when cast to u16 pointers
+/// - All output buffers must not overlap with each other or the input buffer
+/// - len must be divisible by 16 (BC3 block size)
+#[target_feature(enable = "avx512vbmi")]
+#[allow(clippy::identity_op)]
+#[allow(clippy::erasing_op)]
+pub unsafe fn avx512_vbmi_with_separate_pointers(
+    input_ptr: *const u8,
+    mut alpha_byte_out_ptr: *mut u8,
+    mut alpha_bit_out_ptr: *mut u8,
+    mut color_out_ptr: *mut u8,
+    mut index_out_ptr: *mut u8,
+    len: usize,
+) {
     // Note: Leaving as intrinsics because the compiler generated form for ancient CPU
     // produces OK code.
     debug_assert!(len % 16 == 0);
@@ -25,14 +64,11 @@ pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
     aligned_len = aligned_len.saturating_sub(128);
     let remaining_len = len - aligned_len;
 
-    // Setup pointers for alpha components
-    let mut alpha_byte_out_ptr = output_ptr;
-    let mut alpha_bit_out_ptr = output_ptr.add(len / 16 * 2);
-    let mut color_out_ptr = output_ptr.add(len / 16 * 8);
-    let mut index_out_ptr = output_ptr.add(len / 16 * 12);
-
     let mut current_input_ptr = input_ptr;
     let input_aligned_end_ptr = input_ptr.add(aligned_len);
+
+    // Note(sewer): We need to pre-calculate this because `alpha_byte_out_ptr` will advance later on.
+    let alpha_byte_end_ptr = alpha_byte_out_ptr.add(len / 16 * 2);
 
     // Permute to lift out the alpha bytes from the read blocks.
     #[rustfmt::skip]
@@ -217,7 +253,6 @@ pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 
     // Process any remaining blocks (less than 8)
     if remaining_len > 0 {
-        let alpha_byte_end_ptr = output_ptr.add(len / 16 * 2);
         u32_with_separate_endpoints(
             current_input_ptr,              // Start of remaining input data
             alpha_byte_out_ptr as *mut u16, // Start of remaining alpha byte output
@@ -287,6 +322,69 @@ mod tests {
                 &output_test[1..],
                 "avx512",
                 num_blocks,
+            );
+        }
+    }
+
+    #[rstest]
+    fn avx512_vbmi_with_separate_pointers_matches_avx512_vbmi() {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
+            return;
+        }
+
+        for num_blocks in 1..=256 {
+            let input = generate_bc3_test_data(num_blocks);
+            let len = input.len();
+
+            // Test with the contiguous buffer method
+            let mut output_contiguous = allocate_align_64(len);
+
+            // Test with separate pointers
+            let mut alpha_bytes = allocate_align_64(len / 8); // 2 bytes per block
+            let mut alpha_bits = allocate_align_64(len * 3 / 8); // 6 bytes per block
+            let mut colors = allocate_align_64(len / 4); // 4 bytes per block
+            let mut indices = allocate_align_64(len / 4); // 4 bytes per block
+
+            unsafe {
+                // Reference: contiguous buffer using AVX512
+                avx512_vbmi(input.as_ptr(), output_contiguous.as_mut_ptr(), len);
+
+                // Test: separate pointers using AVX512
+                avx512_vbmi_with_separate_pointers(
+                    input.as_ptr(),
+                    alpha_bytes.as_mut_ptr(),
+                    alpha_bits.as_mut_ptr(),
+                    colors.as_mut_ptr(),
+                    indices.as_mut_ptr(),
+                    len,
+                );
+            }
+
+            // Verify that separate pointer results match contiguous buffer layout
+            let expected_alpha_bytes = &output_contiguous.as_slice()[0..len / 8];
+            let expected_alpha_bits = &output_contiguous.as_slice()[len / 8..len / 2];
+            let expected_colors = &output_contiguous.as_slice()[len / 2..len * 3 / 4];
+            let expected_indices = &output_contiguous.as_slice()[len * 3 / 4..];
+
+            assert_eq!(
+                alpha_bytes.as_slice(),
+                expected_alpha_bytes,
+                "AVX512 Alpha bytes section mismatch for {num_blocks} blocks"
+            );
+            assert_eq!(
+                alpha_bits.as_slice(),
+                expected_alpha_bits,
+                "AVX512 Alpha bits section mismatch for {num_blocks} blocks"
+            );
+            assert_eq!(
+                colors.as_slice(),
+                expected_colors,
+                "AVX512 Color section mismatch for {num_blocks} blocks"
+            );
+            assert_eq!(
+                indices.as_slice(),
+                expected_indices,
+                "AVX512 Index section mismatch for {num_blocks} blocks"
             );
         }
     }

@@ -13,16 +13,22 @@ const PERMUTE_MASK: [u32; 8] = [0, 4, 1, 5, 2, 6, 3, 7];
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
-/// - output_ptr must be valid for writes of len bytes
+/// - alphas_ptr must be valid for writes of len/2 bytes
+/// - colors_ptr must be valid for writes of len/4 bytes
+/// - indices_ptr must be valid for writes of len/4 bytes
+/// - len must be divisible by 16
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
-pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub unsafe fn shuffle_with_separate_pointers(
+    mut input_ptr: *const u8,
+    mut alphas_ptr: *mut u64,
+    mut colors_ptr: *mut u32,
+    mut indices_ptr: *mut u32,
+    len: usize,
+) {
     debug_assert!(len % 16 == 0);
 
     let aligned_len = len - (len % 128);
-
-    let mut colors_ptr = output_ptr.add(len / 2);
-    let mut indices_ptr = colors_ptr.add(len / 4);
 
     // Load the permute mask for 32-bit element reordering
     let permute_mask: __m256i = _mm256_loadu_si256(PERMUTE_MASK.as_ptr() as *const __m256i);
@@ -133,7 +139,7 @@ pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: us
             "jb 2b",
 
             input_ptr = inout(reg) input_ptr,
-            alpha_ptr = inout(reg) output_ptr,
+            alpha_ptr = inout(reg) alphas_ptr,
             colors_ptr = inout(reg) colors_ptr,
             indices_ptr = inout(reg) indices_ptr,
             aligned_end = inout(reg) aligned_end,
@@ -151,14 +157,22 @@ pub unsafe fn shuffle(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: us
     // Process any remaining elements after the aligned blocks
     let remaining = len - aligned_len;
     if remaining > 0 {
-        u32_with_separate_pointers(
-            input_ptr,
-            output_ptr as *mut u64,
-            colors_ptr as *mut u32,
-            indices_ptr as *mut u32,
-            remaining,
-        );
+        u32_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, remaining);
     }
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+#[target_feature(enable = "avx2")]
+#[allow(unused_assignments)]
+pub unsafe fn shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    let alphas_ptr = output_ptr as *mut u64;
+    let colors_ptr = output_ptr.add(len / 2) as *mut u32;
+    let indices_ptr = output_ptr.add(len / 2 + len / 4) as *mut u32;
+
+    shuffle_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len);
 }
 
 #[cfg(test)]
@@ -248,6 +262,62 @@ mod tests {
                 &output_test[1..],
                 &format!("{impl_name} (unaligned)"),
                 num_blocks,
+            );
+        }
+    }
+
+    #[test]
+    fn avx2_shuffle_with_separate_pointers_matches_shuffle() {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx2() {
+            return;
+        }
+
+        for num_blocks in 1..=512 {
+            let input = generate_bc2_test_data(num_blocks);
+            let len = input.len();
+
+            // Allocate aligned memory for outputs
+            let mut output_contiguous = allocate_align_64(len).unwrap();
+            let mut alphas = allocate_align_64(len / 2).unwrap();
+            let mut colors = allocate_align_64(len / 4).unwrap();
+            let mut indices = allocate_align_64(len / 4).unwrap();
+
+            // Test with contiguous output using shuffle()
+            unsafe {
+                shuffle(input.as_ptr(), output_contiguous.as_mut_ptr(), len);
+            }
+
+            // Test with separate pointers using shuffle_with_separate_pointers()
+            unsafe {
+                shuffle_with_separate_pointers(
+                    input.as_ptr(),
+                    alphas.as_mut_ptr() as *mut u64,
+                    colors.as_mut_ptr() as *mut u32,
+                    indices.as_mut_ptr() as *mut u32,
+                    len,
+                );
+            }
+
+            // Compare the results - the separate pointer outputs should match the corresponding sections
+            // of the contiguous output
+            let expected_alphas = &output_contiguous.as_slice()[0..len / 2];
+            let expected_colors = &output_contiguous.as_slice()[len / 2..len / 2 + len / 4];
+            let expected_indices = &output_contiguous.as_slice()[len / 2 + len / 4..];
+
+            assert_eq!(
+                alphas.as_slice(),
+                expected_alphas,
+                "Alpha sections don't match for {num_blocks} blocks"
+            );
+            assert_eq!(
+                colors.as_slice(),
+                expected_colors,
+                "Color sections don't match for {num_blocks} blocks"
+            );
+            assert_eq!(
+                indices.as_slice(),
+                expected_indices,
+                "Index sections don't match for {num_blocks} blocks"
             );
         }
     }

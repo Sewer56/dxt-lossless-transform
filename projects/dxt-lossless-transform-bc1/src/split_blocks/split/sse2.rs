@@ -223,12 +223,34 @@ pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8,
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub unsafe fn shufps_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    let colors_ptr = output_ptr;
+    let indices_ptr = output_ptr.add(len / 2);
+    shufps_unroll_4_with_separate_pointers(
+        input_ptr,
+        colors_ptr as *mut u32,
+        indices_ptr as *mut u32,
+        len,
+    );
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - colors_ptr must be valid for writes of len/2 bytes
+/// - indices_ptr must be valid for writes of len/2 bytes
+#[allow(unused_assignments)]
+#[target_feature(enable = "sse2")]
+pub unsafe fn shufps_unroll_4_with_separate_pointers(
+    mut input_ptr: *const u8,
+    mut colors_ptr: *mut u32,
+    mut indices_ptr: *mut u32,
+    len: usize,
+) {
     debug_assert!(len % 8 == 0);
     // Process as many 64-byte blocks as possible
     let aligned_len = len - (len % 64);
 
-    let mut indices_ptr = output_ptr.add(len / 2);
     let mut aligned_end = input_ptr.add(aligned_len);
     if aligned_len > 0 {
         unsafe {
@@ -266,7 +288,7 @@ pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8,
                 "jb 2b",
 
                 src_ptr = inout(reg) input_ptr,
-                colors_ptr = inout(reg) output_ptr,
+                colors_ptr = inout(reg) colors_ptr,
                 indices_ptr = inout(reg) indices_ptr,
                 end = inout(reg) aligned_end,
                 xmm0 = out(xmm_reg) _,
@@ -283,12 +305,7 @@ pub unsafe fn shufps_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8,
     // Process any remaining elements after the aligned blocks
     let remaining = len - aligned_len;
     if remaining > 0 {
-        u32_with_separate_pointers(
-            input_ptr,
-            output_ptr as *mut u32,
-            indices_ptr as *mut u32,
-            remaining,
-        );
+        u32_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, remaining);
     }
 }
 
@@ -379,6 +396,44 @@ mod tests {
                 &output_test[1..],
                 &format!("{impl_name} (unaligned)"),
                 num_blocks,
+            );
+        }
+    }
+
+    #[test]
+    fn sse2_shufps_unroll_4_split_blocks_with_separate_pointers_matches_split_blocks() {
+        for num_blocks in 1..=512 {
+            let input = generate_bc1_test_data(num_blocks);
+            let len = input.len();
+            let mut output_ref = allocate_align_64(len).unwrap();
+            let mut colors_sep = allocate_align_64(len / 2).unwrap();
+            let mut indices_sep = allocate_align_64(len / 2).unwrap();
+
+            unsafe {
+                // Reference: SSE2 contiguous output
+                shufps_unroll_4(input.as_ptr(), output_ref.as_mut_ptr(), len);
+
+                // Test: SSE2 separate pointers variant
+                shufps_unroll_4_with_separate_pointers(
+                    input.as_ptr(),
+                    colors_sep.as_mut_ptr() as *mut u32,
+                    indices_sep.as_mut_ptr() as *mut u32,
+                    len,
+                );
+            }
+
+            // Compare colors section (first half)
+            assert_eq!(
+                &output_ref.as_slice()[0..len / 2],
+                colors_sep.as_slice(),
+                "SSE2 shufps_unroll_4 colors section doesn't match for {num_blocks} blocks"
+            );
+
+            // Compare indices section (second half)
+            assert_eq!(
+                &output_ref.as_slice()[len / 2..],
+                indices_sep.as_slice(),
+                "SSE2 shufps_unroll_4 indices section doesn't match for {num_blocks} blocks"
             );
         }
     }

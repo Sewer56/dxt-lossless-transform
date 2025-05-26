@@ -17,13 +17,50 @@ const PERM_INDICES_BYTES: [i8; 16] = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23,
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
+#[target_feature(enable = "avx512f")]
+pub unsafe fn permute_512(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 8 == 0);
+
+    let colors_ptr = output_ptr as *mut u32;
+    let indices_ptr = output_ptr.add(len / 2) as *mut u32;
+
+    permute_512_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+}
+
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+#[target_feature(enable = "avx512f")]
+pub unsafe fn permute_512_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 8 == 0);
+
+    let colors_ptr = output_ptr as *mut u32;
+    let indices_ptr = output_ptr.add(len / 2) as *mut u32;
+
+    permute_512_unroll_2_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+}
+
+/// AVX512 variant that writes colors and indices to separate pointers
+///
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - colors_ptr must be valid for writes of len/2 bytes (4 bytes per block)
+/// - indices_ptr must be valid for writes of len/2 bytes (4 bytes per block)
+/// - len must be divisible by 8
+/// - The color and index buffers must not overlap with each other or the input buffer
 #[allow(unused_assignments)] // no feature for 512
 #[target_feature(enable = "avx512f")]
-pub unsafe fn permute_512(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub unsafe fn permute_512_with_separate_pointers(
+    mut input_ptr: *const u8,
+    mut colors_ptr: *mut u32,
+    mut indices_ptr: *mut u32,
+    len: usize,
+) {
     debug_assert!(len % 8 == 0);
     let aligned_len = len - (len % 128);
 
-    let mut indices_ptr = output_ptr.add(len / 2);
     if aligned_len > 0 {
         let aligned_end_input = input_ptr.add(aligned_len);
 
@@ -65,7 +102,7 @@ pub unsafe fn permute_512(mut input_ptr: *const u8, mut output_ptr: *mut u8, len
                 "jb 2b",
 
                 src_ptr = inout(reg) input_ptr,
-                colors_ptr = inout(reg) output_ptr,
+                colors_ptr = inout(reg) colors_ptr,
                 indices_ptr = inout(reg) indices_ptr,
                 end_ptr = in(reg) aligned_end_input,
                 perm_colors = in(zmm_reg) perm_colors,
@@ -81,26 +118,30 @@ pub unsafe fn permute_512(mut input_ptr: *const u8, mut output_ptr: *mut u8, len
     // Process any remaining elements after the aligned blocks
     let remaining = len - aligned_len;
     if remaining > 0 {
-        u32_with_separate_pointers(
-            input_ptr,
-            output_ptr as *mut u32,
-            indices_ptr as *mut u32,
-            remaining,
-        );
+        u32_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, remaining);
     }
 }
 
+/// AVX512 variant with 2x unroll that writes colors and indices to separate pointers
+///
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
-/// - output_ptr must be valid for writes of len bytes
+/// - colors_ptr must be valid for writes of len/2 bytes (4 bytes per block)
+/// - indices_ptr must be valid for writes of len/2 bytes (4 bytes per block)
+/// - len must be divisible by 8
+/// - The color and index buffers must not overlap with each other or the input buffer
 #[allow(unused_assignments)] // no feature for 512
 #[target_feature(enable = "avx512f")]
-pub unsafe fn permute_512_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub unsafe fn permute_512_unroll_2_with_separate_pointers(
+    mut input_ptr: *const u8,
+    mut colors_ptr: *mut u32,
+    mut indices_ptr: *mut u32,
+    len: usize,
+) {
     debug_assert!(len % 8 == 0);
     let aligned_len = len - (len % 256);
 
-    let mut indices_ptr = output_ptr.add(len / 2);
     if aligned_len > 0 {
         let aligned_end_input = input_ptr.add(aligned_len);
 
@@ -150,7 +191,7 @@ pub unsafe fn permute_512_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mu
                 "jb 2b",
 
                 src_ptr = inout(reg) input_ptr,
-                colors_ptr = inout(reg) output_ptr,
+                colors_ptr = inout(reg) colors_ptr,
                 indices_ptr = inout(reg) indices_ptr,
                 end_ptr = in(reg) aligned_end_input,
                 perm_colors = in(zmm_reg) perm_colors,
@@ -168,12 +209,7 @@ pub unsafe fn permute_512_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mu
     // Process any remaining elements after the aligned blocks
     let remaining = len - aligned_len;
     if remaining > 0 {
-        u32_with_separate_pointers(
-            input_ptr,
-            output_ptr as *mut u32,
-            indices_ptr as *mut u32,
-            remaining,
-        );
+        u32_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, remaining);
     }
 }
 
@@ -263,6 +299,90 @@ mod tests {
                 &output_test[1..],
                 &format!("{impl_name} (unaligned)"),
                 num_blocks,
+            );
+        }
+    }
+
+    #[test]
+    fn avx512_split_blocks_with_separate_pointers_matches_split_blocks() {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
+            return;
+        }
+
+        for num_blocks in 1..=512 {
+            let input = generate_bc1_test_data(num_blocks);
+            let len = input.len();
+            let mut output_ref = allocate_align_64(len).unwrap();
+            let mut colors_sep = allocate_align_64(len / 2).unwrap();
+            let mut indices_sep = allocate_align_64(len / 2).unwrap();
+
+            unsafe {
+                // Reference: AVX512 contiguous output
+                permute_512(input.as_ptr(), output_ref.as_mut_ptr(), len);
+
+                // Test: AVX512 separate pointers variant
+                permute_512_with_separate_pointers(
+                    input.as_ptr(),
+                    colors_sep.as_mut_ptr() as *mut u32,
+                    indices_sep.as_mut_ptr() as *mut u32,
+                    len,
+                );
+            }
+
+            // Compare colors section (first half)
+            assert_eq!(
+                &output_ref.as_slice()[0..len / 2],
+                colors_sep.as_slice(),
+                "AVX512 colors section doesn't match for {num_blocks} blocks"
+            );
+
+            // Compare indices section (second half)
+            assert_eq!(
+                &output_ref.as_slice()[len / 2..],
+                indices_sep.as_slice(),
+                "AVX512 indices section doesn't match for {num_blocks} blocks"
+            );
+        }
+    }
+
+    #[test]
+    fn avx512_unroll_2_split_blocks_with_separate_pointers_matches_split_blocks() {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
+            return;
+        }
+
+        for num_blocks in 1..=512 {
+            let input = generate_bc1_test_data(num_blocks);
+            let len = input.len();
+            let mut output_ref = allocate_align_64(len).unwrap();
+            let mut colors_sep = allocate_align_64(len / 2).unwrap();
+            let mut indices_sep = allocate_align_64(len / 2).unwrap();
+
+            unsafe {
+                // Reference: AVX512 unroll 2 contiguous output
+                permute_512_unroll_2(input.as_ptr(), output_ref.as_mut_ptr(), len);
+
+                // Test: AVX512 unroll 2 separate pointers variant
+                permute_512_unroll_2_with_separate_pointers(
+                    input.as_ptr(),
+                    colors_sep.as_mut_ptr() as *mut u32,
+                    indices_sep.as_mut_ptr() as *mut u32,
+                    len,
+                );
+            }
+
+            // Compare colors section (first half)
+            assert_eq!(
+                &output_ref.as_slice()[0..len / 2],
+                colors_sep.as_slice(),
+                "AVX512 unroll 2 colors section doesn't match for {num_blocks} blocks"
+            );
+
+            // Compare indices section (second half)
+            assert_eq!(
+                &output_ref.as_slice()[len / 2..],
+                indices_sep.as_slice(),
+                "AVX512 unroll 2 indices section doesn't match for {num_blocks} blocks"
             );
         }
     }

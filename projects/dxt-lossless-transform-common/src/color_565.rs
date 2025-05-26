@@ -961,8 +961,6 @@ impl Color565 {
         num_items: usize,
         variant: YCoCgVariant,
     ) {
-        use core::ptr::copy_nonoverlapping;
-
         match variant {
             YCoCgVariant::Variant1 => {
                 Self::recorrelate_ycocg_r_var1_ptr(src_ptr, dst_ptr, num_items)

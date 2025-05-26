@@ -179,6 +179,27 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    // Test split and recorrelate at the same time.
+    let decorrelated_var1 = Color565Buffer::from_slice_with_transform(
+        input_colors,
+        Color565::decorrelate_ycocg_r_var1_slice,
+    );
+    let mut decorrelated_var2 = Color565Buffer::from_slice_with_transform(
+        input_colors,
+        Color565::decorrelate_ycocg_r_var1_slice,
+    );
+
+    group.bench_function("recorrelate_ycocg_r_var1_ptr_split", |b| {
+        b.iter(|| unsafe {
+            Color565::recorrelate_ycocg_r_var1_ptr_split(
+                decorrelated_var1.as_ptr(),
+                decorrelated_var1.as_ptr().add(decorrelated_var1.len() / 2),
+                decorrelated_var2.as_mut_ptr(), // use different destination pointer and non-overlapping buffers.
+                decorrelated_var1.len(),
+            );
+        })
+    });
+
     group.finish();
 }
 

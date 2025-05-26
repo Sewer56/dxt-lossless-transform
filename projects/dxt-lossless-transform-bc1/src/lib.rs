@@ -9,7 +9,7 @@ use dxt_lossless_transform_common::{
 use normalize_blocks::{normalize_split_blocks_in_place, ColorNormalizationMode};
 use split_blocks::{
     split::split_blocks_with_separate_pointers, split_blocks,
-    unsplit::unsplit_block_with_separate_pointers, unsplit_blocks,
+    unsplit::unsplit_block_with_separate_pointers,
 };
 pub mod determine_optimal_transform;
 pub mod normalize_blocks;

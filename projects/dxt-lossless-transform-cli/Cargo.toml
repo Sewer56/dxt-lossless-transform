@@ -5,8 +5,13 @@ edition = "2021"
 
 [features]
 # Debugging and Research Tools/Utilities for BC7
-# Currently a placeholder
-debug-bc7 = []
+# Currently BC7
+debug-bc7 = ["debug"]
+# Debugging BC1 behaviour
+debug-bc1 = ["debug"]
+# Common debugging utilities
+debug = []
+
 nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/nightly", 
            "safe-allocator-api/nightly"]
 

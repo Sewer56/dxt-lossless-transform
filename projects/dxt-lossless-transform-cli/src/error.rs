@@ -1,6 +1,8 @@
 use std::io;
 use std::path::StripPrefixError;
 
+// TODO: Use thiserror here.
+
 #[derive(Debug)]
 pub enum TransformError {
     IoError(io::Error),
@@ -9,6 +11,8 @@ pub enum TransformError {
     UnsupportedFormat(String),
     IgnoredByFilter,
     InvalidDdsFile,
+    AllocateError(dxt_lossless_transform_common::allocate::AllocateError),
+    Debug(String),
 }
 
 impl From<io::Error> for TransformError {
@@ -23,6 +27,12 @@ impl From<StripPrefixError> for TransformError {
     }
 }
 
+impl From<dxt_lossless_transform_common::allocate::AllocateError> for TransformError {
+    fn from(error: dxt_lossless_transform_common::allocate::AllocateError) -> Self {
+        TransformError::AllocateError(error)
+    }
+}
+
 impl std::fmt::Display for TransformError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -32,6 +42,8 @@ impl std::fmt::Display for TransformError {
             TransformError::UnsupportedFormat(e) => write!(f, "Unsupported DDS format, {e}"),
             TransformError::InvalidDdsFile => write!(f, "Invalid DDS file"),
             TransformError::IgnoredByFilter => write!(f, "File was skipped by filter"),
+            TransformError::Debug(e) => write!(f, "{e}"),
+            TransformError::AllocateError(e) => write!(f, "{e}"),
         }
     }
 }

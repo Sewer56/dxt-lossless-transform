@@ -873,6 +873,138 @@ impl Color565 {
         }
     }
 
+    /// Raw pointer implementation of the YCoCg-R variant 2 recorrelation with split inputs for maximum performance.
+    ///
+    /// Takes two separate input raw pointers and reads YCoCg-R encoded colors from both sources,
+    /// applies [`Self::recorrelate_ycocg_r_var2`] transformation to convert them back to RGB,
+    /// and interleaves the recorrelated RGB results into a single output array.
+    ///
+    /// It is the raw pointer equivalent of [`Self::recorrelate_ycocg_r_var2_slice_split`].
+    ///
+    /// i.e. it is
+    ///
+    /// dst[0] = recorrelated(src_ptr_0[0]),
+    /// dst[1] = recorrelated(src_ptr_1[0]),
+    /// dst[2] = recorrelated(src_ptr_0[1]),
+    /// etc.
+    ///
+    /// May introduce unrolling optimizations. Refer to the original function for details.
+    ///
+    /// # Parameters
+    ///
+    /// - `src_ptr_0`: Pointer to the first source array of [`Color565`] items to transform
+    /// - `src_ptr_1`: Pointer to the second source array of [`Color565`] items to transform
+    /// - `dst_ptr`: Pointer to the destination array where interleaved transformed items will be stored
+    /// - `num_items`: Total number of [`Color565`] items to write to destination (must be even)
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because it takes raw pointers and doesn't check bounds.
+    /// Caller must ensure that:
+    /// - All pointers are properly aligned and valid for their respective operations
+    /// - `src_ptr_0` and `src_ptr_1` point to arrays with at least `num_items / 2` elements each
+    /// - `dst_ptr` points to an array with at least `num_items` elements
+    /// - The memory regions don't overlap
+    /// - All source pointers point to initialized data
+    /// - `num_items` is even (function processes pairs of elements)
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub unsafe fn recorrelate_ycocg_r_var2_ptr_split(
+        src_ptr_0: *const Self,
+        src_ptr_1: *const Self,
+        dst_ptr: *mut Self,
+        num_items: usize,
+    ) {
+        #[cfg_attr(
+            not(feature = "nightly"), 
+            multiversion(targets(
+                // avx512 only in nightly.
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
+        )]
+        #[cfg_attr(
+            feature = "nightly",
+            multiversion(targets(
+                // x86-64-v4 without lahfsahf
+                "x86_64+avx+avx2+avx512bw+avx512cd+avx512dq+avx512f+avx512vl+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
+        )]
+        unsafe fn recorr(
+            src_ptr_0: *const Color565,
+            src_ptr_1: *const Color565,
+            dst_ptr: *mut Color565,
+            num_items: usize,
+        ) {
+            // hack around Multiversion
+            for x in 0..num_items / 2 {
+                unsafe {
+                    let color_0 = &*src_ptr_0.add(x);
+                    let color_1 = &*src_ptr_1.add(x);
+                    *dst_ptr.add(x * 2) = color_0.recorrelate_ycocg_r_var2();
+                    *dst_ptr.add((x * 2) + 1) = color_1.recorrelate_ycocg_r_var2();
+                }
+            }
+        }
+
+        recorr(src_ptr_0, src_ptr_1, dst_ptr, num_items);
+    }
+
+    /// Convenience function that applies [`Self::recorrelate_ycocg_r_var2`] to elements from two input slices,
+    /// interleaving the recorrelated results into a single output slice.
+    ///
+    /// dst[0] = recorrelated(src_0[0]),
+    /// dst[1] = recorrelated(src_1[0]),
+    /// dst[2] = recorrelated(src_0[1]),
+    /// dst[3] = recorrelated(src_1[1])
+    /// etc.
+    ///
+    /// The output slice must be at least as large as the combined length of both input slices.
+    /// Both input slices must have the same length.
+    ///
+    /// May introduce unrolling optimizations. Refer to the original function for details.
+    ///
+    /// # Parameters
+    ///
+    /// - `src_0`: First source slice of [`Color565`] items to transform
+    /// - `src_1`: Second source slice of [`Color565`] items to transform  
+    /// - `dst`: Destination slice where interleaved transformed items will be stored
+    ///
+    /// # Panics
+    ///
+    /// Panics if:
+    /// - The input slices have different lengths
+    /// - The destination slice is smaller than the combined length of both input slices
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub fn recorrelate_ycocg_r_var2_slice_split(src_0: &[Self], src_1: &[Self], dst: &mut [Self]) {
+        assert_eq!(
+            src_0.len(),
+            src_1.len(),
+            "Both source slices must have the same length"
+        );
+        debug_assert!(
+            dst.len() >= src_0.len() + src_1.len(),
+            "Destination slice must be at least as large as the combined source slices"
+        );
+
+        // Call the raw pointer implementation
+        unsafe {
+            Self::recorrelate_ycocg_r_var2_ptr_split(
+                src_0.as_ptr(),
+                src_1.as_ptr(),
+                dst.as_mut_ptr(),
+                src_0.len() + src_1.len(),
+            );
+        }
+    }
+
     /// Convenience function that applies [`Self::decorrelate_ycocg_r_var3`] to each element at a pointer.
     ///
     /// Takes an input pointer and an output pointer, applying the transformation while copying `num_items` elements.
@@ -1032,6 +1164,138 @@ impl Color565 {
         // Call the raw pointer implementation
         unsafe {
             Self::recorrelate_ycocg_r_var3_ptr(src.as_ptr(), dst.as_mut_ptr(), src.len());
+        }
+    }
+
+    /// Raw pointer implementation of the YCoCg-R variant 3 recorrelation with split inputs for maximum performance.
+    ///
+    /// Takes two separate input raw pointers and reads YCoCg-R encoded colors from both sources,
+    /// applies [`Self::recorrelate_ycocg_r_var3`] transformation to convert them back to RGB,
+    /// and interleaves the recorrelated RGB results into a single output array.
+    ///
+    /// It is the raw pointer equivalent of [`Self::recorrelate_ycocg_r_var3_slice_split`].
+    ///
+    /// i.e. it is
+    ///
+    /// dst[0] = recorrelated(src_ptr_0[0]),
+    /// dst[1] = recorrelated(src_ptr_1[0]),
+    /// dst[2] = recorrelated(src_ptr_0[1]),
+    /// etc.
+    ///
+    /// May introduce unrolling optimizations. Refer to the original function for details.
+    ///
+    /// # Parameters
+    ///
+    /// - `src_ptr_0`: Pointer to the first source array of [`Color565`] items to transform
+    /// - `src_ptr_1`: Pointer to the second source array of [`Color565`] items to transform
+    /// - `dst_ptr`: Pointer to the destination array where interleaved transformed items will be stored
+    /// - `num_items`: Total number of [`Color565`] items to write to destination (must be even)
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because it takes raw pointers and doesn't check bounds.
+    /// Caller must ensure that:
+    /// - All pointers are properly aligned and valid for their respective operations
+    /// - `src_ptr_0` and `src_ptr_1` point to arrays with at least `num_items / 2` elements each
+    /// - `dst_ptr` points to an array with at least `num_items` elements
+    /// - The memory regions don't overlap
+    /// - All source pointers point to initialized data
+    /// - `num_items` is even (function processes pairs of elements)
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub unsafe fn recorrelate_ycocg_r_var3_ptr_split(
+        src_ptr_0: *const Self,
+        src_ptr_1: *const Self,
+        dst_ptr: *mut Self,
+        num_items: usize,
+    ) {
+        #[cfg_attr(
+            not(feature = "nightly"), 
+            multiversion(targets(
+                // avx512 only in nightly.
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
+        )]
+        #[cfg_attr(
+            feature = "nightly",
+            multiversion(targets(
+                // x86-64-v4 without lahfsahf
+                "x86_64+avx+avx2+avx512bw+avx512cd+avx512dq+avx512f+avx512vl+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
+        )]
+        unsafe fn recorr(
+            src_ptr_0: *const Color565,
+            src_ptr_1: *const Color565,
+            dst_ptr: *mut Color565,
+            num_items: usize,
+        ) {
+            // hack around Multiversion
+            for x in 0..num_items / 2 {
+                unsafe {
+                    let color_0 = &*src_ptr_0.add(x);
+                    let color_1 = &*src_ptr_1.add(x);
+                    *dst_ptr.add(x * 2) = color_0.recorrelate_ycocg_r_var3();
+                    *dst_ptr.add((x * 2) + 1) = color_1.recorrelate_ycocg_r_var3();
+                }
+            }
+        }
+
+        recorr(src_ptr_0, src_ptr_1, dst_ptr, num_items);
+    }
+
+    /// Convenience function that applies [`Self::recorrelate_ycocg_r_var3`] to elements from two input slices,
+    /// interleaving the recorrelated results into a single output slice.
+    ///
+    /// dst[0] = recorrelated(src_0[0]),
+    /// dst[1] = recorrelated(src_1[0]),
+    /// dst[2] = recorrelated(src_0[1]),
+    /// dst[3] = recorrelated(src_1[1])
+    /// etc.
+    ///
+    /// The output slice must be at least as large as the combined length of both input slices.
+    /// Both input slices must have the same length.
+    ///
+    /// May introduce unrolling optimizations. Refer to the original function for details.
+    ///
+    /// # Parameters
+    ///
+    /// - `src_0`: First source slice of [`Color565`] items to transform
+    /// - `src_1`: Second source slice of [`Color565`] items to transform  
+    /// - `dst`: Destination slice where interleaved transformed items will be stored
+    ///
+    /// # Panics
+    ///
+    /// Panics if:
+    /// - The input slices have different lengths
+    /// - The destination slice is smaller than the combined length of both input slices
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub fn recorrelate_ycocg_r_var3_slice_split(src_0: &[Self], src_1: &[Self], dst: &mut [Self]) {
+        assert_eq!(
+            src_0.len(),
+            src_1.len(),
+            "Both source slices must have the same length"
+        );
+        debug_assert!(
+            dst.len() >= src_0.len() + src_1.len(),
+            "Destination slice must be at least as large as the combined source slices"
+        );
+
+        // Call the raw pointer implementation
+        unsafe {
+            Self::recorrelate_ycocg_r_var3_ptr_split(
+                src_0.as_ptr(),
+                src_1.as_ptr(),
+                dst.as_mut_ptr(),
+                src_0.len() + src_1.len(),
+            );
         }
     }
 

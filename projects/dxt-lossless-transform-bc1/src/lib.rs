@@ -111,8 +111,8 @@ pub unsafe fn transform_bc1(
 
         // Decorrelate the colours in-place (if needed, no-ops if mode is 'none')
         Color565::decorrelate_ycocg_r_ptr(
-            work_ptr as *const Color565,
-            work_ptr as *mut Color565,
+            output_ptr as *const Color565,
+            output_ptr as *mut Color565,
             (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
             transform_options.decorrelation_mode,
         );
@@ -208,7 +208,7 @@ pub unsafe fn untransform_bc1(
     output_ptr: *mut u8,
     work_ptr: *mut u8,
     len: usize,
-    transform_options: &Bc1TransformDetails,
+    transform_options: Bc1TransformDetails,
 ) {
     debug_assert!(len % 8 == 0);
 

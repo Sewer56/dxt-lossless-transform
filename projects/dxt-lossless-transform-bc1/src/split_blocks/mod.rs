@@ -67,6 +67,31 @@ pub unsafe fn split_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize
     split::split_blocks(input_ptr, output_ptr, len);
 }
 
+/// Transform BC1 data from standard interleaved format to separate color and index pointers
+/// using the best known implementation for the current CPU.
+///
+/// This variant allows direct output to separate buffers for colors and indices, which can
+/// be useful when you need the components stored in different memory locations or with
+/// different layouts than the standard contiguous separated format.
+///
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - colors_ptr must be valid for writes of len/2 bytes (4 bytes per block)
+/// - indices_ptr must be valid for writes of len/2 bytes (4 bytes per block)
+/// - len must be divisible by 8 (BC1 block size)
+/// - It is recommended that all pointers are at least 16-byte aligned (recommended 32-byte align)
+/// - The color and index buffers must not overlap with each other or the input buffer
+#[inline]
+pub unsafe fn split_blocks_with_separate_pointers(
+    input_ptr: *const u8,
+    colors_ptr: *mut u32,
+    indices_ptr: *mut u32,
+    len: usize,
+) {
+    split::split_blocks_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+}
+
 /// Transform BC1 data from separated color/index format back to standard interleaved format
 /// using best known implementation for current CPU.
 ///

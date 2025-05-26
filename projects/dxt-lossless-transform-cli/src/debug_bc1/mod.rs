@@ -7,6 +7,7 @@ use dxt_lossless_transform_bc1::{
     transform_bc1, untransform_bc1, util::decode_bc1_block, Bc1TransformDetails,
 };
 use dxt_lossless_transform_common::allocate::allocate_align_64;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -56,17 +57,16 @@ fn handle_roundtrip_command(cmd: RoundtripCmd) -> Result<(), TransformError> {
     let files_passed = AtomicUsize::new(0);
 
     // Process files in parallel similar to main CLI
-    entries.iter().for_each(|entry| {
+    entries.par_iter().for_each(|entry| {
         files_tested.fetch_add(1, Ordering::Relaxed);
-        println!("Testing file: {}", entry.path().display());
 
         match test_bc1_roundtrip_file(entry) {
             Ok(()) => {
-                println!("  ✓ PASSED");
+                println!("✓ PASSED {}", entry.path().display());
                 files_passed.fetch_add(1, Ordering::Relaxed);
             }
             Err(e) => {
-                println!("  ✗ FAILED: {e}");
+                println!("✗ FAILED: {e}, {}", entry.path().display());
             }
         }
     });
@@ -91,45 +91,45 @@ fn test_bc1_roundtrip(data_ptr: *const u8, len_bytes: usize) -> Result<(), Trans
     let mut roundtrip_data = allocate_align_64(len_bytes)?;
 
     unsafe {
-        // Use default transform options
-        let transform_options = Bc1TransformDetails::default();
+        // Try all transform options
+        for transform_options in Bc1TransformDetails::all_combinations() {
+            // Transform the data
+            transform_bc1(
+                data_ptr,
+                transformed_data.as_mut_ptr(),
+                work_buffer.as_mut_ptr(),
+                len_bytes,
+                transform_options,
+            );
 
-        // Transform the data
-        transform_bc1(
-            data_ptr,
-            transformed_data.as_mut_ptr(),
-            work_buffer.as_mut_ptr(),
-            len_bytes,
-            transform_options,
-        );
+            // Untransform the data back
+            untransform_bc1(
+                transformed_data.as_ptr(),
+                roundtrip_data.as_mut_ptr(),
+                work_buffer.as_mut_ptr(),
+                len_bytes,
+                transform_options,
+            );
 
-        // Untransform the data back
-        untransform_bc1(
-            transformed_data.as_ptr(),
-            roundtrip_data.as_mut_ptr(),
-            work_buffer.as_mut_ptr(),
-            len_bytes,
-            &transform_options,
-        );
+            // Compare all pixels by decoding each block
+            let num_blocks = len_bytes / 8;
+            for block_idx in 0..num_blocks {
+                let block_offset = block_idx * 8;
 
-        // Compare all pixels by decoding each block
-        let num_blocks = len_bytes / 8;
-        for block_idx in 0..num_blocks {
-            let block_offset = block_idx * 8;
+                // Decode original block
+                let original_block_ptr = data_ptr.add(block_offset);
+                let original_decoded = decode_bc1_block(original_block_ptr);
 
-            // Decode original block
-            let original_block_ptr = data_ptr.add(block_offset);
-            let original_decoded = decode_bc1_block(original_block_ptr);
+                // Decode roundtrip block
+                let roundtrip_block_ptr = roundtrip_data.as_ptr().add(block_offset);
+                let roundtrip_decoded = decode_bc1_block(roundtrip_block_ptr);
 
-            // Decode roundtrip block
-            let roundtrip_block_ptr = roundtrip_data.as_ptr().add(block_offset);
-            let roundtrip_decoded = decode_bc1_block(roundtrip_block_ptr);
-
-            // Compare all 16 pixels in the block
-            if original_decoded != roundtrip_decoded {
-                return Err(TransformError::Debug(format!(
+                // Compare all 16 pixels in the block
+                if original_decoded != roundtrip_decoded {
+                    return Err(TransformError::Debug(format!(
                     "Pixel mismatch in block {block_idx} (byte offset {block_offset}). Transform/untransform is not lossless!"
                 )));
+                }
             }
         }
     }

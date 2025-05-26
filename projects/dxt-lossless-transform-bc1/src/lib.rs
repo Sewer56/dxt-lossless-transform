@@ -42,6 +42,49 @@ impl Default for Bc1TransformDetails {
     }
 }
 
+impl Bc1TransformDetails {
+    /// Returns an iterator over all possible combinations of [`Bc1TransformDetails`] values.
+    ///
+    /// This function generates all possible combinations by iterating through:
+    /// - All [`ColorNormalizationMode`] variants
+    /// - All [`YCoCgVariant`] variants  
+    /// - Both `true` and `false` values for `split_colour_endpoints`
+    ///
+    /// The total number of combinations is:
+    /// [`ColorNormalizationMode`] variants × [`YCoCgVariant`] variants × 2 bool values
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_bc1::Bc1TransformDetails;
+    ///
+    /// let all_combinations: Vec<_> = Bc1TransformDetails::all_combinations().collect();
+    /// println!("Total combinations: {}", all_combinations.len());
+    ///
+    /// for details in Bc1TransformDetails::all_combinations() {
+    ///     println!("{:?}", details);
+    /// }
+    /// ```
+    #[cfg(not(tarpaulin_include))]
+    pub fn all_combinations() -> impl Iterator<Item = Bc1TransformDetails> {
+        ColorNormalizationMode::all_values()
+            .iter()
+            .flat_map(|color_mode| {
+                YCoCgVariant::all_values()
+                    .iter()
+                    .flat_map(move |decorr_mode| {
+                        [true, false]
+                            .into_iter()
+                            .map(move |split_endpoints| Bc1TransformDetails {
+                                color_normalization_mode: *color_mode,
+                                decorrelation_mode: *decorr_mode,
+                                split_colour_endpoints: split_endpoints,
+                            })
+                    })
+            })
+    }
+}
+
 /// Transform BC1 data into a more compressible format.
 ///
 /// # Parameters

@@ -493,4 +493,109 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn sse2_shuffle_v2_with_separate_pointers_matches_shuffle_v2() {
+        for num_blocks in 1..=512 {
+            let input = generate_bc2_test_data(num_blocks);
+            let len = input.len();
+
+            // Allocate aligned memory for outputs
+            let mut output_contiguous = allocate_align_64(len).unwrap();
+            let mut alphas = allocate_align_64(len / 2).unwrap();
+            let mut colors = allocate_align_64(len / 4).unwrap();
+            let mut indices = allocate_align_64(len / 4).unwrap();
+
+            // Test with contiguous output using shuffle_v2()
+            unsafe {
+                shuffle_v2(input.as_ptr(), output_contiguous.as_mut_ptr(), len);
+            }
+
+            // Test with separate pointers using shuffle_v2_with_separate_pointers()
+            unsafe {
+                shuffle_v2_with_separate_pointers(
+                    input.as_ptr(),
+                    alphas.as_mut_ptr() as *mut u64,
+                    colors.as_mut_ptr() as *mut u32,
+                    indices.as_mut_ptr() as *mut u32,
+                    len,
+                );
+            }
+
+            // Compare the results - the separate pointer outputs should match the corresponding sections
+            // of the contiguous output
+            let expected_alphas = &output_contiguous.as_slice()[0..len / 2];
+            let expected_colors = &output_contiguous.as_slice()[len / 2..len / 2 + len / 4];
+            let expected_indices = &output_contiguous.as_slice()[len / 2 + len / 4..];
+
+            assert_eq!(
+                alphas.as_slice(),
+                expected_alphas,
+                "Alpha sections don't match for {num_blocks} blocks"
+            );
+            assert_eq!(
+                colors.as_slice(),
+                expected_colors,
+                "Color sections don't match for {num_blocks} blocks"
+            );
+            assert_eq!(
+                indices.as_slice(),
+                expected_indices,
+                "Index sections don't match for {num_blocks} blocks"
+            );
+        }
+    }
+
+    #[test]
+    #[cfg(target_arch = "x86_64")]
+    fn sse2_shuffle_v3_with_separate_pointers_matches_shuffle_v3() {
+        for num_blocks in 1..=512 {
+            let input = generate_bc2_test_data(num_blocks);
+            let len = input.len();
+
+            // Allocate aligned memory for outputs
+            let mut output_contiguous = allocate_align_64(len).unwrap();
+            let mut alphas = allocate_align_64(len / 2).unwrap();
+            let mut colors = allocate_align_64(len / 4).unwrap();
+            let mut indices = allocate_align_64(len / 4).unwrap();
+
+            // Test with contiguous output using shuffle_v3()
+            unsafe {
+                shuffle_v3(input.as_ptr(), output_contiguous.as_mut_ptr(), len);
+            }
+
+            // Test with separate pointers using shuffle_v3_with_separate_pointers()
+            unsafe {
+                shuffle_v3_with_separate_pointers(
+                    input.as_ptr(),
+                    alphas.as_mut_ptr() as *mut u64,
+                    colors.as_mut_ptr() as *mut u32,
+                    indices.as_mut_ptr() as *mut u32,
+                    len,
+                );
+            }
+
+            // Compare the results - the separate pointer outputs should match the corresponding sections
+            // of the contiguous output
+            let expected_alphas = &output_contiguous.as_slice()[0..len / 2];
+            let expected_colors = &output_contiguous.as_slice()[len / 2..len / 2 + len / 4];
+            let expected_indices = &output_contiguous.as_slice()[len / 2 + len / 4..];
+
+            assert_eq!(
+                alphas.as_slice(),
+                expected_alphas,
+                "Alpha sections don't match for {num_blocks} blocks"
+            );
+            assert_eq!(
+                colors.as_slice(),
+                expected_colors,
+                "Color sections don't match for {num_blocks} blocks"
+            );
+            assert_eq!(
+                indices.as_slice(),
+                expected_indices,
+                "Index sections don't match for {num_blocks} blocks"
+            );
+        }
+    }
 }

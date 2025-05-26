@@ -559,6 +559,26 @@ impl Color565 {
         recorr(src_ptr, dst_ptr, num_items);
     }
 
+    /// Convenience function that applies [`Self::recorrelate_ycocg_r_var1`] to each element in a slice.
+    ///
+    /// Takes an input slice and an output slice, applying the transformation while copying.
+    /// The output slice must be at least as large as the input slice.
+    ///
+    /// May introduce unrolling optimizations. Refer to the original function for details.
+    #[inline]
+    #[cfg(not(tarpaulin_include))]
+    pub fn recorrelate_ycocg_r_var1_slice(src: &[Self], dst: &mut [Self]) {
+        debug_assert!(
+            dst.len() >= src.len(),
+            "Destination slice must be at least as large as source slice"
+        );
+
+        // Call the raw pointer implementation
+        unsafe {
+            Self::recorrelate_ycocg_r_var1_ptr(src.as_ptr(), dst.as_mut_ptr(), src.len());
+        }
+    }
+
     /// Raw pointer implementation of the YCoCg-R variant 1 recorrelation with split inputs for maximum performance.
     ///
     /// Takes two separate input raw pointers and reads YCoCg-R encoded colors from both sources,
@@ -688,26 +708,6 @@ impl Color565 {
                 dst.as_mut_ptr(),
                 src_0.len() + src_1.len(),
             );
-        }
-    }
-
-    /// Convenience function that applies [`Self::recorrelate_ycocg_r_var1`] to each element in a slice.
-    ///
-    /// Takes an input slice and an output slice, applying the transformation while copying.
-    /// The output slice must be at least as large as the input slice.
-    ///
-    /// May introduce unrolling optimizations. Refer to the original function for details.
-    #[inline]
-    #[cfg(not(tarpaulin_include))]
-    pub fn recorrelate_ycocg_r_var1_slice(src: &[Self], dst: &mut [Self]) {
-        debug_assert!(
-            dst.len() >= src.len(),
-            "Destination slice must be at least as large as source slice"
-        );
-
-        // Call the raw pointer implementation
-        unsafe {
-            Self::recorrelate_ycocg_r_var1_ptr(src.as_ptr(), dst.as_mut_ptr(), src.len());
         }
     }
 

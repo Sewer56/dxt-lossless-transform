@@ -95,7 +95,7 @@ unsafe fn split_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len: u
         // Runtime feature detection
         #[cfg(feature = "nightly")]
         if dxt_lossless_transform_common::cpu_detect::has_avx512f() {
-            avx512::permute_512(input_ptr, output_ptr, len);
+            avx512::permute_512_v2(input_ptr, output_ptr, len);
             return;
         }
 
@@ -121,7 +121,7 @@ unsafe fn split_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len: u
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") {
-            avx512::permute_512(input_ptr, output_ptr, len);
+            avx512::permute_512_v2(input_ptr, output_ptr, len);
             return;
         }
 
@@ -163,7 +163,13 @@ unsafe fn split_blocks_with_separate_pointers_x86(
         // Runtime feature detection
         #[cfg(feature = "nightly")]
         if dxt_lossless_transform_common::cpu_detect::has_avx512f() {
-            permute_512_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len);
+            avx512::permute_512_v2_with_separate_pointers(
+                input_ptr,
+                alphas_ptr,
+                colors_ptr,
+                indices_ptr,
+                len,
+            );
             return;
         }
 
@@ -207,7 +213,13 @@ unsafe fn split_blocks_with_separate_pointers_x86(
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") {
-            permute_512_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len);
+            avx512::permute_512_v2_with_separate_pointers(
+                input_ptr,
+                alphas_ptr,
+                colors_ptr,
+                indices_ptr,
+                len,
+            );
             return;
         }
 

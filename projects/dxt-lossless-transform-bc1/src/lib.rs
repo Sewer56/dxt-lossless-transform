@@ -2,13 +2,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(feature = "nightly", feature(stdarch_x86_avx512))]
 
-use core::ptr::copy_nonoverlapping;
-
 use dxt_lossless_transform_common::{
     color_565::{Color565, YCoCgVariant},
     transforms::split_565_color_endpoints::split_color_endpoints,
 };
-use normalize_blocks::{normalize_blocks, normalize_split_blocks_in_place, ColorNormalizationMode};
+use normalize_blocks::{normalize_split_blocks_in_place, ColorNormalizationMode};
 use split_blocks::{split::split_blocks_with_separate_pointers, split_blocks, unsplit_blocks};
 pub mod determine_optimal_transform;
 pub mod normalize_blocks;

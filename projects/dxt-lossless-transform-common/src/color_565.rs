@@ -444,10 +444,26 @@ impl Color565 {
         dst_ptr: *mut Self,
         num_items: usize,
     ) {
-        #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
+        #[cfg_attr(
+            not(feature = "nightly"), 
+            multiversion(targets(
+                // avx512 only in nightly.
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
+        )]
         #[cfg_attr(
             feature = "nightly",
-            multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
+            multiversion(targets(
+                // x86-64-v4 without lahfsahf
+                "x86_64+avx+avx2+avx512bw+avx512cd+avx512dq+avx512f+avx512vl+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
         )]
         unsafe fn decorr(src_ptr: *const Color565, dst_ptr: *mut Color565, num_items: usize) {
             // hack around Multiversion
@@ -509,10 +525,26 @@ impl Color565 {
         dst_ptr: *mut Self,
         num_items: usize,
     ) {
-        #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
+        #[cfg_attr(
+            not(feature = "nightly"), 
+            multiversion(targets(
+                // avx512 only in nightly.
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
+        )]
         #[cfg_attr(
             feature = "nightly",
-            multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
+            multiversion(targets(
+                // x86-64-v4 without lahfsahf
+                "x86_64+avx+avx2+avx512bw+avx512cd+avx512dq+avx512f+avx512vl+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
         )]
         unsafe fn recorr(src_ptr: *const Color565, dst_ptr: *mut Color565, num_items: usize) {
             // hack around Multiversion
@@ -574,10 +606,26 @@ impl Color565 {
         dst_ptr: *mut Self,
         num_items: usize,
     ) {
-        #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
+        #[cfg_attr(
+            not(feature = "nightly"), 
+            multiversion(targets(
+                // avx512 only in nightly.
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
+        )]
         #[cfg_attr(
             feature = "nightly",
-            multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
+            multiversion(targets(
+                // x86-64-v4 without lahfsahf
+                "x86_64+avx+avx2+avx512bw+avx512cd+avx512dq+avx512f+avx512vl+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
         )]
         unsafe fn decorr(src_ptr: *const Color565, dst_ptr: *mut Color565, num_items: usize) {
             // hack around Multiversion
@@ -639,10 +687,26 @@ impl Color565 {
         dst_ptr: *mut Self,
         num_items: usize,
     ) {
-        #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
+        #[cfg_attr(
+            not(feature = "nightly"), 
+            multiversion(targets(
+                // avx512 only in nightly.
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
+        )]
         #[cfg_attr(
             feature = "nightly",
-            multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
+            multiversion(targets(
+                // x86-64-v4 without lahfsahf
+                "x86_64+avx+avx2+avx512bw+avx512cd+avx512dq+avx512f+avx512vl+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
         )]
         unsafe fn recorr(src_ptr: *const Color565, dst_ptr: *mut Color565, num_items: usize) {
             // hack around Multiversion
@@ -704,10 +768,26 @@ impl Color565 {
         dst_ptr: *mut Self,
         num_items: usize,
     ) {
-        #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
+        #[cfg_attr(
+            not(feature = "nightly"), 
+            multiversion(targets(
+                // avx512 only in nightly.
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
+        )]
         #[cfg_attr(
             feature = "nightly",
-            multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
+            multiversion(targets(
+                // x86-64-v4 without lahfsahf
+                "x86_64+avx+avx2+avx512bw+avx512cd+avx512dq+avx512f+avx512vl+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
         )]
         unsafe fn decorr(src_ptr: *const Color565, dst_ptr: *mut Color565, num_items: usize) {
             // hack around Multiversion
@@ -769,10 +849,26 @@ impl Color565 {
         dst_ptr: *mut Self,
         num_items: usize,
     ) {
-        #[cfg_attr(not(feature = "nightly"), multiversion(targets("x86_64+avx2")))]
+        #[cfg_attr(
+            not(feature = "nightly"), 
+            multiversion(targets(
+                // avx512 only in nightly.
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
+        )]
         #[cfg_attr(
             feature = "nightly",
-            multiversion(targets("x86_64+avx2", "x86_64+avx512f"))
+            multiversion(targets(
+                // x86-64-v4 without lahfsahf
+                "x86_64+avx+avx2+avx512bw+avx512cd+avx512dq+avx512f+avx512vl+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v3 without lahfsahf
+                "x86_64+avx+avx2+bmi1+bmi2+cmpxchg16b+f16c+fma+fxsr+lzcnt+movbe+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3+xsave",
+                // x86-64-v2 without lahfsahf
+                "x86_64+cmpxchg16b+fxsr+popcnt+sse+sse2+sse3+sse4.1+sse4.2+ssse3",
+            ))
         )]
         unsafe fn recorr(src_ptr: *const Color565, dst_ptr: *mut Color565, num_items: usize) {
             // hack around Multiversion

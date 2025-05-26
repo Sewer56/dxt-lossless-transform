@@ -44,15 +44,34 @@ impl Color565Buffer {
     }
 
     // Create a buffer, copy data, and apply a transformation function
-    fn from_slice_with_transform(source: &[Color565], transform_fn: fn(&mut [Color565])) -> Self {
+    fn from_slice_with_transform(
+        source: &[Color565],
+        transform_fn: fn(&[Color565], &mut [Color565]),
+    ) -> Self {
         let mut buffer = Self::from_slice(source);
-        transform_fn(buffer.as_mut_slice());
+        transform_fn(source, buffer.as_mut_slice());
         buffer
     }
 
-    // Get a mutable reference to the underlying slice
+    /// Returns a raw pointer to the underlying slice
+    fn as_mut_ptr(&mut self) -> *mut Color565 {
+        unsafe { (*self.colors).as_mut_ptr() }
+    }
+
+    /// Returns a raw pointer to the underlying slice
+    fn as_ptr(&self) -> *const Color565 {
+        unsafe { (*self.colors).as_ptr() }
+    }
+
+    /// Get a mutable reference to the underlying slice
     fn as_mut_slice(&mut self) -> &mut [Color565] {
         unsafe { &mut *self.colors }
+    }
+
+    /// Number of items (colors) in the buffer.
+    /// (Not number of bytes.)
+    fn len(&self) -> usize {
+        self.colors.len()
     }
 }
 
@@ -67,6 +86,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     // Allocate memory for input data
     let mut input_buffer = Color565Buffer::new(NUM_ITEMS);
     let input_colors = input_buffer.as_mut_slice();
+    let mut output_buffer = Color565Buffer::from_slice(input_colors);
 
     // Fill with test data - sequential RGB565 values
     for (x, color) in input_colors.iter_mut().enumerate() {
@@ -82,37 +102,34 @@ fn criterion_benchmark(c: &mut Criterion) {
     group.warm_up_time(Duration::from_secs(10));
     group.measurement_time(Duration::from_secs(10));
 
-    // Benchmark for decorrelate_ycocg_r_var1_slice
-    group.bench_function("decorrelate_ycocg_r_var1_slice", |b| {
-        b.iter_batched(
-            || Color565Buffer::from_slice(input_colors),
-            |mut buffer| {
-                Color565::decorrelate_ycocg_r_var1_slice(buffer.as_mut_slice());
-            },
-            criterion::BatchSize::SmallInput,
-        )
+    group.bench_function("decorrelate_ycocg_r_var1_ptr", |b| {
+        b.iter(|| unsafe {
+            Color565::decorrelate_ycocg_r_var1_ptr(
+                input_colors.as_ptr(),
+                output_buffer.as_mut_ptr(),
+                input_colors.len(),
+            );
+        })
     });
 
-    // Benchmark for decorrelate_ycocg_r_var2_slice
-    group.bench_function("decorrelate_ycocg_r_var2_slice", |b| {
-        b.iter_batched(
-            || Color565Buffer::from_slice(input_colors),
-            |mut buffer| {
-                Color565::decorrelate_ycocg_r_var2_slice(buffer.as_mut_slice());
-            },
-            criterion::BatchSize::SmallInput,
-        )
+    group.bench_function("decorrelate_ycocg_r_var2_ptr", |b| {
+        b.iter(|| unsafe {
+            Color565::decorrelate_ycocg_r_var2_ptr(
+                input_colors.as_ptr(),
+                output_buffer.as_mut_ptr(),
+                input_colors.len(),
+            );
+        })
     });
 
-    // Benchmark for decorrelate_ycocg_r_var3_slice
-    group.bench_function("decorrelate_ycocg_r_var3_slice", |b| {
-        b.iter_batched(
-            || Color565Buffer::from_slice(input_colors),
-            |mut buffer| {
-                Color565::decorrelate_ycocg_r_var3_slice(buffer.as_mut_slice());
-            },
-            criterion::BatchSize::SmallInput,
-        )
+    group.bench_function("decorrelate_ycocg_r_var3_ptr", |b| {
+        b.iter(|| unsafe {
+            Color565::decorrelate_ycocg_r_var3_ptr(
+                input_colors.as_ptr(),
+                output_buffer.as_mut_ptr(),
+                input_colors.len(),
+            );
+        })
     });
 
     // Create decorrelated arrays for recorrelation benchmarks
@@ -120,46 +137,46 @@ fn criterion_benchmark(c: &mut Criterion) {
         input_colors,
         Color565::decorrelate_ycocg_r_var1_slice,
     );
+
+    group.bench_function("recorrelate_ycocg_r_var1_ptr", |b| {
+        b.iter(|| unsafe {
+            Color565::recorrelate_ycocg_r_var1_ptr(
+                decorrelated_var1.as_ptr(),
+                decorrelated_var1.as_mut_ptr(),
+                decorrelated_var1.len(),
+            );
+        })
+    });
+
+    drop(decorrelated_var1);
     let mut decorrelated_var2 = Color565Buffer::from_slice_with_transform(
         input_colors,
         Color565::decorrelate_ycocg_r_var2_slice,
     );
+
+    group.bench_function("recorrelate_ycocg_r_var2_ptr", |b| {
+        b.iter(|| unsafe {
+            Color565::recorrelate_ycocg_r_var2_ptr(
+                decorrelated_var2.as_ptr(),
+                decorrelated_var2.as_mut_ptr(),
+                decorrelated_var2.len(),
+            );
+        })
+    });
+
+    drop(decorrelated_var2);
     let mut decorrelated_var3 = Color565Buffer::from_slice_with_transform(
         input_colors,
         Color565::decorrelate_ycocg_r_var3_slice,
     );
-
-    // Benchmark for recorrelate_ycocg_r_var1_slice
-    group.bench_function("recorrelate_ycocg_r_var1_slice", |b| {
-        b.iter_batched(
-            || Color565Buffer::from_slice(decorrelated_var1.as_mut_slice()),
-            |mut buffer| {
-                Color565::recorrelate_ycocg_r_var1_slice(buffer.as_mut_slice());
-            },
-            criterion::BatchSize::SmallInput,
-        )
-    });
-
-    // Benchmark for recorrelate_ycocg_r_var2_slice
-    group.bench_function("recorrelate_ycocg_r_var2_slice", |b| {
-        b.iter_batched(
-            || Color565Buffer::from_slice(decorrelated_var2.as_mut_slice()),
-            |mut buffer| {
-                Color565::recorrelate_ycocg_r_var2_slice(buffer.as_mut_slice());
-            },
-            criterion::BatchSize::SmallInput,
-        )
-    });
-
-    // Benchmark for recorrelate_ycocg_r_var3_slice
-    group.bench_function("recorrelate_ycocg_r_var3_slice", |b| {
-        b.iter_batched(
-            || Color565Buffer::from_slice(decorrelated_var3.as_mut_slice()),
-            |mut buffer| {
-                Color565::recorrelate_ycocg_r_var3_slice(buffer.as_mut_slice());
-            },
-            criterion::BatchSize::SmallInput,
-        )
+    group.bench_function("recorrelate_ycocg_r_var3_ptr", |b| {
+        b.iter(|| unsafe {
+            Color565::recorrelate_ycocg_r_var3_ptr(
+                decorrelated_var3.as_ptr(),
+                decorrelated_var3.as_mut_ptr(),
+                decorrelated_var3.len(),
+            );
+        })
     });
 
     group.finish();

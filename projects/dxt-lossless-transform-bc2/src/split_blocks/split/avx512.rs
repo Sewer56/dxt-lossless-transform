@@ -495,4 +495,59 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn avx512_split_blocks_with_separate_pointers_matches_split_blocks() {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
+            return;
+        }
+
+        for num_blocks in 1..=512 {
+            let input = generate_bc2_test_data(num_blocks);
+            let len = input.len();
+
+            // Test with the contiguous buffer method
+            let mut output_contiguous = allocate_align_64(len).unwrap();
+
+            // Test with separate pointers
+            let mut alphas = allocate_align_64(len / 2).unwrap(); // 8 bytes per block
+            let mut colors = allocate_align_64(len / 4).unwrap(); // 4 bytes per block
+            let mut indices = allocate_align_64(len / 4).unwrap(); // 4 bytes per block
+
+            unsafe {
+                // Reference: contiguous buffer
+                permute_512(input.as_ptr(), output_contiguous.as_mut_ptr(), len);
+
+                // Test: separate pointers
+                permute_512_with_separate_pointers(
+                    input.as_ptr(),
+                    alphas.as_mut_ptr() as *mut u64,
+                    colors.as_mut_ptr() as *mut u32,
+                    indices.as_mut_ptr() as *mut u32,
+                    len,
+                );
+            }
+
+            // Verify that separate pointer results match contiguous buffer layout
+            let expected_alphas = &output_contiguous.as_slice()[0..len / 2];
+            let expected_colors = &output_contiguous.as_slice()[len / 2..len / 2 + len / 4];
+            let expected_indices = &output_contiguous.as_slice()[len / 2 + len / 4..];
+
+            assert_eq!(
+                alphas.as_slice(),
+                expected_alphas,
+                "AVX512 Alpha section mismatch for {num_blocks} blocks"
+            );
+            assert_eq!(
+                colors.as_slice(),
+                expected_colors,
+                "AVX512 Color section mismatch for {num_blocks} blocks"
+            );
+            assert_eq!(
+                indices.as_slice(),
+                expected_indices,
+                "AVX512 Index section mismatch for {num_blocks} blocks"
+            );
+        }
+    }
 }

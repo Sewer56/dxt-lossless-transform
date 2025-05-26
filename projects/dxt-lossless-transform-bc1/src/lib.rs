@@ -7,7 +7,10 @@ use dxt_lossless_transform_common::{
     transforms::split_565_color_endpoints::split_color_endpoints,
 };
 use normalize_blocks::{normalize_split_blocks_in_place, ColorNormalizationMode};
-use split_blocks::{split::split_blocks_with_separate_pointers, split_blocks, unsplit_blocks};
+use split_blocks::{
+    split::split_blocks_with_separate_pointers, split_blocks,
+    unsplit::unsplit_block_with_separate_pointers, unsplit_blocks,
+};
 pub mod determine_optimal_transform;
 pub mod normalize_blocks;
 pub mod split_blocks;
@@ -110,7 +113,7 @@ pub unsafe fn transform_bc1(
         Color565::decorrelate_ycocg_r_ptr(
             work_ptr as *const Color565,
             work_ptr as *mut Color565,
-            (len / 2) / size_of::<Color565>(),
+            (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
             transform_options.decorrelation_mode,
         );
     }
@@ -131,7 +134,7 @@ pub unsafe fn transform_bc1(
         Color565::decorrelate_ycocg_r_ptr(
             output_ptr as *const Color565,
             output_ptr as *mut Color565,
-            (len / 2) / size_of::<Color565>(),
+            (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
             transform_options.decorrelation_mode,
         );
     }
@@ -156,7 +159,7 @@ pub unsafe fn transform_bc1(
         Color565::decorrelate_ycocg_r_ptr(
             output_ptr as *const Color565,
             output_ptr as *mut Color565,
-            (len / 2) / size_of::<Color565>(),
+            (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
             transform_options.decorrelation_mode,
         );
     }
@@ -169,7 +172,7 @@ pub unsafe fn transform_bc1(
         Color565::decorrelate_ycocg_r_ptr(
             output_ptr as *const Color565,
             output_ptr as *mut Color565,
-            (len / 2) / size_of::<Color565>(),
+            (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
             transform_options.decorrelation_mode,
         );
     }
@@ -182,8 +185,10 @@ pub unsafe fn transform_bc1(
 /// - `input_ptr`: A pointer to the input data (input BC1 blocks).
 ///   Output from [`transform_bc1`].
 /// - `output_ptr`: A pointer to the output data (output BC1 blocks)
+/// - `work_ptr`: A pointer to a work buffer (used by function).
 /// - `len`: The length of the input data in bytes
-/// - `_details`: A struct containing information about the transform that was performed.
+/// - `transform_options`: A struct containing information about the transform that was originally performed.
+///   Must be equal to the one used in [`transform_bc1`] function.
 ///
 /// # Remarks
 ///
@@ -194,15 +199,49 @@ pub unsafe fn transform_bc1(
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
+/// - work_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
 pub unsafe fn untransform_bc1(
     input_ptr: *const u8,
     output_ptr: *mut u8,
+    work_ptr: *mut u8,
     len: usize,
-    _details: &Bc1TransformDetails,
+    transform_options: &Bc1TransformDetails,
 ) {
     debug_assert!(len % 8 == 0);
-    unsplit_blocks(input_ptr, output_ptr, len);
+
+    let has_split_colours = transform_options.split_colour_endpoints;
+
+    if has_split_colours {
+        // Unsplit the colours first, placing them into the work area.
+
+        // Recorrelate colours into work area.
+        Color565::recorrelate_ycocg_r_ptr(
+            input_ptr as *const Color565,
+            work_ptr as *mut Color565,
+            (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
+            transform_options.decorrelation_mode,
+        );
+
+        // Now unsplit the colours, placing them into the final buffer
+        // unsplit_block_with_separate_pointers(colors_ptr, indices_ptr, output_ptr, len);
+    } else {
+        // Recorrelate colours into work area.
+        Color565::recorrelate_ycocg_r_ptr(
+            input_ptr as *const Color565,
+            work_ptr as *mut Color565,
+            (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
+            transform_options.decorrelation_mode,
+        );
+
+        // Now unsplit the blocks, placing them into the final buffer
+        unsplit_block_with_separate_pointers(
+            work_ptr as *const u32,
+            input_ptr.add(len / 2) as *const u32,
+            output_ptr,
+            len,
+        );
+    }
 }

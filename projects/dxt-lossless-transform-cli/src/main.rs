@@ -191,11 +191,11 @@ pub unsafe fn untransform_format(
     _param: &(),
     input_ptr: *const u8,
     output_ptr: *mut u8,
-    _work_ptr: *mut u8,
+    work_ptr: *mut u8,
     len: usize,
     format: DdsFormat,
 ) {
-    dxt_lossless_transform_api::untransform_format(input_ptr, output_ptr, len, format)
+    dxt_lossless_transform_api::untransform_format(input_ptr, output_ptr, work_ptr, len, format)
 }
 
 fn handle_process_entry_error(result: Result<(), TransformError>) {

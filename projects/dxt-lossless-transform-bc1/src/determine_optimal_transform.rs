@@ -113,15 +113,15 @@ pub unsafe fn determine_best_transform_details(
                     split_color_endpoints(
                         input as *const Color565,
                         output as *mut Color565,
-                        len / 2,
+                        len / 2, // (len / 2): Length of colour endpoints in bytes
                     );
                     let colors_in_arr = slice::from_raw_parts(
                         output as *const Color565, // Using output as both source and destination as data was already copied there
-                        len / 2 / size_of::<Color565>(),
+                        (len / 2) / size_of::<Color565>(),
                     );
                     let colors_out_arr = slice::from_raw_parts_mut(
                         output as *mut Color565,
-                        len / 2 / size_of::<Color565>(),
+                        (len / 2) / size_of::<Color565>(),
                     );
                     Color565::decorrelate_ycocg_r_slice(
                         colors_in_arr,

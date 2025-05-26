@@ -57,6 +57,7 @@ pub unsafe fn transform_format(
 ///
 /// - `input_ptr` must be valid for reads of len bytes
 /// - `output_ptr` must be valid for writes of len bytes
+/// - `work_ptr` must be valid for writes of len bytes
 /// - `len` must be divisible by 8 (BC1 block size)
 /// - `input_ptr` and `output_ptr` must be 64-byte aligned (for performance and required by some platforms).
 /// - `format` must be a valid [`DdsFormat`], and the same format passed to [`transform_format`].
@@ -64,6 +65,7 @@ pub unsafe fn transform_format(
 pub unsafe fn untransform_format(
     input_ptr: *const u8,
     output_ptr: *mut u8,
+    work_ptr: *mut u8,
     len: usize,
     format: DdsFormat,
 ) {
@@ -73,6 +75,7 @@ pub unsafe fn untransform_format(
             dxt_lossless_transform_bc1::untransform_bc1(
                 input_ptr,
                 output_ptr,
+                work_ptr,
                 len,
                 &Bc1TransformDetails::default(),
             );

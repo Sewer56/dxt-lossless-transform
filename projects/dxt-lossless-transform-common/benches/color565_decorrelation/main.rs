@@ -179,6 +179,60 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    // Test split and recorrelate at the same time.
+    let decorrelated_var1 = Color565Buffer::from_slice_with_transform(
+        input_colors,
+        Color565::decorrelate_ycocg_r_var1_slice,
+    );
+    let mut decorrelated_dest = Color565Buffer::from_slice_with_transform(
+        input_colors,
+        Color565::decorrelate_ycocg_r_var1_slice,
+    );
+
+    group.bench_function("recorrelate_ycocg_r_var1_ptr_split", |b| {
+        b.iter(|| unsafe {
+            Color565::recorrelate_ycocg_r_var1_ptr_split(
+                decorrelated_var1.as_ptr(),
+                decorrelated_var1.as_ptr().add(decorrelated_var1.len() / 2),
+                decorrelated_dest.as_mut_ptr(), // use different destination pointer and non-overlapping buffers.
+                decorrelated_var1.len(),
+            );
+        })
+    });
+
+    drop(decorrelated_var1);
+    let decorrelated_var2 = Color565Buffer::from_slice_with_transform(
+        input_colors,
+        Color565::decorrelate_ycocg_r_var2_slice,
+    );
+    group.bench_function("recorrelate_ycocg_r_var2_ptr_split", |b| {
+        b.iter(|| unsafe {
+            Color565::recorrelate_ycocg_r_var2_ptr_split(
+                decorrelated_var2.as_ptr(),
+                decorrelated_var2.as_ptr().add(decorrelated_var2.len() / 2),
+                decorrelated_dest.as_mut_ptr(), // use different destination pointer and non-overlapping buffers.
+                decorrelated_var2.len(),
+            );
+        })
+    });
+
+    drop(decorrelated_var2);
+    let decorrelated_var3 = Color565Buffer::from_slice_with_transform(
+        input_colors,
+        Color565::decorrelate_ycocg_r_var3_slice,
+    );
+
+    group.bench_function("recorrelate_ycocg_r_var3_ptr_split", |b| {
+        b.iter(|| unsafe {
+            Color565::recorrelate_ycocg_r_var3_ptr_split(
+                decorrelated_var3.as_ptr(),
+                decorrelated_var3.as_ptr().add(decorrelated_var3.len() / 2),
+                decorrelated_dest.as_mut_ptr(), // use different destination pointer and non-overlapping buffers.
+                decorrelated_var3.len(),
+            );
+        })
+    });
+
     group.finish();
 }
 

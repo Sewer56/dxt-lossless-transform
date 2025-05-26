@@ -253,7 +253,6 @@ unsafe fn split_blocks_with_separate_pointers_x86(
 
 #[cfg(test)]
 pub mod tests {
-    use super::split_blocks_with_separate_pointers;
     use crate::split_blocks::split::portable32::u32;
     use dxt_lossless_transform_common::allocate::allocate_align_64;
     use safe_allocator_api::RawAlloc;

@@ -512,4 +512,46 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn avx2_split_blocks_with_separate_pointers_matches_split_blocks() {
+        if !dxt_lossless_transform_common::cpu_detect::has_avx2() {
+            return;
+        }
+
+        for num_blocks in 1..=512 {
+            let input = generate_bc1_test_data(num_blocks);
+            let len = input.len();
+            let mut output_ref = allocate_align_64(len).unwrap();
+            let mut colors_sep = allocate_align_64(len / 2).unwrap();
+            let mut indices_sep = allocate_align_64(len / 2).unwrap();
+
+            unsafe {
+                // Reference: contiguous output using shuffle_permute_unroll_2
+                shuffle_permute_unroll_2(input.as_ptr(), output_ref.as_mut_ptr(), len);
+
+                // Test separate pointers variant
+                shuffle_permute_unroll_2_with_separate_pointers(
+                    input.as_ptr(),
+                    colors_sep.as_mut_ptr() as *mut u32,
+                    indices_sep.as_mut_ptr() as *mut u32,
+                    len,
+                );
+            }
+
+            // Compare colors section (first half)
+            assert_eq!(
+                &output_ref.as_slice()[0..len / 2],
+                colors_sep.as_slice(),
+                "AVX2 colors section doesn't match for {num_blocks} blocks"
+            );
+
+            // Compare indices section (second half)
+            assert_eq!(
+                &output_ref.as_slice()[len / 2..],
+                indices_sep.as_slice(),
+                "AVX2 indices section doesn't match for {num_blocks} blocks"
+            );
+        }
+    }
 }

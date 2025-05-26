@@ -7,13 +7,14 @@ edition = "2021"
 # Debugging and Research Tools/Utilities for BC7
 # Currently a placeholder
 debug-bc7 = []
+nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/nightly", 
+           "safe-allocator-api/nightly"]
 
 [dependencies]
 argh = "0.1.13"
 rayon = "1.10.0"
 lightweight-mmap = "0.6.0"
 dxt-lossless-transform-api = { path = "../dxt-lossless-transform-api" }
-dxt-lossless-transform-bc1 = { optional = true, path = "../dxt-lossless-transform-bc1" }
-dxt-lossless-transform-common = { optional = true, path = "../dxt-lossless-transform-common" }
-
-safe-allocator-api = { optional = true, version = "0.3.0" }
+dxt-lossless-transform-bc1 = { path = "../dxt-lossless-transform-bc1" }
+dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }
+safe-allocator-api = { version = "0.4.0" }

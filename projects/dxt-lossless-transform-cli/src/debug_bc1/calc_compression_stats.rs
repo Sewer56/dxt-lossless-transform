@@ -15,7 +15,7 @@ use dxt_lossless_transform_api::DdsFormat;
 use dxt_lossless_transform_bc1::{transform_bc1, Bc1TransformDetails};
 use dxt_lossless_transform_common::allocate::allocate_align_64;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use std::{fs, path::Path, sync::Mutex};
+use std::{collections::HashMap, fs, path::Path, sync::Mutex};
 
 #[derive(Debug, Clone, PartialEq, Hash, Default)]
 struct CompressionStatsResult {
@@ -84,6 +84,10 @@ pub(crate) fn handle_compression_stats_command(
             }
         }
     });
+
+    // Print overall statistics
+    let results = results.into_inner().unwrap();
+    print_overall_statistics(&results);
 
     Ok(())
 }
@@ -251,4 +255,79 @@ fn format_transform_details(details: Bc1TransformDetails) -> String {
     };
 
     format!("{norm_mode}/{decorr_mode}/{split_endpoints}")
+}
+
+fn print_overall_statistics(results: &[CompressionStatsResult]) {
+    if results.is_empty() {
+        println!("\n📊 No files analyzed.");
+        return;
+    }
+
+    println!("\n📊 Overall Statistics:");
+    println!("═══════════════════════════════════════════════════════════════");
+
+    // Calculate totals
+    let total_original_uncompressed: usize =
+        results.iter().map(|r| r.original_uncompressed_size).sum();
+    let total_original_compressed: usize = results.iter().map(|r| r.original_compressed_size).sum();
+    let total_best_compressed: usize = results
+        .iter()
+        .map(|r| r.find_best_result().compressed_size)
+        .sum();
+
+    // Calculate ratios
+    let original_ratio = total_original_compressed as f64 / total_original_uncompressed as f64;
+    let best_ratio = total_best_compressed as f64 / total_original_uncompressed as f64;
+    let improvement_ratio = original_ratio - best_ratio;
+    let space_saved = total_original_compressed.saturating_sub(total_best_compressed);
+
+    // Count most common methods
+    let mut method_counts = HashMap::new();
+    for result in results {
+        let best_result = result.find_best_result();
+        *method_counts
+            .entry(best_result.transform_options)
+            .or_insert(0) += 1;
+    }
+
+    let most_common_method = method_counts
+        .iter()
+        .max_by_key(|(_, &count)| count)
+        .map(|(&method, &count)| (method, count));
+
+    // Print statistics
+    println!("Files analyzed: {}", results.len());
+    println!(
+        "Total original uncompressed size: {}",
+        format_bytes(total_original_uncompressed)
+    );
+    println!(
+        "Total original compressed size: {}",
+        format_bytes(total_original_compressed)
+    );
+    println!(
+        "Total best compressed size: {}",
+        format_bytes(total_best_compressed)
+    );
+    println!();
+    println!("Compression ratios:");
+    println!("  Original (no transform): {original_ratio:.3}");
+    println!("  Best (with transform): {best_ratio:.3}");
+    println!("  Improvement: -{improvement_ratio:.3}");
+    println!();
+    println!(
+        "Total space saved: {} ({:.1}% reduction)",
+        format_bytes(space_saved),
+        (space_saved as f64 / total_original_compressed as f64) * 100.0
+    );
+
+    if let Some((method, count)) = most_common_method {
+        let percentage = (count as f64 / results.len() as f64) * 100.0;
+        println!(
+            "Most common best method: {} ({count} files, {percentage:.1}%)",
+            format_transform_details(method)
+        );
+    }
+
+    println!("═══════════════════════════════════════════════════════════════");
 }

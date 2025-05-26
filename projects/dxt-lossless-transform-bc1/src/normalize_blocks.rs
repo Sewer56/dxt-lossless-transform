@@ -548,7 +548,7 @@ pub unsafe fn normalize_blocks_all_modes(
 ///
 /// BC1 blocks can represent solid colors in multiple ways. This enum
 /// defines the strategies for normalizing these representations to improve compression.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_enum_all_values::AllValues)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_enum_all_values::AllValues, Hash)]
 pub enum ColorNormalizationMode {
     /// No color normalization, preserves original color data
     None,

@@ -10,7 +10,7 @@ debug-bc7 = ["debug"]
 # Debugging BC1 behaviour
 debug-bc1 = ["debug"]
 # Common debugging utilities
-debug = ["zstd-sys", "derive_more", "derive-new", "thiserror-no-std"]
+debug = ["zstd-sys", "derive_more", "derive-new", "thiserror-no-std", "bytesize"]
 
 nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/nightly", 
            "safe-allocator-api/nightly"]
@@ -29,3 +29,4 @@ zstd-sys = { optional = true, version = "2.0.15", features = ["experimental"] } 
 derive_more = { optional = true, version = "2.0.1", features = ["deref", "deref_mut"] }
 derive-new = { optional = true, version = "0.7.0" }
 thiserror-no-std = { optional = true, version = "2.0.2" }
+bytesize = { optional = true, version = "2.0.1" }

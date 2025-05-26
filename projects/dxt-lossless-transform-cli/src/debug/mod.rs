@@ -15,10 +15,10 @@ pub mod zstd;
 pub(crate) unsafe fn extract_blocks_from_dds<TFunction>(
     dir_entry: &fs::DirEntry,
     filter: DdsFilter,
-    test_fn: TFunction,
+    mut test_fn: TFunction,
 ) -> Result<(), TransformError>
 where
-    TFunction: Fn(*const u8, usize, DdsFormat) -> Result<(), TransformError>,
+    TFunction: FnMut(*const u8, usize, DdsFormat) -> Result<(), TransformError>,
 {
     let path = dir_entry.path();
 

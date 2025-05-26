@@ -19,7 +19,7 @@ pub mod util;
 /// The information about the BC1 transform that was just performed.
 /// Each item transformed via [`transform_bc1`] will produce an instance of this struct.
 /// To undo the transform, you'll need to pass the same instance to [`untransform_bc1`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Bc1TransformDetails {
     /// The color normalization mode that was used to normalize the data.
     pub color_normalization_mode: ColorNormalizationMode,

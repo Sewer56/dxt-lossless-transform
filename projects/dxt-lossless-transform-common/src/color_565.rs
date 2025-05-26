@@ -1661,7 +1661,7 @@ impl Color565 {
 }
 
 /// Represents a function variant for decoration/recorrelation operations
-#[derive(Debug, Clone, Copy, PartialEq, Eq, AllValues)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, AllValues, Hash)]
 pub enum YCoCgVariant {
     /// Variant 1: Usually compresses best
     Variant1,

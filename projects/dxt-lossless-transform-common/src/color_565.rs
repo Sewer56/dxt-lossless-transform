@@ -621,6 +621,11 @@ impl Color565 {
         dst_ptr: *mut Self,
         num_items: usize,
     ) {
+        debug_assert!(
+            num_items % 2 == 0,
+            "num_items must be even for split operations"
+        );
+
         #[cfg_attr(
             not(feature = "nightly"), 
             multiversion(targets(
@@ -915,6 +920,11 @@ impl Color565 {
         dst_ptr: *mut Self,
         num_items: usize,
     ) {
+        debug_assert!(
+            num_items % 2 == 0,
+            "num_items must be even for split operations"
+        );
+
         #[cfg_attr(
             not(feature = "nightly"), 
             multiversion(targets(
@@ -1209,6 +1219,11 @@ impl Color565 {
         dst_ptr: *mut Self,
         num_items: usize,
     ) {
+        debug_assert!(
+            num_items % 2 == 0,
+            "num_items must be even for split operations"
+        );
+
         #[cfg_attr(
             not(feature = "nightly"), 
             multiversion(targets(

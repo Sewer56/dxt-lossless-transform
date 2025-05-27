@@ -21,7 +21,6 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIter
 use std::{
     collections::BTreeMap,
     fs::{File, OpenOptions},
-    io::{BufReader, BufWriter, Read, Write},
     path::PathBuf,
 };
 use std::{collections::HashMap, fs, path::Path, sync::Mutex};
@@ -381,7 +380,7 @@ fn zstd_calc_size_with_cache(
 
 /// Formats a byte count as a human-readable string
 fn format_bytes(bytes: usize) -> String {
-    ByteSize::b(bytes as u64).to_string()
+    format!("{:.3}", ByteSize::b(bytes as u64))
 }
 
 /// Extracts the filename from a full path

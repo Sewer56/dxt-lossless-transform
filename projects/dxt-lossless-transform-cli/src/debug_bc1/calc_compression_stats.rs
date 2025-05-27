@@ -39,6 +39,15 @@ impl CompressionStatsResult {
 
         best_result
     }
+
+    fn find_default_result(&self) -> TransformResult {
+        let default_transform = Bc1TransformDetails::default();
+        self.all_results
+            .iter()
+            .find(|result| result.transform_options == default_transform)
+            .copied()
+            .expect("Default transform should always be present in all_combinations()")
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Hash, Default, Copy)]
@@ -94,23 +103,36 @@ pub(crate) fn handle_compression_stats_command(
 
 fn print_analyzed_file(result: &CompressionStatsResult) {
     let best_result = result.find_best_result();
+    let default_result = result.find_default_result();
+
     let ratio_old =
         result.original_compressed_size as f64 / result.original_uncompressed_size as f64;
     let ratio_new = best_result.compression_ratio(result.original_uncompressed_size);
+    let ratio_default = default_result.compression_ratio(result.original_uncompressed_size);
     let ratio_improvement = ratio_old - ratio_new;
+    let default_improvement = ratio_old - ratio_default;
+
     println!(
-        "✓ Analyzed {}: orig/new: {}/{}, ratio orig/new: {:.3}/{:.3} (-{:.3}), space saved: {}, method: {}",
+        "✓ Analyzed {}: orig/default/best: {}/{}/{}, ratio orig/default/best: {:.3}/{:.3}/{:.3} (-{:.3}/-{:.3}), space saved default/best: {}/{}, best method: {}",
         get_filename(&result.file_path),               // name
         format_bytes(result.original_compressed_size), // orig
-        format_bytes(best_result.compressed_size),     // new
+        format_bytes(default_result.compressed_size),  // default
+        format_bytes(best_result.compressed_size),     // best
         ratio_old,
+        ratio_default,
         ratio_new,
+        default_improvement,
         ratio_improvement,
         format_bytes(
             result
                 .original_compressed_size
+                .saturating_sub(default_result.compressed_size)
+        ), // space saved with default
+        format_bytes(
+            result
+                .original_compressed_size
                 .saturating_sub(best_result.compressed_size)
-        ), // space saved
+        ), // space saved with best
         format_transform_details(best_result.transform_options) // method
     );
 }
@@ -274,12 +296,19 @@ fn print_overall_statistics(results: &[CompressionStatsResult]) {
         .iter()
         .map(|r| r.find_best_result().compressed_size)
         .sum();
+    let total_default_compressed: usize = results
+        .iter()
+        .map(|r| r.find_default_result().compressed_size)
+        .sum();
 
     // Calculate ratios
     let original_ratio = total_original_compressed as f64 / total_original_uncompressed as f64;
     let best_ratio = total_best_compressed as f64 / total_original_uncompressed as f64;
+    let default_ratio = total_default_compressed as f64 / total_original_uncompressed as f64;
     let improvement_ratio = original_ratio - best_ratio;
+    let default_improvement_ratio = original_ratio - default_ratio;
     let space_saved = total_original_compressed.saturating_sub(total_best_compressed);
+    let default_space_saved = total_original_compressed.saturating_sub(total_default_compressed);
 
     // Count most common methods
     let mut method_counts = HashMap::new();
@@ -306,17 +335,28 @@ fn print_overall_statistics(results: &[CompressionStatsResult]) {
         format_bytes(total_original_compressed)
     );
     println!(
+        "Total default compressed size: {}",
+        format_bytes(total_default_compressed)
+    );
+    println!(
         "Total best compressed size: {}",
         format_bytes(total_best_compressed)
     );
     println!();
     println!("Compression ratios:");
     println!("  Original (no transform): {original_ratio:.3}");
+    println!("  Default (None/YCoCg1/Split): {default_ratio:.3}");
     println!("  Best (with transform): {best_ratio:.3}");
-    println!("  Improvement: -{improvement_ratio:.3}");
+    println!("  Default improvement: -{default_improvement_ratio:.3}");
+    println!("  Best improvement: -{improvement_ratio:.3}");
     println!();
     println!(
-        "Total space saved: {} ({:.1}% reduction)",
+        "Total space saved with default: {} ({:.1}% reduction)",
+        format_bytes(default_space_saved),
+        (default_space_saved as f64 / total_original_compressed as f64) * 100.0
+    );
+    println!(
+        "Total space saved with best: {} ({:.1}% reduction)",
         format_bytes(space_saved),
         (space_saved as f64 / total_original_compressed as f64) * 100.0
     );

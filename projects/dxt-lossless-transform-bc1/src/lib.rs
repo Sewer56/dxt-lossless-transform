@@ -35,7 +35,7 @@ impl Default for Bc1TransformDetails {
     fn default() -> Self {
         // Best (on average) results, but of course not perfect, as is with brute-force method.
         Self {
-            color_normalization_mode: ColorNormalizationMode::Color0Only,
+            color_normalization_mode: ColorNormalizationMode::None,
             decorrelation_mode: YCoCgVariant::Variant1,
             split_colour_endpoints: true,
         }

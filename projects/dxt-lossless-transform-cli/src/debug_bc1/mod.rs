@@ -40,7 +40,7 @@ pub struct CompressionStatsCmd {
     pub input_directory: PathBuf,
 
     /// compression level for zstd (default: 17)
-    #[argh(option, default = "17")]
+    #[argh(option, default = "16")]
     pub compression_level: i32,
 
     /// compression level for zstd when using API best method estimation (default: 3)

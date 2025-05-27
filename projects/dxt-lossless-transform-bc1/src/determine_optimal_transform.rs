@@ -15,7 +15,7 @@ use crate::{
 
 /// The options for [`determine_best_transform_details`], regarding how the estimation is done,
 /// and other related factors.
-pub struct Bc1TransformOptions {
+pub struct Bc1TransformOptions<'a> {
     /// A function that returns an estimated file size for the given passed in data+len tuple.
     ///
     /// # Parameters
@@ -36,7 +36,7 @@ pub struct Bc1TransformOptions {
     /// maximize speed of [`determine_best_transform_details`], and to improve decompression speed
     /// by reducing the size of the sliding window (so more data in cache) and increasing minimum
     /// match length.
-    pub file_size_estimator: Box<dyn Fn(*const u8, usize) -> usize>,
+    pub file_size_estimator: Box<dyn Fn(*const u8, usize) -> usize + 'a>,
 }
 
 /// Determine the best transform details for the given BC1 blocks.

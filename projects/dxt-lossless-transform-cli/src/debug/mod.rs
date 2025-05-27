@@ -3,6 +3,8 @@ use core::ops::Sub;
 use dxt_lossless_transform_api::*;
 use std::fs;
 
+pub mod calc_compression_stats_common;
+pub mod compression_size_cache;
 pub mod zstd;
 
 /// Extracts BC1-BC7 blocks from a DDS file in memory.

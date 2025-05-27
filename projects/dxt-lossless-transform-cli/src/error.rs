@@ -12,6 +12,7 @@ pub enum TransformError {
     IgnoredByFilter,
     InvalidDdsFile,
     AllocateError(dxt_lossless_transform_common::allocate::AllocateError),
+    /// Reserved for arbitrary errors in debug/test functionality, not runtime/end user stuff.
     Debug(String),
 }
 

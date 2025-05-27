@@ -18,6 +18,12 @@ use dxt_lossless_transform_bc1::{
 };
 use dxt_lossless_transform_common::allocate::allocate_align_64;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use std::{
+    collections::BTreeMap,
+    fs::{File, OpenOptions},
+    io::{BufReader, BufWriter, Read, Write},
+    path::PathBuf,
+};
 use std::{collections::HashMap, fs, path::Path, sync::Mutex};
 
 #[derive(Debug, Clone, PartialEq, Hash, Default)]
@@ -77,6 +83,15 @@ pub(crate) fn handle_compression_stats_command(
     println!("Compression level: {}", cmd.compression_level);
     println!("API compression level: {}", cmd.estimate_compression_level);
 
+    // Initialize and load cache
+    let mut cache = CompressionCache::new();
+    if let Err(e) = cache.load_from_disk() {
+        println!("Warning: Failed to load cache: {e}");
+    } else {
+        println!("Loaded compression cache with {} entries", cache.len());
+    }
+    let cache = Mutex::new(cache);
+
     // Collect all files recursively using existing infrastructure
     let mut entries = Vec::new();
     find_all_files(input_path, &mut entries)?;
@@ -96,6 +111,7 @@ pub(crate) fn handle_compression_stats_command(
                 entry,
                 cmd.compression_level,
                 cmd.estimate_compression_level,
+                &cache,
             ) {
                 Ok(file_result) => {
                     files_analyzed.fetch_add(1, Ordering::Relaxed);
@@ -108,6 +124,13 @@ pub(crate) fn handle_compression_stats_command(
             }
         });
 
+    // Save cache
+    let cache = cache.into_inner().unwrap();
+    println!("Saving compression cache with {} entries", cache.len());
+    if let Err(e) = cache.save_to_disk() {
+        println!("Warning: Failed to save cache: {e}");
+    }
+
     // Print overall statistics
     let results = results.into_inner().unwrap();
     print_overall_statistics(&results);
@@ -115,24 +138,24 @@ pub(crate) fn handle_compression_stats_command(
     Ok(())
 }
 
-/// Zstandard file size estimator function for use with [`determine_best_transform_details`]
-fn zstd_file_size_estimator(estimate_compression_level: i32) -> impl Fn(*const u8, usize) -> usize {
-    move |data_ptr: *const u8, len: usize| -> usize {
-        match zstd_calc_size(data_ptr, len, estimate_compression_level) {
-            Ok(size) => size,
-            Err(_) => usize::MAX, // Return max size on error to make this option less favorable
-        }
-    }
-}
-
 unsafe fn analyze_bc1_api_recommendation(
     data_ptr: *const u8,
     len_bytes: usize,
     estimate_compression_level: i32,
     final_compression_level: i32,
+    cache: &Mutex<CompressionCache>,
 ) -> Result<TransformResult, TransformError> {
-    // Create the zstandard file size estimator
-    let estimator = zstd_file_size_estimator(estimate_compression_level);
+    // Create the zstandard file size estimator with cache clone for static lifetime
+    let estimator = {
+        let cache_clone = cache as *const Mutex<CompressionCache>;
+        move |data_ptr: *const u8, len: usize| -> usize {
+            let cache_ref = unsafe { &*cache_clone };
+            match zstd_calc_size_with_cache(data_ptr, len, estimate_compression_level, cache_ref) {
+                Ok(size) => size,
+                Err(_) => usize::MAX, // Return max size on error to make this option less favorable
+            }
+        }
+    };
 
     // Create transform options
     let transform_options = Bc1TransformOptions {
@@ -156,10 +179,11 @@ unsafe fn analyze_bc1_api_recommendation(
     );
 
     // Compress the transformed data (API recommendation, final level)
-    let compressed_size = zstd_calc_size(
+    let compressed_size = zstd_calc_size_with_cache(
         transformed_data.as_ptr(),
         len_bytes,
         final_compression_level,
+        cache,
     )?;
 
     Ok(TransformResult {
@@ -225,6 +249,7 @@ fn analyze_bc1_compression_file(
     entry: &fs::DirEntry,
     compression_level: i32,
     estimate_compression_level: i32,
+    cache: &Mutex<CompressionCache>,
 ) -> Result<CompressionStatsResult, TransformError> {
     let mut file_result: CompressionStatsResult = CompressionStatsResult::default();
 
@@ -248,17 +273,20 @@ fn analyze_bc1_compression_file(
                         data_ptr,
                         len_bytes,
                         compression_level,
+                        cache,
                     )?,
-                    original_compressed_size: zstd_calc_size(
+                    original_compressed_size: zstd_calc_size_with_cache(
                         data_ptr,
                         len_bytes,
                         compression_level,
+                        cache,
                     )?,
                     api_recommended_result: analyze_bc1_api_recommendation(
                         data_ptr,
                         len_bytes,
                         estimate_compression_level,
                         compression_level,
+                        cache,
                     )?,
                 };
 
@@ -274,6 +302,7 @@ fn analyze_bc1_compression_transforms(
     data_ptr: *const u8,
     len_bytes: usize,
     compression_level: i32,
+    cache: &Mutex<CompressionCache>,
 ) -> Result<Vec<TransformResult>, TransformError> {
     // Allocate aligned buffers for transformations
     let mut transformed_data = allocate_align_64(len_bytes)?;
@@ -295,10 +324,11 @@ fn analyze_bc1_compression_transforms(
             // Compress the transformed data
             results.push(TransformResult {
                 transform_options,
-                compressed_size: zstd_calc_size(
+                compressed_size: zstd_calc_size_with_cache(
                     transformed_data.as_ptr(),
                     len_bytes,
                     compression_level,
+                    cache,
                 )?,
             });
         }
@@ -307,16 +337,28 @@ fn analyze_bc1_compression_transforms(
     Ok(results)
 }
 
-fn zstd_calc_size(
+fn zstd_calc_size_with_cache(
     data_ptr: *const u8,
     len_bytes: usize,
     compression_level: i32,
+    cache: &Mutex<CompressionCache>,
 ) -> Result<usize, TransformError> {
+    let content_hash = calculate_content_hash(data_ptr, len_bytes);
+
+    // Try to get from cache
+    {
+        let cache_guard = cache.lock().unwrap();
+        if let Some(cached_size) = cache_guard.get(content_hash, compression_level) {
+            return Ok(cached_size);
+        }
+    }
+
+    // Not in cache, compute it
     let max_compressed_size = zstd::max_alloc_for_compress_size(len_bytes);
     let mut compressed_buffer =
         unsafe { Box::<[u8]>::new_uninit_slice(max_compressed_size).assume_init() };
 
-    Ok(unsafe {
+    let compressed_size = unsafe {
         let original_slice = slice::from_raw_parts(data_ptr, len_bytes);
         match zstd::compress(compression_level, original_slice, &mut compressed_buffer) {
             Ok(size) => size,
@@ -326,7 +368,15 @@ fn zstd_calc_size(
                 ))
             }
         }
-    })
+    };
+
+    // Store in cache
+    {
+        let mut cache_guard = cache.lock().unwrap();
+        cache_guard.insert(content_hash, compression_level, compressed_size);
+    }
+
+    Ok(compressed_size)
 }
 
 /// Formats a byte count as a human-readable string
@@ -527,4 +577,86 @@ fn print_overall_statistics(results: &[CompressionStatsResult]) {
     }
 
     println!("═══════════════════════════════════════════════════════════════");
+}
+
+/// Simple compression cache that stores compressed sizes for specific inputs and compression levels
+struct CompressionCache {
+    /// Map from (content_hash, compression_level) -> compressed_size
+    cache: BTreeMap<(u128, i32), usize>,
+    /// Path to the cache file
+    cache_file_path: PathBuf,
+}
+
+impl CompressionCache {
+    fn new() -> Self {
+        // Create cache directory in user's cache dir or fallback to current dir (Windows, etc.)
+        let cache_dir = std::env::var("HOME")
+            .map(|home| {
+                PathBuf::from(home)
+                    .join(".cache")
+                    .join("dxt-lossless-transform-cli")
+            })
+            .unwrap_or_else(|_| PathBuf::from(".cache").join("dxt-lossless-transform-cli"));
+
+        let cache_file_path = cache_dir.join("compression_cache.bin");
+
+        Self {
+            cache: BTreeMap::new(),
+            cache_file_path,
+        }
+    }
+
+    fn load_from_disk(&mut self) -> Result<(), TransformError> {
+        if !self.cache_file_path.exists() {
+            return Ok(()); // No cache file yet
+        }
+
+        let mut file = File::open(&self.cache_file_path)
+            .map_err(|e| TransformError::Debug(format!("Failed to open cache file: {e}")))?;
+
+        self.cache = bincode::decode_from_std_read(&mut file, bincode::config::standard())
+            .map_err(|e| TransformError::Debug(format!("Failed to deserialize cache: {e}")))?;
+
+        Ok(())
+    }
+
+    fn save_to_disk(&self) -> Result<(), TransformError> {
+        // Create parent directory if it doesn't exist
+        if let Some(parent) = self.cache_file_path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| {
+                TransformError::Debug(format!("Failed to create cache directory: {e}"))
+            })?;
+        }
+
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&self.cache_file_path)
+            .map_err(|e| TransformError::Debug(format!("Failed to create cache file: {e}")))?;
+
+        bincode::encode_into_std_write(&self.cache, &mut file, bincode::config::standard())
+            .map_err(|e| TransformError::Debug(format!("Failed to serialize cache: {e}")))?;
+
+        Ok(())
+    }
+
+    fn get(&self, content_hash: u128, compression_level: i32) -> Option<usize> {
+        self.cache.get(&(content_hash, compression_level)).copied()
+    }
+
+    fn insert(&mut self, content_hash: u128, compression_level: i32, compressed_size: usize) {
+        self.cache
+            .insert((content_hash, compression_level), compressed_size);
+    }
+
+    fn len(&self) -> usize {
+        self.cache.len()
+    }
+}
+
+/// Calculates XXH3-128 hash of data
+fn calculate_content_hash(data_ptr: *const u8, len_bytes: usize) -> u128 {
+    let data_slice = unsafe { slice::from_raw_parts(data_ptr, len_bytes) };
+    xxhash_rust::xxh3::xxh3_128(data_slice)
 }

@@ -14,7 +14,7 @@ use core::{
 use dxt_lossless_transform_api::DdsFormat;
 use dxt_lossless_transform_bc1::{transform_bc1, Bc1TransformDetails};
 use dxt_lossless_transform_common::allocate::allocate_align_64;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::{collections::HashMap, fs, path::Path, sync::Mutex};
 
 #[derive(Debug, Clone, PartialEq, Hash, Default)]
@@ -81,18 +81,23 @@ pub(crate) fn handle_compression_stats_command(
     let results = Mutex::new(Vec::<CompressionStatsResult>::new());
 
     // Process files in parallel
-    entries.par_iter().for_each(|entry| {
-        match analyze_bc1_compression_file(entry, cmd.compression_level) {
-            Ok(file_result) => {
-                files_analyzed.fetch_add(1, Ordering::Relaxed);
-                print_analyzed_file(&file_result);
-                results.lock().unwrap().push(file_result);
-            }
-            Err(e) => {
-                println!("✗ Error analyzing {}: {}", entry.path().display(), e);
-            }
-        }
-    });
+    entries
+        .par_iter()
+        // 1 item at once per thread. Our items are big generally, and take time to process
+        // so 'max work stealing' is preferred.
+        .with_max_len(1)
+        .for_each(
+            |entry| match analyze_bc1_compression_file(entry, cmd.compression_level) {
+                Ok(file_result) => {
+                    files_analyzed.fetch_add(1, Ordering::Relaxed);
+                    print_analyzed_file(&file_result);
+                    results.lock().unwrap().push(file_result);
+                }
+                Err(e) => {
+                    println!("✗ Error analyzing {}: {}", entry.path().display(), e);
+                }
+            },
+        );
 
     // Print overall statistics
     let results = results.into_inner().unwrap();

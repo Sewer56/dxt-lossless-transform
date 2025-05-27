@@ -271,15 +271,17 @@ pub fn print_overall_statistics<T, F>(
             .or_insert(0) += 1;
     }
 
-    let most_common_method = method_counts
+    let mut most_common_methods = method_counts
         .iter()
-        .max_by_key(|(_, &count)| count)
-        .map(|(&method, &count)| (method, count));
+        .map(|(&method, &count)| (method, count))
+        .collect::<Vec<_>>();
+    most_common_methods.sort_by_key(|&(_, count)| -count);
 
-    let most_common_api_method = api_method_counts
+    let mut most_common_api_method = api_method_counts
         .iter()
-        .max_by_key(|(_, &count)| count)
-        .map(|(&method, &count)| (method, count));
+        .map(|(&method, &count)| (method, count))
+        .collect::<Vec<_>>();
+    most_common_api_method.sort_by_key(|&(_, count)| -count);
 
     // Calculate API recommendation accuracy
     let api_matches_best_count = results
@@ -360,19 +362,21 @@ pub fn print_overall_statistics<T, F>(
     );
     println!("  Average ratio difference (API vs best): {avg_api_vs_best_diff:.6}");
 
-    if let Some((method, count)) = most_common_method {
-        let percentage = (count as f64 / results.len() as f64) * 100.0;
+    println!("  Most common best methods: ");
+    for (method, count) in most_common_methods.iter().take(3) {
+        let percentage = (*count as f64 / results.len() as f64) * 100.0;
         println!(
-            "  Most common best method: {} ({count} files, {percentage:.1}%)",
-            format_transform_details(method)
+            "    - {} ({count} files, {percentage:.1}%)",
+            format_transform_details(*method)
         );
     }
 
-    if let Some((method, count)) = most_common_api_method {
-        let percentage = (count as f64 / results.len() as f64) * 100.0;
+    println!("  Most common API methods: ");
+    for (method, count) in most_common_api_method.iter().take(3) {
+        let percentage = (*count as f64 / results.len() as f64) * 100.0;
         println!(
-            "  Most common API method: {} ({count} files, {percentage:.1}%)",
-            format_transform_details(method)
+            "    - {} ({count} files, {percentage:.1}%)",
+            format_transform_details(*method)
         );
     }
 

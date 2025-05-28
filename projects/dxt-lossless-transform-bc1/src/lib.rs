@@ -260,9 +260,9 @@ pub unsafe fn untransform_bc1(
     if has_split_colours {
         // Recorrelate colours into work area, doing the unsplit in the same process.
         Color565::recorrelate_ycocg_r_ptr_split(
+            input_ptr as *mut Color565,
+            input_ptr.add(len / 4) as *mut Color565,
             work_ptr as *mut Color565,
-            work_ptr.add(len / 4) as *mut Color565,
-            output_ptr as *mut Color565,
             (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
             transform_options.decorrelation_mode,
         );

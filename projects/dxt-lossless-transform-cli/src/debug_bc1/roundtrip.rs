@@ -74,6 +74,7 @@ fn test_bc1_roundtrip(data_ptr: *const u8, len_bytes: usize) -> Result<(), Trans
             );
 
             // Untransform the data back
+            work_buffer.as_mut_slice().fill(0x00); // reset work buffer
             untransform_bc1(
                 transformed_data.as_ptr(),
                 roundtrip_data.as_mut_ptr(),

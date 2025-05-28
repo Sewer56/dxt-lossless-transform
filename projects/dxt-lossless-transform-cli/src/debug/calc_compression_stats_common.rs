@@ -3,12 +3,12 @@
 //! This module provides shared data structures, utilities, and analysis functions that can be
 //! reused across different BC format implementations for compression statistics analysis.
 
-use crate::{debug::zstd, error::TransformError};
+use crate::error::TransformError;
 use bytesize::ByteSize;
 use core::{fmt::Debug, slice};
 use std::{collections::HashMap, hash::Hash, path::Path, sync::Mutex};
 
-use super::compression_size_cache::CompressionCache;
+use super::{calculate_content_hash, compression_size_cache::CompressionCache, zstd};
 
 /// Generic compression statistics result for a single file analysis.
 ///
@@ -128,12 +128,6 @@ pub fn zstd_calc_size_with_cache(
     }
 
     Ok(compressed_size)
-}
-
-/// Calculates XXH3-128 hash of data for use as a cache key.
-pub fn calculate_content_hash(data_ptr: *const u8, len_bytes: usize) -> u128 {
-    let data_slice = unsafe { slice::from_raw_parts(data_ptr, len_bytes) };
-    xxhash_rust::xxh3::xxh3_128(data_slice)
 }
 
 /// Formats a byte count as a human-readable string using [`ByteSize`].

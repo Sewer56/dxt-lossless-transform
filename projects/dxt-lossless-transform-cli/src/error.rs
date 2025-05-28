@@ -13,6 +13,7 @@ pub enum TransformError {
     InvalidDdsFile,
     AllocateError(dxt_lossless_transform_common::allocate::AllocateError),
     /// Reserved for arbitrary errors in debug/test functionality, not runtime/end user stuff.
+    #[cfg(feature = "debug")]
     Debug(String),
 }
 

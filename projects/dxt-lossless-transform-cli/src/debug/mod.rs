@@ -1,9 +1,11 @@
 use crate::{error::TransformError, util::*, DdsFilter};
-use core::ops::Sub;
+use core::{ops::Sub, slice};
 use dxt_lossless_transform_api::*;
 use std::fs;
 
+pub mod benchmark_common;
 pub mod calc_compression_stats_common;
+pub mod compressed_data_cache;
 pub mod compression_size_cache;
 pub mod zstd;
 
@@ -36,4 +38,10 @@ where
 
     // Call the roundtrip function with the BC1 data
     test_fn(data_ptr, len_bytes, format)
+}
+
+/// Calculates XXH3-128 hash of data for use as a cache key.
+pub fn calculate_content_hash(data_ptr: *const u8, len_bytes: usize) -> u128 {
+    let data_slice = unsafe { slice::from_raw_parts(data_ptr, len_bytes) };
+    xxhash_rust::xxh3::xxh3_128(data_slice)
 }

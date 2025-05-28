@@ -19,9 +19,25 @@ use dxt_lossless_transform_bc1::{
     transform_bc1, untransform_bc1, Bc1TransformDetails,
 };
 use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::{fs, sync::Mutex};
 
 type CompressionCache = compression_size_cache::CompressionCache;
+
+/// Configuration for benchmark execution
+struct BenchmarkConfig {
+    iterations: u32,
+    warmup_iterations: u32,
+    compression_level: i32,
+    estimate_compression_level: i32,
+    dry_run: bool,
+}
+
+/// References to the caches used during benchmarking
+struct CacheRefs<'a> {
+    compression_cache: &'a Mutex<CompressionCache>,
+    compressed_cache: &'a CompressedDataCache,
+}
 
 pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), TransformError> {
     let input_path = &cmd.input_directory;
@@ -63,22 +79,53 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
         return Ok(());
     }
 
-    let results = std::sync::Mutex::new(Vec::<benchmark_common::BenchmarkResult>::new());
+    // Dry run phase - pre-populate compression cache in parallel
+    println!("Performing dry run (transform + compress only) to populate compression cache...");
+    entries
+        .par_iter()
+        .with_max_len(1) // compression is expensive, so 1 item at a time per thread is faster.
+        .for_each(|entry| {
+            let _ = process_file(
+                entry,
+                &BenchmarkConfig {
+                    iterations: 0,        // No iterations for dry run
+                    warmup_iterations: 0, // No warmup for dry run
+                    compression_level: cmd.compression_level,
+                    estimate_compression_level: cmd.estimate_compression_level,
+                    dry_run: true, // This is a dry run
+                },
+                &CacheRefs {
+                    compression_cache: &cache,
+                    compressed_cache: &compressed_cache,
+                },
+            );
+        });
+
+    println!("Dry run completed. Starting actual benchmarks...\n");
+    let mut results = Vec::new();
 
     // Process files (not in parallel!! we want clean results!)
     for entry in entries {
-        match benchmark_file(
+        match process_file(
             &entry,
-            cmd.iterations,
-            cmd.warmup_iterations,
-            cmd.compression_level,
-            cmd.estimate_compression_level,
-            &cache,
-            &compressed_cache,
+            &BenchmarkConfig {
+                iterations: cmd.iterations,
+                warmup_iterations: cmd.warmup_iterations,
+                compression_level: cmd.compression_level,
+                estimate_compression_level: cmd.estimate_compression_level,
+                dry_run: false, // This is not a dry run
+            },
+            &CacheRefs {
+                compression_cache: &cache,
+                compressed_cache: &compressed_cache,
+            },
         ) {
-            Ok(file_result) => {
+            Ok(Some(file_result)) => {
                 print_file_result(&file_result);
-                results.lock().unwrap().push(file_result);
+                results.push(file_result);
+            }
+            Ok(None) => {
+                // Dry run. Unreachable.
             }
             Err(e) => {
                 println!("✗ Error benchmarking {}: {}", entry.path().display(), e);
@@ -94,22 +141,21 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
     }
 
     // Print overall statistics
-    let results = results.into_inner().unwrap();
     print_overall_statistics(&results);
 
     Ok(())
 }
 
-fn benchmark_file(
+fn process_file(
     entry: &fs::DirEntry,
-    iterations: u32,
-    warmup_iterations: u32,
-    compression_level: i32,
-    estimate_compression_level: i32,
-    cache: &Mutex<CompressionCache>,
-    compressed_cache: &CompressedDataCache,
-) -> Result<BenchmarkResult, TransformError> {
-    let mut file_result = BenchmarkResult::new(entry.path().display().to_string(), 0);
+    config: &BenchmarkConfig,
+    caches: &CacheRefs,
+) -> Result<Option<BenchmarkResult>, TransformError> {
+    let mut file_result = if config.dry_run {
+        None
+    } else {
+        Some(BenchmarkResult::new(entry.path().display().to_string(), 0))
+    };
 
     unsafe {
         extract_blocks_from_dds(
@@ -124,7 +170,9 @@ fn benchmark_file(
                     return Ok(()); // Skip non-BC1 data
                 }
 
-                file_result.file_size_bytes = len_bytes;
+                if let Some(ref mut result) = file_result {
+                    result.file_size_bytes = len_bytes;
+                }
 
                 // Define the scenarios to benchmark
                 let scenarios = vec![
@@ -133,8 +181,8 @@ fn benchmark_file(
                         get_api_recommended_details(
                             data_ptr,
                             len_bytes,
-                            estimate_compression_level,
-                            cache,
+                            config.estimate_compression_level,
+                            caches.compression_cache,
                         )?,
                     ),
                     (
@@ -163,32 +211,34 @@ fn benchmark_file(
                     ),
                 ];
 
-                // Benchmark each scenario
+                // Process each scenario
                 for (scenario_name, transform_details) in scenarios {
-                    let scenario_result = benchmark_scenario(
+                    if let Some(scenario_result) = process_scenario(
                         data_ptr,
                         len_bytes,
                         scenario_name,
                         transform_details,
-                        compression_level,
-                        iterations,
-                        warmup_iterations,
-                        compressed_cache,
-                    )?;
-                    file_result.add_scenario(scenario_result);
+                        config,
+                        caches.compressed_cache,
+                    )? {
+                        if let Some(ref mut result) = file_result {
+                            result.add_scenario(scenario_result);
+                        }
+                    }
                 }
 
-                // Benchmark untransformed data (no transformation applied)
-                let untransformed_result = benchmark_untransformed_scenario(
+                // Process untransformed data (no transformation applied)
+                if let Some(untransformed_result) = process_untransformed_scenario(
                     data_ptr,
                     len_bytes,
                     "Untransformed",
-                    compression_level,
-                    iterations,
-                    warmup_iterations,
-                    compressed_cache,
-                )?;
-                file_result.add_scenario(untransformed_result);
+                    config,
+                    caches.compressed_cache,
+                )? {
+                    if let Some(ref mut result) = file_result {
+                        result.add_scenario(untransformed_result);
+                    }
+                }
 
                 Ok(())
             },
@@ -227,21 +277,17 @@ unsafe fn get_api_recommended_details(
         .map_err(|e| TransformError::Debug(format!("API recommendation failed: {e}")))
 }
 
-#[allow(clippy::too_many_arguments)]
-unsafe fn benchmark_scenario(
+unsafe fn process_scenario(
     data_ptr: *const u8,
     len_bytes: usize,
     scenario_name: &str,
     transform_details: Bc1TransformDetails,
-    compression_level: i32,
-    iterations: u32,
-    warmup_iterations: u32,
+    config: &BenchmarkConfig,
     compressed_cache: &CompressedDataCache,
-) -> Result<BenchmarkScenarioResult, TransformError> {
+) -> Result<Option<BenchmarkScenarioResult>, TransformError> {
     // Allocate buffers
     let mut transformed_data = allocate_align_64(len_bytes)?;
     let mut work_buffer = allocate_align_64(len_bytes)?;
-    let mut final_output = allocate_align_64(len_bytes)?;
 
     // Transform the original data
     transform_bc1(
@@ -252,21 +298,27 @@ unsafe fn benchmark_scenario(
         transform_details,
     );
 
-    // Compress the transformed data
+    // Compress the transformed data (this populates the cache for both dry run and benchmark)
     let (compressed_data, compressed_size) = benchmark_common::zstd_compress_data_cached(
         transformed_data.as_ptr(),
         len_bytes,
-        compression_level,
+        config.compression_level,
         compressed_cache,
     )?;
+
+    // For dry run, we only need to populate the cache
+    if config.dry_run {
+        return Ok(None);
+    }
 
     drop(transformed_data);
 
     // Create decompression buffer (we know the exact size)
     let mut decompressed_data = allocate_align_64(len_bytes)?;
+    let mut final_output = allocate_align_64(len_bytes)?;
 
     // Warmup phase
-    for _ in 0..warmup_iterations {
+    for _ in 0..config.warmup_iterations {
         // Decompress
         zstd_decompress_data(
             &compressed_data[..compressed_size],
@@ -285,7 +337,7 @@ unsafe fn benchmark_scenario(
 
     // Benchmark decompression
     let (_, decompress_time_ms) = benchmark_common::measure_time(|| {
-        for _ in 0..iterations {
+        for _ in 0..config.iterations {
             zstd_decompress_data(
                 &compressed_data[..compressed_size],
                 decompressed_data.as_mut_slice(),
@@ -296,7 +348,7 @@ unsafe fn benchmark_scenario(
 
     // Benchmark detransform
     let (_, detransform_time_ms) = benchmark_common::measure_time(|| {
-        for _ in 0..iterations {
+        for _ in 0..config.iterations {
             untransform_bc1(
                 decompressed_data.as_ptr(),
                 final_output.as_mut_ptr(),
@@ -308,39 +360,42 @@ unsafe fn benchmark_scenario(
     });
 
     // Average the times over iterations
-    let avg_decompress_time = decompress_time_ms / iterations as f64;
-    let avg_detransform_time = detransform_time_ms / iterations as f64;
+    let avg_decompress_time = decompress_time_ms / config.iterations as f64;
+    let avg_detransform_time = detransform_time_ms / config.iterations as f64;
 
-    Ok(BenchmarkScenarioResult::new(
+    Ok(Some(BenchmarkScenarioResult::new(
         scenario_name.to_string(),
         len_bytes,
         avg_decompress_time,
         avg_detransform_time,
-    ))
+    )))
 }
 
-unsafe fn benchmark_untransformed_scenario(
+unsafe fn process_untransformed_scenario(
     data_ptr: *const u8,
     len_bytes: usize,
     scenario_name: &str,
-    compression_level: i32,
-    iterations: u32,
-    warmup_iterations: u32,
+    config: &BenchmarkConfig,
     compressed_cache: &CompressedDataCache,
-) -> Result<BenchmarkScenarioResult, TransformError> {
-    // Allocate decompression buffer
-    let mut decompressed_data = allocate_align_64(len_bytes)?;
-
+) -> Result<Option<BenchmarkScenarioResult>, TransformError> {
     // Compress the original data directly (bypassing transformation)
     let (compressed_data_ptr, compressed_size) = benchmark_common::zstd_compress_data_cached(
         data_ptr,
         len_bytes,
-        compression_level,
+        config.compression_level,
         compressed_cache,
     )?;
 
+    // For dry run, we only need to populate the cache
+    if config.dry_run {
+        return Ok(None);
+    }
+
+    // Allocate decompression buffer
+    let mut decompressed_data = allocate_align_64(len_bytes)?;
+
     // Warmup phase
-    for _ in 0..warmup_iterations {
+    for _ in 0..config.warmup_iterations {
         // Decompress
         zstd_decompress_data(
             &compressed_data_ptr[..compressed_size],
@@ -350,7 +405,7 @@ unsafe fn benchmark_untransformed_scenario(
 
     // Benchmark decompression
     let (_, decompress_time_ms) = benchmark_common::measure_time(|| {
-        for _ in 0..iterations {
+        for _ in 0..config.iterations {
             zstd_decompress_data(
                 &compressed_data_ptr[..compressed_size],
                 decompressed_data.as_mut_slice(),
@@ -360,12 +415,12 @@ unsafe fn benchmark_untransformed_scenario(
     });
 
     // Average the time over iterations
-    let avg_decompress_time = decompress_time_ms / iterations as f64;
+    let avg_decompress_time = decompress_time_ms / config.iterations as f64;
 
-    Ok(BenchmarkScenarioResult::new(
+    Ok(Some(BenchmarkScenarioResult::new(
         scenario_name.to_string(),
         len_bytes,
         avg_decompress_time,
         0.0, // No detransform time for untransformed scenario
-    ))
+    )))
 }

@@ -63,8 +63,8 @@ pub struct BenchmarkCmd {
     #[argh(option, default = "16")]
     pub compression_level: i32,
 
-    /// compression level for zstd when using API best method estimation (default: 3)
-    #[argh(option, default = "3")]
+    /// compression level for zstd when using API best method estimation (default: 1)
+    #[argh(option, default = "1")]
     pub estimate_compression_level: i32,
 
     /// number of iterations per file for performance measurement (default: 10)

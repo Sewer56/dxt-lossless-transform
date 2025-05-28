@@ -8,8 +8,9 @@ use dxt_lossless_transform_common::{
 };
 use normalize_blocks::{normalize_split_blocks_in_place, ColorNormalizationMode};
 use split_blocks::{
-    split::split_blocks_with_separate_pointers, split_blocks,
-    unsplit::unsplit_block_with_separate_pointers,
+    split::split_blocks_with_separate_pointers,
+    split_blocks,
+    unsplit::{unsplit_block_with_separate_pointers, unsplit_blocks},
 };
 pub mod determine_optimal_transform;
 pub mod normalize_blocks;
@@ -274,6 +275,9 @@ pub unsafe fn untransform_bc1(
             output_ptr,
             len,
         );
+    } else if transform_options.decorrelation_mode == YCoCgVariant::None {
+        // If no decorrelation, we can just unsplit directly.
+        unsplit_blocks(input_ptr, output_ptr, len);
     } else {
         // Recorrelate colours into work area.
         Color565::recorrelate_ycocg_r_ptr(

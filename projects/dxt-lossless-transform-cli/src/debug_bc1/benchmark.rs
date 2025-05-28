@@ -6,7 +6,8 @@ use crate::{
             BenchmarkResult, BenchmarkScenarioResult,
         },
         compressed_data_cache::CompressedDataCache,
-        compression_size_cache, extract_blocks_from_dds,
+        compression_size_cache::CompressionSizeCache,
+        extract_blocks_from_dds,
     },
     error::TransformError,
     util::find_all_files,
@@ -22,8 +23,6 @@ use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoC
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::{fs, sync::Mutex};
 
-type CompressionCache = compression_size_cache::CompressionCache;
-
 /// Configuration for benchmark execution
 struct BenchmarkConfig {
     iterations: u32,
@@ -35,7 +34,7 @@ struct BenchmarkConfig {
 
 /// References to the caches used during benchmarking
 struct CacheRefs<'a> {
-    compression_cache: &'a Mutex<CompressionCache>,
+    compression_cache: &'a Mutex<CompressionSizeCache>,
     compressed_cache: &'a CompressedDataCache,
 }
 
@@ -54,11 +53,11 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
     );
 
     // Initialize and load cache for determining API recommendations
-    let mut cache = CompressionCache::new();
+    let mut cache = CompressionSizeCache::new();
     if let Err(e) = cache.load_from_disk() {
         println!("Warning: Failed to load cache: {e}");
     } else {
-        println!("Loaded compression cache with {} entries", cache.len());
+        println!("Loaded compression size cache with {} entries", cache.len());
     }
     let cache = Mutex::new(cache);
 
@@ -79,8 +78,10 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
         return Ok(());
     }
 
-    // Dry run phase - pre-populate compression cache in parallel
-    println!("Performing dry run (transform + compress only) to populate compression cache...");
+    // Dry run phase - pre-populate compression data cache in parallel
+    println!(
+        "Performing dry run (transform + compress only) to populate compression data cache..."
+    );
     entries
         .par_iter()
         .with_max_len(1) // compression is expensive, so 1 item at a time per thread is faster.
@@ -135,7 +136,7 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
 
     // Save cache
     let cache = cache.into_inner().unwrap();
-    println!("Saving compression cache with {} entries", cache.len());
+    println!("Saving compression size cache with {} entries", cache.len());
     if let Err(e) = cache.save_to_disk() {
         println!("Warning: Failed to save cache: {e}");
     }
@@ -252,7 +253,7 @@ unsafe fn get_api_recommended_details(
     data_ptr: *const u8,
     len_bytes: usize,
     estimate_compression_level: i32,
-    cache: &Mutex<CompressionCache>,
+    cache: &Mutex<CompressionSizeCache>,
 ) -> Result<Bc1TransformDetails, TransformError> {
     // Create the zstandard file size estimator with cache clone for static lifetime
     let estimator = move |data_ptr: *const u8, len: usize| -> usize {

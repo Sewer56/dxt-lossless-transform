@@ -19,7 +19,7 @@ use std::{fs, sync::Mutex};
 type Bc1CompressionStatsResult =
     calc_compression_stats_common::CompressionStatsResult<Bc1TransformDetails>;
 type Bc1TransformResult = calc_compression_stats_common::TransformResult<Bc1TransformDetails>;
-type CompressionCache = compression_size_cache::CompressionCache;
+type CompressionCache = compression_size_cache::CompressionSizeCache;
 
 pub(crate) fn handle_compression_stats_command(
     cmd: CompressionStatsCmd,
@@ -37,7 +37,7 @@ pub(crate) fn handle_compression_stats_command(
     if let Err(e) = cache.load_from_disk() {
         println!("Warning: Failed to load cache: {e}");
     } else {
-        println!("Loaded compression cache with {} entries", cache.len());
+        println!("Loaded compression size cache with {} entries", cache.len());
     }
     let cache = Mutex::new(cache);
 
@@ -78,7 +78,7 @@ pub(crate) fn handle_compression_stats_command(
 
     // Save cache
     let cache = cache.into_inner().unwrap();
-    println!("Saving compression cache with {} entries", cache.len());
+    println!("Saving compression size cache with {} entries", cache.len());
     if let Err(e) = cache.save_to_disk() {
         println!("Warning: Failed to save cache: {e}");
     }

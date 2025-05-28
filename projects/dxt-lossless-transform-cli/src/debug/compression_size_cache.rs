@@ -10,14 +10,14 @@ use crate::error::TransformError;
 ///
 /// This cache is format-agnostic and can be shared across all BC format analyses, as it is based on
 /// input content hashes and compression levels rather than specific formats.
-pub struct CompressionCache {
+pub struct CompressionSizeCache {
     /// Map from (content_hash, compression_level) -> compressed_size
     cache: HashMap<(u128, i32), usize>,
     /// Path to the cache file
     cache_file_path: PathBuf,
 }
 
-impl CompressionCache {
+impl CompressionSizeCache {
     /// Creates a new compression cache with default file path.
     pub fn new() -> Self {
         // Create cache directory in user's cache dir or fallback to current dir (Windows, etc.)

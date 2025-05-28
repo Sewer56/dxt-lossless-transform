@@ -4,7 +4,10 @@
 //! reused across different BC format implementations for performance analysis.
 
 use super::compressed_data_cache::CompressedDataCache;
-use crate::{debug::zstd, error::TransformError};
+use crate::{
+    debug::{calc_compression_stats_common::get_filename, zstd},
+    error::TransformError,
+};
 use core::{fmt::Debug, slice};
 use std::{collections::HashMap, time::Instant};
 
@@ -179,7 +182,7 @@ where
 
 /// Prints the results for a single file's benchmark.
 pub fn print_file_result(result: &BenchmarkResult) {
-    let filename = crate::debug::calc_compression_stats_common::get_filename(&result.file_path);
+    let filename = get_filename(&result.file_path);
 
     println!(
         "✓ Benchmarked {}: size: {:.3} MiB",
@@ -219,18 +222,21 @@ pub fn print_overall_statistics(results: &[BenchmarkResult]) {
     println!("Total data processed: {total_size_mib:.3} MiB");
     println!();
 
-    // Collect all scenarios from all files
-    let mut all_scenarios: Vec<(&str, &BenchmarkScenarioResult)> = Vec::new();
+    // Collect all scenarios from all files with their file sizes
+    let mut all_scenarios: Vec<(&str, &BenchmarkScenarioResult, usize)> = Vec::new();
     for result in results {
         for scenario in &result.scenarios {
-            all_scenarios.push((&scenario.scenario_name, scenario));
+            all_scenarios.push((&scenario.scenario_name, scenario, result.file_size_bytes));
         }
     }
 
     // Group scenarios by name and calculate averages
-    let mut scenario_groups: HashMap<&str, Vec<&BenchmarkScenarioResult>> = HashMap::new();
-    for (name, scenario) in all_scenarios {
-        scenario_groups.entry(name).or_default().push(scenario);
+    let mut scenario_groups: HashMap<&str, Vec<(&BenchmarkScenarioResult, usize)>> = HashMap::new();
+    for (name, scenario, file_size) in all_scenarios {
+        scenario_groups
+            .entry(name)
+            .or_default()
+            .push((scenario, file_size));
     }
 
     // Struct to hold scenario statistics for sorting
@@ -239,76 +245,74 @@ pub fn print_overall_statistics(results: &[BenchmarkResult]) {
         avg_decompress_throughput: f64,
         avg_detransform_throughput: f64,
         avg_combined_throughput: f64,
-        min_decompress_throughput: f64,
-        max_decompress_throughput: f64,
-        min_detransform_throughput: f64,
-        max_detransform_throughput: f64,
-        min_combined_throughput: f64,
-        max_combined_throughput: f64,
+        total_decompress_time_ms: f64,
+        total_detransform_time_ms: f64,
+        total_combined_time_ms: f64,
     }
 
     // Calculate statistics for each scenario type
     let mut scenario_stats: Vec<ScenarioStats> = Vec::new();
-    for (scenario_name, scenarios) in scenario_groups {
-        if scenarios.is_empty() {
+    for (scenario_name, scenario_data) in scenario_groups {
+        if scenario_data.is_empty() {
             continue;
         }
 
-        let count = scenarios.len();
-        let avg_decompress_throughput = scenarios
-            .iter()
-            .map(|s| s.decompress_throughput_gibs)
-            .sum::<f64>()
-            / count as f64;
-        let avg_detransform_throughput = scenarios
-            .iter()
-            .map(|s| s.detransform_throughput_gibs)
-            .sum::<f64>()
-            / count as f64;
-        let avg_combined_throughput = scenarios
-            .iter()
-            .map(|s| s.combined_throughput_gibs)
-            .sum::<f64>()
-            / count as f64;
+        // Calculate weighted average throughput based on total data and total time
+        let total_size_bytes: usize = scenario_data.iter().map(|(_, file_size)| *file_size).sum();
+        let total_size_gib = total_size_bytes as f64 / (1024.0 * 1024.0 * 1024.0);
 
-        let min_decompress_throughput = scenarios
+        let total_decompress_time_s: f64 = scenario_data
             .iter()
-            .map(|s| s.decompress_throughput_gibs)
-            .fold(f64::INFINITY, f64::min);
-        let max_decompress_throughput = scenarios
+            .map(|(scenario, _)| scenario.decompress_time_ms / 1000.0)
+            .sum();
+        let total_detransform_time_s: f64 = scenario_data
             .iter()
-            .map(|s| s.decompress_throughput_gibs)
-            .fold(f64::NEG_INFINITY, f64::max);
+            .map(|(scenario, _)| scenario.detransform_time_ms / 1000.0)
+            .sum();
+        let total_combined_time_s: f64 = scenario_data
+            .iter()
+            .map(|(scenario, _)| scenario.combined_time_ms / 1000.0)
+            .sum();
 
-        let min_detransform_throughput = scenarios
-            .iter()
-            .map(|s| s.detransform_throughput_gibs)
-            .fold(f64::INFINITY, f64::min);
-        let max_detransform_throughput = scenarios
-            .iter()
-            .map(|s| s.detransform_throughput_gibs)
-            .fold(f64::NEG_INFINITY, f64::max);
+        // Calculate weighted average throughput
+        let avg_decompress_throughput = if total_decompress_time_s > 0.0 {
+            total_size_gib / total_decompress_time_s
+        } else {
+            0.0
+        };
+        let avg_detransform_throughput = if total_detransform_time_s > 0.0 {
+            total_size_gib / total_detransform_time_s
+        } else {
+            0.0
+        };
+        let avg_combined_throughput = if total_combined_time_s > 0.0 {
+            total_size_gib / total_combined_time_s
+        } else {
+            0.0
+        };
 
-        let min_combined_throughput = scenarios
+        // Calculate total times in milliseconds
+        let total_decompress_time_ms: f64 = scenario_data
             .iter()
-            .map(|s| s.combined_throughput_gibs)
-            .fold(f64::INFINITY, f64::min);
-        let max_combined_throughput = scenarios
+            .map(|(scenario, _)| scenario.decompress_time_ms)
+            .sum();
+        let total_detransform_time_ms: f64 = scenario_data
             .iter()
-            .map(|s| s.combined_throughput_gibs)
-            .fold(f64::NEG_INFINITY, f64::max);
+            .map(|(scenario, _)| scenario.detransform_time_ms)
+            .sum();
+        let total_combined_time_ms: f64 = scenario_data
+            .iter()
+            .map(|(scenario, _)| scenario.combined_time_ms)
+            .sum();
 
         scenario_stats.push(ScenarioStats {
             scenario_name: scenario_name.to_string(),
             avg_decompress_throughput,
             avg_detransform_throughput,
             avg_combined_throughput,
-            min_decompress_throughput,
-            max_decompress_throughput,
-            min_detransform_throughput,
-            max_detransform_throughput,
-            min_combined_throughput,
-            max_combined_throughput,
+            total_decompress_time_ms,
+            total_detransform_time_ms,
+            total_combined_time_ms,
         });
     }
 
@@ -323,22 +327,16 @@ pub fn print_overall_statistics(results: &[BenchmarkResult]) {
     for stats in scenario_stats {
         println!("📈 {}:", stats.scenario_name);
         println!(
-            "  Decompress: avg {:.2} GiB/s, range {:.2} - {:.2} GiB/s",
-            stats.avg_decompress_throughput,
-            stats.min_decompress_throughput,
-            stats.max_decompress_throughput
+            "  Decompress: avg {:.2} GiB/s, total {:.2} ms",
+            stats.avg_decompress_throughput, stats.total_decompress_time_ms
         );
         println!(
-            "  Detransform: avg {:.2} GiB/s, range {:.2} - {:.2} GiB/s",
-            stats.avg_detransform_throughput,
-            stats.min_detransform_throughput,
-            stats.max_detransform_throughput
+            "  Detransform: avg {:.2} GiB/s, total {:.2} ms",
+            stats.avg_detransform_throughput, stats.total_detransform_time_ms
         );
         println!(
-            "  Combined: avg {:.2} GiB/s, range {:.2} - {:.2} GiB/s",
-            stats.avg_combined_throughput,
-            stats.min_combined_throughput,
-            stats.max_combined_throughput
+            "  Combined: avg {:.2} GiB/s, total {:.2} ms",
+            stats.avg_combined_throughput, stats.total_combined_time_ms
         );
         println!();
     }

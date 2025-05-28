@@ -1,4 +1,3 @@
-use super::calculate_content_hash;
 use crate::error::TransformError;
 use std::{
     fs::{self, File},
@@ -51,14 +50,13 @@ impl CompressedDataCache {
     /// Loads compressed data from cache if it exists.
     ///
     /// Returns the compressed data and its size, or [`None`] if not cached.
+    /// Takes a pre-calculated content hash to avoid recalculation.
     #[allow(clippy::type_complexity)]
     pub fn load_compressed_data(
         &self,
-        data_ptr: *const u8,
-        len_bytes: usize,
+        content_hash: u128,
         compression_level: i32,
     ) -> Result<Option<(Box<[u8]>, usize)>, TransformError> {
-        let content_hash = calculate_content_hash(data_ptr, len_bytes);
         let cache_file = self.cache_key(content_hash, compression_level);
 
         if !cache_file.exists() {
@@ -79,16 +77,15 @@ impl CompressedDataCache {
     }
 
     /// Saves compressed data to cache.
+    /// Takes a pre-calculated content hash to avoid recalculation.
     pub fn save_compressed_data(
         &self,
-        data_ptr: *const u8,
-        len_bytes: usize,
+        content_hash: u128,
         compression_level: i32,
         compressed_data: &[u8],
     ) -> Result<(), TransformError> {
         self.ensure_cache_dir()?;
 
-        let content_hash = calculate_content_hash(data_ptr, len_bytes);
         let cache_file = self.cache_key(content_hash, compression_level);
 
         let mut file = File::create(&cache_file)

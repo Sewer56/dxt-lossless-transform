@@ -3,13 +3,22 @@
 //! This module provides shared data structures, utilities, and benchmarking functions that can be
 //! reused across different BC format implementations for performance analysis.
 
-use super::compressed_data_cache::CompressedDataCache;
+use super::{
+    calculate_content_hash, compressed_data_cache::CompressedDataCache,
+    compression_size_cache::CompressionSizeCache,
+};
 use crate::{
     debug::{calc_compression_stats_common::get_filename, zstd},
     error::TransformError,
 };
 use core::{fmt::Debug, slice};
-use std::{collections::HashMap, time::Instant};
+use std::{collections::HashMap, sync::Mutex, time::Instant};
+
+/// References to the caches used during benchmarking
+pub struct CacheRefs<'a> {
+    pub compressed_size_cache: &'a Mutex<CompressionSizeCache>,
+    pub compressed_data_cache: &'a CompressedDataCache,
+}
 
 /// Result of benchmarking a specific transform scenario.
 #[derive(Debug, Clone)]
@@ -95,16 +104,23 @@ impl BenchmarkResult {
 /// This function first checks if compressed data is already cached, and if not,
 /// compresses the data and stores the result in the cache for future use.
 /// Returns both the compressed data and size, just like [`zstd_compress_data`].
+///
+/// Also populates a [`CompressionSizeCache`] with the compressed size for future size-only queries.
 pub fn zstd_compress_data_cached(
     data_ptr: *const u8,
     len_bytes: usize,
     compression_level: i32,
-    cache: &CompressedDataCache,
+    caches: &CacheRefs,
 ) -> Result<(Box<[u8]>, usize), TransformError> {
+    // Calculate content hash once
+    let content_hash = calculate_content_hash(data_ptr, len_bytes);
+
     // Try to load from cache first
-    if let Some((cached_data, cached_size)) =
-        cache.load_compressed_data(data_ptr, len_bytes, compression_level)?
+    if let Some((cached_data, cached_size)) = caches
+        .compressed_data_cache
+        .load_compressed_data(content_hash, compression_level)?
     {
+        // Data cache and size cache should be synced, so no need to write to size cache here
         return Ok((cached_data, cached_size));
     }
 
@@ -113,14 +129,19 @@ pub fn zstd_compress_data_cached(
         zstd_compress_data(data_ptr, len_bytes, compression_level)?;
 
     // Save to cache for future use
-    if let Err(e) = cache.save_compressed_data(
-        data_ptr,
-        len_bytes,
+    if let Err(e) = caches.compressed_data_cache.save_compressed_data(
+        content_hash,
         compression_level,
         &compressed_data[..compressed_size],
     ) {
         // Log the error but don't fail the operation
         eprintln!("Warning: Failed to save compressed data to cache: {e}");
+    }
+
+    // Also populate the size cache when writing to data cache
+    {
+        let mut size_cache_guard = caches.compressed_size_cache.lock().unwrap();
+        size_cache_guard.insert(content_hash, compression_level, compressed_size);
     }
 
     Ok((compressed_data, compressed_size))

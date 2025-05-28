@@ -3,7 +3,7 @@ use crate::{
     debug::{
         benchmark_common::{
             self, print_file_result, print_overall_statistics, zstd_decompress_data,
-            BenchmarkResult, BenchmarkScenarioResult,
+            BenchmarkResult, BenchmarkScenarioResult, CacheRefs,
         },
         compressed_data_cache::CompressedDataCache,
         compression_size_cache::CompressionSizeCache,
@@ -30,12 +30,6 @@ struct BenchmarkConfig {
     compression_level: i32,
     estimate_compression_level: i32,
     dry_run: bool,
-}
-
-/// References to the caches used during benchmarking
-struct CacheRefs<'a> {
-    compression_cache: &'a Mutex<CompressionSizeCache>,
-    compressed_cache: &'a CompressedDataCache,
 }
 
 pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), TransformError> {
@@ -96,8 +90,8 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
                     dry_run: true, // This is a dry run
                 },
                 &CacheRefs {
-                    compression_cache: &cache,
-                    compressed_cache: &compressed_cache,
+                    compressed_size_cache: &cache,
+                    compressed_data_cache: &compressed_cache,
                 },
             );
         });
@@ -117,8 +111,8 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
                 dry_run: false, // This is not a dry run
             },
             &CacheRefs {
-                compression_cache: &cache,
-                compressed_cache: &compressed_cache,
+                compressed_size_cache: &cache,
+                compressed_data_cache: &compressed_cache,
             },
         ) {
             Ok(Some(file_result)) => {
@@ -183,7 +177,7 @@ fn process_file(
                             data_ptr,
                             len_bytes,
                             config.estimate_compression_level,
-                            caches.compression_cache,
+                            caches.compressed_size_cache,
                         )?,
                     ),
                     (
@@ -220,7 +214,7 @@ fn process_file(
                         scenario_name,
                         transform_details,
                         config,
-                        caches.compressed_cache,
+                        caches,
                     )? {
                         if let Some(ref mut result) = file_result {
                             result.add_scenario(scenario_result);
@@ -234,7 +228,7 @@ fn process_file(
                     len_bytes,
                     "Untransformed",
                     config,
-                    caches.compressed_cache,
+                    caches,
                 )? {
                     if let Some(ref mut result) = file_result {
                         result.add_scenario(untransformed_result);
@@ -284,7 +278,7 @@ unsafe fn process_scenario(
     scenario_name: &str,
     transform_details: Bc1TransformDetails,
     config: &BenchmarkConfig,
-    compressed_cache: &CompressedDataCache,
+    caches: &CacheRefs,
 ) -> Result<Option<BenchmarkScenarioResult>, TransformError> {
     // Allocate buffers
     let mut transformed_data = allocate_align_64(len_bytes)?;
@@ -304,7 +298,7 @@ unsafe fn process_scenario(
         transformed_data.as_ptr(),
         len_bytes,
         config.compression_level,
-        compressed_cache,
+        caches,
     )?;
 
     // For dry run, we only need to populate the cache
@@ -377,14 +371,14 @@ unsafe fn process_untransformed_scenario(
     len_bytes: usize,
     scenario_name: &str,
     config: &BenchmarkConfig,
-    compressed_cache: &CompressedDataCache,
+    caches: &CacheRefs,
 ) -> Result<Option<BenchmarkScenarioResult>, TransformError> {
     // Compress the original data directly (bypassing transformation)
     let (compressed_data_ptr, compressed_size) = benchmark_common::zstd_compress_data_cached(
         data_ptr,
         len_bytes,
         config.compression_level,
-        compressed_cache,
+        caches,
     )?;
 
     // For dry run, we only need to populate the cache

@@ -13,7 +13,7 @@ pub use dxt_lossless_transform_dds::dds::*;
 ///
 /// - `input_ptr` must be valid for reads of len bytes
 /// - `output_ptr` must be valid for writes of len bytes
-/// - `work_ptr` must be valid for writes of len bytes
+/// - `work_ptr` must be valid for writes of len/2 bytes
 /// - `len` must be divisible by 8 (BC1 block size)
 /// - `input_ptr` and `output_ptr` must be 64-byte aligned (for performance and required by some platforms).
 /// - `format` must be a valid [`DdsFormat`]

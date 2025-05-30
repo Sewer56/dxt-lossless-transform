@@ -111,7 +111,7 @@ impl Bc1TransformDetails {
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - work_ptr must be valid for writes of len bytes
+/// - work_ptr must be valid for writes of len/2 bytes
 /// - len must be divisible by 8
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]

@@ -5,13 +5,33 @@ edition = "2021"
 
 [features]
 # Debugging and Research Tools/Utilities for BC7
-# Currently a placeholder
-debug-bc7 = []
+# Currently BC7
+debug-bc7 = ["debug"]
+# Debugging BC1 behaviour
+debug-bc1 = ["debug"]
+# Common debugging utilities
+debug = ["zstd-sys", "derive_more", "derive-new", "thiserror-no-std", "bytesize", "xxhash-rust", "bincode", "serde", "dirs"]
+
+nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/nightly", 
+           "safe-allocator-api/nightly"]
 
 [dependencies]
 argh = "0.1.13"
 rayon = "1.10.0"
 lightweight-mmap = "0.6.0"
 dxt-lossless-transform-api = { path = "../dxt-lossless-transform-api" }
-dxt-lossless-transform-bc1 = { optional = true, path = "../dxt-lossless-transform-bc1" }
-safe-allocator-api = { optional = true, version = "0.3.0" }
+dxt-lossless-transform-bc1 = { path = "../dxt-lossless-transform-bc1" }
+dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }
+safe-allocator-api = { version = "0.4.0" }
+thiserror = "2.0.12"
+
+# Debug only
+zstd-sys = { optional = true, version = "2.0.15", features = ["experimental"] } # 1.5.7
+derive_more = { optional = true, version = "2.0.1", features = ["deref", "deref_mut"] }
+derive-new = { optional = true, version = "0.7.0" }
+thiserror-no-std = { optional = true, version = "2.0.2" }
+bytesize = { optional = true, version = "2.0.1" }
+xxhash-rust = { optional = true, version = "0.8.12", features = ["xxh3"] }
+bincode = { optional = true, version = "2.0.1" }
+serde = { optional = true, version = "1.0.215", features = ["derive"] }
+dirs = { optional = true, version = "6.0.0" }

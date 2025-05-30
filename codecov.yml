@@ -2,6 +2,7 @@ ignore:
   - "tests"
   - "benches"
   - "examples"
+  - "projects/dxt-lossless-transform-cli"
 
 comment:
   layout: "reach, diff, flags, files"

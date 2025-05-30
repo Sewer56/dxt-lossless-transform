@@ -484,6 +484,20 @@ impl Color565 {
     /// The output slice must be at least as large as the input slice.
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
+    ///
+    /// # Parameters
+    ///
+    /// - `src_ptr`: Pointer to the source array of [`Color565`] items to transform
+    /// - `dst_ptr`: Pointer to the destination array where transformed items will be stored
+    /// - `num_items`: Number of [`Color565`] items to process (not bytes)
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because it takes raw pointers and doesn't check bounds.
+    /// Caller must ensure that:
+    /// - Both pointers are properly aligned and valid for reads/writes for at least `num_items` elements
+    /// - The memory regions don't overlap
+    /// - `src_ptr` points to initialized data
     #[inline]
     #[cfg(not(tarpaulin_include))]
     pub fn decorrelate_ycocg_r_var1_slice(src: &[Self], dst: &mut [Self]) {
@@ -559,7 +573,7 @@ impl Color565 {
         recorr(src_ptr, dst_ptr, num_items);
     }
 
-    /// Convenience function that applies [`Self::recorrelate_ycocg_r_var1`] to each element in a slice.
+    /// Convenience function that applies [`Self::decorrelate_ycocg_r_var1`] to each element in a slice.
     ///
     /// Takes an input slice and an output slice, applying the transformation while copying.
     /// The output slice must be at least as large as the input slice.
@@ -858,7 +872,7 @@ impl Color565 {
         recorr(src_ptr, dst_ptr, num_items);
     }
 
-    /// Convenience function that applies [`Self::recorrelate_ycocg_r_var2`] to each element in a slice.
+    /// Convenience function that applies [`Self::decorrelate_ycocg_r_var2`] to each element in a slice.
     ///
     /// Takes an input slice and an output slice, applying the transformation while copying.
     /// The output slice must be at least as large as the input slice.
@@ -1157,7 +1171,7 @@ impl Color565 {
         recorr(src_ptr, dst_ptr, num_items);
     }
 
-    /// Convenience function that applies [`Self::recorrelate_ycocg_r_var3`] to each element in a slice.
+    /// Convenience function that applies [`Self::decorrelate_ycocg_r_var3`] to each element in a slice.
     ///
     /// Takes an input slice and an output slice, applying the transformation while copying.
     /// The output slice must be at least as large as the input slice.
@@ -1647,7 +1661,7 @@ impl Color565 {
 }
 
 /// Represents a function variant for decoration/recorrelation operations
-#[derive(Debug, Clone, Copy, PartialEq, Eq, AllValues)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, AllValues, Hash)]
 pub enum YCoCgVariant {
     /// Variant 1: Usually compresses best
     Variant1,

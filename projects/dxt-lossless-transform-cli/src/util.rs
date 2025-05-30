@@ -1,3 +1,5 @@
+#![cfg(not(tarpaulin_include))]
+
 use crate::error::TransformError;
 use crate::DdsFilter;
 use dxt_lossless_transform_api::*;

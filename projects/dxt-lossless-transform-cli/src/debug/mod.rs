@@ -1,3 +1,5 @@
+#![cfg(not(tarpaulin_include))]
+
 use crate::{error::TransformError, util::*, DdsFilter};
 use core::{ops::Sub, slice};
 use dxt_lossless_transform_api::*;

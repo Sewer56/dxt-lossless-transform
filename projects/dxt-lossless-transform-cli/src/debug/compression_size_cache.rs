@@ -1,10 +1,9 @@
+use crate::error::TransformError;
 use std::{
     collections::HashMap,
     fs::{self, File, OpenOptions},
     path::PathBuf,
 };
-
-use crate::error::TransformError;
 
 /// Simple compression cache that stores compressed sizes for specific inputs and compression levels.
 ///

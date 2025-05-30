@@ -82,6 +82,7 @@ fn test_bc1_roundtrip(data_ptr: *const u8, len_bytes: usize) -> Result<(), Trans
                 len_bytes,
                 transform_options,
             );
+            work_buffer.as_mut_slice().fill(0x00); // reset work buffer (again)
 
             // Compare all pixels by decoding each block
             let num_blocks = len_bytes / 8;

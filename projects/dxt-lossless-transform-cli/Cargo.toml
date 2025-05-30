@@ -23,6 +23,7 @@ dxt-lossless-transform-api = { path = "../dxt-lossless-transform-api" }
 dxt-lossless-transform-bc1 = { path = "../dxt-lossless-transform-bc1" }
 dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }
 safe-allocator-api = { version = "0.4.0" }
+thiserror = "2.0.12"
 
 # Debug only
 zstd-sys = { optional = true, version = "2.0.15", features = ["experimental"] } # 1.5.7

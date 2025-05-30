@@ -255,7 +255,7 @@ fn process_dir_entry<TParam>(
 
     unsafe {
         let len_bytes = source_size.sub(info.data_offset as usize);
-        let mut work_mapping = allocate_align_64(len_bytes).unwrap(); // TODO: Handle error & reuse allocation smarter.
+        let mut work_mapping = allocate_align_64(len_bytes)?;
         transform_fn(
             param,
             source_mapping.data().add(info.data_offset as usize),

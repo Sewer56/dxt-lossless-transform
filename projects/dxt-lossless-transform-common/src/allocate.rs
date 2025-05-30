@@ -42,9 +42,15 @@ impl<const NUM_ELEMENTS: usize> FixedRawAllocArray<NUM_ELEMENTS> {
 
     /// Gets a slice of just the pointers to the start of each allocation.
     ///
+    /// # Safety
+    ///
+    /// The returned pointers are valid only as long as this [`FixedRawAllocArray`]
+    /// instance remains alive. Using these pointers after the instance is dropped
+    /// results in undefined behavior.
+    ///
     /// # Returns
     ///
-    /// A slice of [`RawAlloc`]s
+    /// An array of raw pointers to the start of each allocation
     #[inline]
     pub fn get_pointer_slice(&mut self) -> [*mut u8; NUM_ELEMENTS] {
         core::array::from_fn(|x| self.allocations[x].as_mut_ptr())

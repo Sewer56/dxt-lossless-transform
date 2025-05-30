@@ -19,18 +19,10 @@ impl CompressedDataCache {
     /// Creates a new compressed data cache with default directory path.
     pub fn new() -> Self {
         // Create cache directory in user's cache dir or fallback to current dir (Windows, etc.)
-        let cache_dir = std::env::var("HOME")
-            .map(|home| {
-                PathBuf::from(home)
-                    .join(".cache")
-                    .join("dxt-lossless-transform-cli")
-                    .join("compressed_data")
-            })
-            .unwrap_or_else(|_| {
-                PathBuf::from(".cache")
-                    .join("dxt-lossless-transform-cli")
-                    .join("compressed_data")
-            });
+        let cache_dir = dirs::cache_dir()
+            .unwrap_or_else(|| PathBuf::from(".cache"))
+            .join("dxt-lossless-transform-cli")
+            .join("compressed_data");
 
         Self { cache_dir }
     }

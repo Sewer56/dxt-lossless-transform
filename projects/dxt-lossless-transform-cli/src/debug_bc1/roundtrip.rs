@@ -129,3 +129,42 @@ fn test_bc1_roundtrip_file(entry: &fs::DirEntry) -> Result<(), TransformError> {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn test_bc1_roundtrip_on_test_file() {
+        let test_file_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("assets/tests/r2-256-bc1.dds");
+
+        // Verify the test file exists
+        assert!(
+            test_file_path.exists(),
+            "Test file does not exist: {}",
+            test_file_path.display()
+        );
+
+        // Read directory containing the test file to get a proper DirEntry
+        let parent_dir = test_file_path.parent().unwrap();
+        let file_name = test_file_path.file_name().unwrap();
+
+        let dir_entry = fs::read_dir(parent_dir)
+            .unwrap()
+            .find(|entry| entry.as_ref().unwrap().file_name() == file_name)
+            .unwrap()
+            .unwrap();
+
+        // Run the roundtrip test
+        let result = test_bc1_roundtrip_file(&dir_entry);
+
+        // Assert the test passes
+        assert!(result.is_ok(), "BC1 roundtrip test failed: {result:?}");
+    }
+}

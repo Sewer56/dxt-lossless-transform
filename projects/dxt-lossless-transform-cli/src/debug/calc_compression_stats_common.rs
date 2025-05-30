@@ -80,7 +80,7 @@ where
 {
     /// Calculates the compression ratio (compressed_size / original_size).
     pub fn compression_ratio(&self, original_size: usize) -> f64 {
-        self.compressed_size as f64 / original_size as f64
+        self.compressed_size as f64 / original_size.max(1) as f64
     }
 }
 
@@ -157,7 +157,7 @@ where
     let api_result = &result.api_recommended_result;
 
     let ratio_old =
-        result.original_compressed_size as f64 / result.original_uncompressed_size as f64;
+        result.original_compressed_size as f64 / result.original_uncompressed_size.max(1) as f64;
     let ratio_new = best_result.compression_ratio(result.original_uncompressed_size);
     let ratio_default = default_result.compression_ratio(result.original_uncompressed_size);
     let ratio_api = api_result.compression_ratio(result.original_uncompressed_size);
@@ -241,10 +241,11 @@ pub fn print_overall_statistics<T, F>(
         .sum();
 
     // Calculate ratios
-    let original_ratio = total_original_compressed as f64 / total_original_uncompressed as f64;
-    let best_ratio = total_best_compressed as f64 / total_original_uncompressed as f64;
-    let default_ratio = total_default_compressed as f64 / total_original_uncompressed as f64;
-    let api_ratio = total_api_compressed as f64 / total_original_uncompressed as f64;
+    let original_ratio =
+        total_original_compressed as f64 / total_original_uncompressed.max(1) as f64;
+    let best_ratio = total_best_compressed as f64 / total_original_uncompressed.max(1) as f64;
+    let default_ratio = total_default_compressed as f64 / total_original_uncompressed.max(1) as f64;
+    let api_ratio = total_api_compressed as f64 / total_original_uncompressed.max(1) as f64;
     let improvement_ratio = original_ratio - best_ratio;
     let default_improvement_ratio = original_ratio - default_ratio;
     let api_improvement_ratio = original_ratio - api_ratio;
@@ -334,17 +335,17 @@ pub fn print_overall_statistics<T, F>(
     println!(
         "Total space saved with default: {} ({:.1}% reduction)",
         format_bytes(default_space_saved),
-        (default_space_saved as f64 / total_original_compressed as f64) * 100.0
+        (default_space_saved as f64 / total_original_compressed.max(1) as f64) * 100.0
     );
     println!(
         "Total space saved with API: {} ({:.1}% reduction)",
         format_bytes(api_space_saved),
-        (api_space_saved as f64 / total_original_compressed as f64) * 100.0
+        (api_space_saved as f64 / total_original_compressed.max(1) as f64) * 100.0
     );
     println!(
         "Total space saved with best: {} ({:.1}% reduction)",
         format_bytes(space_saved),
-        (space_saved as f64 / total_original_compressed as f64) * 100.0
+        (space_saved as f64 / total_original_compressed.max(1) as f64) * 100.0
     );
     println!();
     println!("📈 API Recommendation Analysis:");

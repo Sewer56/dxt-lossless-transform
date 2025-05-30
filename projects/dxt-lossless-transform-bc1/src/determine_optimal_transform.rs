@@ -1,17 +1,16 @@
+use crate::{
+    normalize_blocks::{normalize_blocks_all_modes, ColorNormalizationMode},
+    split_blocks::split_blocks,
+    Bc1TransformDetails,
+};
+use core::mem::size_of;
 use core::slice;
-
 use dxt_lossless_transform_common::{
     allocate::{AllocateError, FixedRawAllocArray},
     color_565::{Color565, YCoCgVariant},
     transforms::split_565_color_endpoints::split_color_endpoints,
 };
 use thiserror::Error;
-
-use crate::{
-    normalize_blocks::{normalize_blocks_all_modes, ColorNormalizationMode},
-    split_blocks::split_blocks,
-    Bc1TransformDetails,
-};
 
 /// The options for [`determine_best_transform_details`], regarding how the estimation is done,
 /// and other related factors.
@@ -173,4 +172,41 @@ where
 pub enum DetermineBestTransformError {
     #[error(transparent)]
     AllocateError(#[from] AllocateError),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Simple dummy file size estimator that just returns the input length
+    fn dummy_file_size_estimator(_data: *const u8, len: usize) -> usize {
+        len
+    }
+
+    /// Test that determine_best_transform_details doesn't crash with minimal BC1 data
+    #[test]
+    fn determine_best_transform_details_does_not_crash_and_burn() {
+        // Create minimal BC1 block data (8 bytes per block)
+        // This is a simple red block
+        let bc1_data = [
+            0x00, 0xF8, // Color0: Red in RGB565 (0xF800)
+            0x00, 0x00, // Color1: Black (0x0000)
+            0x00, 0x00, 0x00, 0x00, // Indices: all pointing to Color0
+        ];
+
+        let transform_options = Bc1TransformOptions {
+            file_size_estimator: dummy_file_size_estimator,
+        };
+
+        // This should not crash
+        let result = unsafe {
+            determine_best_transform_details(bc1_data.as_ptr(), bc1_data.len(), transform_options)
+        };
+
+        // Just verify it returns Ok, we don't care about the specific transform details
+        assert!(
+            result.is_ok(),
+            "Function should not crash with valid BC1 data"
+        );
+    }
 }

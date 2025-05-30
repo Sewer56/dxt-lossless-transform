@@ -205,7 +205,7 @@ unsafe fn analyze_bc1_api_recommendation(
 
     // Create transform options
     let transform_options = Bc1TransformOptions {
-        file_size_estimator: Box::new(estimator),
+        file_size_estimator: estimator,
     };
 
     // Determine the best transform details using the API

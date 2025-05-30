@@ -15,7 +15,10 @@ use crate::{
 
 /// The options for [`determine_best_transform_details`], regarding how the estimation is done,
 /// and other related factors.
-pub struct Bc1TransformOptions<'a> {
+pub struct Bc1TransformOptions<F>
+where
+    F: Fn(*const u8, usize) -> usize,
+{
     /// A function that returns an estimated file size for the given passed in data+len tuple.
     ///
     /// # Parameters
@@ -36,7 +39,7 @@ pub struct Bc1TransformOptions<'a> {
     /// maximize speed of [`determine_best_transform_details`], and to improve decompression speed
     /// by reducing the size of the sliding window (so more data in cache) and increasing minimum
     /// match length.
-    pub file_size_estimator: Box<dyn Fn(*const u8, usize) -> usize + 'a>,
+    pub file_size_estimator: F,
 }
 
 /// Determine the best transform details for the given BC1 blocks.
@@ -60,11 +63,14 @@ pub struct Bc1TransformOptions<'a> {
 /// # Safety
 ///
 /// Function is unsafe because it deals with raw pointers which must be correct.
-pub unsafe fn determine_best_transform_details(
+pub unsafe fn determine_best_transform_details<F>(
     input_ptr: *const u8,
     len: usize,
-    transform_options: Bc1TransformOptions,
-) -> Result<Bc1TransformDetails, DetermineBestTransformError> {
+    transform_options: Bc1TransformOptions<F>,
+) -> Result<Bc1TransformDetails, DetermineBestTransformError>
+where
+    F: Fn(*const u8, usize) -> usize,
+{
     // TODO: Write a 'fast' variant of this, which basically means defaulting to a single normalize
     //       as we can't test them all.
 

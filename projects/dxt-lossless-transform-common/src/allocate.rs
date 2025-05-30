@@ -34,8 +34,26 @@ impl<const NUM_ELEMENTS: usize> FixedRawAllocArray<NUM_ELEMENTS> {
         // RawAlloc has no default, and we initialize all elements below
         let mut allocations =
             unsafe { MaybeUninit::<[RawAlloc; NUM_ELEMENTS]>::uninit().assume_init() };
+
+        // Track how many allocations we've successfully made for cleanup on failure
+        let mut initialized_count = 0;
+
         for item in allocations.iter_mut().take(NUM_ELEMENTS) {
-            *item = allocate_align_64(num_bytes)?;
+            match allocate_align_64(num_bytes) {
+                Ok(alloc) => {
+                    *item = alloc;
+                    initialized_count += 1;
+                }
+                Err(e) => {
+                    // Clean up any previously allocated memory by dropping initialized elements
+                    for cleanup_item in allocations.iter_mut().take(initialized_count) {
+                        unsafe {
+                            core::ptr::drop_in_place(cleanup_item);
+                        }
+                    }
+                    return Err(e);
+                }
+            }
         }
         Ok(Self { allocations })
     }

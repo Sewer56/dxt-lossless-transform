@@ -44,8 +44,10 @@ impl std::fmt::Display for TransformError {
             TransformError::UnsupportedFormat(e) => write!(f, "Unsupported DDS format, {e}"),
             TransformError::InvalidDdsFile => write!(f, "Invalid DDS file"),
             TransformError::IgnoredByFilter => write!(f, "File was skipped by filter"),
-            TransformError::Debug(e) => write!(f, "{e}"),
             TransformError::AllocateError(e) => write!(f, "{e}"),
+            // Reserved for arbitrary errors in debug/test functionality, not runtime/end user stuff.
+            #[cfg(feature = "debug")]
+            TransformError::Debug(e) => write!(f, "{e}"),
         }
     }
 }

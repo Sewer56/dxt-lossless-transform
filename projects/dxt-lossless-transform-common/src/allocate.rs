@@ -30,31 +30,33 @@ impl<const NUM_ELEMENTS: usize> FixedRawAllocArray<NUM_ELEMENTS> {
     /// A [`FixedRawAllocArray`] containing the allocated data
     #[inline]
     pub fn new(num_bytes: usize) -> Result<Self, AllocateError> {
-        #[allow(clippy::uninit_assumed_init)]
-        // RawAlloc has no default, and we initialize all elements below
-        let mut allocations =
-            unsafe { MaybeUninit::<[RawAlloc; NUM_ELEMENTS]>::uninit().assume_init() };
+        // Use MaybeUninit array to avoid double-drop issues
+        let mut allocations: [MaybeUninit<RawAlloc>; NUM_ELEMENTS] =
+            core::array::from_fn(|_| MaybeUninit::uninit());
 
         // Track how many allocations we've successfully made for cleanup on failure
         let mut initialized_count = 0;
 
-        for item in allocations.iter_mut().take(NUM_ELEMENTS) {
+        for item in allocations.iter_mut() {
             match allocate_align_64(num_bytes) {
                 Ok(alloc) => {
-                    *item = alloc;
+                    item.write(alloc);
                     initialized_count += 1;
                 }
                 Err(e) => {
                     // Clean up any previously allocated memory by dropping initialized elements
-                    for cleanup_item in allocations.iter_mut().take(initialized_count) {
+                    for cleanup_item in &mut allocations[0..initialized_count] {
                         unsafe {
-                            core::ptr::drop_in_place(cleanup_item);
+                            cleanup_item.assume_init_drop();
                         }
                     }
                     return Err(e);
                 }
             }
         }
+
+        // All elements are now initialized, safely convert to final array
+        let allocations = allocations.map(|item| unsafe { item.assume_init() });
         Ok(Self { allocations })
     }
 

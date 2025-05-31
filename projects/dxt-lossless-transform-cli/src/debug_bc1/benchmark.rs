@@ -13,6 +13,7 @@ use crate::{
     util::find_all_files,
     DdsFilter,
 };
+use core::time::Duration;
 use dxt_lossless_transform_api::DdsFormat;
 use dxt_lossless_transform_bc1::{
     determine_optimal_transform::{determine_best_transform_details, Bc1TransformOptions},
@@ -331,7 +332,7 @@ unsafe fn process_scenario(
     }
 
     // Benchmark decompression
-    let (_, decompress_time_ms) = benchmark_common::measure_time(|| {
+    let (_, decompress_time) = benchmark_common::measure_time(|| {
         for _ in 0..config.iterations {
             zstd_decompress_data(
                 &compressed_data[..compressed_size],
@@ -342,7 +343,7 @@ unsafe fn process_scenario(
     });
 
     // Benchmark detransform
-    let (_, detransform_time_ms) = benchmark_common::measure_time(|| {
+    let (_, detransform_time) = benchmark_common::measure_time(|| {
         for _ in 0..config.iterations {
             untransform_bc1(
                 decompressed_data.as_ptr(),
@@ -355,8 +356,8 @@ unsafe fn process_scenario(
     });
 
     // Average the times over iterations
-    let avg_decompress_time = decompress_time_ms / config.iterations as f64;
-    let avg_detransform_time = detransform_time_ms / config.iterations as f64;
+    let avg_decompress_time = decompress_time / config.iterations;
+    let avg_detransform_time = detransform_time / config.iterations;
 
     Ok(Some(BenchmarkScenarioResult::new(
         scenario_name.to_string(),
@@ -399,7 +400,7 @@ unsafe fn process_untransformed_scenario(
     }
 
     // Benchmark decompression
-    let (_, decompress_time_ms) = benchmark_common::measure_time(|| {
+    let (_, decompress_time) = benchmark_common::measure_time(|| {
         for _ in 0..config.iterations {
             zstd_decompress_data(
                 &compressed_data_ptr[..compressed_size],
@@ -410,12 +411,12 @@ unsafe fn process_untransformed_scenario(
     });
 
     // Average the time over iterations
-    let avg_decompress_time = decompress_time_ms / config.iterations as f64;
+    let avg_decompress_time = decompress_time / config.iterations;
 
     Ok(Some(BenchmarkScenarioResult::new(
         scenario_name.to_string(),
         len_bytes,
         avg_decompress_time,
-        0.0, // No detransform time for untransformed scenario
+        Duration::ZERO, // No detransform time for untransformed scenario
     )))
 }

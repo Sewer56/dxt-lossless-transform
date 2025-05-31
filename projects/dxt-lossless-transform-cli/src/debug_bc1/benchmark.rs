@@ -6,11 +6,15 @@ use crate::{
             BenchmarkScenarioResult,
         },
         compressed_data_cache::CompressedDataCache,
+        compression::{
+            helpers::{
+                calc_size_with_cache_and_estimation_algorithm, compress_data_cached,
+                decompress_data, CacheRefs,
+            },
+            CompressionAlgorithm,
+        },
         compression_size_cache::CompressionSizeCache,
         extract_blocks_from_dds,
-        zstd_helpers::{
-            zstd_calc_size_with_cache, zstd_compress_data_cached, zstd_decompress_data, CacheRefs,
-        },
     },
     error::TransformError,
     util::find_all_files,
@@ -33,10 +37,19 @@ struct BenchmarkConfig {
     warmup_iterations: u32,
     compression_level: i32,
     estimate_compression_level: i32,
+    compression_algorithm: CompressionAlgorithm,
+    estimate_compression_algorithm: CompressionAlgorithm,
     dry_run: bool,
 }
 
 pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), TransformError> {
+    // Ensure the compression algorithm supports actual compression
+    assert!(
+        cmd.compression_algorithm.supports_compress(),
+        "Compression algorithm '{}' does not support actual compression. Use a compression algorithm like ZStandard for operations that require real compression.",
+        cmd.compression_algorithm
+    );
+
     let input_path = &cmd.input_directory;
     println!(
         "Benchmarking BC1 decompress+detransform performance for files in: {} (recursive)",
@@ -44,10 +57,15 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
     );
     println!("Iterations per file: {}", cmd.iterations);
     println!("Warmup iterations: {}", cmd.warmup_iterations);
-    println!("Compression level: {}", cmd.compression_level);
+    println!("Compression level: {}", cmd.get_compression_level());
     println!(
         "Estimate compression level: {}",
-        cmd.estimate_compression_level
+        cmd.get_estimate_compression_level()
+    );
+    println!("Compression algorithm: {}", cmd.compression_algorithm);
+    println!(
+        "Estimate compression algorithm: {}",
+        cmd.get_estimate_compression_algorithm()
     );
 
     // Initialize and load cache for determining API recommendations
@@ -89,8 +107,10 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
                 &BenchmarkConfig {
                     iterations: 0,        // No iterations for dry run
                     warmup_iterations: 0, // No warmup for dry run
-                    compression_level: cmd.compression_level,
-                    estimate_compression_level: cmd.estimate_compression_level,
+                    compression_level: cmd.get_compression_level(),
+                    estimate_compression_level: cmd.get_estimate_compression_level(),
+                    compression_algorithm: cmd.compression_algorithm,
+                    estimate_compression_algorithm: cmd.get_estimate_compression_algorithm(),
                     dry_run: true, // This is a dry run
                 },
                 &CacheRefs {
@@ -110,8 +130,10 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
             &BenchmarkConfig {
                 iterations: cmd.iterations,
                 warmup_iterations: cmd.warmup_iterations,
-                compression_level: cmd.compression_level,
-                estimate_compression_level: cmd.estimate_compression_level,
+                compression_level: cmd.get_compression_level(),
+                estimate_compression_level: cmd.get_estimate_compression_level(),
+                compression_algorithm: cmd.compression_algorithm,
+                estimate_compression_algorithm: cmd.get_estimate_compression_algorithm(),
                 dry_run: false, // This is not a dry run
             },
             &CacheRefs {
@@ -181,6 +203,7 @@ fn process_file(
                             data_ptr,
                             len_bytes,
                             config.estimate_compression_level,
+                            config.estimate_compression_algorithm,
                             caches.compressed_size_cache,
                         )?,
                     ),
@@ -251,11 +274,18 @@ unsafe fn get_api_recommended_details(
     data_ptr: *const u8,
     len_bytes: usize,
     estimate_compression_level: i32,
+    estimate_compression_algorithm: CompressionAlgorithm,
     cache: &Mutex<CompressionSizeCache>,
 ) -> Result<Bc1TransformDetails, TransformError> {
-    // Create the zstandard file size estimator with cache clone for static lifetime
+    // Create the compression file size estimator with cache clone for static lifetime
     let estimator = move |data_ptr: *const u8, len: usize| -> usize {
-        match zstd_calc_size_with_cache(data_ptr, len, estimate_compression_level, cache) {
+        match calc_size_with_cache_and_estimation_algorithm(
+            data_ptr,
+            len,
+            estimate_compression_level,
+            estimate_compression_algorithm,
+            cache,
+        ) {
             Ok(size) => size,
             Err(e) => {
                 eprintln!("Warning: Compression estimation failed: {e}");
@@ -296,10 +326,11 @@ unsafe fn process_scenario(
     );
 
     // Compress the transformed data (this populates the cache for both dry run and benchmark)
-    let (compressed_data, compressed_size) = zstd_compress_data_cached(
+    let (compressed_data, compressed_size) = compress_data_cached(
         transformed_data.as_ptr(),
         len_bytes,
         config.compression_level,
+        config.compression_algorithm,
         caches,
     )?;
 
@@ -317,9 +348,10 @@ unsafe fn process_scenario(
     // Warmup phase
     for _ in 0..config.warmup_iterations {
         // Decompress
-        zstd_decompress_data(
+        decompress_data(
             &compressed_data[..compressed_size],
             decompressed_data.as_mut_slice(),
+            config.compression_algorithm,
         )?;
 
         // Detransform
@@ -335,9 +367,10 @@ unsafe fn process_scenario(
     // Benchmark decompression
     let (_, decompress_time) = benchmark_common::measure_time(|| {
         for _ in 0..config.iterations {
-            zstd_decompress_data(
+            decompress_data(
                 &compressed_data[..compressed_size],
                 decompressed_data.as_mut_slice(),
+                config.compression_algorithm,
             )
             .unwrap();
         }
@@ -376,8 +409,13 @@ unsafe fn process_untransformed_scenario(
     caches: &CacheRefs,
 ) -> Result<Option<BenchmarkScenarioResult>, TransformError> {
     // Compress the original data directly (bypassing transformation)
-    let (compressed_data_ptr, compressed_size) =
-        zstd_compress_data_cached(data_ptr, len_bytes, config.compression_level, caches)?;
+    let (compressed_data_ptr, compressed_size) = compress_data_cached(
+        data_ptr,
+        len_bytes,
+        config.compression_level,
+        config.compression_algorithm,
+        caches,
+    )?;
 
     // For dry run, we only need to populate the cache
     if config.dry_run {
@@ -390,18 +428,20 @@ unsafe fn process_untransformed_scenario(
     // Warmup phase
     for _ in 0..config.warmup_iterations {
         // Decompress
-        zstd_decompress_data(
+        decompress_data(
             &compressed_data_ptr[..compressed_size],
             decompressed_data.as_mut_slice(),
+            config.compression_algorithm,
         )?;
     }
 
     // Benchmark decompression
     let (_, decompress_time) = benchmark_common::measure_time(|| {
         for _ in 0..config.iterations {
-            zstd_decompress_data(
+            decompress_data(
                 &compressed_data_ptr[..compressed_size],
                 decompressed_data.as_mut_slice(),
+                config.compression_algorithm,
             )
             .unwrap();
         }

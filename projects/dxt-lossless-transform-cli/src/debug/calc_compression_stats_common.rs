@@ -84,6 +84,32 @@ where
     }
 }
 
+/// Calculates ZStandard compressed size without caching.
+/// This is a simplified version of calc_compression_stats_common::zstd_calc_size_with_cache
+/// that doesn't use any caching mechanisms for pure performance measurement.
+pub unsafe fn zstd_calc_size_uncached(
+    data_ptr: *const u8,
+    len_bytes: usize,
+    compression_level: i32,
+) -> Result<usize, TransformError> {
+    let max_compressed_size = zstd::max_alloc_for_compress_size(len_bytes);
+    let mut compressed_buffer = Box::<[u8]>::new_uninit_slice(max_compressed_size).assume_init();
+
+    let compressed_size = {
+        let original_slice = slice::from_raw_parts(data_ptr, len_bytes);
+        match zstd::compress(compression_level, original_slice, &mut compressed_buffer) {
+            Ok(size) => size,
+            Err(_) => {
+                return Err(TransformError::Debug(
+                    "Benchmark: Compression failed".to_owned(),
+                ))
+            }
+        }
+    };
+
+    Ok(compressed_size)
+}
+
 /// Calculates ZStandard compressed size with caching support.
 ///
 /// This function first checks if the compressed size is already cached, and if not,

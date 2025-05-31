@@ -4,13 +4,14 @@ use crate::{
         benchmark_common::{
             self, print_overall_statistics, BenchmarkResult, BenchmarkScenarioResult,
         },
-        extract_blocks_from_dds, zstd,
+        calc_compression_stats_common::zstd_calc_size_uncached,
+        extract_blocks_from_dds,
     },
     error::TransformError,
     util::find_all_files,
     DdsFilter,
 };
-use core::{slice, time::Duration};
+use core::time::Duration;
 use dxt_lossless_transform_api::DdsFormat;
 use dxt_lossless_transform_bc1::{
     determine_optimal_transform::{determine_best_transform_details, Bc1TransformOptions},
@@ -186,32 +187,6 @@ unsafe fn run_determine_best_once(
     // Determine the best transform details using the API
     determine_best_transform_details(data_ptr, len_bytes, transform_options)
         .map_err(|e| TransformError::Debug(format!("determine_best_transform_details failed: {e}")))
-}
-
-/// Calculates ZStandard compressed size without caching.
-/// This is a simplified version of calc_compression_stats_common::zstd_calc_size_with_cache
-/// that doesn't use any caching mechanisms for pure performance measurement.
-unsafe fn zstd_calc_size_uncached(
-    data_ptr: *const u8,
-    len_bytes: usize,
-    compression_level: i32,
-) -> Result<usize, TransformError> {
-    let max_compressed_size = zstd::max_alloc_for_compress_size(len_bytes);
-    let mut compressed_buffer = Box::<[u8]>::new_uninit_slice(max_compressed_size).assume_init();
-
-    let compressed_size = {
-        let original_slice = slice::from_raw_parts(data_ptr, len_bytes);
-        match zstd::compress(compression_level, original_slice, &mut compressed_buffer) {
-            Ok(size) => size,
-            Err(_) => {
-                return Err(TransformError::Debug(
-                    "Benchmark: Compression failed".to_owned(),
-                ))
-            }
-        }
-    };
-
-    Ok(compressed_size)
 }
 
 /// Print file result with throughput measured in MiB/s for determine_best_transform_details benchmark

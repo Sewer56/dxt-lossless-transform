@@ -157,7 +157,7 @@ pub fn compress_with_algorithm(
 ) -> Result<(Box<[u8]>, usize), TransformError> {
     match algorithm {
         CompressionAlgorithm::ZStandard => {
-            zstd_compression_operations().compress_data(data_ptr, len_bytes, compression_level)
+            ZStandardCompression.compress_data(data_ptr, len_bytes, compression_level)
         }
         CompressionAlgorithm::LosslessTransformUtils => todo!(),
     }
@@ -183,15 +183,8 @@ pub fn decompress_with_algorithm(
 ) -> Result<usize, TransformError> {
     match algorithm {
         CompressionAlgorithm::ZStandard => {
-            zstd_compression_operations().decompress_data(compressed_data, output_buffer)
+            ZStandardCompression.decompress_data(compressed_data, output_buffer)
         }
         CompressionAlgorithm::LosslessTransformUtils => todo!(),
     }
-}
-
-/// Returns the ZStandard compression operations.
-///
-/// This function is used to avoid boxing the ZStandardCompression struct.
-pub fn zstd_compression_operations() -> ZStandardCompression {
-    ZStandardCompression
 }

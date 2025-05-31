@@ -2,8 +2,7 @@ use super::BenchmarkDetermineBestCmd;
 use crate::{
     debug::{
         benchmark_common::{
-            self, print_overall_statistics, BenchmarkResult,
-            BenchmarkScenarioResult,
+            self, print_overall_statistics, BenchmarkResult, BenchmarkScenarioResult,
         },
         extract_blocks_from_dds, zstd,
     },
@@ -211,22 +210,15 @@ unsafe fn zstd_calc_size_uncached(
 /// Print file result with throughput measured in MiB/s for determine_best_transform_details benchmark
 fn print_file_result_throughput(result: &BenchmarkResult) {
     let file_size_mib = result.file_size_bytes as f64 / (1024.0 * 1024.0);
-    
+
     println!("📁 {}", result.file_path);
     println!("   📊 File size: {file_size_mib:.2} MiB");
-    
+
     for scenario in &result.scenarios {
-        // For this benchmark, execution time is stored in detransform_time_ms
         let execution_time_ms = scenario.detransform_time_ms;
-        let execution_time_s = execution_time_ms / 1000.0;
-        let throughput_mib_s = if execution_time_s > 0.0 {
-            file_size_mib / execution_time_s
-        } else {
-            0.0
-        };
-        
+        let throughput = scenario.detransform_throughput;
         println!(
-            "   ⚡ {}: {execution_time_ms:.3} ms ({throughput_mib_s:.2} MiB/s)",
+            "   ⚡ {}: {execution_time_ms:.3} ms ({throughput:.2}/s)",
             scenario.scenario_name
         );
     }

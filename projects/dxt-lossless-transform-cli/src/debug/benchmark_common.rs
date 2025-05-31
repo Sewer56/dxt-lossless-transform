@@ -3,6 +3,8 @@
 //! This module provides shared data structures, utilities, and benchmarking functions that can be
 //! reused across different BC format implementations for performance analysis.
 
+use bytesize::ByteSize;
+
 use super::{
     calculate_content_hash, compressed_data_cache::CompressedDataCache,
     compression_size_cache::CompressionSizeCache,
@@ -27,9 +29,9 @@ pub struct BenchmarkScenarioResult {
     pub decompress_time_ms: f64,
     pub detransform_time_ms: f64,
     pub combined_time_ms: f64,
-    pub decompress_throughput_gibs: f64,
-    pub detransform_throughput_gibs: f64,
-    pub combined_throughput_gibs: f64,
+    pub decompress_throughput: ByteSize,
+    pub detransform_throughput: ByteSize,
+    pub combined_throughput: ByteSize,
 }
 
 impl BenchmarkScenarioResult {
@@ -42,37 +44,36 @@ impl BenchmarkScenarioResult {
         let combined_time_ms = decompress_time_ms + detransform_time_ms;
 
         // Calculate throughput in GiB/s
-        let size_gib = file_size_bytes as f64 / (1024.0 * 1024.0 * 1024.0);
         let decompress_time_s = decompress_time_ms / 1000.0;
         let detransform_time_s = detransform_time_ms / 1000.0;
         let combined_time_s = combined_time_ms / 1000.0;
 
-        let decompress_throughput_gibs = if decompress_time_s > 0.0 {
-            size_gib / decompress_time_s
+        let decompress_throughput_bytes_per_sec = if decompress_time_s > 0.0 {
+            file_size_bytes as f64 / decompress_time_s
         } else {
             0.0
-        };
+        } as u64;
 
-        let detransform_throughput_gibs = if detransform_time_s > 0.0 {
-            size_gib / detransform_time_s
+        let detransform_throughput_bytes_per_sec = if detransform_time_s > 0.0 {
+            file_size_bytes as f64 / detransform_time_s
         } else {
             0.0
-        };
+        } as u64;
 
-        let combined_throughput_gibs = if combined_time_s > 0.0 {
-            size_gib / combined_time_s
+        let combined_throughput_bytes_per_sec = if combined_time_s > 0.0 {
+            file_size_bytes as f64 / combined_time_s
         } else {
             0.0
-        };
+        } as u64;
 
         Self {
             scenario_name,
             decompress_time_ms,
             detransform_time_ms,
             combined_time_ms,
-            decompress_throughput_gibs,
-            detransform_throughput_gibs,
-            combined_throughput_gibs,
+            decompress_throughput: ByteSize(decompress_throughput_bytes_per_sec),
+            detransform_throughput: ByteSize(detransform_throughput_bytes_per_sec),
+            combined_throughput: ByteSize(combined_throughput_bytes_per_sec),
         }
     }
 }
@@ -213,14 +214,14 @@ pub fn print_file_result(result: &BenchmarkResult) {
 
     for scenario in &result.scenarios {
         println!(
-            "  {}: decompress: {:.2} ms ({:.1} GiB/s), detransform: {:.2} ms ({:.1} GiB/s), combined: {:.2} ms ({:.1} GiB/s)",
+            "  {}: decompress: {:.2} ms ({:.1}/s), detransform: {:.2} ms ({:.1}/s), combined: {:.2} ms ({:.1}/s)",
             scenario.scenario_name,
             scenario.decompress_time_ms,
-            scenario.decompress_throughput_gibs,
+            scenario.decompress_throughput,
             scenario.detransform_time_ms,
-            scenario.detransform_throughput_gibs,
+            scenario.detransform_throughput,
             scenario.combined_time_ms,
-            scenario.combined_throughput_gibs
+            scenario.combined_throughput
         );
     }
 }

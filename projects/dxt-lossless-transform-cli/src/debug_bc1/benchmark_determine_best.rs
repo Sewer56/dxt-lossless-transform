@@ -192,8 +192,7 @@ unsafe fn zstd_calc_size_uncached(
     compression_level: i32,
 ) -> Result<usize, TransformError> {
     let max_compressed_size = zstd::max_alloc_for_compress_size(len_bytes);
-    let mut compressed_buffer =
-        unsafe { Box::<[u8]>::new_uninit_slice(max_compressed_size).assume_init() };
+    let mut compressed_buffer = Box::<[u8]>::new_uninit_slice(max_compressed_size).assume_init();
 
     let compressed_size = {
         let original_slice = slice::from_raw_parts(data_ptr, len_bytes);

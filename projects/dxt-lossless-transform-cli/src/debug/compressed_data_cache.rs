@@ -1,6 +1,7 @@
 use super::compression::CompressionAlgorithm;
 use crate::error::TransformError;
 use std::{
+    ffi::OsStr,
     fs::{self, File},
     io::{Read, Write},
     path::PathBuf,
@@ -117,9 +118,11 @@ impl CompressedDataCache {
                     .filter_map(|entry| entry.ok())
                     .filter(|entry| {
                         entry.path().is_file()
-                            && entry.path().extension().is_some_and(|ext| {
-                                valid_extensions.contains(&ext.to_str().unwrap_or(""))
-                            })
+                            && entry
+                                .path()
+                                .extension()
+                                .and_then(OsStr::to_str)
+                                .is_some_and(|ext| valid_extensions.contains(&ext))
                     })
                     .count()
             })

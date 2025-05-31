@@ -57,15 +57,15 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
     );
     println!("Iterations per file: {}", cmd.iterations);
     println!("Warmup iterations: {}", cmd.warmup_iterations);
-    println!("Compression level: {}", cmd.get_compression_level());
     println!(
-        "Estimate compression level: {}",
-        cmd.get_estimate_compression_level()
+        "Compression algorithm: {} , level: {}",
+        cmd.compression_algorithm.name(),
+        cmd.get_compression_level()
     );
-    println!("Compression algorithm: {}", cmd.compression_algorithm);
     println!(
-        "Estimate compression algorithm: {}",
-        cmd.get_estimate_compression_algorithm()
+        "Estimate compression algorithm: {} , level: {}",
+        cmd.get_estimate_compression_algorithm().name(),
+        cmd.get_estimate_compression_level()
     );
 
     // Initialize and load cache for determining API recommendations

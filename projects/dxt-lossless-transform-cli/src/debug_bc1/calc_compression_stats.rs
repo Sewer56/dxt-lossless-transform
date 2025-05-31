@@ -40,15 +40,15 @@ pub(crate) fn handle_compression_stats_command(
         "Analyzing BC1 compression statistics for files in: {} (recursive)",
         input_path.display()
     );
-    println!("Compression level: {}", cmd.get_compression_level());
     println!(
-        "API compression level: {}",
-        cmd.get_estimate_compression_level()
+        "Compression algorithm: {} , level: {}",
+        cmd.compression_algorithm.name(),
+        cmd.get_compression_level()
     );
-    println!("Compression algorithm: {}", cmd.compression_algorithm);
     println!(
-        "Estimate compression algorithm: {}",
-        cmd.get_estimate_compression_algorithm()
+        "Estimate (API) compression algorithm: {} , level: {}",
+        cmd.get_estimate_compression_algorithm().name(),
+        cmd.get_estimate_compression_level()
     );
 
     // Initialize and load cache

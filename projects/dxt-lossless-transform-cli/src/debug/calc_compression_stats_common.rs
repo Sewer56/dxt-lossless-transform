@@ -3,12 +3,9 @@
 //! This module provides shared data structures, utilities, and analysis functions that can be
 //! reused across different BC format implementations for compression statistics analysis.
 
-use crate::error::TransformError;
 use bytesize::ByteSize;
-use core::{fmt::Debug, slice};
-use std::{collections::HashMap, hash::Hash, path::Path, sync::Mutex};
-
-use super::{calculate_content_hash, compression_size_cache::CompressionSizeCache, zstd};
+use core::fmt::Debug;
+use std::{collections::HashMap, hash::Hash, path::Path};
 
 /// Generic compression statistics result for a single file analysis.
 ///
@@ -82,52 +79,6 @@ where
     pub fn compression_ratio(&self, original_size: usize) -> f64 {
         self.compressed_size as f64 / original_size.max(1) as f64
     }
-}
-
-/// Calculates ZStandard compressed size with caching support.
-///
-/// This function first checks if the compressed size is already cached, and if not,
-/// compresses the data and stores the result in the cache for future use.
-pub fn zstd_calc_size_with_cache(
-    data_ptr: *const u8,
-    len_bytes: usize,
-    compression_level: i32,
-    cache: &Mutex<CompressionSizeCache>,
-) -> Result<usize, TransformError> {
-    let content_hash = calculate_content_hash(data_ptr, len_bytes);
-
-    // Try to get from cache
-    {
-        let cache_guard = cache.lock().unwrap();
-        if let Some(cached_size) = cache_guard.get(content_hash, compression_level) {
-            return Ok(cached_size);
-        }
-    }
-
-    // Not in cache, compute it
-    let max_compressed_size = zstd::max_alloc_for_compress_size(len_bytes);
-    let mut compressed_buffer =
-        unsafe { Box::<[u8]>::new_uninit_slice(max_compressed_size).assume_init() };
-
-    let compressed_size = unsafe {
-        let original_slice = slice::from_raw_parts(data_ptr, len_bytes);
-        match zstd::compress(compression_level, original_slice, &mut compressed_buffer) {
-            Ok(size) => size,
-            Err(_) => {
-                return Err(TransformError::Debug(
-                    "Debug: Compression failed".to_owned(),
-                ))
-            }
-        }
-    };
-
-    // Store in cache
-    {
-        let mut cache_guard = cache.lock().unwrap();
-        cache_guard.insert(content_hash, compression_level, compressed_size);
-    }
-
-    Ok(compressed_size)
 }
 
 /// Formats a byte count as a human-readable string using [`ByteSize`].

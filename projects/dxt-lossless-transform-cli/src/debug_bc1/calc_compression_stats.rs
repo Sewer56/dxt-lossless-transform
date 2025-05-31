@@ -1,6 +1,9 @@
 use super::CompressionStatsCmd;
 use crate::{
-    debug::{calc_compression_stats_common, compression_size_cache, extract_blocks_from_dds},
+    debug::{
+        calc_compression_stats_common, compression_size_cache, extract_blocks_from_dds,
+        zstd_helpers::zstd_calc_size_with_cache,
+    },
     error::TransformError,
     util::find_all_files,
     DdsFilter,
@@ -120,13 +123,12 @@ fn analyze_bc1_compression_file(
                         compression_level,
                         cache,
                     )?,
-                    original_compressed_size:
-                        calc_compression_stats_common::zstd_calc_size_with_cache(
-                            data_ptr,
-                            len_bytes,
-                            compression_level,
-                            cache,
-                        )?,
+                    original_compressed_size: zstd_calc_size_with_cache(
+                        data_ptr,
+                        len_bytes,
+                        compression_level,
+                        cache,
+                    )?,
                     api_recommended_result: analyze_bc1_api_recommendation(
                         data_ptr,
                         len_bytes,
@@ -170,7 +172,7 @@ fn analyze_bc1_compression_transforms(
             // Compress the transformed data
             results.push(Bc1TransformResult {
                 transform_options,
-                compressed_size: calc_compression_stats_common::zstd_calc_size_with_cache(
+                compressed_size: zstd_calc_size_with_cache(
                     transformed_data.as_ptr(),
                     len_bytes,
                     compression_level,
@@ -192,12 +194,7 @@ unsafe fn analyze_bc1_api_recommendation(
 ) -> Result<Bc1TransformResult, TransformError> {
     // Create the zstandard file size estimator with cache clone for static lifetime
     let estimator = move |data_ptr: *const u8, len: usize| -> usize {
-        match calc_compression_stats_common::zstd_calc_size_with_cache(
-            data_ptr,
-            len,
-            estimate_compression_level,
-            cache,
-        ) {
+        match zstd_calc_size_with_cache(data_ptr, len, estimate_compression_level, cache) {
             Ok(size) => size,
             Err(e) => {
                 eprintln!("Warning: Compression estimation failed: {e}");
@@ -228,7 +225,7 @@ unsafe fn analyze_bc1_api_recommendation(
     );
 
     // Compress the transformed data (API recommendation, final level)
-    let compressed_size = calc_compression_stats_common::zstd_calc_size_with_cache(
+    let compressed_size = zstd_calc_size_with_cache(
         transformed_data.as_ptr(),
         len_bytes,
         final_compression_level,

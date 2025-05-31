@@ -2,12 +2,15 @@ use super::BenchmarkCmd;
 use crate::{
     debug::{
         benchmark_common::{
-            self, print_file_result, print_overall_statistics, zstd_decompress_data,
-            BenchmarkResult, BenchmarkScenarioResult, CacheRefs,
+            self, print_file_result, print_overall_statistics, BenchmarkResult,
+            BenchmarkScenarioResult,
         },
         compressed_data_cache::CompressedDataCache,
         compression_size_cache::CompressionSizeCache,
         extract_blocks_from_dds,
+        zstd_helpers::{
+            zstd_calc_size_with_cache, zstd_compress_data_cached, zstd_decompress_data, CacheRefs,
+        },
     },
     error::TransformError,
     util::find_all_files,
@@ -252,12 +255,7 @@ unsafe fn get_api_recommended_details(
 ) -> Result<Bc1TransformDetails, TransformError> {
     // Create the zstandard file size estimator with cache clone for static lifetime
     let estimator = move |data_ptr: *const u8, len: usize| -> usize {
-        match crate::debug::calc_compression_stats_common::zstd_calc_size_with_cache(
-            data_ptr,
-            len,
-            estimate_compression_level,
-            cache,
-        ) {
+        match zstd_calc_size_with_cache(data_ptr, len, estimate_compression_level, cache) {
             Ok(size) => size,
             Err(e) => {
                 eprintln!("Warning: Compression estimation failed: {e}");
@@ -298,7 +296,7 @@ unsafe fn process_scenario(
     );
 
     // Compress the transformed data (this populates the cache for both dry run and benchmark)
-    let (compressed_data, compressed_size) = benchmark_common::zstd_compress_data_cached(
+    let (compressed_data, compressed_size) = zstd_compress_data_cached(
         transformed_data.as_ptr(),
         len_bytes,
         config.compression_level,
@@ -378,12 +376,8 @@ unsafe fn process_untransformed_scenario(
     caches: &CacheRefs,
 ) -> Result<Option<BenchmarkScenarioResult>, TransformError> {
     // Compress the original data directly (bypassing transformation)
-    let (compressed_data_ptr, compressed_size) = benchmark_common::zstd_compress_data_cached(
-        data_ptr,
-        len_bytes,
-        config.compression_level,
-        caches,
-    )?;
+    let (compressed_data_ptr, compressed_size) =
+        zstd_compress_data_cached(data_ptr, len_bytes, config.compression_level, caches)?;
 
     // For dry run, we only need to populate the cache
     if config.dry_run {

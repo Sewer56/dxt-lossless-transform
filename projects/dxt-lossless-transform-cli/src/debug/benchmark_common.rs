@@ -3,26 +3,12 @@
 //! This module provides shared data structures, utilities, and benchmarking functions that can be
 //! reused across different BC format implementations for performance analysis.
 
-use super::{
-    calculate_content_hash, compressed_data_cache::CompressedDataCache,
-    compression_size_cache::CompressionSizeCache,
-};
-use crate::{
-    debug::{calc_compression_stats_common::get_filename, throughput::Throughput, zstd},
-    error::TransformError,
-};
-use core::{f64, fmt::Debug, slice};
+use crate::debug::{calc_compression_stats_common::get_filename, throughput::Throughput};
+use core::{f64, fmt::Debug};
 use std::{
     collections::HashMap,
-    sync::Mutex,
     time::{Duration, Instant},
 };
-
-/// References to the caches used during benchmarking
-pub struct CacheRefs<'a> {
-    pub compressed_size_cache: &'a Mutex<CompressionSizeCache>,
-    pub compressed_data_cache: &'a CompressedDataCache,
-}
 
 /// Result of benchmarking a specific transform scenario.
 #[derive(Debug, Clone)]
@@ -101,97 +87,6 @@ impl BenchmarkResult {
 
     pub fn add_scenario(&mut self, scenario: BenchmarkScenarioResult) {
         self.scenarios.push(scenario);
-    }
-}
-
-/// Compresses data using ZStandard with caching support.
-///
-/// This function first checks if compressed data is already cached, and if not,
-/// compresses the data and stores the result in the cache for future use.
-/// Returns both the compressed data and size, just like [`zstd_compress_data`].
-///
-/// Also populates a [`CompressionSizeCache`] with the compressed size for future size-only queries.
-pub fn zstd_compress_data_cached(
-    data_ptr: *const u8,
-    len_bytes: usize,
-    compression_level: i32,
-    caches: &CacheRefs,
-) -> Result<(Box<[u8]>, usize), TransformError> {
-    // Calculate content hash once
-    let content_hash = calculate_content_hash(data_ptr, len_bytes);
-
-    // Try to load from cache first
-    if let Some((cached_data, cached_size)) = caches
-        .compressed_data_cache
-        .load_compressed_data(content_hash, compression_level)?
-    {
-        // Data cache and size cache should be synced, so no need to write to size cache here
-        return Ok((cached_data, cached_size));
-    }
-
-    // Not in cache, compress the data using the original function
-    let (compressed_data, compressed_size) =
-        zstd_compress_data(data_ptr, len_bytes, compression_level)?;
-
-    // Save to cache for future use
-    if let Err(e) = caches.compressed_data_cache.save_compressed_data(
-        content_hash,
-        compression_level,
-        &compressed_data[..compressed_size],
-    ) {
-        // Log the error but don't fail the operation
-        eprintln!("Warning: Failed to save compressed data to cache: {e}");
-    }
-
-    // Also populate the size cache when writing to data cache
-    {
-        let mut size_cache_guard = caches.compressed_size_cache.lock().unwrap();
-        size_cache_guard.insert(content_hash, compression_level, compressed_size);
-    }
-
-    Ok((compressed_data, compressed_size))
-}
-
-/// Compresses data using ZStandard and returns both the compressed data and size.
-///
-/// This function allocates a buffer for the compressed data and returns ownership
-/// of that buffer along with the actual compressed size.
-pub fn zstd_compress_data(
-    data_ptr: *const u8,
-    len_bytes: usize,
-    compression_level: i32,
-) -> Result<(Box<[u8]>, usize), TransformError> {
-    let max_compressed_size = zstd::max_alloc_for_compress_size(len_bytes);
-    let mut compressed_buffer =
-        unsafe { Box::<[u8]>::new_uninit_slice(max_compressed_size).assume_init() };
-
-    let compressed_size = unsafe {
-        let original_slice = slice::from_raw_parts(data_ptr, len_bytes);
-        match zstd::compress(compression_level, original_slice, &mut compressed_buffer) {
-            Ok(size) => size,
-            Err(_) => {
-                return Err(TransformError::Debug(
-                    "Benchmark: Compression failed".to_owned(),
-                ))
-            }
-        }
-    };
-
-    Ok((compressed_buffer, compressed_size))
-}
-
-/// Decompresses ZStandard data into a pre-allocated buffer.
-///
-/// This function decompresses the provided compressed data into the given buffer.
-pub fn zstd_decompress_data(
-    compressed_data: &[u8],
-    output_buffer: &mut [u8],
-) -> Result<usize, TransformError> {
-    match zstd::decompress(compressed_data, output_buffer) {
-        Ok(decompressed_size) => Ok(decompressed_size),
-        Err(_) => Err(TransformError::Debug(
-            "Benchmark: Decompression failed".to_owned(),
-        )),
     }
 }
 

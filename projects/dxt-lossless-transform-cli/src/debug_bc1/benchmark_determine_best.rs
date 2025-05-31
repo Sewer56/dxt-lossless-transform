@@ -4,8 +4,8 @@ use crate::{
         benchmark_common::{
             self, print_overall_statistics, BenchmarkResult, BenchmarkScenarioResult,
         },
-        calc_compression_stats_common::zstd_calc_size_uncached,
         extract_blocks_from_dds,
+        zstd_helpers::zstd_calc_size,
     },
     error::TransformError,
     util::find_all_files,
@@ -170,7 +170,7 @@ unsafe fn run_determine_best_once(
 ) -> Result<Bc1TransformDetails, TransformError> {
     // Create a zstd file size estimator that compresses data without caching
     let estimator = move |data_ptr: *const u8, len: usize| -> usize {
-        match zstd_calc_size_uncached(data_ptr, len, estimate_compression_level) {
+        match zstd_calc_size(data_ptr, len, estimate_compression_level) {
             Ok(size) => size,
             Err(e) => {
                 eprintln!("Warning: Compression estimation failed: {e}");

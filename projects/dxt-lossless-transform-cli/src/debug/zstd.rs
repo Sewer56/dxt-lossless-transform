@@ -1,4 +1,4 @@
-//! Copied from sewer56.archives.nx crate.
+//! Copied from sewer56.archives.nx crate and stripped down.
 
 use core::ffi::c_void;
 use thiserror_no_std::Error;

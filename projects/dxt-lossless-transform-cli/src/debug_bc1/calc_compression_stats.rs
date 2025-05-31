@@ -2,7 +2,9 @@ use super::CompressionStatsCmd;
 use crate::{
     debug::{
         calc_compression_stats_common,
-        compression::helpers::calc_size_with_cache_and_estimation_algorithm,
+        compression::{
+            helpers::calc_size_with_cache_and_estimation_algorithm, CompressionAlgorithm,
+        },
         compression_size_cache, extract_blocks_from_dds,
     },
     error::TransformError,
@@ -115,8 +117,8 @@ fn analyze_bc1_compression_file(
     entry: &fs::DirEntry,
     compression_level: i32,
     estimate_compression_level: i32,
-    compression_algorithm: crate::debug::compression::CompressionAlgorithm,
-    estimate_compression_algorithm: crate::debug::compression::CompressionAlgorithm,
+    compression_algorithm: CompressionAlgorithm,
+    estimate_compression_algorithm: CompressionAlgorithm,
     cache: &Mutex<CompressionCache>,
 ) -> Result<Bc1CompressionStatsResult, TransformError> {
     let mut file_result: Bc1CompressionStatsResult = Bc1CompressionStatsResult::default();
@@ -174,7 +176,7 @@ fn analyze_bc1_compression_transforms(
     data_ptr: *const u8,
     len_bytes: usize,
     compression_level: i32,
-    compression_algorithm: crate::debug::compression::CompressionAlgorithm,
+    compression_algorithm: CompressionAlgorithm,
     cache: &Mutex<CompressionCache>,
 ) -> Result<Vec<Bc1TransformResult>, TransformError> {
     // Allocate aligned buffers for transformations
@@ -215,9 +217,9 @@ unsafe fn analyze_bc1_api_recommendation(
     data_ptr: *const u8,
     len_bytes: usize,
     estimate_compression_level: i32,
-    estimate_compression_algorithm: crate::debug::compression::CompressionAlgorithm,
+    estimate_compression_algorithm: CompressionAlgorithm,
     final_compression_level: i32,
-    compression_algorithm: crate::debug::compression::CompressionAlgorithm,
+    compression_algorithm: CompressionAlgorithm,
     cache: &Mutex<CompressionCache>,
 ) -> Result<Bc1TransformResult, TransformError> {
     // Create the file size estimator with cache clone for static lifetime

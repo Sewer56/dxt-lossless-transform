@@ -1,9 +1,6 @@
 //! Copied from sewer56.archives.nx crate.
 
 use core::ffi::c_void;
-use derive_more::Deref;
-use derive_more::DerefMut;
-use derive_new::new;
 use thiserror_no_std::Error;
 use zstd_sys::ZSTD_cParameter::*;
 use zstd_sys::ZSTD_dParameter::*;
@@ -131,16 +128,6 @@ pub(crate) fn zstd_setcommondecompressionparams(dctx: *mut ZSTD_DCtx_s) {
             ZSTD_f_zstd1_magicless as i32,
         );
     };
-}
-
-#[derive(Deref, DerefMut, new)]
-pub struct SafeCStream(*mut ZSTD_CStream);
-impl Drop for SafeCStream {
-    fn drop(&mut self) {
-        if !self.0.is_null() {
-            unsafe { ZSTD_freeCStream(self.0) };
-        }
-    }
 }
 
 /// A result type around compression functions..

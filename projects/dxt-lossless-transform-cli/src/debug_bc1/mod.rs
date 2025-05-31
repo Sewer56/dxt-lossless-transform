@@ -1,4 +1,5 @@
 pub(crate) mod benchmark;
+pub(crate) mod benchmark_determine_best;
 pub(crate) mod calc_compression_stats;
 pub(crate) mod roundtrip;
 
@@ -23,6 +24,7 @@ pub enum DebugCommands {
     Roundtrip(RoundtripCmd),
     CompressionStats(CompressionStatsCmd),
     Benchmark(BenchmarkCmd),
+    BenchmarkDetermineBest(BenchmarkDetermineBestCmd),
 }
 
 #[derive(FromArgs, Debug)]
@@ -76,6 +78,27 @@ pub struct BenchmarkCmd {
     pub warmup_iterations: u32,
 }
 
+#[derive(FromArgs, Debug)]
+/// Benchmark BC1 determine_best_transform_details function performance on files in a directory
+#[argh(subcommand, name = "benchmark-determine-best")]
+pub struct BenchmarkDetermineBestCmd {
+    /// input directory path to benchmark (recursively)
+    #[argh(positional)]
+    pub input_directory: PathBuf,
+
+    /// compression level for zstd when using API best method estimation (default: 1)
+    #[argh(option, default = "1")]
+    pub estimate_compression_level: i32,
+
+    /// number of iterations per file for performance measurement (default: 2)
+    #[argh(option, default = "2")]
+    pub iterations: u32,
+
+    /// warmup iterations before measurement (default: 1)
+    #[argh(option, default = "1")]
+    pub warmup_iterations: u32,
+}
+
 pub fn handle_debug_command(cmd: DebugCmd) -> Result<(), TransformError> {
     match cmd.command {
         DebugCommands::Roundtrip(roundtrip_cmd) => handle_roundtrip_command(roundtrip_cmd),
@@ -83,5 +106,10 @@ pub fn handle_debug_command(cmd: DebugCmd) -> Result<(), TransformError> {
             handle_compression_stats_command(compression_stats_cmd)
         }
         DebugCommands::Benchmark(benchmark_cmd) => handle_benchmark_command(benchmark_cmd),
+        DebugCommands::BenchmarkDetermineBest(benchmark_determine_best_cmd) => {
+            benchmark_determine_best::handle_benchmark_determine_best_command(
+                benchmark_determine_best_cmd,
+            )
+        }
     }
 }

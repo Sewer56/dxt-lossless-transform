@@ -166,7 +166,10 @@ unsafe fn run_determine_best_once(
     let estimator = move |data_ptr: *const u8, len: usize| -> usize {
         match zstd_calc_size_uncached(data_ptr, len, estimate_compression_level) {
             Ok(size) => size,
-            Err(_) => usize::MAX, // Return max size on error to make this option less favorable
+            Err(e) => {
+                eprintln!("Warning: Compression estimation failed: {e}");
+                usize::MAX // Return max size on error to make this option less favorable
+            }
         }
     };
 

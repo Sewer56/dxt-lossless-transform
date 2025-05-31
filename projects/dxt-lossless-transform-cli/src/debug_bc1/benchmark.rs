@@ -259,7 +259,10 @@ unsafe fn get_api_recommended_details(
             cache,
         ) {
             Ok(size) => size,
-            Err(_) => usize::MAX, // Return max size on error to make this option less favorable
+            Err(e) => {
+                eprintln!("Warning: Compression estimation failed: {e}");
+                usize::MAX // Return max size on error to make this option less favorable
+            }
         }
     };
 

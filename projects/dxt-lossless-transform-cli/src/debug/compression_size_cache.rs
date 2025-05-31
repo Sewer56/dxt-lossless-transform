@@ -1,3 +1,4 @@
+use super::compression::CompressionAlgorithm;
 use crate::error::TransformError;
 use std::{
     collections::HashMap,
@@ -5,13 +6,14 @@ use std::{
     path::PathBuf,
 };
 
-/// Simple compression cache that stores compressed sizes for specific inputs and compression levels.
+/// Simple compression cache that stores compressed sizes for specific inputs, compression levels,
+/// and compression algorithms.
 ///
 /// This cache is format-agnostic and can be shared across all BC format analyses, as it is based on
-/// input content hashes and compression levels rather than specific formats.
+/// input content hashes, compression levels, and algorithms rather than specific formats.
 pub struct CompressionSizeCache {
-    /// Map from (content_hash, compression_level) -> compressed_size
-    cache: HashMap<(u128, i32), usize>,
+    /// Map from (content_hash, compression_level, algorithm) -> compressed_size
+    cache: HashMap<(u128, i32, CompressionAlgorithm), usize>,
     /// Path to the cache file
     cache_file_path: PathBuf,
 }
@@ -69,15 +71,30 @@ impl CompressionSizeCache {
         Ok(())
     }
 
-    /// Gets a cached compression size for the given content hash and compression level.
-    pub fn get(&self, content_hash: u128, compression_level: i32) -> Option<usize> {
-        self.cache.get(&(content_hash, compression_level)).copied()
+    /// Gets a cached compression size for the given content hash, compression level, and algorithm.
+    pub fn get(
+        &self,
+        content_hash: u128,
+        compression_level: i32,
+        algorithm: CompressionAlgorithm,
+    ) -> Option<usize> {
+        self.cache
+            .get(&(content_hash, compression_level, algorithm))
+            .copied()
     }
 
-    /// Inserts a compression size into the cache for the given content hash and compression level.
-    pub fn insert(&mut self, content_hash: u128, compression_level: i32, compressed_size: usize) {
-        self.cache
-            .insert((content_hash, compression_level), compressed_size);
+    /// Inserts a compression size into the cache for the given content hash, compression level, and algorithm.
+    pub fn insert(
+        &mut self,
+        content_hash: u128,
+        compression_level: i32,
+        algorithm: CompressionAlgorithm,
+        compressed_size: usize,
+    ) {
+        self.cache.insert(
+            (content_hash, compression_level, algorithm),
+            compressed_size,
+        );
     }
 
     /// Returns the number of entries in the cache.

@@ -1,5 +1,7 @@
+use super::compression::CompressionAlgorithm;
 use crate::error::TransformError;
 use std::{
+    ffi::OsStr,
     fs::{self, File},
     io::{Read, Write},
     path::PathBuf,
@@ -7,9 +9,9 @@ use std::{
 
 /// Cache for storing compressed data files on disk.
 ///
-/// This cache stores actual compressed data files in a dedicated subdirectory, using content hashes
-/// and compression levels as filenames. This allows for fast retrieval of previously compressed data
-/// during benchmarks without needing to recompress the same data multiple times.
+/// This cache stores actual compressed data files in a dedicated subdirectory, using content hashes,
+/// compression levels, and compression algorithms as filenames. This allows for fast retrieval of
+/// previously compressed data during benchmarks without needing to recompress the same data multiple times.
 pub struct CompressedDataCache {
     /// Directory where compressed data files are stored
     cache_dir: PathBuf,
@@ -33,9 +35,17 @@ impl CompressedDataCache {
             .map_err(|e| TransformError::Debug(format!("Failed to create cache directory: {e}")))
     }
 
-    /// Generates a cache key (filename) for the given content hash and compression level.
-    fn cache_key(&self, content_hash: u128, compression_level: i32) -> PathBuf {
-        let filename = format!("{content_hash:32x}_{compression_level}.zst");
+    /// Generates a cache key (filename) for the given content hash, compression level, and algorithm.
+    fn cache_key(
+        &self,
+        content_hash: u128,
+        compression_level: i32,
+        algorithm: CompressionAlgorithm,
+    ) -> PathBuf {
+        let filename = format!(
+            "{content_hash:32x}_{compression_level}.{}",
+            algorithm.file_extension()
+        );
         self.cache_dir.join(filename)
     }
 
@@ -48,8 +58,9 @@ impl CompressedDataCache {
         &self,
         content_hash: u128,
         compression_level: i32,
+        algorithm: CompressionAlgorithm,
     ) -> Result<Option<(Box<[u8]>, usize)>, TransformError> {
-        let cache_file = self.cache_key(content_hash, compression_level);
+        let cache_file = self.cache_key(content_hash, compression_level, algorithm);
 
         if !cache_file.exists() {
             return Ok(None);
@@ -74,11 +85,12 @@ impl CompressedDataCache {
         &self,
         content_hash: u128,
         compression_level: i32,
+        algorithm: CompressionAlgorithm,
         compressed_data: &[u8],
     ) -> Result<(), TransformError> {
         self.ensure_cache_dir()?;
 
-        let cache_file = self.cache_key(content_hash, compression_level);
+        let cache_file = self.cache_key(content_hash, compression_level, algorithm);
 
         let mut file = File::create(&cache_file)
             .map_err(|e| TransformError::Debug(format!("Failed to create cache file: {e}")))?;
@@ -95,13 +107,22 @@ impl CompressedDataCache {
             return 0;
         }
 
+        let valid_extensions: Vec<&str> = CompressionAlgorithm::all_values()
+            .iter()
+            .map(|alg| alg.file_extension())
+            .collect();
+
         fs::read_dir(&self.cache_dir)
             .map(|entries| {
                 entries
                     .filter_map(|entry| entry.ok())
                     .filter(|entry| {
                         entry.path().is_file()
-                            && entry.path().extension().is_some_and(|ext| ext == "zst")
+                            && entry
+                                .path()
+                                .extension()
+                                .and_then(OsStr::to_str)
+                                .is_some_and(|ext| valid_extensions.contains(&ext))
                     })
                     .count()
             })

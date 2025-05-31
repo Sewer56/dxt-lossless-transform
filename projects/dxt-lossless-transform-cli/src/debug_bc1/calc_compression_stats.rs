@@ -1,8 +1,14 @@
 use super::CompressionStatsCmd;
 use crate::{
     debug::{
-        calc_compression_stats_common, compression_size_cache, extract_blocks_from_dds,
-        zstd_helpers::zstd_calc_size_with_cache,
+        calc_compression_stats_common,
+        compression::{
+            helpers::{
+                calc_size_with_cache_and_estimation_algorithm, validate_compression_algorithm,
+            },
+            CompressionAlgorithm,
+        },
+        compression_size_cache, extract_blocks_from_dds,
     },
     error::TransformError,
     util::find_all_files,
@@ -27,13 +33,23 @@ type CompressionCache = compression_size_cache::CompressionSizeCache;
 pub(crate) fn handle_compression_stats_command(
     cmd: CompressionStatsCmd,
 ) -> Result<(), TransformError> {
+    validate_compression_algorithm(cmd.compression_algorithm)?;
+
     let input_path = &cmd.input_directory;
     println!(
         "Analyzing BC1 compression statistics for files in: {} (recursive)",
         input_path.display()
     );
-    println!("Compression level: {}", cmd.compression_level);
-    println!("API compression level: {}", cmd.estimate_compression_level);
+    println!(
+        "Compression algorithm: {} , level: {}",
+        cmd.compression_algorithm.name(),
+        cmd.get_compression_level()
+    );
+    println!(
+        "Estimate (API) compression algorithm: {} , level: {}",
+        cmd.get_estimate_compression_algorithm().name(),
+        cmd.get_estimate_compression_level()
+    );
 
     // Initialize and load cache
     let mut cache = CompressionCache::new();
@@ -61,8 +77,10 @@ pub(crate) fn handle_compression_stats_command(
         .for_each(|entry| {
             match analyze_bc1_compression_file(
                 entry,
-                cmd.compression_level,
-                cmd.estimate_compression_level,
+                cmd.get_compression_level(),
+                cmd.get_estimate_compression_level(),
+                cmd.compression_algorithm,
+                cmd.get_estimate_compression_algorithm(),
                 &cache,
             ) {
                 Ok(file_result) => {
@@ -97,6 +115,8 @@ fn analyze_bc1_compression_file(
     entry: &fs::DirEntry,
     compression_level: i32,
     estimate_compression_level: i32,
+    compression_algorithm: CompressionAlgorithm,
+    estimate_compression_algorithm: CompressionAlgorithm,
     cache: &Mutex<CompressionCache>,
 ) -> Result<Bc1CompressionStatsResult, TransformError> {
     let mut file_result: Bc1CompressionStatsResult = Bc1CompressionStatsResult::default();
@@ -121,19 +141,23 @@ fn analyze_bc1_compression_file(
                         data_ptr,
                         len_bytes,
                         compression_level,
+                        compression_algorithm,
                         cache,
                     )?,
-                    original_compressed_size: zstd_calc_size_with_cache(
+                    original_compressed_size: calc_size_with_cache_and_estimation_algorithm(
                         data_ptr,
                         len_bytes,
                         compression_level,
+                        compression_algorithm,
                         cache,
                     )?,
                     api_recommended_result: analyze_bc1_api_recommendation(
                         data_ptr,
                         len_bytes,
                         estimate_compression_level,
+                        estimate_compression_algorithm,
                         compression_level,
+                        compression_algorithm,
                         cache,
                     )?,
                 };
@@ -150,6 +174,7 @@ fn analyze_bc1_compression_transforms(
     data_ptr: *const u8,
     len_bytes: usize,
     compression_level: i32,
+    compression_algorithm: CompressionAlgorithm,
     cache: &Mutex<CompressionCache>,
 ) -> Result<Vec<Bc1TransformResult>, TransformError> {
     // Allocate aligned buffers for transformations
@@ -172,10 +197,11 @@ fn analyze_bc1_compression_transforms(
             // Compress the transformed data
             results.push(Bc1TransformResult {
                 transform_options,
-                compressed_size: zstd_calc_size_with_cache(
+                compressed_size: calc_size_with_cache_and_estimation_algorithm(
                     transformed_data.as_ptr(),
                     len_bytes,
                     compression_level,
+                    compression_algorithm,
                     cache,
                 )?,
             });
@@ -189,12 +215,20 @@ unsafe fn analyze_bc1_api_recommendation(
     data_ptr: *const u8,
     len_bytes: usize,
     estimate_compression_level: i32,
+    estimate_compression_algorithm: CompressionAlgorithm,
     final_compression_level: i32,
+    compression_algorithm: CompressionAlgorithm,
     cache: &Mutex<CompressionCache>,
 ) -> Result<Bc1TransformResult, TransformError> {
-    // Create the zstandard file size estimator with cache clone for static lifetime
+    // Create the file size estimator with cache clone for static lifetime
     let estimator = move |data_ptr: *const u8, len: usize| -> usize {
-        match zstd_calc_size_with_cache(data_ptr, len, estimate_compression_level, cache) {
+        match calc_size_with_cache_and_estimation_algorithm(
+            data_ptr,
+            len,
+            estimate_compression_level,
+            estimate_compression_algorithm,
+            cache,
+        ) {
             Ok(size) => size,
             Err(e) => {
                 eprintln!("Warning: Compression estimation failed: {e}");
@@ -225,10 +259,11 @@ unsafe fn analyze_bc1_api_recommendation(
     );
 
     // Compress the transformed data (API recommendation, final level)
-    let compressed_size = zstd_calc_size_with_cache(
+    let compressed_size = calc_size_with_cache_and_estimation_algorithm(
         transformed_data.as_ptr(),
         len_bytes,
         final_compression_level,
+        compression_algorithm,
         cache,
     )?;
 

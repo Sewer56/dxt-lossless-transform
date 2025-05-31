@@ -4,8 +4,8 @@ use crate::{
         benchmark_common::{
             self, print_overall_statistics, BenchmarkResult, BenchmarkScenarioResult,
         },
+        compression::{helpers::calc_size_with_estimation_algorithm, CompressionAlgorithm},
         extract_blocks_from_dds,
-        zstd_helpers::zstd_calc_size,
     },
     error::TransformError,
     util::find_all_files,
@@ -23,7 +23,8 @@ use std::fs;
 struct BenchmarkConfig {
     iterations: u32,
     warmup_iterations: u32,
-    estimate_compression_level: i32,
+    compression_level: i32,
+    compression_algorithm: CompressionAlgorithm,
 }
 
 pub(crate) fn handle_benchmark_determine_best_command(
@@ -37,8 +38,9 @@ pub(crate) fn handle_benchmark_determine_best_command(
     println!("Iterations per file: {}", cmd.iterations);
     println!("Warmup iterations: {}", cmd.warmup_iterations);
     println!(
-        "Estimate compression level: {}",
-        cmd.estimate_compression_level
+        "Estimate compression algorithm: {} , level: {}",
+        cmd.estimate_compression_algorithm.name(),
+        cmd.get_estimate_compression_level()
     );
 
     // Collect all files recursively
@@ -61,7 +63,8 @@ pub(crate) fn handle_benchmark_determine_best_command(
             &BenchmarkConfig {
                 iterations: cmd.iterations,
                 warmup_iterations: cmd.warmup_iterations,
-                estimate_compression_level: cmd.estimate_compression_level,
+                compression_level: cmd.get_estimate_compression_level(),
+                compression_algorithm: cmd.estimate_compression_algorithm,
             },
         ) {
             Ok(Some(file_result)) => {
@@ -134,7 +137,12 @@ unsafe fn process_determine_best_scenario(
 ) -> Result<Option<BenchmarkScenarioResult>, TransformError> {
     // Warmup phase
     for _ in 0..config.warmup_iterations {
-        let _ = run_determine_best_once(data_ptr, len_bytes, config.estimate_compression_level)?;
+        let _ = run_determine_best_once(
+            data_ptr,
+            len_bytes,
+            config.compression_level,
+            config.compression_algorithm,
+        )?;
     }
 
     // Benchmark determine_best_transform_details
@@ -144,7 +152,8 @@ unsafe fn process_determine_best_scenario(
                 let _ = run_determine_best_once(
                     data_ptr,
                     len_bytes,
-                    config.estimate_compression_level,
+                    config.compression_level,
+                    config.compression_algorithm,
                 )?;
             }
             Ok(())
@@ -167,10 +176,16 @@ unsafe fn run_determine_best_once(
     data_ptr: *const u8,
     len_bytes: usize,
     estimate_compression_level: i32,
+    compression_algorithm: CompressionAlgorithm,
 ) -> Result<Bc1TransformDetails, TransformError> {
-    // Create a zstd file size estimator that compresses data without caching
+    // Create a compression file size estimator that compresses data without caching
     let estimator = move |data_ptr: *const u8, len: usize| -> usize {
-        match zstd_calc_size(data_ptr, len, estimate_compression_level) {
+        match calc_size_with_estimation_algorithm(
+            data_ptr,
+            len,
+            estimate_compression_level,
+            compression_algorithm,
+        ) {
             Ok(size) => size,
             Err(e) => {
                 eprintln!("Warning: Compression estimation failed: {e}");

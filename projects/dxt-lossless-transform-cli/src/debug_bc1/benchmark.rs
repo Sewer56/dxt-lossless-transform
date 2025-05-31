@@ -43,7 +43,6 @@ struct BenchmarkConfig {
 }
 
 pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), TransformError> {
-    // Ensure the compression algorithm supports actual compression
     validate_compression_algorithm(cmd.compression_algorithm)?;
 
     let input_path = &cmd.input_directory;
@@ -273,7 +272,6 @@ unsafe fn get_api_recommended_details(
     estimate_compression_algorithm: CompressionAlgorithm,
     cache: &Mutex<CompressionSizeCache>,
 ) -> Result<Bc1TransformDetails, TransformError> {
-    // Create the compression file size estimator with cache clone for static lifetime
     let estimator = move |data_ptr: *const u8, len: usize| -> usize {
         match calc_size_with_cache_and_estimation_algorithm(
             data_ptr,

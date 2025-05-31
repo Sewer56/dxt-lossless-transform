@@ -33,7 +33,6 @@ type CompressionCache = compression_size_cache::CompressionSizeCache;
 pub(crate) fn handle_compression_stats_command(
     cmd: CompressionStatsCmd,
 ) -> Result<(), TransformError> {
-    // Ensure the compression algorithm supports actual compression
     validate_compression_algorithm(cmd.compression_algorithm)?;
 
     let input_path = &cmd.input_directory;

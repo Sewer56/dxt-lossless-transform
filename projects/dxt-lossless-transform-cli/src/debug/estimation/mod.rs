@@ -2,6 +2,7 @@
 
 use crate::debug::compression::CompressionAlgorithm;
 use crate::error::TransformError;
+use zstd::ZStandardSizeEstimation;
 
 pub mod zstd;
 
@@ -24,12 +25,30 @@ pub trait SizeEstimationOperations {
     ) -> Result<usize, TransformError>;
 }
 
-/// Factory for creating size estimation operation instances.
-pub fn create_size_estimation_operations(
+/// Estimates compressed size using the specified algorithm.
+///
+/// This function dispatches the size estimation task to the appropriate
+/// implementation based on the [`CompressionAlgorithm`].
+///
+/// # Parameters
+/// * `data_ptr` - Pointer to the data to estimate.
+/// * `len_bytes` - Length of the data in bytes.
+/// * `algorithm` - The estimation algorithm to use.
+/// * `compression_level` - Compression level (algorithm-specific).
+///
+/// # Returns
+/// A [`Result`] containing the estimated compressed size in bytes,
+/// or a [`TransformError`] if estimation is not supported or fails.
+pub fn estimate_compressed_size_with_algorithm(
+    data_ptr: *const u8,
+    len_bytes: usize,
     algorithm: CompressionAlgorithm,
-) -> Box<dyn SizeEstimationOperations> {
+    compression_level: i32,
+) -> Result<usize, TransformError> {
     match algorithm {
-        CompressionAlgorithm::ZStandard => Box::new(zstd::ZStandardSizeEstimation),
-        CompressionAlgorithm::LosslessTransformUtils => panic!("Not yet supported"),
+        CompressionAlgorithm::ZStandard => {
+            ZStandardSizeEstimation.estimate_compressed_size(data_ptr, len_bytes, compression_level)
+        }
+        CompressionAlgorithm::LosslessTransformUtils => todo!(),
     }
 }

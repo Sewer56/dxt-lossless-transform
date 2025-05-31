@@ -8,7 +8,7 @@ use super::super::{
 use super::compress_with_algorithm;
 use super::decompress_with_algorithm;
 use super::CompressionAlgorithm;
-use crate::debug::estimation::create_size_estimation_operations;
+use crate::debug::estimation::estimate_compressed_size_with_algorithm;
 use crate::error::TransformError;
 use std::sync::Mutex;
 
@@ -90,8 +90,12 @@ pub unsafe fn calc_size_with_estimation_algorithm(
     compression_level: i32,
     estimation_algorithm: CompressionAlgorithm,
 ) -> Result<usize, TransformError> {
-    let estimation_ops = create_size_estimation_operations(estimation_algorithm);
-    estimation_ops.estimate_compressed_size(data_ptr, len_bytes, compression_level)
+    estimate_compressed_size_with_algorithm(
+        data_ptr,
+        len_bytes,
+        estimation_algorithm,
+        compression_level,
+    )
 }
 
 /// Calculates compressed size using a separate estimation algorithm with caching support.
@@ -118,9 +122,12 @@ pub fn calc_size_with_cache_and_estimation_algorithm(
     }
 
     // Not in cache, compute it
-    let estimation_ops = create_size_estimation_operations(estimation_algorithm);
-    let compressed_size =
-        estimation_ops.estimate_compressed_size(data_ptr, len_bytes, compression_level)?;
+    let compressed_size = estimate_compressed_size_with_algorithm(
+        data_ptr,
+        len_bytes,
+        estimation_algorithm,
+        compression_level,
+    )?;
 
     // Store in cache
     {

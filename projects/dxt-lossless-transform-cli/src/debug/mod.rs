@@ -9,6 +9,7 @@ pub mod benchmark_common;
 pub mod calc_compression_stats_common;
 pub mod compressed_data_cache;
 pub mod compression_size_cache;
+pub mod throughput;
 pub mod zstd;
 
 /// Extracts BC1-BC7 blocks from a DDS file in memory.

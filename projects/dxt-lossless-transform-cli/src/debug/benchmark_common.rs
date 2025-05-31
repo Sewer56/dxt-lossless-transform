@@ -3,14 +3,12 @@
 //! This module provides shared data structures, utilities, and benchmarking functions that can be
 //! reused across different BC format implementations for performance analysis.
 
-use bytesize::ByteSize;
-
 use super::{
     calculate_content_hash, compressed_data_cache::CompressedDataCache,
     compression_size_cache::CompressionSizeCache,
 };
 use crate::{
-    debug::{calc_compression_stats_common::get_filename, zstd},
+    debug::{calc_compression_stats_common::get_filename, throughput::Throughput, zstd},
     error::TransformError,
 };
 use core::{f64, fmt::Debug, slice};
@@ -33,9 +31,9 @@ pub struct BenchmarkScenarioResult {
     pub decompress_time: Duration,
     pub detransform_time: Duration,
     pub combined_time: Duration,
-    pub decompress_throughput: ByteSize,
-    pub detransform_throughput: ByteSize,
-    pub combined_throughput: ByteSize,
+    pub decompress_throughput: Throughput,
+    pub detransform_throughput: Throughput,
+    pub combined_throughput: Throughput,
 }
 
 impl BenchmarkScenarioResult {
@@ -71,9 +69,15 @@ impl BenchmarkScenarioResult {
             decompress_time,
             detransform_time,
             combined_time,
-            decompress_throughput: ByteSize(decompress_throughput_bytes_per_sec.round() as u64),
-            detransform_throughput: ByteSize(detransform_throughput_bytes_per_sec.round() as u64),
-            combined_throughput: ByteSize(combined_throughput_bytes_per_sec.round() as u64),
+            decompress_throughput: Throughput::from_bytes_per_sec(
+                decompress_throughput_bytes_per_sec.round() as u64,
+            ),
+            detransform_throughput: Throughput::from_bytes_per_sec(
+                detransform_throughput_bytes_per_sec.round() as u64,
+            ),
+            combined_throughput: Throughput::from_bytes_per_sec(
+                combined_throughput_bytes_per_sec.round() as u64,
+            ),
         }
     }
 }
@@ -214,7 +218,7 @@ pub fn print_file_result(result: &BenchmarkResult) {
 
     for scenario in &result.scenarios {
         println!(
-            "  {}: decompress: {:.2} ms ({:.1}/s), detransform: {:.2} ms ({:.1}/s), combined: {:.2} ms ({:.1}/s)",
+            "  {}: decompress: {:.2} ms ({:.1}), detransform: {:.2} ms ({:.1}), combined: {:.2} ms ({:.1})",
             scenario.scenario_name,
             scenario.decompress_time.as_secs_f64() * 1000.0,
             scenario.decompress_throughput,
@@ -264,9 +268,9 @@ pub fn print_overall_statistics(results: &[BenchmarkResult]) {
     // Struct to hold scenario statistics for sorting
     struct ScenarioStats {
         scenario_name: String,
-        avg_decompress_throughput: ByteSize,
-        avg_detransform_throughput: ByteSize,
-        avg_combined_throughput: ByteSize,
+        avg_decompress_throughput: Throughput,
+        avg_detransform_throughput: Throughput,
+        avg_combined_throughput: Throughput,
         total_decompress_time: Duration,
         total_detransform_time: Duration,
         total_combined_time: Duration,
@@ -301,19 +305,25 @@ pub fn print_overall_statistics(results: &[BenchmarkResult]) {
         let total_combined_time_s = total_combined_time.as_secs_f64();
 
         let avg_decompress_throughput = if total_decompress_time_s > 0.0 {
-            ByteSize((total_size_bytes as f64 / total_decompress_time_s).round() as u64)
+            Throughput::from_bytes_per_sec(
+                (total_size_bytes as f64 / total_decompress_time_s).round() as u64,
+            )
         } else {
-            ByteSize(0)
+            Throughput::from_bytes_per_sec(0)
         };
         let avg_detransform_throughput = if total_detransform_time_s > 0.0 {
-            ByteSize((total_size_bytes as f64 / total_detransform_time_s).round() as u64)
+            Throughput::from_bytes_per_sec(
+                (total_size_bytes as f64 / total_detransform_time_s).round() as u64,
+            )
         } else {
-            ByteSize(0)
+            Throughput::from_bytes_per_sec(0)
         };
         let avg_combined_throughput = if total_combined_time_s > 0.0 {
-            ByteSize((total_size_bytes as f64 / total_combined_time_s).round() as u64)
+            Throughput::from_bytes_per_sec(
+                (total_size_bytes as f64 / total_combined_time_s).round() as u64,
+            )
         } else {
-            ByteSize(0)
+            Throughput::from_bytes_per_sec(0)
         };
 
         scenario_stats.push(ScenarioStats {
@@ -330,25 +340,25 @@ pub fn print_overall_statistics(results: &[BenchmarkResult]) {
     // Sort by combined throughput (descending - fastest first)
     scenario_stats.sort_by(|a, b| {
         b.avg_combined_throughput
-            .0
-            .cmp(&a.avg_combined_throughput.0)
+            .bytes_per_sec()
+            .cmp(&a.avg_combined_throughput.bytes_per_sec())
     });
 
     // Print statistics for each scenario type
     for stats in scenario_stats {
         println!("📈 {}:", stats.scenario_name);
         println!(
-            "  Decompress: avg {:.2}/s, total {:.2} ms",
+            "  Decompress: avg {:.2}, total {:.2} ms",
             stats.avg_decompress_throughput,
             stats.total_decompress_time.as_secs_f64() * 1000.0
         );
         println!(
-            "  Detransform: avg {:.2}/s, total {:.2} ms",
+            "  Detransform: avg {:.2}, total {:.2} ms",
             stats.avg_detransform_throughput,
             stats.total_detransform_time.as_secs_f64() * 1000.0
         );
         println!(
-            "  Combined: avg {:.2}/s, total {:.2} ms",
+            "  Combined: avg {:.2}, total {:.2} ms",
             stats.avg_combined_throughput,
             stats.total_combined_time.as_secs_f64() * 1000.0
         );

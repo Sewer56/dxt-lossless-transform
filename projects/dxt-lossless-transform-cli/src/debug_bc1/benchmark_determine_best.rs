@@ -218,7 +218,7 @@ fn print_file_result_throughput(result: &BenchmarkResult) {
         let execution_time_ms = scenario.detransform_time.as_secs_f64() * 1000.0;
         let throughput = scenario.detransform_throughput;
         println!(
-            "   ⚡ {}: {execution_time_ms:.3} ms ({throughput:.2}/s)",
+            "   ⚡ {}: {execution_time_ms:.3} ms ({throughput:.2})",
             scenario.scenario_name
         );
     }

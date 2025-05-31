@@ -1,5 +1,5 @@
-//! Wrappers for ZStandard around the `zstd` module, with caching support for benchmarking
-//! and 'native' error handling.
+//! Generic compression helpers with caching support for benchmarking
+//! and 'native' error handling. Supports multiple compression algorithms.
 
 use super::super::{
     calculate_content_hash, compressed_data_cache::CompressedDataCache,

@@ -139,7 +139,7 @@ where
             for split_colours in [true, false] {
                 // Get the current mode we're testing.
                 let current_mode = Bc1TransformDetails {
-                    color_normalization_mode: ColorNormalizationMode::None, // Skip normalization normalization
+                    color_normalization_mode: ColorNormalizationMode::None, // Skip normalization step
                     decorrelation_mode: *decorrelation_mode,
                     split_colour_endpoints: split_colours,
                 };

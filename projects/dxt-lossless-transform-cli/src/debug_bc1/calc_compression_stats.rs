@@ -3,7 +3,10 @@ use crate::{
     debug::{
         calc_compression_stats_common,
         compression::{
-            helpers::calc_size_with_cache_and_estimation_algorithm, CompressionAlgorithm,
+            helpers::{
+                calc_size_with_cache_and_estimation_algorithm, validate_compression_algorithm,
+            },
+            CompressionAlgorithm,
         },
         compression_size_cache, extract_blocks_from_dds,
     },
@@ -31,13 +34,7 @@ pub(crate) fn handle_compression_stats_command(
     cmd: CompressionStatsCmd,
 ) -> Result<(), TransformError> {
     // Ensure the compression algorithm supports actual compression
-    if !cmd.compression_algorithm.supports_compress() {
-        return Err(TransformError::Debug(format!(
-            "Compression algorithm '{}' does not support actual compression.\
-Use a compression algorithm like ZStandard for operations that require real compression.",
-            cmd.compression_algorithm
-        )));
-    }
+    validate_compression_algorithm(cmd.compression_algorithm)?;
 
     let input_path = &cmd.input_directory;
     println!(

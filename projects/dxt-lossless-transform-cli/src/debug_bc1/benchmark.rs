@@ -9,7 +9,7 @@ use crate::{
         compression::{
             helpers::{
                 calc_size_with_cache_and_estimation_algorithm, compress_data_cached,
-                decompress_data, CacheRefs,
+                decompress_data, validate_compression_algorithm, CacheRefs,
             },
             CompressionAlgorithm,
         },
@@ -44,11 +44,7 @@ struct BenchmarkConfig {
 
 pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), TransformError> {
     // Ensure the compression algorithm supports actual compression
-    assert!(
-        cmd.compression_algorithm.supports_compress(),
-        "Compression algorithm '{}' does not support actual compression. Use a compression algorithm like ZStandard for operations that require real compression.",
-        cmd.compression_algorithm
-    );
+    validate_compression_algorithm(cmd.compression_algorithm)?;
 
     let input_path = &cmd.input_directory;
     println!(

@@ -12,6 +12,19 @@ use crate::debug::estimation::create_size_estimation_operations;
 use crate::error::TransformError;
 use std::sync::Mutex;
 
+/// Validates that a compression algorithm supports actual compression
+pub fn validate_compression_algorithm(
+    algorithm: CompressionAlgorithm,
+) -> Result<(), TransformError> {
+    if !algorithm.supports_compress() {
+        return Err(TransformError::Debug(format!(
+            "Compression algorithm '{algorithm}' does not support actual compression.\
+Use a compression algorithm like ZStandard for operations that require real compression.",
+        )));
+    }
+    Ok(())
+}
+
 /// References to the caches used during benchmarking
 pub struct CacheRefs<'a> {
     pub compressed_size_cache: &'a Mutex<CompressionSizeCache>,

@@ -2,6 +2,7 @@
 
 use crate::error::TransformError;
 use core::fmt;
+use derive_enum_all_values::AllValues;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use zstd::ZStandardCompression;
@@ -23,6 +24,7 @@ pub mod zstd;
     bincode::Encode,
     bincode::Decode,
     Default,
+    AllValues,
 )]
 pub enum CompressionAlgorithm {
     /// ZStandard compression
@@ -63,14 +65,6 @@ impl CompressionAlgorithm {
             CompressionAlgorithm::ZStandard => 3,
             CompressionAlgorithm::LosslessTransformUtils => 0, // Not applicable, as this is an estimation method
         }
-    }
-
-    /// Returns all available compression algorithms.
-    pub fn all() -> &'static [CompressionAlgorithm] {
-        &[
-            CompressionAlgorithm::ZStandard,
-            CompressionAlgorithm::LosslessTransformUtils,
-        ]
     }
 
     /// Checks if this compression algorithm supports actual compression.

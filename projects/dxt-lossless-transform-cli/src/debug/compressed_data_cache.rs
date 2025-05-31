@@ -106,7 +106,7 @@ impl CompressedDataCache {
             return 0;
         }
 
-        let valid_extensions: Vec<&str> = CompressionAlgorithm::all()
+        let valid_extensions: Vec<&str> = CompressionAlgorithm::all_values()
             .iter()
             .map(|alg| alg.file_extension())
             .collect();

@@ -486,12 +486,16 @@ pub unsafe fn normalize_split_blocks_in_place(
 /// in the same order as they are defined in the enum.
 ///
 /// See the module-level documentation for more details on the normalization process.
+/// 
+/// # Returns
+/// 
+/// True if any block was normalized, false if all blocks were unchanged.
 #[inline]
 pub unsafe fn normalize_blocks_all_modes(
     input_ptr: *const u8,
     output_ptrs: &[*mut u8; ColorNormalizationMode::all_values().len()],
     len: usize,
-) {
+) -> bool {
     debug_assert!(len % 8 == 0);
     debug_assert!(output_ptrs.len() == ColorNormalizationMode::all_values().len());
     
@@ -505,6 +509,7 @@ pub unsafe fn normalize_blocks_all_modes(
         "normalize_blocks_all_modes: overlapping buffers are not supported (must be either completely separate or identical)"
     );
 
+    let mut any_normalized = false;
     let mut dst_block_ptrs = [null_mut::<u8>(); ColorNormalizationMode::all_values().len()];
     for (x, dst_ptr) in dst_block_ptrs.iter_mut().enumerate() {
         *dst_ptr = output_ptrs[x];
@@ -516,12 +521,16 @@ pub unsafe fn normalize_blocks_all_modes(
         |src_block_ptr, _decoded_block, block_case, color565| {
             match block_case {
                 BlockCase::Transparent => {
+                    any_normalized = true;
+
                     // Case 2: Fully transparent block - fill with 0xFF in all output buffers
                     for dst_ptr in dst_block_ptrs.iter_mut() {
                         write_bytes(*dst_ptr, 0xFF, 8);
                     }
                 }
                 BlockCase::SolidColorRoundtrippable => {
+                    any_normalized = true;
+
                     // Can be normalized - write the standard pattern for each mode
                     for (x, dst_ptr) in dst_block_ptrs.iter_mut().enumerate() {
                         let mode = ColorNormalizationMode::all_values()[x];
@@ -542,6 +551,8 @@ pub unsafe fn normalize_blocks_all_modes(
             }
         },
     );
+
+    any_normalized
 }
 
 /// Defines how colors should be normalized for BC1 blocks

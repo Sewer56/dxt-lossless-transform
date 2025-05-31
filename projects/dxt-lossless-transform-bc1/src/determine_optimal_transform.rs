@@ -80,91 +80,148 @@ where
     let split_blocks_buffers_ptrs = split_blocks_buffers.get_pointer_slice();
 
     // Normalize blocks into all possible modes.
-    normalize_blocks_all_modes(input_ptr, &normalize_buffers_ptrs, len);
+    let any_normalized = normalize_blocks_all_modes(input_ptr, &normalize_buffers_ptrs, len);
+    if any_normalized {
+        // At least 1 block was normalized, so we have to test all options.
+        // Now split all blocks.
+        for x in 0..NUM_NORMALIZE {
+            split_blocks(normalize_buffers_ptrs[x], split_blocks_buffers_ptrs[x], len);
+        }
 
-    // Now split all blocks.
-    for x in 0..NUM_NORMALIZE {
-        split_blocks(normalize_buffers_ptrs[x], split_blocks_buffers_ptrs[x], len);
-    }
+        // Now we got all blocks normalized and split, and have to test all the different possibilities.
+        // We can repurpose the normalize_buffers
+        let mut best_transform_details = Bc1TransformDetails::default();
+        let mut best_size = usize::MAX;
 
-    // Now we got all blocks normalized and split, and have to test all the different possibilities.
-    // We can repurpose the normalize_buffers
-    let mut best_transform_details = Bc1TransformDetails::default();
-    let mut best_size = usize::MAX;
+        // split_blocks_buffers_ptrs: buffer_a
+        // result_pointers: buffer_b (output)
+        let result_pointers = normalize_buffers.get_pointer_slice();
+        for norm_idx in 0..NUM_NORMALIZE {
+            for decorrelation_mode in YCoCgVariant::all_values() {
+                for split_colours in [true, false] {
+                    // Get the current mode we're testing.
+                    let current_mode = Bc1TransformDetails {
+                        color_normalization_mode: ColorNormalizationMode::all_values()[norm_idx],
+                        decorrelation_mode: *decorrelation_mode,
+                        split_colour_endpoints: split_colours,
+                    };
 
-    // split_blocks_buffers_ptrs: buffer_a
-    // result_pointers: buffer_b (output)
-    let result_pointers = normalize_buffers.get_pointer_slice();
-    for norm_idx in 0..NUM_NORMALIZE {
+                    // Get input/output buffers.
+                    let input = split_blocks_buffers_ptrs[norm_idx];
+                    let output = result_pointers[norm_idx];
+
+                    test_normalize_variant(
+                        input,
+                        output,
+                        len,
+                        &transform_options,
+                        &mut best_transform_details,
+                        &mut best_size,
+                        current_mode,
+                    );
+                }
+            }
+        }
+
+        Ok(best_transform_details)
+    } else {
+        // No blocks were normalized, we can skip testing normalize steps
+        // Since no normalization occurred, we can use the original input directly after splitting
+        split_blocks(input_ptr, split_blocks_buffers_ptrs[0], len);
+
+        let mut best_transform_details = Bc1TransformDetails::default();
+        let mut best_size = usize::MAX;
+
+        // We can repurpose the normalize_buffers for results since they're not being used
+        let result_pointers = normalize_buffers.get_pointer_slice();
+
         for decorrelation_mode in YCoCgVariant::all_values() {
             for split_colours in [true, false] {
                 // Get the current mode we're testing.
                 let current_mode = Bc1TransformDetails {
-                    color_normalization_mode: ColorNormalizationMode::all_values()[norm_idx],
+                    color_normalization_mode: ColorNormalizationMode::None, // Skip normalization step
                     decorrelation_mode: *decorrelation_mode,
                     split_colour_endpoints: split_colours,
                 };
 
                 // Get input/output buffers.
-                let input = split_blocks_buffers_ptrs[norm_idx];
-                let output = result_pointers[norm_idx];
+                let input = split_blocks_buffers_ptrs[0]; // Use first buffer since no normalization variants
+                let output = result_pointers[0];
 
-                // So this is the fun part.
-                if split_colours {
-                    // Split colour endpoints, then decorrelate in-place.
-                    // ..
-                    // Colours represent first half of the data, before indices.
-                    split_color_endpoints(
-                        input as *const Color565,
-                        output as *mut Color565,
-                        len / 2, // (len / 2): Length of colour endpoints in bytes
-                    );
-                    let colors_in_arr = slice::from_raw_parts(
-                        output as *const Color565, // Using output as both source and destination as data was already copied there
-                        (len / 2) / size_of::<Color565>(),
-                    );
-                    let colors_out_arr = slice::from_raw_parts_mut(
-                        output as *mut Color565,
-                        (len / 2) / size_of::<Color565>(),
-                    );
-                    Color565::decorrelate_ycocg_r_slice(
-                        colors_in_arr,
-                        colors_out_arr,
-                        *decorrelation_mode,
-                    );
-                } else {
-                    // Decorrelate directly into the target buffer.
-                    let colors_in_arr = slice::from_raw_parts(
-                        input as *const Color565,
-                        len / 2 / size_of::<Color565>(),
-                    );
-                    let colors_out_arr = slice::from_raw_parts_mut(
-                        output as *mut Color565,
-                        len / 2 / size_of::<Color565>(),
-                    );
-                    Color565::decorrelate_ycocg_r_slice(
-                        colors_in_arr,
-                        colors_out_arr,
-                        *decorrelation_mode,
-                    );
-                }
-
-                // Now copy the indices verbatim.
-                let indices_in_arr = slice::from_raw_parts(input.add(len / 2), len / 2);
-                let indices_out_arr = slice::from_raw_parts_mut(output.add(len / 2), len / 2);
-                indices_out_arr.copy_from_slice(indices_in_arr);
-
-                // Test the current mode.
-                let result_size = (transform_options.file_size_estimator)(output, len);
-                if result_size < best_size {
-                    best_size = result_size;
-                    best_transform_details = current_mode;
-                }
+                test_normalize_variant(
+                    input,
+                    output,
+                    len,
+                    &transform_options,
+                    &mut best_transform_details,
+                    &mut best_size,
+                    current_mode,
+                );
             }
         }
+
+        Ok(best_transform_details)
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+#[inline]
+unsafe fn test_normalize_variant<F>(
+    input: *mut u8,
+    output: *mut u8,
+    len: usize,
+    transform_options: &Bc1TransformOptions<F>,
+    best_transform_details: &mut Bc1TransformDetails,
+    best_size: &mut usize,
+    current_mode: Bc1TransformDetails,
+) where
+    F: Fn(*const u8, usize) -> usize,
+{
+    // So this is the fun part.
+    if current_mode.split_colour_endpoints {
+        // Split colour endpoints, then decorrelate in-place.
+        // ..
+        // Colours represent first half of the data, before indices.
+        split_color_endpoints(
+            input as *const Color565,
+            output as *mut Color565,
+            len / 2, // (len / 2): Length of colour endpoints in bytes
+        );
+        let colors_in_arr = slice::from_raw_parts(
+            output as *const Color565, // Using output as both source and destination as data was already copied there
+            (len / 2) / size_of::<Color565>(),
+        );
+        let colors_out_arr =
+            slice::from_raw_parts_mut(output as *mut Color565, (len / 2) / size_of::<Color565>());
+        Color565::decorrelate_ycocg_r_slice(
+            colors_in_arr,
+            colors_out_arr,
+            current_mode.decorrelation_mode,
+        );
+    } else {
+        // Decorrelate directly into the target buffer.
+        let colors_in_arr =
+            slice::from_raw_parts(input as *const Color565, len / 2 / size_of::<Color565>());
+        let colors_out_arr =
+            slice::from_raw_parts_mut(output as *mut Color565, len / 2 / size_of::<Color565>());
+        Color565::decorrelate_ycocg_r_slice(
+            colors_in_arr,
+            colors_out_arr,
+            current_mode.decorrelation_mode,
+        );
     }
 
-    Ok(best_transform_details)
+    // Now copy the indices verbatim.
+    let indices_in_arr = slice::from_raw_parts(input.add(len / 2), len / 2);
+    let indices_out_arr = slice::from_raw_parts_mut(output.add(len / 2), len / 2);
+    indices_out_arr.copy_from_slice(indices_in_arr);
+
+    // Test the current mode.
+    let result_size = (transform_options.file_size_estimator)(output, len);
+    if result_size < *best_size {
+        *best_size = result_size;
+        *best_transform_details = current_mode;
+    }
 }
 
 /// An error that happened in memory allocation within the library.

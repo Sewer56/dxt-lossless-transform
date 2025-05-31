@@ -137,12 +137,17 @@ unsafe fn process_determine_best_scenario(
     }
 
     // Benchmark determine_best_transform_details
-    let (_, execution_time) = benchmark_common::measure_time(|| {
-        for _ in 0..config.iterations {
-            let _ = run_determine_best_once(data_ptr, len_bytes, config.estimate_compression_level)
-                .unwrap();
-        }
-    });
+    let (_, execution_time) =
+        benchmark_common::measure_time_result(|| -> Result<(), TransformError> {
+            for _ in 0..config.iterations {
+                let _ = run_determine_best_once(
+                    data_ptr,
+                    len_bytes,
+                    config.estimate_compression_level,
+                )?;
+            }
+            Ok(())
+        })?;
 
     // Average the time over iterations
     let avg_execution_time = execution_time / config.iterations;

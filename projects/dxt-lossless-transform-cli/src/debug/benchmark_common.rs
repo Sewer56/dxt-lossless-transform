@@ -206,6 +206,18 @@ where
     (result, duration)
 }
 
+/// Measures the time taken to execute a function that returns a Result and propagates errors.
+/// Returns the duration only on success, or the error if the function fails.
+pub fn measure_time_result<F, T, E>(func: F) -> Result<(T, Duration), E>
+where
+    F: FnOnce() -> Result<T, E>,
+{
+    let start = Instant::now();
+    let result = func()?;
+    let duration = start.elapsed();
+    Ok((result, duration))
+}
+
 /// Prints the results for a single file's benchmark.
 pub fn print_file_result(result: &BenchmarkResult) {
     let filename = get_filename(&result.file_path);

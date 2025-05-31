@@ -5,7 +5,9 @@ use super::super::{
     calculate_content_hash, compressed_data_cache::CompressedDataCache,
     compression_size_cache::CompressionSizeCache,
 };
-use super::{create_compression_operations, CompressionAlgorithm};
+use super::compress_with_algorithm;
+use super::decompress_with_algorithm;
+use super::CompressionAlgorithm;
 use crate::debug::estimation::create_size_estimation_operations;
 use crate::error::TransformError;
 use std::sync::Mutex;
@@ -44,9 +46,8 @@ pub fn compress_data_cached(
     }
 
     // Not in cache, compress the data using the compression operations
-    let compression_ops = create_compression_operations(algorithm);
     let (compressed_data, compressed_size) =
-        compression_ops.compress_data(data_ptr, len_bytes, compression_level)?;
+        compress_with_algorithm(data_ptr, len_bytes, algorithm, compression_level)?;
 
     // Save to cache for future use
     if let Err(e) = caches.compressed_data_cache.save_compressed_data(
@@ -130,6 +131,5 @@ pub fn decompress_data(
     output_buffer: &mut [u8],
     algorithm: CompressionAlgorithm,
 ) -> Result<usize, TransformError> {
-    let compression_ops = create_compression_operations(algorithm);
-    compression_ops.decompress_data(compressed_data, output_buffer)
+    decompress_with_algorithm(compressed_data, output_buffer, algorithm)
 }

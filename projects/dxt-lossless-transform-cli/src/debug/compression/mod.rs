@@ -135,14 +135,63 @@ pub trait CompressionOperations {
     ) -> Result<usize, TransformError>;
 }
 
-/// Factory for creating compression operation instances.
-pub fn create_compression_operations(
+/// Compresses data using the specified algorithm.
+///
+/// This function dispatches the compression task to the appropriate
+/// implementation based on the `CompressionAlgorithm`.
+///
+/// # Parameters
+/// * `data_ptr` - Pointer to the data to compress.
+/// * `len_bytes` - Length of the data in bytes.
+/// * `algorithm` - The compression algorithm to use.
+/// * `compression_level` - Compression level (algorithm-specific).
+///
+/// # Returns
+/// A `Result` containing a tuple of (compressed_data, compressed_size),
+/// or a `TransformError` if compression is not supported or fails.
+pub fn compress_with_algorithm(
+    data_ptr: *const u8,
+    len_bytes: usize,
     algorithm: CompressionAlgorithm,
-) -> Box<dyn CompressionOperations> {
+    compression_level: i32,
+) -> Result<(Box<[u8]>, usize), TransformError> {
     match algorithm {
-        CompressionAlgorithm::ZStandard => Box::new(ZStandardCompression),
-        CompressionAlgorithm::LosslessTransformUtils => panic!(
-            "LosslessTransformUtils is not a compression algorithm, only an estimation method"
-        ),
+        CompressionAlgorithm::ZStandard => {
+            zstd_compression_operations().compress_data(data_ptr, len_bytes, compression_level)
+        }
+        CompressionAlgorithm::LosslessTransformUtils => todo!(),
     }
+}
+
+/// Decompresses data using the specified algorithm.
+///
+/// This function dispatches the decompression task to the appropriate
+/// implementation based on the `CompressionAlgorithm`.
+///
+/// # Parameters
+/// * `compressed_data` - The compressed data.
+/// * `output_buffer` - Buffer to decompress into.
+/// * `algorithm` - The compression algorithm to use.
+///
+/// # Returns
+/// A `Result` containing the number of bytes decompressed,
+/// or a `TransformError` if decompression is not supported or fails.
+pub fn decompress_with_algorithm(
+    compressed_data: &[u8],
+    output_buffer: &mut [u8],
+    algorithm: CompressionAlgorithm,
+) -> Result<usize, TransformError> {
+    match algorithm {
+        CompressionAlgorithm::ZStandard => {
+            zstd_compression_operations().decompress_data(compressed_data, output_buffer)
+        }
+        CompressionAlgorithm::LosslessTransformUtils => todo!(),
+    }
+}
+
+/// Returns the ZStandard compression operations.
+///
+/// This function is used to avoid boxing the ZStandardCompression struct.
+pub fn zstd_compression_operations() -> ZStandardCompression {
+    ZStandardCompression
 }

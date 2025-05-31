@@ -147,8 +147,8 @@ pub trait CompressionOperations {
 /// * `compression_level` - Compression level (algorithm-specific).
 ///
 /// # Returns
-/// A `Result` containing a tuple of (compressed_data, compressed_size),
-/// or a `TransformError` if compression is not supported or fails.
+/// A [`Result`] containing a tuple of (compressed_data, compressed_size),
+/// or a [`TransformError`] if compression is not supported or fails.
 pub fn compress_with_algorithm(
     data_ptr: *const u8,
     len_bytes: usize,
@@ -174,8 +174,8 @@ pub fn compress_with_algorithm(
 /// * `algorithm` - The compression algorithm to use.
 ///
 /// # Returns
-/// A `Result` containing the number of bytes decompressed,
-/// or a `TransformError` if decompression is not supported or fails.
+/// A [`Result`] containing the number of bytes decompressed,
+/// or a [`TransformError`] if decompression is not supported or fails.
 pub fn decompress_with_algorithm(
     compressed_data: &[u8],
     output_buffer: &mut [u8],

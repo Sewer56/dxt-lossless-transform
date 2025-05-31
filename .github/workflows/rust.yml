@@ -3,10 +3,24 @@ name: Test, Upload Coverage and Release Rust
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'projects/**'
+      - 'fuzz/**'
+      - 'assets/tests/**'
+      - '.github/workflows/rust.yml'
     tags:
       - '*'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'projects/**'
+      - 'fuzz/**'
+      - 'assets/tests/**'
+      - '.github/workflows/rust.yml'
   workflow_dispatch:
 
 concurrency:

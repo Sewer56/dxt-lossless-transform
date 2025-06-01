@@ -80,7 +80,7 @@ fn test_bc1_roundtrip(data_ptr: *const u8, len_bytes: usize) -> Result<(), Trans
                 roundtrip_data.as_mut_ptr(),
                 work_buffer.as_mut_ptr(),
                 len_bytes,
-                transform_options,
+                transform_options.into(),
             );
             work_buffer.as_mut_slice().fill(0x00); // reset work buffer (again)
 

@@ -17,7 +17,7 @@ use crate::{
 use core::sync::atomic::{AtomicUsize, Ordering};
 use dxt_lossless_transform_api::DdsFormat;
 use dxt_lossless_transform_bc1::{
-    determine_optimal_transform::{determine_best_transform_details, Bc1TransformOptions},
+    determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions},
     transform_bc1, Bc1TransformDetails,
 };
 use dxt_lossless_transform_common::allocate::allocate_align_64;
@@ -81,6 +81,7 @@ pub(crate) fn handle_compression_stats_command(
                 cmd.get_estimate_compression_level(),
                 cmd.compression_algorithm,
                 cmd.get_estimate_compression_algorithm(),
+                cmd.experimental_normalize,
                 &cache,
             ) {
                 Ok(file_result) => {
@@ -117,6 +118,7 @@ fn analyze_bc1_compression_file(
     estimate_compression_level: i32,
     compression_algorithm: CompressionAlgorithm,
     estimate_compression_algorithm: CompressionAlgorithm,
+    experimental_normalize: bool,
     cache: &Mutex<CompressionCache>,
 ) -> Result<Bc1CompressionStatsResult, TransformError> {
     let mut file_result: Bc1CompressionStatsResult = Bc1CompressionStatsResult::default();
@@ -158,6 +160,7 @@ fn analyze_bc1_compression_file(
                         estimate_compression_algorithm,
                         compression_level,
                         compression_algorithm,
+                        experimental_normalize,
                         cache,
                     )?,
                 };
@@ -218,6 +221,7 @@ unsafe fn analyze_bc1_api_recommendation(
     estimate_compression_algorithm: CompressionAlgorithm,
     final_compression_level: i32,
     compression_algorithm: CompressionAlgorithm,
+    experimental_normalize: bool,
     cache: &Mutex<CompressionCache>,
 ) -> Result<Bc1TransformResult, TransformError> {
     // Create the file size estimator with cache clone for static lifetime
@@ -238,8 +242,9 @@ unsafe fn analyze_bc1_api_recommendation(
     };
 
     // Create transform options
-    let transform_options = Bc1TransformOptions {
+    let transform_options = Bc1EstimateOptions {
         file_size_estimator: estimator,
+        test_normalize_options: experimental_normalize,
     };
 
     // Determine the best transform details using the API

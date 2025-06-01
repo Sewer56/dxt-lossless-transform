@@ -60,6 +60,10 @@ pub struct CompressionStatsCmd {
     /// compression algorithm to use for size estimation (default: same as compression_algorithm)
     #[argh(option)]
     pub estimate_compression_algorithm: Option<CompressionAlgorithm>,
+
+    /// enable experimental color normalization feature which saves extra space at expense of compression time
+    #[argh(switch)]
+    pub experimental_normalize: bool,
 }
 
 #[derive(FromArgs, Debug)]
@@ -93,6 +97,10 @@ pub struct BenchmarkCmd {
     /// compression algorithm to use for size estimation (default: same as compression_algorithm)
     #[argh(option)]
     pub estimate_compression_algorithm: Option<CompressionAlgorithm>,
+
+    /// enable experimental color normalization feature which saves extra space at expense of compression time
+    #[argh(switch)]
+    pub experimental_normalize: bool,
 }
 
 #[derive(FromArgs, Debug)]
@@ -118,6 +126,10 @@ pub struct BenchmarkDetermineBestCmd {
     /// compression algorithm to use for size estimation (default: zstd)
     #[argh(option, default = "CompressionAlgorithm::ZStandard")]
     pub estimate_compression_algorithm: CompressionAlgorithm,
+
+    /// enable experimental color normalization feature which saves extra space at expense of compression time
+    #[argh(switch)]
+    pub experimental_normalize: bool,
 }
 
 // Helper functions for resolving default compression levels and algorithms

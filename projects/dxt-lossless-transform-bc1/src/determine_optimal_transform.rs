@@ -221,7 +221,7 @@ where
 /// # Remarks
 ///
 /// This function skips normalization testing and only tests [`YCoCgVariant`] * 2 (split_colours) options.
-/// This is approximately 3x faster than the full version but may miss optimal compression settings.
+/// Uses 2x the memory of input size.
 ///
 /// # Safety
 ///

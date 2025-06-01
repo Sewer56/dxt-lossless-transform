@@ -215,6 +215,14 @@ fn process_file(
                         },
                     ),
                     (
+                        "NoSplit/YCoCg1",
+                        Bc1TransformDetails {
+                            color_normalization_mode: ColorNormalizationMode::None,
+                            decorrelation_mode: YCoCgVariant::Variant1,
+                            split_colour_endpoints: false,
+                        },
+                    ),
+                    (
                         "Split/None",
                         Bc1TransformDetails {
                             color_normalization_mode: ColorNormalizationMode::None,

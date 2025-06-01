@@ -1,6 +1,6 @@
 #![doc = include_str!(concat!("../", core::env!("CARGO_PKG_README")))]
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(feature = "nightly", feature(stdarch_x86_avx512))]
+#![cfg_attr(all(feature = "nightly", any(target_arch = "x86_64", target_arch = "x86")), feature(stdarch_x86_avx512))]
 
 use dxt_lossless_transform_common::{
     color_565::{Color565, YCoCgVariant},

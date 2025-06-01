@@ -1,6 +1,9 @@
 #![doc = include_str!(concat!("../", core::env!("CARGO_PKG_README")))]
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(feature = "nightly", feature(stdarch_x86_avx512))]
+#![cfg_attr(
+    all(feature = "nightly", any(target_arch = "x86_64", target_arch = "x86")),
+    feature(stdarch_x86_avx512)
+)]
 #![cfg_attr(feature = "nightly", feature(allocator_api))]
 
 pub mod color_565;

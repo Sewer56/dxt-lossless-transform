@@ -14,7 +14,7 @@ use crate::{
 use core::time::Duration;
 use dxt_lossless_transform_api::DdsFormat;
 use dxt_lossless_transform_bc1::{
-    determine_optimal_transform::{determine_best_transform_details, Bc1TransformOptions},
+    determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions},
     Bc1TransformDetails,
 };
 use std::fs;
@@ -195,7 +195,7 @@ unsafe fn run_determine_best_once(
     };
 
     // Create transform options
-    let transform_options = Bc1TransformOptions {
+    let transform_options = Bc1EstimateOptions {
         file_size_estimator: estimator,
     };
 

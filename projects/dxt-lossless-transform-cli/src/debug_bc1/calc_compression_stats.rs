@@ -17,7 +17,7 @@ use crate::{
 use core::sync::atomic::{AtomicUsize, Ordering};
 use dxt_lossless_transform_api::DdsFormat;
 use dxt_lossless_transform_bc1::{
-    determine_optimal_transform::{determine_best_transform_details, Bc1TransformOptions},
+    determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions},
     transform_bc1, Bc1TransformDetails,
 };
 use dxt_lossless_transform_common::allocate::allocate_align_64;
@@ -238,7 +238,7 @@ unsafe fn analyze_bc1_api_recommendation(
     };
 
     // Create transform options
-    let transform_options = Bc1TransformOptions {
+    let transform_options = Bc1EstimateOptions {
         file_size_estimator: estimator,
     };
 

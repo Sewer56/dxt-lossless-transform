@@ -23,7 +23,7 @@ use crate::{
 use core::time::Duration;
 use dxt_lossless_transform_api::DdsFormat;
 use dxt_lossless_transform_bc1::{
-    determine_optimal_transform::{determine_best_transform_details, Bc1TransformOptions},
+    determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions},
     normalize_blocks::ColorNormalizationMode,
     transform_bc1, untransform_bc1, Bc1TransformDetails,
 };
@@ -289,7 +289,7 @@ unsafe fn get_api_recommended_details(
     };
 
     // Create transform options
-    let transform_options = Bc1TransformOptions {
+    let transform_options = Bc1EstimateOptions {
         file_size_estimator: estimator,
     };
 

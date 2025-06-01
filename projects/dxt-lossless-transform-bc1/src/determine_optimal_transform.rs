@@ -14,7 +14,7 @@ use thiserror::Error;
 
 /// The options for [`determine_best_transform_details`], regarding how the estimation is done,
 /// and other related factors.
-pub struct Bc1TransformOptions<F>
+pub struct Bc1EstimateOptions<F>
 where
     F: Fn(*const u8, usize) -> usize,
 {
@@ -65,7 +65,7 @@ where
 pub unsafe fn determine_best_transform_details<F>(
     input_ptr: *const u8,
     len: usize,
-    transform_options: Bc1TransformOptions<F>,
+    transform_options: Bc1EstimateOptions<F>,
 ) -> Result<Bc1TransformDetails, DetermineBestTransformError>
 where
     F: Fn(*const u8, usize) -> usize,
@@ -81,6 +81,15 @@ where
 
     // Normalize blocks into all possible modes.
     let any_normalized = normalize_blocks_all_modes(input_ptr, &normalize_buffers_ptrs, len);
+
+    // Now we got all blocks normalized and split, and have to test all the different possibilities.
+    // We can repurpose the normalize_buffers
+    let mut best_transform_details = Bc1TransformDetails::default();
+    let mut best_size = usize::MAX;
+
+    // split_blocks_buffers_ptrs: buffer_a
+    // result_pointers: buffer_b (output)
+    let result_pointers = normalize_buffers.get_pointer_slice();
     if any_normalized {
         // At least 1 block was normalized, so we have to test all options.
         // Now split all blocks.
@@ -88,14 +97,6 @@ where
             split_blocks(normalize_buffers_ptrs[x], split_blocks_buffers_ptrs[x], len);
         }
 
-        // Now we got all blocks normalized and split, and have to test all the different possibilities.
-        // We can repurpose the normalize_buffers
-        let mut best_transform_details = Bc1TransformDetails::default();
-        let mut best_size = usize::MAX;
-
-        // split_blocks_buffers_ptrs: buffer_a
-        // result_pointers: buffer_b (output)
-        let result_pointers = normalize_buffers.get_pointer_slice();
         for norm_idx in 0..NUM_NORMALIZE {
             for decorrelation_mode in YCoCgVariant::all_values() {
                 for split_colours in [true, false] {
@@ -128,12 +129,6 @@ where
         // No blocks were normalized, we can skip testing normalize steps
         // Since no normalization occurred, we can use the original input directly after splitting
         split_blocks(input_ptr, split_blocks_buffers_ptrs[0], len);
-
-        let mut best_transform_details = Bc1TransformDetails::default();
-        let mut best_size = usize::MAX;
-
-        // We can repurpose the normalize_buffers for results since they're not being used
-        let result_pointers = normalize_buffers.get_pointer_slice();
 
         for decorrelation_mode in YCoCgVariant::all_values() {
             for split_colours in [true, false] {
@@ -170,7 +165,7 @@ unsafe fn test_normalize_variant<F>(
     input: *mut u8,
     output: *mut u8,
     len: usize,
-    transform_options: &Bc1TransformOptions<F>,
+    transform_options: &Bc1EstimateOptions<F>,
     best_transform_details: &mut Bc1TransformDetails,
     best_size: &mut usize,
     current_mode: Bc1TransformDetails,
@@ -251,7 +246,7 @@ mod tests {
             0x00, 0x00, 0x00, 0x00, // Indices: all pointing to Color0
         ];
 
-        let transform_options = Bc1TransformOptions {
+        let transform_options = Bc1EstimateOptions {
             file_size_estimator: dummy_file_size_estimator,
         };
 

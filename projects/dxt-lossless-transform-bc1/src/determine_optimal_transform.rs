@@ -206,13 +206,18 @@ unsafe fn test_normalize_variant<F>(
         );
     }
 
+    // Note(sewer): The indices are very poorly compressible (entropy == ~7.0 , no lz matches).
+    // Excluding them from the estimation has negligible effect on results, with a doubling of
+    // speed. If you want to include them, uncomment the code below, and change len / 2 to len in the
+    // `result_size` calculation.
+
     // Now copy the indices verbatim.
-    let indices_in_arr = slice::from_raw_parts(input.add(len / 2), len / 2);
-    let indices_out_arr = slice::from_raw_parts_mut(output.add(len / 2), len / 2);
-    indices_out_arr.copy_from_slice(indices_in_arr);
+    // let indices_in_arr = slice::from_raw_parts(input.add(len / 2), len / 2);
+    // let indices_out_arr = slice::from_raw_parts_mut(output.add(len / 2), len / 2);
+    // indices_out_arr.copy_from_slice(indices_in_arr);
 
     // Test the current mode.
-    let result_size = (transform_options.file_size_estimator)(output, len);
+    let result_size = (transform_options.file_size_estimator)(output, len / 2);
     if result_size < *best_size {
         *best_size = result_size;
         *best_transform_details = current_mode;

@@ -10,7 +10,6 @@ strip = false  # No stripping!!
 # Optimized Release Build
 [profile.release]
 codegen-units = 1
-lto = true
 strip = true  # Automatically strip symbols from the binary.
 panic = "abort"
 

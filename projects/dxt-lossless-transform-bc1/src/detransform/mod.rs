@@ -1,10 +1,12 @@
 //! This module contains accelerated routines for performing certain combined detransformation steps.
 
 use core::hint::unreachable_unchecked;
-
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 use split_and_decorrelate::*;
+
 pub(crate) mod split_and_decorrelate;
+pub(crate) mod unsplit_split_colour_split_blocks;
+pub(crate) use unsplit_split_colour_split_blocks::unsplit_split_colour_split_blocks;
 
 /// Combines unsplitting of BC1 blocks with YCoCg recorrelation in a single optimized pass.
 ///

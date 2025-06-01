@@ -1,5 +1,8 @@
 use core::ptr::{read_unaligned, write_unaligned};
 use dxt_lossless_transform_common::color_565::Color565;
+
+#[cfg(not(feature = "no-runtime-cpu-detection"))]
+#[cfg(feature = "nightly")]
 use dxt_lossless_transform_common::cpu_detect::*;
 use multiversion::multiversion;
 

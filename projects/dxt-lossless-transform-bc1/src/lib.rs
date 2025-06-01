@@ -5,7 +5,7 @@
     feature(stdarch_x86_avx512)
 )]
 
-use detransform::untransform_split_and_decorrelate;
+use detransform::{unsplit_split_colour_split_blocks, untransform_split_and_decorrelate};
 use dxt_lossless_transform_common::{
     color_565::{Color565, YCoCgVariant},
     transforms::split_565_color_endpoints::split_color_endpoints,
@@ -297,22 +297,34 @@ pub unsafe fn untransform_bc1(
     let has_split_colours = detransform_options.split_colour_endpoints;
 
     if has_split_colours {
-        // Recorrelate colours into work area, doing the unsplit in the same process.
-        Color565::recorrelate_ycocg_r_ptr_split(
-            input_ptr as *mut Color565,
-            input_ptr.add(len / 4) as *mut Color565,
-            work_ptr as *mut Color565,
-            (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
-            detransform_options.decorrelation_mode,
-        );
+        if detransform_options.decorrelation_mode == YCoCgVariant::None {
+            // Optimized single-pass operation: unsplit split colors and combine with indices
+            // directly into BC1 blocks, avoiding intermediate memory copies
+            unsplit_split_colour_split_blocks(
+                input_ptr as *const u16,              // color0 values
+                input_ptr.add(len / 4) as *const u16, // color1 values
+                input_ptr.add(len / 2) as *const u32, // indices
+                output_ptr,                           // output BC1 blocks
+                len / 8,                              // number of blocks (8 bytes per block)
+            );
+        } else {
+            // Recorrelate colours into work area, doing the unsplit in the same process.
+            Color565::recorrelate_ycocg_r_ptr_split(
+                input_ptr as *mut Color565,
+                input_ptr.add(len / 4) as *mut Color565,
+                work_ptr as *mut Color565,
+                (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
+                detransform_options.decorrelation_mode,
+            );
 
-        // Now unsplit the colours, placing them into the final buffer
-        unsplit_block_with_separate_pointers(
-            work_ptr as *const u32,
-            input_ptr.add(len / 2) as *const u32,
-            output_ptr,
-            len,
-        );
+            // Now unsplit the colours, placing them into the final buffer
+            unsplit_block_with_separate_pointers(
+                work_ptr as *const u32,
+                input_ptr.add(len / 2) as *const u32,
+                output_ptr,
+                len,
+            );
+        }
     } else if detransform_options.decorrelation_mode == YCoCgVariant::None {
         // Only split blocks.
         unsplit_blocks(input_ptr, output_ptr, len);

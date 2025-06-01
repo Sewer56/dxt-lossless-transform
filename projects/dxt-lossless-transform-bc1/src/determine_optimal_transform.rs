@@ -6,7 +6,7 @@ use crate::{
 use core::mem::size_of;
 use core::slice;
 use dxt_lossless_transform_common::{
-    allocate::{AllocateError, FixedRawAllocArray},
+    allocate::{allocate_align_64, AllocateError, FixedRawAllocArray},
     color_565::{Color565, YCoCgVariant},
     transforms::split_565_color_endpoints::split_color_endpoints,
 };
@@ -39,6 +39,13 @@ where
     /// by reducing the size of the sliding window (so more data in cache) and increasing minimum
     /// match length.
     pub file_size_estimator: F,
+
+    /// Whether to test all normalization options or skip them for faster processing.
+    ///
+    /// When `true`, all [`ColorNormalizationMode`] variants will be tested.
+    /// When `false`, only [`ColorNormalizationMode::None`] will be used, significantly
+    /// improving performance at the cost of potentially less optimal compression.
+    pub test_normalize_options: bool,
 }
 
 /// Determine the best transform details for the given BC1 blocks.
@@ -56,8 +63,13 @@ where
 ///
 /// This function is a brute force, the characteristics of this function are:
 ///
+/// If `test_normalize_options` is `true`:
 /// - 1/24th of the compression speed ([`ColorNormalizationMode`] * [`YCoCgVariant`] * 2 (split_colours))
 /// - Uses 6x the memory of input size
+///
+/// If `test_normalize_options` is `false`:
+/// - 1/8th of the compression speed ([`YCoCgVariant`] * 2 (split_colours))
+/// - Uses 2x the memory of input size
 ///
 /// # Safety
 ///
@@ -70,9 +82,42 @@ pub unsafe fn determine_best_transform_details<F>(
 where
     F: Fn(*const u8, usize) -> usize,
 {
-    // TODO: Write a 'fast' variant of this, which basically means defaulting to a single normalize
-    //       as we can't test them all.
+    if transform_options.test_normalize_options {
+        determine_best_transform_details_with_normalization(input_ptr, len, transform_options)
+    } else {
+        determine_best_transform_details_fast(input_ptr, len, transform_options)
+    }
+}
 
+/// Determine the best transform details with full normalization testing.
+///
+/// # Parameters
+///
+/// - `input_ptr`: A pointer to the input data (input BC1 blocks)
+/// - `len`: The length of the input data in bytes
+///
+/// # Returns
+///
+/// The best (smallest size) format for the given data.
+///
+/// # Remarks
+///
+/// This function tests all normalization options, the characteristics of this function are:
+///
+/// - 1/24th of the compression speed ([`ColorNormalizationMode`] * [`YCoCgVariant`] * 2 (split_colours))
+/// - Uses 6x the memory of input size
+///
+/// # Safety
+///
+/// Function is unsafe because it deals with raw pointers which must be correct.
+unsafe fn determine_best_transform_details_with_normalization<F>(
+    input_ptr: *const u8,
+    len: usize,
+    transform_options: Bc1EstimateOptions<F>,
+) -> Result<Bc1TransformDetails, DetermineBestTransformError>
+where
+    F: Fn(*const u8, usize) -> usize,
+{
     const NUM_NORMALIZE: usize = ColorNormalizationMode::all_values().len();
     let mut normalize_buffers = FixedRawAllocArray::<NUM_NORMALIZE>::new(len)?;
     let mut split_blocks_buffers = FixedRawAllocArray::<NUM_NORMALIZE>::new(len)?;
@@ -157,6 +202,70 @@ where
 
         Ok(best_transform_details)
     }
+}
+
+/// Determine the best transform details without normalization testing (fast variant).
+///
+/// # Parameters
+///
+/// - `input_ptr`: A pointer to the input data (input BC1 blocks)
+/// - `len`: The length of the input data in bytes
+///
+/// # Returns
+///
+/// The best (smallest size) format for the given data.
+///
+/// # Remarks
+///
+/// This function skips normalization testing and only tests [`YCoCgVariant`] * 2 (split_colours) options.
+/// This is approximately 3x faster than the full version but may miss optimal compression settings.
+///
+/// # Safety
+///
+/// Function is unsafe because it deals with raw pointers which must be correct.
+unsafe fn determine_best_transform_details_fast<F>(
+    input_ptr: *const u8,
+    len: usize,
+    transform_options: Bc1EstimateOptions<F>,
+) -> Result<Bc1TransformDetails, DetermineBestTransformError>
+where
+    F: Fn(*const u8, usize) -> usize,
+{
+    let mut split_blocks_buffer = allocate_align_64(len)?;
+    let mut result_buffer = allocate_align_64(len)?;
+
+    // Split blocks directly from input without normalization
+    split_blocks(input_ptr, split_blocks_buffer.as_mut_ptr(), len);
+
+    let mut best_transform_details = Bc1TransformDetails::default();
+    let mut best_size = usize::MAX;
+
+    for decorrelation_mode in YCoCgVariant::all_values() {
+        for split_colours in [true, false] {
+            // Get the current mode we're testing.
+            let current_mode = Bc1TransformDetails {
+                color_normalization_mode: ColorNormalizationMode::None, // Skip normalization step
+                decorrelation_mode: *decorrelation_mode,
+                split_colour_endpoints: split_colours,
+            };
+
+            // Get input/output buffers.
+            let input = split_blocks_buffer.as_mut_ptr();
+            let output = result_buffer.as_mut_ptr();
+
+            test_normalize_variant(
+                input,
+                output,
+                len,
+                &transform_options,
+                &mut best_transform_details,
+                &mut best_size,
+                current_mode,
+            );
+        }
+    }
+
+    Ok(best_transform_details)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -253,6 +362,7 @@ mod tests {
 
         let transform_options = Bc1EstimateOptions {
             file_size_estimator: dummy_file_size_estimator,
+            test_normalize_options: true,
         };
 
         // This should not crash

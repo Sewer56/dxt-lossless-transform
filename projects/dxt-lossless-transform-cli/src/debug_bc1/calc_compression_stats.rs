@@ -240,6 +240,7 @@ unsafe fn analyze_bc1_api_recommendation(
     // Create transform options
     let transform_options = Bc1EstimateOptions {
         file_size_estimator: estimator,
+        test_normalize_options: true,
     };
 
     // Determine the best transform details using the API

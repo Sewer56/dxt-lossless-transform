@@ -4,24 +4,6 @@ use core::arch::x86_64::*;
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
 
-/// Optimized AVX512 function to unsplit split colour-split blocks directly to BC1 blocks.
-/// This combines the recorrelation of split colors and unsplitting of blocks into a single
-/// operation using AVX512 intrinsics to avoid intermediate memory copies.
-///
-/// # Arguments
-/// * `color0_ptr` - Pointer to the array of color0 values
-/// * `color1_ptr` - Pointer to the array of color1 values  
-/// * `indices_ptr` - Pointer to the array of 4-byte indices for each block
-/// * `output_ptr` - Pointer to the output buffer for BC1 blocks (8 bytes per block)
-/// * `block_count` - Number of blocks to process
-///
-/// # Safety
-/// This function is unsafe because it operates on raw pointers. The caller must ensure:
-/// - All pointers are valid and properly aligned
-/// - `color0_ptr` points to at least `block_count` valid `u16` values
-/// - `color1_ptr` points to at least `block_count` valid `u16` values
-/// - `indices_ptr` points to at least `block_count` valid `u32` values
-/// - `output_ptr` points to at least `block_count * 8` bytes for BC1 blocks
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[allow(clippy::identity_op)]

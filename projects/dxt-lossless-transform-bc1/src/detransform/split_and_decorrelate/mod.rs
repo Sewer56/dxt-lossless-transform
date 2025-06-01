@@ -102,9 +102,13 @@ unsafe fn untransform_split_and_decorrelate_variant2_x86(
     {
         #[cfg(feature = "nightly")]
         if has_avx512f() && has_avx512bw() {
-            // TODO: Add AVX512 implementation when available
-            // avx512::untransform_split_and_decorrelate_variant2_avx512(colors_ptr, indices_ptr, output_ptr, num_blocks);
-            // return;
+            avx512::untransform_split_and_decorrelate_variant2_avx512(
+                colors_ptr,
+                indices_ptr,
+                output_ptr,
+                num_blocks,
+            );
+            return;
         }
     }
 
@@ -112,9 +116,13 @@ unsafe fn untransform_split_and_decorrelate_variant2_x86(
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512bw") {
-            // TODO: Add AVX512 implementation when available
-            // avx512::untransform_split_and_decorrelate_variant2_avx512(colors_ptr, indices_ptr, output_ptr, num_blocks);
-            // return;
+            avx512::untransform_split_and_decorrelate_variant2_avx512(
+                colors_ptr,
+                indices_ptr,
+                output_ptr,
+                num_blocks,
+            );
+            return;
         }
     }
 
@@ -158,9 +166,13 @@ unsafe fn untransform_split_and_decorrelate_variant3_x86(
     {
         #[cfg(feature = "nightly")]
         if has_avx512f() && has_avx512bw() {
-            // TODO: Add AVX512 implementation when available
-            // avx512::untransform_split_and_decorrelate_variant3_avx512(colors_ptr, indices_ptr, output_ptr, num_blocks);
-            // return;
+            avx512::untransform_split_and_decorrelate_variant3_avx512(
+                colors_ptr,
+                indices_ptr,
+                output_ptr,
+                num_blocks,
+            );
+            return;
         }
     }
 
@@ -168,9 +180,13 @@ unsafe fn untransform_split_and_decorrelate_variant3_x86(
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512bw") {
-            // TODO: Add AVX512 implementation when available
-            // avx512::untransform_split_and_decorrelate_variant3_avx512(colors_ptr, indices_ptr, output_ptr, num_blocks);
-            // return;
+            avx512::untransform_split_and_decorrelate_variant3_avx512(
+                colors_ptr,
+                indices_ptr,
+                output_ptr,
+                num_blocks,
+            );
+            return;
         }
     }
 

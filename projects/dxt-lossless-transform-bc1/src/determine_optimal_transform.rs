@@ -45,6 +45,9 @@ where
     /// When `true`, all [`ColorNormalizationMode`] variants will be tested.
     /// When `false`, only [`ColorNormalizationMode::None`] will be used, significantly
     /// improving performance at the cost of potentially less optimal compression.
+    ///
+    /// This is off by default for the time being. In the future, we'll have a better 'normalize'
+    /// function, where brute forcing will not be necessary.
     pub test_normalize_options: bool,
 }
 

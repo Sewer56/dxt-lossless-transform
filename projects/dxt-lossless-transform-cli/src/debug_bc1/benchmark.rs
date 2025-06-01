@@ -40,6 +40,7 @@ struct BenchmarkConfig {
     compression_algorithm: CompressionAlgorithm,
     estimate_compression_algorithm: CompressionAlgorithm,
     dry_run: bool,
+    experimental_normalize: bool,
 }
 
 pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), TransformError> {
@@ -107,6 +108,7 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
                     compression_algorithm: cmd.compression_algorithm,
                     estimate_compression_algorithm: cmd.get_estimate_compression_algorithm(),
                     dry_run: true, // This is a dry run
+                    experimental_normalize: cmd.experimental_normalize,
                 },
                 &CacheRefs {
                     compressed_size_cache: &cache,
@@ -130,6 +132,7 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
                 compression_algorithm: cmd.compression_algorithm,
                 estimate_compression_algorithm: cmd.get_estimate_compression_algorithm(),
                 dry_run: false, // This is not a dry run
+                experimental_normalize: cmd.experimental_normalize,
             },
             &CacheRefs {
                 compressed_size_cache: &cache,
@@ -200,6 +203,7 @@ fn process_file(
                             config.estimate_compression_level,
                             config.estimate_compression_algorithm,
                             caches.compressed_size_cache,
+                            config.experimental_normalize,
                         )?,
                     ),
                     (
@@ -271,6 +275,7 @@ unsafe fn get_api_recommended_details(
     estimate_compression_level: i32,
     estimate_compression_algorithm: CompressionAlgorithm,
     cache: &Mutex<CompressionSizeCache>,
+    experimental_normalize: bool,
 ) -> Result<Bc1TransformDetails, TransformError> {
     let estimator = move |data_ptr: *const u8, len: usize| -> usize {
         match calc_size_with_cache_and_estimation_algorithm(
@@ -291,7 +296,7 @@ unsafe fn get_api_recommended_details(
     // Create transform options
     let transform_options = Bc1EstimateOptions {
         file_size_estimator: estimator,
-        test_normalize_options: true,
+        test_normalize_options: experimental_normalize,
     };
 
     // Determine the best transform details using the API

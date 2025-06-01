@@ -346,6 +346,7 @@ pub enum DetermineBestTransformError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
     /// Simple dummy file size estimator that just returns the input length
     fn dummy_file_size_estimator(_data: *const u8, len: usize) -> usize {
@@ -353,8 +354,12 @@ mod tests {
     }
 
     /// Test that determine_best_transform_details doesn't crash with minimal BC1 data
-    #[test]
-    fn determine_best_transform_details_does_not_crash_and_burn() {
+    #[rstest]
+    #[case(true)]
+    #[case(false)]
+    fn determine_best_transform_details_does_not_crash_and_burn(
+        #[case] experimental_normalize: bool,
+    ) {
         // Create minimal BC1 block data (8 bytes per block)
         // This is a simple red block
         let bc1_data = [
@@ -365,7 +370,7 @@ mod tests {
 
         let transform_options = Bc1EstimateOptions {
             file_size_estimator: dummy_file_size_estimator,
-            test_normalize_options: true,
+            test_normalize_options: experimental_normalize,
         };
 
         // This should not crash

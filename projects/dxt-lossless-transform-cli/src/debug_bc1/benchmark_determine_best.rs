@@ -25,6 +25,7 @@ struct BenchmarkConfig {
     warmup_iterations: u32,
     compression_level: i32,
     compression_algorithm: CompressionAlgorithm,
+    experimental_normalize: bool,
 }
 
 pub(crate) fn handle_benchmark_determine_best_command(
@@ -65,6 +66,7 @@ pub(crate) fn handle_benchmark_determine_best_command(
                 warmup_iterations: cmd.warmup_iterations,
                 compression_level: cmd.get_estimate_compression_level(),
                 compression_algorithm: cmd.estimate_compression_algorithm,
+                experimental_normalize: cmd.experimental_normalize,
             },
         ) {
             Ok(Some(file_result)) => {
@@ -142,6 +144,7 @@ unsafe fn process_determine_best_scenario(
             len_bytes,
             config.compression_level,
             config.compression_algorithm,
+            config.experimental_normalize,
         )?;
     }
 
@@ -154,6 +157,7 @@ unsafe fn process_determine_best_scenario(
                     len_bytes,
                     config.compression_level,
                     config.compression_algorithm,
+                    config.experimental_normalize,
                 )?;
             }
             Ok(())
@@ -177,6 +181,7 @@ unsafe fn run_determine_best_once(
     len_bytes: usize,
     estimate_compression_level: i32,
     compression_algorithm: CompressionAlgorithm,
+    experimental_normalize: bool,
 ) -> Result<Bc1TransformDetails, TransformError> {
     // Create a compression file size estimator that compresses data without caching
     let estimator = move |data_ptr: *const u8, len: usize| -> usize {
@@ -197,7 +202,7 @@ unsafe fn run_determine_best_once(
     // Create transform options
     let transform_options = Bc1EstimateOptions {
         file_size_estimator: estimator,
-        test_normalize_options: true,
+        test_normalize_options: experimental_normalize,
     };
 
     // Determine the best transform details using the API

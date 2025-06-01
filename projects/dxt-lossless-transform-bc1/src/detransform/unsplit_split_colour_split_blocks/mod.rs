@@ -41,8 +41,10 @@ use multiversion::multiversion;
 mod avx512;
 
 #[cfg(not(feature = "no-runtime-cpu-detection"))]
-#[cfg(feature = "nightly")]
 use dxt_lossless_transform_common::cpu_detect::*;
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+mod avx2;
 
 /// Optimized function to unsplit split colour-split blocks directly to BC1 blocks.
 /// This combines the recorrelation of split colors and unsplitting of blocks into a single
@@ -173,6 +175,17 @@ pub unsafe fn unsplit_split_colour_split_blocks_x86(
             );
             return;
         }
+
+        if has_avx2() {
+            avx2::avx2_unsplit_split_colour_split_blocks(
+                color0_ptr,
+                color1_ptr,
+                indices_ptr,
+                output_ptr,
+                block_count,
+            );
+            return;
+        }
     }
 
     #[cfg(feature = "no-runtime-cpu-detection")]
@@ -180,6 +193,17 @@ pub unsafe fn unsplit_split_colour_split_blocks_x86(
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") & &cfg!(target_feature = "avx512bw") {
             avx512::avx512_unsplit_split_colour_split_blocks(
+                color0_ptr,
+                color1_ptr,
+                indices_ptr,
+                output_ptr,
+                block_count,
+            );
+            return;
+        }
+
+        if cfg!(target_feature = "avx2") {
+            avx2::avx2_unsplit_split_colour_split_blocks(
                 color0_ptr,
                 color1_ptr,
                 indices_ptr,

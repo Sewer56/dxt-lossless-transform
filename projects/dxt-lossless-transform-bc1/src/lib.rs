@@ -19,7 +19,8 @@ pub mod util;
 
 /// The information about the BC1 transform that was just performed.
 /// Each item transformed via [`transform_bc1`] will produce an instance of this struct.
-/// To undo the transform, you'll need to pass the same instance to [`untransform_bc1`].
+/// To undo the transform, you'll need to pass [`Bc1DetransformDetails`] to [`untransform_bc1`],
+/// which can be obtained from this struct using the `into` method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Bc1TransformDetails {
     /// The color normalization mode that was used to normalize the data.
@@ -30,6 +31,37 @@ pub struct Bc1TransformDetails {
 
     /// Whether or not the colour endpoints are to be split or not.
     pub split_colour_endpoints: bool,
+}
+
+/// Details required to detransform BC1 data.
+///
+/// This struct contains only the information needed to reverse the transform operation.
+/// Note that color normalization is a preprocessing step that doesn't need to be reversed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Bc1DetransformDetails {
+    /// The decorrelation mode that was used to decorrelate the colors.
+    pub decorrelation_mode: YCoCgVariant,
+
+    /// Whether or not the colour endpoints are to be split or not.
+    pub split_colour_endpoints: bool,
+}
+
+impl From<Bc1TransformDetails> for Bc1DetransformDetails {
+    fn from(transform_details: Bc1TransformDetails) -> Self {
+        Self {
+            decorrelation_mode: transform_details.decorrelation_mode,
+            split_colour_endpoints: transform_details.split_colour_endpoints,
+        }
+    }
+}
+
+impl Default for Bc1DetransformDetails {
+    fn default() -> Self {
+        Self {
+            decorrelation_mode: YCoCgVariant::Variant1,
+            split_colour_endpoints: true,
+        }
+    }
 }
 
 impl Default for Bc1TransformDetails {
@@ -231,8 +263,8 @@ pub unsafe fn transform_bc1(
 /// - `output_ptr`: A pointer to the output data (output BC1 blocks)
 /// - `work_ptr`: A pointer to a work buffer (used by function).
 /// - `len`: The length of the input data in bytes
-/// - `transform_options`: A struct containing information about the transform that was originally performed.
-///   Must be equal to the one used in [`transform_bc1`] function.
+/// - `detransform_options`: A struct containing information about the transform that was originally performed.
+///   Must match the settings used in [`transform_bc1`] function (excluding color normalization).
 ///
 /// # Remarks
 ///
@@ -252,11 +284,11 @@ pub unsafe fn untransform_bc1(
     output_ptr: *mut u8,
     work_ptr: *mut u8,
     len: usize,
-    transform_options: Bc1TransformDetails,
+    detransform_options: Bc1DetransformDetails,
 ) {
     debug_assert!(len % 8 == 0);
 
-    let has_split_colours = transform_options.split_colour_endpoints;
+    let has_split_colours = detransform_options.split_colour_endpoints;
 
     if has_split_colours {
         // Recorrelate colours into work area, doing the unsplit in the same process.
@@ -265,7 +297,7 @@ pub unsafe fn untransform_bc1(
             input_ptr.add(len / 4) as *mut Color565,
             work_ptr as *mut Color565,
             (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
-            transform_options.decorrelation_mode,
+            detransform_options.decorrelation_mode,
         );
 
         // Now unsplit the colours, placing them into the final buffer
@@ -275,7 +307,7 @@ pub unsafe fn untransform_bc1(
             output_ptr,
             len,
         );
-    } else if transform_options.decorrelation_mode == YCoCgVariant::None {
+    } else if detransform_options.decorrelation_mode == YCoCgVariant::None {
         // If no decorrelation, we can just unsplit directly.
         unsplit_blocks(input_ptr, output_ptr, len);
     } else {
@@ -284,7 +316,7 @@ pub unsafe fn untransform_bc1(
             input_ptr as *const Color565,
             work_ptr as *mut Color565,
             (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
-            transform_options.decorrelation_mode,
+            detransform_options.decorrelation_mode,
         );
 
         // Now unsplit the blocks, placing them into the final buffer

@@ -1,5 +1,5 @@
 use core::ptr::copy_nonoverlapping;
-use dxt_lossless_transform_bc1::Bc1TransformDetails;
+use dxt_lossless_transform_bc1::{Bc1TransformDetails, Bc1DetransformDetails};
 use dxt_lossless_transform_bc2::BC2TransformDetails;
 use dxt_lossless_transform_bc3::BC3TransformDetails;
 pub use dxt_lossless_transform_dds::dds::*;
@@ -77,7 +77,7 @@ pub unsafe fn untransform_format(
                 output_ptr,
                 work_ptr,
                 len,
-                Bc1TransformDetails::default(),
+                Bc1DetransformDetails::default(),
             );
         }
         DdsFormat::BC2 => {

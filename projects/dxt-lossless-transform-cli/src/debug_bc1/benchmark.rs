@@ -360,7 +360,7 @@ unsafe fn process_scenario(
             final_output.as_mut_ptr(),
             work_buffer.as_mut_ptr(),
             len_bytes,
-            transform_details,
+            transform_details.into(),
         );
     }
 
@@ -384,7 +384,7 @@ unsafe fn process_scenario(
                 final_output.as_mut_ptr(),
                 work_buffer.as_mut_ptr(),
                 len_bytes,
-                transform_details,
+                transform_details.into(),
             );
         }
     });

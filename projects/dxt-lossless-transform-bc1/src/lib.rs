@@ -5,10 +5,6 @@
     feature(stdarch_x86_avx512)
 )]
 
-use crate::detransform::split_and_recorrelate::untransform_split_and_decorrelate;
-use detransform::{
-    unsplit_split_colour_split_blocks, unsplit_split_colour_split_blocks_and_recorrelate,
-};
 use dxt_lossless_transform_common::{
     color_565::{Color565, YCoCgVariant},
     transforms::split_565_color_endpoints::split_color_endpoints,
@@ -18,10 +14,12 @@ use split_blocks::{
     split::split_blocks_with_separate_pointers, split_blocks, unsplit::unsplit_blocks,
 };
 
+use crate::untransform::{with_recorrelate, with_split_colour, with_split_colour_and_recorr};
+
 pub mod determine_optimal_transform;
-pub mod detransform;
 pub mod normalize_blocks;
 pub mod split_blocks;
+pub mod untransform;
 pub mod util;
 
 /// The information about the BC1 transform that was just performed.
@@ -292,9 +290,6 @@ pub unsafe fn untransform_bc1(
     len: usize,
     detransform_options: Bc1DetransformDetails,
 ) {
-    use crate::unsplit_split_colour_split_blocks::*;
-    use crate::unsplit_split_colour_split_blocks_and_recorrelate::*;
-
     debug_assert!(len % 8 == 0);
 
     let has_split_colours = detransform_options.split_colour_endpoints;
@@ -303,7 +298,7 @@ pub unsafe fn untransform_bc1(
         if detransform_options.decorrelation_mode == YCoCgVariant::None {
             // Optimized single-pass operation: unsplit split colors and combine with indices
             // directly into BC1 blocks, avoiding intermediate memory copies
-            unsplit_split_colour_split_blocks(
+            with_split_colour::unsplit_split_colour_split_blocks(
                 input_ptr as *const u16,              // color0 values
                 input_ptr.add(len / 4) as *const u16, // color1 values
                 input_ptr.add(len / 2) as *const u32, // indices
@@ -311,7 +306,7 @@ pub unsafe fn untransform_bc1(
                 len / 8,                              // number of blocks (8 bytes per block)
             );
         } else {
-            unsplit_split_colour_split_blocks_and_decorrelate(
+            with_split_colour_and_recorr::unsplit_split_colour_split_blocks_and_decorrelate(
                 input_ptr as *const u16,              // color0 values
                 input_ptr.add(len / 4) as *const u16, // color1 values
                 input_ptr.add(len / 2) as *const u32, // indices
@@ -325,7 +320,7 @@ pub unsafe fn untransform_bc1(
         unsplit_blocks(input_ptr, output_ptr, len);
     } else {
         // Unsplit blocks + decorrelate.
-        untransform_split_and_decorrelate(
+        with_recorrelate::untransform_split_and_decorrelate(
             input_ptr,
             output_ptr,
             len,

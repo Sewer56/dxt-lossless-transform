@@ -47,24 +47,6 @@ mod avx2;
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 mod sse2;
 
-/// Optimized function to unsplit split colour-split blocks directly to BC1 blocks.
-/// This combines the recorrelation of split colors and unsplitting of blocks into a single
-/// operation to avoid intermediate memory copies.
-///
-/// # Arguments
-/// * `color0_ptr` - Pointer to the array of color0 values
-/// * `color1_ptr` - Pointer to the array of color1 values  
-/// * `indices_ptr` - Pointer to the array of 4-byte indices for each block
-/// * `output_ptr` - Pointer to the output buffer for BC1 blocks (8 bytes per block)
-/// * `block_count` - Number of blocks to process
-///
-/// # Safety
-/// This function is unsafe because it operates on raw pointers. The caller must ensure:
-/// - All pointers are valid and properly aligned
-/// - `color0_ptr` points to at least `block_count` valid `u16` values
-/// - `color1_ptr` points to at least `block_count` valid `u16` values
-/// - `indices_ptr` points to at least `block_count` valid `u32` values
-/// - `output_ptr` points to at least `block_count * 8` bytes for BC1 blocks
 pub(crate) unsafe fn unsplit_split_colour_split_blocks(
     color0_ptr: *const u16,
     color1_ptr: *const u16,

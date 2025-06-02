@@ -6,15 +6,6 @@ use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
-use crate::color_565::Color565;
-
-#[no_mangle]
-pub fn test2(colors: &mut [Color565; 16]) {
-    unsafe {
-        Color565::recorrelate_ycocg_r_var3_ptr(colors.as_ptr(), colors.as_mut_ptr(), 16);
-    }
-}
-
 /// Recorrelate a register of [`Color565`] values using an optimized YCoCg-R algorithm
 ///
 /// Takes a `__m256i` register containing 16 [`Color565`] values and returns a register

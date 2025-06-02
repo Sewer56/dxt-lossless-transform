@@ -1,3 +1,49 @@
+//! # Unsplit and Recorrelate BC1 Blocks Module
+//!
+//! This module provides optimized functions for transforming BC1 data from split format
+//! (colors separated from indices) back to standard interleaved format while simultaneously
+//! applying YCoCg recorrelation to the color endpoints. This combines two operations into
+//! a single optimized pass for improved performance.
+//!
+//! ## Input Format
+//!
+//! The module expects BC1 data in split format:
+//!
+//! ### Colors Section (`input_ptr`)
+//! - Type: `*const u8` (interpreted as `*const u32`)
+//! - First half of input data
+//! - Contains color endpoints: 4 bytes per block (2× RGB565 values)
+//! - Each u32 contains two [`Color565`] values packed as: `color1 << 16 | color0`
+//!
+//! ### Indices Section (`input_ptr + len/2`)
+//! - Type: `*const u8` (interpreted as `*const u32`)
+//! - Second half of input data
+//! - Contains color indices: 4 bytes per block (16× 2-bit indices)
+//!
+//! ## Output Format
+//!
+//! ### BC1 Blocks (`output_ptr`)
+//! - Type: `*mut u8`
+//! - Contains standard BC1/DXT1 compressed texture blocks with recorrelated colors
+//! - Each block is 8 bytes in the following format:
+//!   ```ignore
+//!   Offset | Size | Description
+//!   -------|------|------------
+//!   0      | 2    | color0 (RGB565, after YCoCg recorrelation, little-endian)
+//!   2      | 2    | color1 (RGB565, after YCoCg recorrelation, little-endian)  
+//!   4      | 4    | indices (2 bits per pixel, unchanged, little-endian)
+//!   ```
+//!
+//! ## YCoCg Recorrelation Variants
+//!
+//! The module supports three YCoCg recorrelation variants specified by [`YCoCgVariant`]:
+//! - [`YCoCgVariant::Variant1`]: Standard YCoCg recorrelation
+//! - [`YCoCgVariant::Variant2`]: Alternative YCoCg recorrelation formula
+//! - [`YCoCgVariant::Variant3`]: Third YCoCg recorrelation variant
+//!
+//! Each variant applies a different mathematical transformation to improve compression ratios
+//! by decorrelating the color channels in the YCoCg color space.
+
 use core::{
     hint::unreachable_unchecked,
     ptr::{read_unaligned, write_unaligned},
@@ -13,37 +59,6 @@ use multiversion::multiversion;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx512;
 
-/// Combines unsplitting of BC1 blocks with YCoCg recorrelation in a single optimized pass.
-///
-/// This function transforms BC1 data from split format (colors separated from indices) back to
-/// standard interleaved format while simultaneously applying YCoCg recorrelation to the color
-/// endpoints for improved decompression.
-///
-/// # Input Format
-///
-/// The input data is expected to be in split format:
-/// - First half: color endpoints (4 bytes per block: 2x RGB565 values)  
-/// - Second half: color indices (4 bytes per block: 16x 2-bit indices)
-///
-/// # Output Format
-///
-/// Standard BC1 block format (8 bytes per block):
-/// - Bytes 0-3: color endpoints after recorrelation  
-/// - Bytes 4-7: color indices (unchanged)
-///
-/// # Parameters
-///
-/// - `input_ptr`: Pointer to split BC1 data
-/// - `output_ptr`: Pointer to output buffer for standard BC1 blocks
-/// - `len`: Total length in bytes (must be divisible by 8)
-/// - `decorrelation_mode`: [`YCoCgVariant`] specifying the recorrelation variant to apply
-///
-/// # Safety
-///
-/// - `input_ptr` must be valid for reads of `len` bytes
-/// - `output_ptr` must be valid for writes of `len` bytes  
-/// - `len` must be divisible by 8 (BC1 block size)
-/// - `decorrelation_mode` must not be [`YCoCgVariant::None`]
 #[inline(always)]
 pub(crate) unsafe fn untransform_split_and_decorrelate(
     input_ptr: *const u8,

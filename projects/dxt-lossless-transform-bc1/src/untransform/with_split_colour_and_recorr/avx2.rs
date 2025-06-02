@@ -338,13 +338,9 @@ unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_variant_3(
 
 #[cfg(test)]
 mod tests {
+    use crate::untransform::with_split_colour_and_recorr::avx2::*;
     use crate::normalize_blocks::ColorNormalizationMode;
     use crate::split_blocks::split::tests::assert_implementation_matches_reference;
-    use crate::unsplit_split_colour_split_blocks_and_recorrelate::avx2::{
-        unsplit_split_colour_split_blocks_and_recorrelate_variant_1,
-        unsplit_split_colour_split_blocks_and_recorrelate_variant_2,
-        unsplit_split_colour_split_blocks_and_recorrelate_variant_3,
-    };
     use crate::{
         split_blocks::split::tests::generate_bc1_test_data, transform_bc1, Bc1TransformDetails,
     };

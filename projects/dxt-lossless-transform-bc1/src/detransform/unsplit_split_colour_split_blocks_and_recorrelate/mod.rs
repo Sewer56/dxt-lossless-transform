@@ -37,12 +37,12 @@
 
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
-//#[cfg(feature = "nightly")]
-//#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-//mod avx512;
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+mod avx512;
 
-//#[cfg(not(feature = "no-runtime-cpu-detection"))]
-//use dxt_lossless_transform_common::cpu_detect::*;
+#[cfg(not(feature = "no-runtime-cpu-detection"))]
+use dxt_lossless_transform_common::cpu_detect::*;
 
 //#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 //mod avx2;
@@ -93,7 +93,7 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate(
 
     #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
     {
-        generic::unsplit_split_colour_split_blocks_and_decorrelate_generic(
+        generic::unsplit_split_colour_split_blocks_and_recorrelate_generic(
             color0_ptr,
             color1_ptr,
             indices_ptr,
@@ -115,10 +115,9 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
 ) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        /*
         #[cfg(feature = "nightly")]
         if has_avx512f() {
-            return avx512::unsplit_split_colour_split_blocks_and_decorrelate(
+            return avx512::unsplit_split_colour_split_blocks_and_recorrelate(
                 color0_ptr,
                 color1_ptr,
                 indices_ptr,
@@ -128,6 +127,7 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
             );
         }
 
+        /*
         if has_avx2() {
             avx2::unsplit_split_colour_split_blocks_and_decorrelate(
                 color0_ptr,
@@ -154,10 +154,9 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        /*
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512bw") {
-            avx512::unsplit_split_colour_split_blocks_and_decorrelate(
+            avx512::unsplit_split_colour_split_blocks_and_recorrelate(
                 color0_ptr,
                 color1_ptr,
                 indices_ptr,
@@ -168,6 +167,7 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
             return;
         }
 
+        /*
         if cfg!(target_feature = "avx2") {
             avx2::unsplit_split_colour_split_blocks_and_decorrelate(
                 color0_ptr,
@@ -194,7 +194,7 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
         */
     }
 
-    generic::unsplit_split_colour_split_blocks_and_decorrelate_generic(
+    generic::unsplit_split_colour_split_blocks_and_recorrelate_generic(
         color0_ptr,
         color1_ptr,
         indices_ptr,

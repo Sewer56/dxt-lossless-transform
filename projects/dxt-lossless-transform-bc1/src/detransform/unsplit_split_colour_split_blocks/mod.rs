@@ -26,7 +26,7 @@
 //! - Type: `*mut u8`
 //! - Contains standard BC1/DXT1 compressed texture blocks
 //! - Each block is 8 bytes in the following format:
-//!   ```
+//!   ```ignore
 //!   Offset | Size | Description
 //!   -------|------|------------
 //!   0      | 2    | color0 (RGB565, little-endian)

@@ -27,7 +27,7 @@
 //! - Type: `*mut u8`
 //! - Contains standard BC1/DXT1 compressed texture blocks
 //! - Each block is 8 bytes in the following format:
-//!   ```
+//!   ```ignore
 //!   Offset | Size | Description
 //!   -------|------|------------
 //!   0      | 2    | color0 (RGB565, little-endian, decorrelated)
@@ -44,8 +44,8 @@ mod avx512;
 #[cfg(not(feature = "no-runtime-cpu-detection"))]
 use dxt_lossless_transform_common::cpu_detect::*;
 
-//#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-//mod avx2;
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+mod avx2;
 
 //#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 //mod sse2;
@@ -127,18 +127,19 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
             );
         }
 
-        /*
         if has_avx2() {
-            avx2::unsplit_split_colour_split_blocks_and_decorrelate(
+            avx2::unsplit_split_colour_split_blocks_and_recorrelate(
                 color0_ptr,
                 color1_ptr,
                 indices_ptr,
                 output_ptr,
                 block_count,
+                decorrelation_mode,
             );
             return;
         }
 
+        /*
         if has_sse2() {
             sse2::unsplit_split_colour_split_blocks_and_decorrelate(
                 color0_ptr,
@@ -167,9 +168,8 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
             return;
         }
 
-        /*
         if cfg!(target_feature = "avx2") {
-            avx2::unsplit_split_colour_split_blocks_and_decorrelate(
+            avx2::unsplit_split_colour_split_blocks_and_recorrelate(
                 color0_ptr,
                 color1_ptr,
                 indices_ptr,
@@ -180,6 +180,7 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
             return;
         }
 
+        /*
         if cfg!(target_feature = "sse2") {
             sse2::unsplit_split_colour_split_blocks_and_decorrelate(
                 color0_ptr,

@@ -10,7 +10,6 @@ use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx512::{
     recorrelate_ycocg_r_var3_avx512,
 };
 
-#[cfg(feature = "nightly")]
 pub(crate) unsafe fn untransform_with_recorrelate(
     colors_ptr: *const u32,
     indices_ptr: *const u32,
@@ -36,7 +35,7 @@ pub(crate) unsafe fn untransform_with_recorrelate(
 }
 
 // Wrapper functions for assembly inspection using `cargo asm`
-#[cfg(feature = "nightly")]
+
 unsafe fn untransform_recorr_var1(
     colors_ptr: *const u32,
     indices_ptr: *const u32,
@@ -46,7 +45,6 @@ unsafe fn untransform_recorr_var1(
     untransform_recorr::<1>(colors_ptr, indices_ptr, output_ptr, num_blocks)
 }
 
-#[cfg(feature = "nightly")]
 unsafe fn untransform_recorr_var2(
     colors_ptr: *const u32,
     indices_ptr: *const u32,
@@ -56,7 +54,6 @@ unsafe fn untransform_recorr_var2(
     untransform_recorr::<2>(colors_ptr, indices_ptr, output_ptr, num_blocks)
 }
 
-#[cfg(feature = "nightly")]
 unsafe fn untransform_recorr_var3(
     colors_ptr: *const u32,
     indices_ptr: *const u32,
@@ -66,7 +63,6 @@ unsafe fn untransform_recorr_var3(
     untransform_recorr::<3>(colors_ptr, indices_ptr, output_ptr, num_blocks)
 }
 
-#[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 unsafe fn untransform_recorr<const VARIANT: u8>(

@@ -7,8 +7,8 @@ use dxt_lossless_transform_common::{
 use crate::split_blocks::unsplit::unsplit_block_with_separate_pointers;
 //use multiversion::multiversion;
 
-/// Generic implementation of combined decorrelation and unsplitting for split colour-split blocks.
-/// This function decorrelates the colors from their transformed/correlated form and directly
+/// Generic implementation of combined recorrelation and unsplitting for split colour-split blocks.
+/// This function recorrelates the colors from their transformed/correlated form and directly
 /// writes them into BC1 block format along with the indices.
 ///
 /// # Arguments
@@ -17,22 +17,22 @@ use crate::split_blocks::unsplit::unsplit_block_with_separate_pointers;
 /// * `indices_ptr` - Pointer to the array of 4-byte indices for each block
 /// * `output_ptr` - Pointer to the output buffer for BC1 blocks (8 bytes per block)
 /// * `block_count` - Number of blocks to process
-/// * `decorrelation_mode` - The YCoCg variant to use for decorrelation
+/// * `recorrelation_mode` - The YCoCg variant to use for recorrelation
 ///
 /// # Safety
 /// This function is unsafe because it operates on raw pointers. The caller must ensure all
 /// pointers are valid and point to sufficient memory.
-pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_generic(
+pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_generic(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,
     output_ptr: *mut u8,
     block_count: usize,
-    decorrelation_mode: YCoCgVariant,
+    recorrelation_mode: YCoCgVariant,
 ) {
     // Note(sewer): I can't get good generic codegen for this at the moment,
     //              on x86, the codegen is poor, moving values in and out of SIMD registers
-    //              for the decorrelation step.
+    //              for the recorrelation step.
     //
     //              I'm guessing the same will be the case on aarch64 (don't have a high end aarch64
     //              machine to test on). So I've opted for another solution for the time being, that
@@ -54,7 +54,7 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_generic(
             color1_ptr as *mut Color565,
             work_ptr as *mut Color565,
             block_count * 2, // 2 colour endpoints per block.
-            decorrelation_mode,
+            recorrelation_mode,
         );
 
         // Now unsplit the colours, placing them into the final buffer
@@ -67,23 +67,23 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_generic(
         return;
     }
 
-    match decorrelation_mode {
+    match recorrelation_mode {
         YCoCgVariant::None => unreachable_unchecked(),
-        YCoCgVariant::Variant1 => unsplit_split_colour_split_blocks_and_decorrelate_variant1(
+        YCoCgVariant::Variant1 => unsplit_split_colour_split_blocks_and_recorrelate_variant1(
             color0_ptr,
             color1_ptr,
             indices_ptr,
             output_ptr,
             block_count,
         ),
-        YCoCgVariant::Variant2 => unsplit_split_colour_split_blocks_and_decorrelate_variant2(
+        YCoCgVariant::Variant2 => unsplit_split_colour_split_blocks_and_recorrelate_variant2(
             color0_ptr,
             color1_ptr,
             indices_ptr,
             output_ptr,
             block_count,
         ),
-        YCoCgVariant::Variant3 => unsplit_split_colour_split_blocks_and_decorrelate_variant3(
+        YCoCgVariant::Variant3 => unsplit_split_colour_split_blocks_and_recorrelate_variant3(
             color0_ptr,
             color1_ptr,
             indices_ptr,
@@ -93,8 +93,8 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_generic(
     }
 }
 
-/// Specialized implementation for [`YCoCgVariant::Variant1`] decorrelation.
-/// This function applies variant 1 decorrelation before writing the colors.
+/// Specialized implementation for [`YCoCgVariant::Variant1`] recorrelation.
+/// This function applies variant 1 recorrelation before writing the colors.
 ///
 /// # Arguments
 /// * `color0_ptr` - Pointer to the array of color0 values (in transformed/correlated form)
@@ -106,7 +106,7 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_generic(
 /// # Safety
 /// This function is unsafe because it operates on raw pointers. The caller must ensure all
 /// pointers are valid and point to sufficient memory.
-pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_variant1(
+pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_variant1(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,
@@ -121,17 +121,17 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_variant1(
         let mut output_ptr = output_ptr;
 
         for _ in 0..block_count {
-            // Read the correlated colors and apply variant 1 decorrelation
-            let decorrelated_color0 = Color565::from_raw(*color0_ptr).recorrelate_ycocg_r_var1();
-            let decorrelated_color1 = Color565::from_raw(*color1_ptr).recorrelate_ycocg_r_var1();
+            // Read the correlated colors and apply variant 1 recorrelation
+            let recorrelated_color0 = Color565::from_raw(*color0_ptr).recorrelate_ycocg_r_var1();
+            let recorrelated_color1 = Color565::from_raw(*color1_ptr).recorrelate_ycocg_r_var1();
 
             // Read the indices
             let indices = *indices_ptr;
 
             // Write the BC1 block directly: color0 (2 bytes) + color1 (2 bytes) + indices (4 bytes)
             // Colors are stored in little-endian format as u16 values
-            *(output_ptr as *mut u16) = decorrelated_color0.raw_value();
-            *(output_ptr.add(2) as *mut u16) = decorrelated_color1.raw_value();
+            *(output_ptr as *mut u16) = recorrelated_color0.raw_value();
+            *(output_ptr.add(2) as *mut u16) = recorrelated_color1.raw_value();
             *(output_ptr.add(4) as *mut u32) = indices;
 
             // Advance pointers
@@ -143,8 +143,8 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_variant1(
     }
 }
 
-/// Specialized implementation for [`YCoCgVariant::Variant2`] decorrelation.
-/// This function applies variant 2 decorrelation before writing the colors.
+/// Specialized implementation for [`YCoCgVariant::Variant2`] recorrelation.
+/// This function applies variant 2 recorrelation before writing the colors.
 ///
 /// # Arguments
 /// * `color0_ptr` - Pointer to the array of color0 values (in transformed/correlated form)
@@ -156,7 +156,7 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_variant1(
 /// # Safety
 /// This function is unsafe because it operates on raw pointers. The caller must ensure all
 /// pointers are valid and point to sufficient memory.
-pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_variant2(
+pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_variant2(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,
@@ -171,17 +171,17 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_variant2(
         let mut output_ptr = output_ptr;
 
         for _ in 0..block_count {
-            // Read the correlated colors and apply variant 2 decorrelation
-            let decorrelated_color0 = Color565::from_raw(*color0_ptr).recorrelate_ycocg_r_var2();
-            let decorrelated_color1 = Color565::from_raw(*color1_ptr).recorrelate_ycocg_r_var2();
+            // Read the correlated colors and apply variant 2 recorrelation
+            let recorrelated_color0 = Color565::from_raw(*color0_ptr).recorrelate_ycocg_r_var2();
+            let recorrelated_color1 = Color565::from_raw(*color1_ptr).recorrelate_ycocg_r_var2();
 
             // Read the indices
             let indices = *indices_ptr;
 
             // Write the BC1 block directly: color0 (2 bytes) + color1 (2 bytes) + indices (4 bytes)
             // Colors are stored in little-endian format as u16 values
-            *(output_ptr as *mut u16) = decorrelated_color0.raw_value();
-            *(output_ptr.add(2) as *mut u16) = decorrelated_color1.raw_value();
+            *(output_ptr as *mut u16) = recorrelated_color0.raw_value();
+            *(output_ptr.add(2) as *mut u16) = recorrelated_color1.raw_value();
             *(output_ptr.add(4) as *mut u32) = indices;
 
             // Advance pointers
@@ -193,8 +193,8 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_variant2(
     }
 }
 
-/// Specialized implementation for [`YCoCgVariant::Variant3`] decorrelation.
-/// This function applies variant 3 decorrelation before writing the colors.
+/// Specialized implementation for [`YCoCgVariant::Variant3`] recorrelation.
+/// This function applies variant 3 recorrelation before writing the colors.
 ///
 /// # Arguments
 /// * `color0_ptr` - Pointer to the array of color0 values (in transformed/correlated form)
@@ -206,7 +206,7 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_variant2(
 /// # Safety
 /// This function is unsafe because it operates on raw pointers. The caller must ensure all
 /// pointers are valid and point to sufficient memory.
-pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_variant3(
+pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_variant3(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,
@@ -221,17 +221,17 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_variant3(
         let mut output_ptr = output_ptr;
 
         for _ in 0..block_count {
-            // Read the correlated colors and apply variant 3 decorrelation
-            let decorrelated_color0 = Color565::from_raw(*color0_ptr).recorrelate_ycocg_r_var3();
-            let decorrelated_color1 = Color565::from_raw(*color1_ptr).recorrelate_ycocg_r_var3();
+            // Read the correlated colors and apply variant 3 recorrelation
+            let recorrelated_color0 = Color565::from_raw(*color0_ptr).recorrelate_ycocg_r_var3();
+            let recorrelated_color1 = Color565::from_raw(*color1_ptr).recorrelate_ycocg_r_var3();
 
             // Read the indices
             let indices = *indices_ptr;
 
             // Write the BC1 block directly: color0 (2 bytes) + color1 (2 bytes) + indices (4 bytes)
             // Colors are stored in little-endian format as u16 values
-            *(output_ptr as *mut u16) = decorrelated_color0.raw_value();
-            *(output_ptr.add(2) as *mut u16) = decorrelated_color1.raw_value();
+            *(output_ptr as *mut u16) = recorrelated_color0.raw_value();
+            *(output_ptr.add(2) as *mut u16) = recorrelated_color1.raw_value();
             *(output_ptr.add(4) as *mut u32) = indices;
 
             // Advance pointers

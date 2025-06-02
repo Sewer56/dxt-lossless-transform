@@ -5,9 +5,9 @@
     feature(stdarch_x86_avx512)
 )]
 
-use crate::detransform::split_and_decorrelate::untransform_split_and_decorrelate;
+use crate::detransform::split_and_recorrelate::untransform_split_and_decorrelate;
 use detransform::{
-    unsplit_split_colour_split_blocks, unsplit_split_colour_split_blocks_and_decorrelate,
+    unsplit_split_colour_split_blocks, unsplit_split_colour_split_blocks_and_recorrelate,
 };
 use dxt_lossless_transform_common::{
     color_565::{Color565, YCoCgVariant},
@@ -293,7 +293,7 @@ pub unsafe fn untransform_bc1(
     detransform_options: Bc1DetransformDetails,
 ) {
     use crate::unsplit_split_colour_split_blocks::*;
-    use crate::unsplit_split_colour_split_blocks_and_decorrelate::*;
+    use crate::unsplit_split_colour_split_blocks_and_recorrelate::*;
 
     debug_assert!(len % 8 == 0);
 

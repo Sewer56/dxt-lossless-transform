@@ -6,9 +6,9 @@ use core::ptr::{read_unaligned, write_unaligned};
 use dxt_lossless_transform_common::color_565::Color565;
 
 #[cfg(feature = "nightly")]
-use dxt_lossless_transform_common::intrinsics::color_565::decorrelate::avx512::{
-    decorrelate_ycocg_r_variant1_avx512, decorrelate_ycocg_r_variant2_avx512, 
-    decorrelate_ycocg_r_variant3_avx512,
+use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx512::{
+    recorrelate_ycocg_r_variant1_avx512, recorrelate_ycocg_r_variant2_avx512,
+    recorrelate_ycocg_r_variant3_avx512,
 };
 
 #[cfg(feature = "nightly")]
@@ -54,8 +54,8 @@ pub(crate) unsafe fn untransform_split_and_decorrelate_variant1_avx512(
         // Load 16 index values
         let indices_raw = _mm512_loadu_si512(indices_ptr.add(block_index) as *const __m512i);
 
-        // === YCoCg-R Decorrelation using helper function ===
-        let recorrelated_colors = decorrelate_ycocg_r_variant1_avx512(colors_raw);
+        // === YCoCg-R Recorrelation using helper function ===
+        let recorrelated_colors = recorrelate_ycocg_r_variant1_avx512(colors_raw);
 
         // === Interleave Recorrelated Colors with Indices ===
         // Step 6: Create two copies of recorrelated data for different shuffle patterns
@@ -160,7 +160,7 @@ pub(crate) unsafe fn untransform_split_and_decorrelate_variant2_avx512(
         let indices_raw = _mm512_loadu_si512(indices_ptr.add(block_index) as *const __m512i);
 
         // === YCoCg-R Decorrelation using helper function ===
-        let recorrelated_colors = decorrelate_ycocg_r_variant2_avx512(colors_raw);
+        let recorrelated_colors = recorrelate_ycocg_r_variant2_avx512(colors_raw);
 
         // === Interleave Recorrelated Colors with Indices ===
         // Step 6: Create two copies of recorrelated data for different shuffle patterns
@@ -265,7 +265,7 @@ pub(crate) unsafe fn untransform_split_and_decorrelate_variant3_avx512(
         let indices_raw = _mm512_loadu_si512(indices_ptr.add(block_index) as *const __m512i);
 
         // === YCoCg-R Decorrelation using helper function ===
-        let recorrelated_colors = decorrelate_ycocg_r_variant3_avx512(colors_raw);
+        let recorrelated_colors = recorrelate_ycocg_r_variant3_avx512(colors_raw);
 
         // === Interleave Recorrelated Colors with Indices ===
         // Step 6: Create two copies of recorrelated data for different shuffle patterns

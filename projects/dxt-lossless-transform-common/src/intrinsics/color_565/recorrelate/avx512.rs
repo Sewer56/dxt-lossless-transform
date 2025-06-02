@@ -3,20 +3,22 @@ use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
-/// Decorrelate a register of [`Color565`] values using YCoCg-R variant 1
+/// Recorrelate a register of [`Color565`] values using YCoCg-R variant 1
 ///
 /// Takes a `__m512i` register containing 32 [`Color565`] values (16 pairs of colors as u32s)
-/// and returns a register with the colors decorrelated using YCoCg-R variant 1.
+/// and returns a register with the colors recorrelated using YCoCg-R variant 1.
 ///
 /// # Safety
 ///
 /// Requires `avx512f` and `avx512bw` target features to be enabled.
 /// The input register must contain valid [`Color565`] data packed as u32 pairs.
+///
+/// [`Color565`]: crate::color_565::Color565
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]
-pub unsafe fn decorrelate_ycocg_r_variant1_avx512(colors_raw: __m512i) -> __m512i {
+pub unsafe fn recorrelate_ycocg_r_variant1_avx512(colors_raw: __m512i) -> __m512i {
     // === Constants for YCoCg-R Recorrelation ===
     // Lifted outside loops by compiler.
     let mask_15 = _mm512_set1_epi16(15); // Mask for extracting 4-bit values
@@ -95,20 +97,22 @@ pub unsafe fn decorrelate_ycocg_r_variant1_avx512(colors_raw: __m512i) -> __m512
     _mm512_ternarylogic_epi32(recorrelated_colors, cg_component, mask_31, 248) // Final OR
 }
 
-/// Decorrelate a register of [`Color565`] values using YCoCg-R variant 2
+/// Recorrelate a register of [`Color565`] values using YCoCg-R variant 2
 ///
 /// Takes a `__m512i` register containing 32 [`Color565`] values (16 pairs of colors as u32s)
-/// and returns a register with the colors decorrelated using YCoCg-R variant 2.
+/// and returns a register with the colors recorrelated using YCoCg-R variant 2.
 ///
 /// # Safety
 ///
 /// Requires `avx512f` and `avx512bw` target features to be enabled.
 /// The input register must contain valid [`Color565`] data packed as u32 pairs.
+///
+/// [`Color565`]: crate::color_565::Color565
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]
-pub unsafe fn decorrelate_ycocg_r_variant2_avx512(colors_raw: __m512i) -> __m512i {
+pub unsafe fn recorrelate_ycocg_r_variant2_avx512(colors_raw: __m512i) -> __m512i {
     // === Constants for YCoCg-R Recorrelation ===
     // Lifted outside loops by compiler.
     let mask_15 = _mm512_set1_epi16(15); // Mask for extracting 4-bit values
@@ -187,20 +191,22 @@ pub unsafe fn decorrelate_ycocg_r_variant2_avx512(colors_raw: __m512i) -> __m512
     _mm512_ternarylogic_epi32(recorrelated_colors, cg_component, mask_31, 248) // Final OR
 }
 
-/// Decorrelate a register of [`Color565`] values using YCoCg-R variant 3
+/// Recorrelate a register of [`Color565`] values using YCoCg-R variant 3
 ///
 /// Takes a `__m512i` register containing 32 [`Color565`] values (16 pairs of colors as u32s)
-/// and returns a register with the colors decorrelated using YCoCg-R variant 3.
+/// and returns a register with the colors recorrelated using YCoCg-R variant 3.
 ///
 /// # Safety
 ///
 /// Requires `avx512f` and `avx512bw` target features to be enabled.
 /// The input register must contain valid [`Color565`] data packed as u32 pairs.
+///
+/// [`Color565`]: crate::color_565::Color565
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]
-pub unsafe fn decorrelate_ycocg_r_variant3_avx512(colors_raw: __m512i) -> __m512i {
+pub unsafe fn recorrelate_ycocg_r_variant3_avx512(colors_raw: __m512i) -> __m512i {
     // === Constants for YCoCg-R Recorrelation ===
     // Lifted outside loops by compiler.
     let mask_15 = _mm512_set1_epi16(15); // Mask for extracting 4-bit values

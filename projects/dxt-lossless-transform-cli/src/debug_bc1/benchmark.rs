@@ -366,7 +366,6 @@ unsafe fn process_scenario(
         untransform_bc1(
             decompressed_data.as_ptr(),
             final_output.as_mut_ptr(),
-            work_buffer.as_mut_ptr(),
             len_bytes,
             transform_details.into(),
         );
@@ -390,7 +389,6 @@ unsafe fn process_scenario(
             untransform_bc1(
                 decompressed_data.as_ptr(),
                 final_output.as_mut_ptr(),
-                work_buffer.as_mut_ptr(),
                 len_bytes,
                 transform_details.into(),
             );

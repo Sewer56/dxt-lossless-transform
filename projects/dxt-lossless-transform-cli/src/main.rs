@@ -185,11 +185,17 @@ pub unsafe fn transform_format(
     _param: &(),
     input_ptr: *const u8,
     output_ptr: *mut u8,
-    work_ptr: *mut u8,
     len: usize,
     format: DdsFormat,
 ) {
-    dxt_lossless_transform_api::transform_format(input_ptr, output_ptr, work_ptr, len, format)
+    let mut work_ptr = allocate_align_64(len).expect("Failed to allocate work buffer");
+    dxt_lossless_transform_api::transform_format(
+        input_ptr,
+        output_ptr,
+        work_ptr.as_mut_ptr(),
+        len,
+        format,
+    )
 }
 
 /// # Safety
@@ -201,11 +207,10 @@ pub unsafe fn untransform_format(
     _param: &(),
     input_ptr: *const u8,
     output_ptr: *mut u8,
-    work_ptr: *mut u8,
     len: usize,
     format: DdsFormat,
 ) {
-    dxt_lossless_transform_api::untransform_format(input_ptr, output_ptr, work_ptr, len, format)
+    dxt_lossless_transform_api::untransform_format(input_ptr, output_ptr, len, format)
 }
 
 fn handle_process_entry_error(result: Result<(), TransformError>) {
@@ -222,7 +227,7 @@ fn process_dir_entry<TParam>(
     input: &Path,
     output: &Path,
     filter: DdsFilter,
-    transform_fn: unsafe fn(&TParam, *const u8, *mut u8, *mut u8, usize, DdsFormat),
+    transform_fn: unsafe fn(&TParam, *const u8, *mut u8, usize, DdsFormat),
     param: &TParam,
 ) -> Result<(), TransformError> {
     let path = dir_entry.path();
@@ -254,13 +259,10 @@ fn process_dir_entry<TParam>(
     }
 
     unsafe {
-        let len_bytes = source_size.sub(info.data_offset as usize);
-        let mut work_mapping = allocate_align_64(len_bytes)?;
         transform_fn(
             param,
             source_mapping.data().add(info.data_offset as usize),
             target_mapping.data().add(info.data_offset as usize),
-            work_mapping.as_mut_ptr(),
             source_size.sub(info.data_offset as usize),
             format,
         );

@@ -6,16 +6,16 @@
 )]
 
 use crate::detransform::split_and_decorrelate::untransform_split_and_decorrelate;
-use detransform::unsplit_split_colour_split_blocks;
+use detransform::{
+    unsplit_split_colour_split_blocks, unsplit_split_colour_split_blocks_and_decorrelate,
+};
 use dxt_lossless_transform_common::{
     color_565::{Color565, YCoCgVariant},
     transforms::split_565_color_endpoints::split_color_endpoints,
 };
 use normalize_blocks::{normalize_split_blocks_in_place, ColorNormalizationMode};
 use split_blocks::{
-    split::split_blocks_with_separate_pointers,
-    split_blocks,
-    unsplit::{unsplit_block_with_separate_pointers, unsplit_blocks},
+    split::split_blocks_with_separate_pointers, split_blocks, unsplit::unsplit_blocks,
 };
 
 pub mod determine_optimal_transform;
@@ -289,10 +289,12 @@ pub unsafe fn transform_bc1(
 pub unsafe fn untransform_bc1(
     input_ptr: *const u8,
     output_ptr: *mut u8,
-    work_ptr: *mut u8,
     len: usize,
     detransform_options: Bc1DetransformDetails,
 ) {
+    use crate::unsplit_split_colour_split_blocks::*;
+    use crate::unsplit_split_colour_split_blocks_and_decorrelate::*;
+
     debug_assert!(len % 8 == 0);
 
     let has_split_colours = detransform_options.split_colour_endpoints;
@@ -309,21 +311,13 @@ pub unsafe fn untransform_bc1(
                 len / 8,                              // number of blocks (8 bytes per block)
             );
         } else {
-            // Recorrelate colours into work area, doing the unsplit in the same process.
-            Color565::recorrelate_ycocg_r_ptr_split(
-                input_ptr as *mut Color565,
-                input_ptr.add(len / 4) as *mut Color565,
-                work_ptr as *mut Color565,
-                (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
+            unsplit_split_colour_split_blocks_and_decorrelate(
+                input_ptr as *const u16,              // color0 values
+                input_ptr.add(len / 4) as *const u16, // color1 values
+                input_ptr.add(len / 2) as *const u32, // indices
+                output_ptr,                           // output BC1 blocks
+                len / 8,                              // number of blocks (8 bytes per block)
                 detransform_options.decorrelation_mode,
-            );
-
-            // Now unsplit the colours, placing them into the final buffer
-            unsplit_block_with_separate_pointers(
-                work_ptr as *const u32,
-                input_ptr.add(len / 2) as *const u32,
-                output_ptr,
-                len,
             );
         }
     } else if detransform_options.decorrelation_mode == YCoCgVariant::None {

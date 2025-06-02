@@ -65,7 +65,6 @@ pub unsafe fn transform_format(
 pub unsafe fn untransform_format(
     input_ptr: *const u8,
     output_ptr: *mut u8,
-    work_ptr: *mut u8,
     len: usize,
     format: DdsFormat,
 ) {
@@ -75,7 +74,6 @@ pub unsafe fn untransform_format(
             dxt_lossless_transform_bc1::untransform_bc1(
                 input_ptr,
                 output_ptr,
-                work_ptr,
                 len,
                 Bc1DetransformDetails::default(),
             );

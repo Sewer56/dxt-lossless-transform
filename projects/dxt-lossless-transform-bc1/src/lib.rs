@@ -5,7 +5,8 @@
     feature(stdarch_x86_avx512)
 )]
 
-use detransform::{unsplit_split_colour_split_blocks, untransform_split_and_decorrelate};
+use crate::detransform::split_and_decorrelate::untransform_split_and_decorrelate;
+use detransform::unsplit_split_colour_split_blocks;
 use dxt_lossless_transform_common::{
     color_565::{Color565, YCoCgVariant},
     transforms::split_565_color_endpoints::split_color_endpoints,

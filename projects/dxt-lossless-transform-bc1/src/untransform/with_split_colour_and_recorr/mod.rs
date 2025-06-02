@@ -47,8 +47,8 @@ use dxt_lossless_transform_common::cpu_detect::*;
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 mod avx2;
 
-//#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-//mod sse2;
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+mod sse2;
 
 mod generic;
 
@@ -139,18 +139,17 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
             return;
         }
 
-        /*
         if has_sse2() {
-            sse2::unsplit_split_colour_split_blocks_and_decorrelate(
+            sse2::unsplit_split_colour_split_blocks_and_recorrelate(
                 color0_ptr,
                 color1_ptr,
                 indices_ptr,
                 output_ptr,
                 block_count,
+                decorrelation_mode,
             );
             return;
         }
-        */
     }
 
     #[cfg(feature = "no-runtime-cpu-detection")]
@@ -180,9 +179,8 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
             return;
         }
 
-        /*
         if cfg!(target_feature = "sse2") {
-            sse2::unsplit_split_colour_split_blocks_and_decorrelate(
+            sse2::unsplit_split_colour_split_blocks_and_recorrelate(
                 color0_ptr,
                 color1_ptr,
                 indices_ptr,
@@ -192,7 +190,6 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
             );
             return;
         }
-        */
     }
 
     generic::unsplit_split_colour_split_blocks_and_recorrelate_generic(

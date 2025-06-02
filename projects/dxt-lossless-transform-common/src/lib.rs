@@ -13,4 +13,5 @@ pub mod transforms {
     pub mod split_565_color_endpoints;
 }
 pub mod allocate;
+pub mod intrinsics;
 pub mod cpu_detect;

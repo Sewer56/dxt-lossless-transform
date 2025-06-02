@@ -145,7 +145,7 @@ pub unsafe fn unsplit_split_colour_split_blocks_x86(
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         #[cfg(feature = "nightly")]
-        if has_avx512f() & &has_avx512bw() {
+        if has_avx512f() & has_avx512bw() {
             avx512::avx512_unsplit_split_colour_split_blocks(
                 color0_ptr,
                 color1_ptr,

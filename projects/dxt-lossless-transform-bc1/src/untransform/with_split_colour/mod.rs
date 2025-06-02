@@ -41,8 +41,6 @@ mod avx512;
 #[cfg(not(feature = "no-runtime-cpu-detection"))]
 use dxt_lossless_transform_common::cpu_detect::*;
 
-use crate::with_split_colour::generic::untransform_with_split_colour_generic;
-
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 mod avx2;
 
@@ -71,7 +69,7 @@ pub(crate) unsafe fn untransform_with_split_colour(
 
     #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
     {
-        untransform_with_split_colour_generic(
+        generic::untransform_with_split_colour(
             color0_ptr,
             color1_ptr,
             indices_ptr,
@@ -162,7 +160,7 @@ pub unsafe fn untransform_with_split_colour_x86(
         }
     }
 
-    untransform_with_split_colour_generic(
+    generic::untransform_with_split_colour(
         color0_ptr,
         color1_ptr,
         indices_ptr,

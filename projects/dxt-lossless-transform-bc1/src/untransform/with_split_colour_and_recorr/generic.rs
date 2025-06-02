@@ -1,10 +1,9 @@
+use crate::split_blocks::unsplit::unsplit_block_with_separate_pointers;
 use core::hint::unreachable_unchecked;
 use dxt_lossless_transform_common::{
     allocate::allocate_align_64,
     color_565::{Color565, YCoCgVariant},
 };
-
-use crate::split_blocks::unsplit::unsplit_block_with_separate_pointers;
 
 pub(crate) unsafe fn untransform_with_split_colour_and_recorr_generic(
     color0_ptr: *const u16,
@@ -65,6 +64,7 @@ pub(crate) unsafe fn untransform_with_split_colour_and_recorr_generic(
     }
 }
 
+// Wrapper functions for assembly inspection using `cargo asm`
 unsafe fn untransform_recorr_var1(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
@@ -72,34 +72,7 @@ unsafe fn untransform_recorr_var1(
     output_ptr: *mut u8,
     block_count: usize,
 ) {
-    unsafe {
-        // Initialize pointers for iteration
-        let mut color0_ptr = color0_ptr;
-        let mut color1_ptr = color1_ptr;
-        let mut indices_ptr = indices_ptr;
-        let mut output_ptr = output_ptr;
-
-        for _ in 0..block_count {
-            // Read the correlated colors and apply variant 1 recorrelation
-            let recorrelated_color0 = Color565::from_raw(*color0_ptr).recorrelate_ycocg_r_var1();
-            let recorrelated_color1 = Color565::from_raw(*color1_ptr).recorrelate_ycocg_r_var1();
-
-            // Read the indices
-            let indices = *indices_ptr;
-
-            // Write the BC1 block directly: color0 (2 bytes) + color1 (2 bytes) + indices (4 bytes)
-            // Colors are stored in little-endian format as u16 values
-            *(output_ptr as *mut u16) = recorrelated_color0.raw_value();
-            *(output_ptr.add(2) as *mut u16) = recorrelated_color1.raw_value();
-            *(output_ptr.add(4) as *mut u32) = indices;
-
-            // Advance pointers
-            color0_ptr = color0_ptr.add(1);
-            color1_ptr = color1_ptr.add(1);
-            indices_ptr = indices_ptr.add(1);
-            output_ptr = output_ptr.add(8); // 8 bytes per BC1 block
-        }
-    }
+    untransform_recorr::<1>(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
 }
 
 unsafe fn untransform_recorr_var2(
@@ -109,34 +82,7 @@ unsafe fn untransform_recorr_var2(
     output_ptr: *mut u8,
     block_count: usize,
 ) {
-    unsafe {
-        // Initialize pointers for iteration
-        let mut color0_ptr = color0_ptr;
-        let mut color1_ptr = color1_ptr;
-        let mut indices_ptr = indices_ptr;
-        let mut output_ptr = output_ptr;
-
-        for _ in 0..block_count {
-            // Read the correlated colors and apply variant 2 recorrelation
-            let recorrelated_color0 = Color565::from_raw(*color0_ptr).recorrelate_ycocg_r_var2();
-            let recorrelated_color1 = Color565::from_raw(*color1_ptr).recorrelate_ycocg_r_var2();
-
-            // Read the indices
-            let indices = *indices_ptr;
-
-            // Write the BC1 block directly: color0 (2 bytes) + color1 (2 bytes) + indices (4 bytes)
-            // Colors are stored in little-endian format as u16 values
-            *(output_ptr as *mut u16) = recorrelated_color0.raw_value();
-            *(output_ptr.add(2) as *mut u16) = recorrelated_color1.raw_value();
-            *(output_ptr.add(4) as *mut u32) = indices;
-
-            // Advance pointers
-            color0_ptr = color0_ptr.add(1);
-            color1_ptr = color1_ptr.add(1);
-            indices_ptr = indices_ptr.add(1);
-            output_ptr = output_ptr.add(8); // 8 bytes per BC1 block
-        }
-    }
+    untransform_recorr::<2>(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
 }
 
 unsafe fn untransform_recorr_var3(
@@ -146,32 +92,124 @@ unsafe fn untransform_recorr_var3(
     output_ptr: *mut u8,
     block_count: usize,
 ) {
-    unsafe {
-        // Initialize pointers for iteration
-        let mut color0_ptr = color0_ptr;
-        let mut color1_ptr = color1_ptr;
-        let mut indices_ptr = indices_ptr;
-        let mut output_ptr = output_ptr;
+    untransform_recorr::<3>(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
+}
 
-        for _ in 0..block_count {
-            // Read the correlated colors and apply variant 3 recorrelation
-            let recorrelated_color0 = Color565::from_raw(*color0_ptr).recorrelate_ycocg_r_var3();
-            let recorrelated_color1 = Color565::from_raw(*color1_ptr).recorrelate_ycocg_r_var3();
+unsafe fn untransform_recorr<const VARIANT: u8>(
+    color0_ptr: *const u16,
+    color1_ptr: *const u16,
+    indices_ptr: *const u32,
+    output_ptr: *mut u8,
+    block_count: usize,
+) {
+    // Initialize pointers for iteration
+    let mut color0_ptr = color0_ptr;
+    let mut color1_ptr = color1_ptr;
+    let mut indices_ptr = indices_ptr;
+    let mut output_ptr = output_ptr;
 
-            // Read the indices
-            let indices = *indices_ptr;
+    for _ in 0..block_count {
+        // Read the correlated colors and apply recorrelation using the specified variant
+        let color0_obj = Color565::from_raw(color0_ptr.read_unaligned());
+        let color1_obj = Color565::from_raw(color1_ptr.read_unaligned());
+        let (recorrelated_color0, recorrelated_color1) = match VARIANT {
+            1 => (
+                color0_obj.recorrelate_ycocg_r_var1(),
+                color1_obj.recorrelate_ycocg_r_var1(),
+            ),
+            2 => (
+                color0_obj.recorrelate_ycocg_r_var2(),
+                color1_obj.recorrelate_ycocg_r_var2(),
+            ),
+            3 => (
+                color0_obj.recorrelate_ycocg_r_var3(),
+                color1_obj.recorrelate_ycocg_r_var3(),
+            ),
+            _ => unreachable_unchecked(),
+        };
 
-            // Write the BC1 block directly: color0 (2 bytes) + color1 (2 bytes) + indices (4 bytes)
-            // Colors are stored in little-endian format as u16 values
-            *(output_ptr as *mut u16) = recorrelated_color0.raw_value();
-            *(output_ptr.add(2) as *mut u16) = recorrelated_color1.raw_value();
-            *(output_ptr.add(4) as *mut u32) = indices;
+        // Read the indices
+        let indices = indices_ptr.read_unaligned();
 
-            // Advance pointers
-            color0_ptr = color0_ptr.add(1);
-            color1_ptr = color1_ptr.add(1);
-            indices_ptr = indices_ptr.add(1);
-            output_ptr = output_ptr.add(8); // 8 bytes per BC1 block
+        // Write the BC1 block directly: color0 (2 bytes) + color1 (2 bytes) + indices (4 bytes)
+        // Colors are stored in little-endian format as u16 values
+        (output_ptr as *mut u16).write_unaligned(recorrelated_color0.raw_value());
+        (output_ptr.add(2) as *mut u16).write_unaligned(recorrelated_color1.raw_value());
+        (output_ptr.add(4) as *mut u32).write_unaligned(indices);
+
+        // Advance pointers
+        color0_ptr = color0_ptr.add(1);
+        color1_ptr = color1_ptr.add(1);
+        indices_ptr = indices_ptr.add(1);
+        output_ptr = output_ptr.add(8); // 8 bytes per BC1 block
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::normalize_blocks::ColorNormalizationMode;
+    use crate::split_blocks::split::tests::assert_implementation_matches_reference;
+    use crate::with_split_colour_and_recorr::generic::untransform_with_split_colour_and_recorr_generic;
+    use crate::{
+        split_blocks::split::tests::generate_bc1_test_data, transform_bc1, Bc1TransformDetails,
+    };
+    use dxt_lossless_transform_common::color_565::YCoCgVariant;
+    use dxt_lossless_transform_common::cpu_detect::has_sse2;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(YCoCgVariant::Variant1)]
+    #[case(YCoCgVariant::Variant2)]
+    #[case(YCoCgVariant::Variant3)]
+    fn can_untransform_unaligned(#[case] decorr_variant: YCoCgVariant) {
+        if !has_sse2() {
+            return;
+        }
+
+        for num_blocks in 1..=512 {
+            let original = generate_bc1_test_data(num_blocks);
+
+            // Transform using standard implementation
+            let mut transformed = vec![0u8; original.len()];
+            let mut work = vec![0u8; original.len()];
+            unsafe {
+                transform_bc1(
+                    original.as_ptr(),
+                    transformed.as_mut_ptr(),
+                    work.as_mut_ptr(),
+                    original.len(),
+                    Bc1TransformDetails {
+                        color_normalization_mode: ColorNormalizationMode::None,
+                        decorrelation_mode: decorr_variant,
+                        split_colour_endpoints: true,
+                    },
+                );
+            }
+
+            // Add 1 extra byte at the beginning to create misaligned buffers
+            let mut transformed_unaligned = vec![0u8; transformed.len() + 1];
+            transformed_unaligned[1..].copy_from_slice(&transformed);
+            let mut reconstructed = vec![0u8; original.len() + 1];
+
+            unsafe {
+                // Reconstruct using the implementation being tested with unaligned pointers
+                reconstructed.as_mut_slice().fill(0);
+                untransform_with_split_colour_and_recorr_generic(
+                    transformed_unaligned.as_ptr().add(1) as *const u16,
+                    transformed_unaligned.as_ptr().add(1 + num_blocks * 2) as *const u16,
+                    transformed_unaligned.as_ptr().add(1 + num_blocks * 4) as *const u32,
+                    reconstructed.as_mut_ptr().add(1),
+                    num_blocks,
+                    decorr_variant,
+                );
+            }
+
+            assert_implementation_matches_reference(
+                original.as_slice(),
+                &reconstructed[1..],
+                "untransform_with_split_colour_and_recorr (generic, unaligned)",
+                num_blocks,
+            );
         }
     }
 }

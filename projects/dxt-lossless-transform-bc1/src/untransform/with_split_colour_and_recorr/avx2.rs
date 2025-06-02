@@ -30,203 +30,40 @@ pub(crate) unsafe fn untransform_with_split_colour_and_recorr(
     }
 }
 
-#[target_feature(enable = "avx2")]
-#[allow(clippy::identity_op)]
+// Wrapper functions for assembly inspection using `cargo asm`
 unsafe fn untransform_recorr_var1(
-    mut color0_ptr: *const u16,
-    mut color1_ptr: *const u16,
-    mut indices_ptr: *const u32,
-    mut output_ptr: *mut u8,
+    color0_ptr: *const u16,
+    color1_ptr: *const u16,
+    indices_ptr: *const u32,
+    output_ptr: *mut u8,
     block_count: usize,
 ) {
-    debug_assert!(block_count > 0);
-
-    // Process 16 blocks (128 bytes) at a time with AVX2
-    let aligned_count = block_count - (block_count % 16);
-    let color0_ptr_aligned_end = color0_ptr.add(aligned_count);
-
-    if aligned_count > 0 {
-        while color0_ptr < color0_ptr_aligned_end {
-            let color0s = _mm256_loadu_si256(color0_ptr as *const __m256i);
-            color0_ptr = color0_ptr.add(16);
-
-            let color1s = _mm256_loadu_si256(color1_ptr as *const __m256i);
-            color1_ptr = color1_ptr.add(16);
-
-            let indices_0 = _mm256_loadu_si256(indices_ptr as *const __m256i);
-            let indices_1 = _mm256_loadu_si256(indices_ptr.add(8) as *const __m256i);
-            indices_ptr = indices_ptr.add(16);
-
-            // Apply YCoCg-R variant 1 recorrelation
-            let recorrelated_color0s = recorrelate_ycocg_r_var1_avx2(color0s);
-            let recorrelated_color1s = recorrelate_ycocg_r_var1_avx2(color1s);
-
-            // Mix the colours back into their c0+c1 pairs
-            let colors_0_0 = _mm256_unpacklo_epi16(recorrelated_color0s, recorrelated_color1s);
-            let colors_1_0 = _mm256_unpackhi_epi16(recorrelated_color0s, recorrelated_color1s);
-
-            // Because of AVX 'lanes', we need to permute the upper and lower halves
-            let colors_0 = _mm256_permute2x128_si256(colors_0_0, colors_1_0, 0b0010_0000);
-            let colors_1 = _mm256_permute2x128_si256(colors_0_0, colors_1_0, 0b0011_0001);
-
-            // Re-combine the colors and indices into the BC1 block format
-            let blocks_0 = _mm256_unpacklo_epi32(colors_0, indices_0);
-            let blocks_1 = _mm256_unpackhi_epi32(colors_0, indices_0);
-            let blocks_2 = _mm256_unpacklo_epi32(colors_1, indices_1);
-            let blocks_3 = _mm256_unpackhi_epi32(colors_1, indices_1);
-
-            // We need to combine the lanes to form the final output blocks.
-            let output_0 = _mm256_permute2x128_si256(blocks_0, blocks_1, 0b0010_0000);
-            let output_1 = _mm256_permute2x128_si256(blocks_0, blocks_1, 0b0011_0001);
-            let output_2 = _mm256_permute2x128_si256(blocks_2, blocks_3, 0b0010_0000);
-            let output_3 = _mm256_permute2x128_si256(blocks_2, blocks_3, 0b0011_0001);
-
-            _mm256_storeu_si256(output_ptr as *mut __m256i, output_0);
-            _mm256_storeu_si256(output_ptr.add(32) as *mut __m256i, output_1);
-            _mm256_storeu_si256(output_ptr.add(64) as *mut __m256i, output_2);
-            _mm256_storeu_si256(output_ptr.add(96) as *mut __m256i, output_3);
-
-            // Advance output pointer
-            output_ptr = output_ptr.add(128);
-        }
-    }
-
-    // Process any remaining blocks (less than 16) using scalar code
-    let remaining_count = block_count - aligned_count;
-    if remaining_count > 0 {
-        let mut remaining_color0_ptr = color0_ptr;
-        let mut remaining_color1_ptr = color1_ptr;
-        let mut remaining_indices_ptr = indices_ptr;
-        let mut remaining_output_ptr = output_ptr;
-
-        let remaining_color0_ptr_end = remaining_color0_ptr.add(remaining_count);
-
-        while remaining_color0_ptr < remaining_color0_ptr_end {
-            // Read the split color values
-            let color0 = remaining_color0_ptr.read_unaligned();
-            let color1 = remaining_color1_ptr.read_unaligned();
-            let indices = remaining_indices_ptr.read_unaligned();
-
-            // Apply YCoCg-R variant 1 recorrelation to the color pair
-            let color0_obj = Color565::from_raw(color0);
-            let color1_obj = Color565::from_raw(color1);
-            let recorr_color0 = color0_obj.recorrelate_ycocg_r_var1();
-            let recorr_color1 = color1_obj.recorrelate_ycocg_r_var1();
-
-            // Write BC1 block format: [color0: u16, color1: u16, indices: u32]
-            (remaining_output_ptr as *mut u16).write_unaligned(recorr_color0.raw_value());
-            (remaining_output_ptr.add(2) as *mut u16).write_unaligned(recorr_color1.raw_value());
-            (remaining_output_ptr.add(4) as *mut u32).write_unaligned(indices);
-
-            // Advance all pointers
-            remaining_color0_ptr = remaining_color0_ptr.add(1);
-            remaining_color1_ptr = remaining_color1_ptr.add(1);
-            remaining_indices_ptr = remaining_indices_ptr.add(1);
-            remaining_output_ptr = remaining_output_ptr.add(8);
-        }
-    }
+    untransform_recorr::<1>(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
 }
 
-#[target_feature(enable = "avx2")]
-#[allow(clippy::identity_op)]
 unsafe fn untransform_recorr_var2(
-    mut color0_ptr: *const u16,
-    mut color1_ptr: *const u16,
-    mut indices_ptr: *const u32,
-    mut output_ptr: *mut u8,
+    color0_ptr: *const u16,
+    color1_ptr: *const u16,
+    indices_ptr: *const u32,
+    output_ptr: *mut u8,
     block_count: usize,
 ) {
-    debug_assert!(block_count > 0);
+    untransform_recorr::<2>(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
+}
 
-    // Process 16 blocks (128 bytes) at a time with AVX2
-    let aligned_count = block_count - (block_count % 16);
-    let color0_ptr_aligned_end = color0_ptr.add(aligned_count);
-
-    if aligned_count > 0 {
-        while color0_ptr < color0_ptr_aligned_end {
-            let color0s = _mm256_loadu_si256(color0_ptr as *const __m256i);
-            color0_ptr = color0_ptr.add(16);
-
-            let color1s = _mm256_loadu_si256(color1_ptr as *const __m256i);
-            color1_ptr = color1_ptr.add(16);
-
-            let indices_0 = _mm256_loadu_si256(indices_ptr as *const __m256i);
-            let indices_1 = _mm256_loadu_si256(indices_ptr.add(8) as *const __m256i);
-            indices_ptr = indices_ptr.add(16);
-
-            // Apply YCoCg-R variant 2 recorrelation
-            let recorrelated_color0s = recorrelate_ycocg_r_var2_avx2(color0s);
-            let recorrelated_color1s = recorrelate_ycocg_r_var2_avx2(color1s);
-
-            // Mix the colours back into their c0+c1 pairs
-            let colors_0_0 = _mm256_unpacklo_epi16(recorrelated_color0s, recorrelated_color1s);
-            let colors_1_0 = _mm256_unpackhi_epi16(recorrelated_color0s, recorrelated_color1s);
-
-            // Because of AVX 'lanes', we need to permute the upper and lower halves
-            let colors_0 = _mm256_permute2x128_si256(colors_0_0, colors_1_0, 0b0010_0000);
-            let colors_1 = _mm256_permute2x128_si256(colors_0_0, colors_1_0, 0b0011_0001);
-
-            // Re-combine the colors and indices into the BC1 block format
-            let blocks_0 = _mm256_unpacklo_epi32(colors_0, indices_0);
-            let blocks_1 = _mm256_unpackhi_epi32(colors_0, indices_0);
-            let blocks_2 = _mm256_unpacklo_epi32(colors_1, indices_1);
-            let blocks_3 = _mm256_unpackhi_epi32(colors_1, indices_1);
-
-            // We need to combine the lanes to form the final output blocks.
-            let output_0 = _mm256_permute2x128_si256(blocks_0, blocks_1, 0b0010_0000);
-            let output_1 = _mm256_permute2x128_si256(blocks_0, blocks_1, 0b0011_0001);
-            let output_2 = _mm256_permute2x128_si256(blocks_2, blocks_3, 0b0010_0000);
-            let output_3 = _mm256_permute2x128_si256(blocks_2, blocks_3, 0b0011_0001);
-
-            _mm256_storeu_si256(output_ptr as *mut __m256i, output_0);
-            _mm256_storeu_si256(output_ptr.add(32) as *mut __m256i, output_1);
-            _mm256_storeu_si256(output_ptr.add(64) as *mut __m256i, output_2);
-            _mm256_storeu_si256(output_ptr.add(96) as *mut __m256i, output_3);
-
-            // Advance output pointer
-            output_ptr = output_ptr.add(128);
-        }
-    }
-
-    // Process any remaining blocks (less than 16) using scalar code
-    let remaining_count = block_count - aligned_count;
-    if remaining_count > 0 {
-        let mut remaining_color0_ptr = color0_ptr;
-        let mut remaining_color1_ptr = color1_ptr;
-        let mut remaining_indices_ptr = indices_ptr;
-        let mut remaining_output_ptr = output_ptr;
-
-        let remaining_color0_ptr_end = remaining_color0_ptr.add(remaining_count);
-
-        while remaining_color0_ptr < remaining_color0_ptr_end {
-            // Read the split color values
-            let color0 = remaining_color0_ptr.read_unaligned();
-            let color1 = remaining_color1_ptr.read_unaligned();
-            let indices = remaining_indices_ptr.read_unaligned();
-
-            // Apply YCoCg-R variant 2 recorrelation to the color pair
-            let color0_obj = Color565::from_raw(color0);
-            let color1_obj = Color565::from_raw(color1);
-            let recorr_color0 = color0_obj.recorrelate_ycocg_r_var2();
-            let recorr_color1 = color1_obj.recorrelate_ycocg_r_var2();
-
-            // Write BC1 block format: [color0: u16, color1: u16, indices: u32]
-            (remaining_output_ptr as *mut u16).write_unaligned(recorr_color0.raw_value());
-            (remaining_output_ptr.add(2) as *mut u16).write_unaligned(recorr_color1.raw_value());
-            (remaining_output_ptr.add(4) as *mut u32).write_unaligned(indices);
-
-            // Advance all pointers
-            remaining_color0_ptr = remaining_color0_ptr.add(1);
-            remaining_color1_ptr = remaining_color1_ptr.add(1);
-            remaining_indices_ptr = remaining_indices_ptr.add(1);
-            remaining_output_ptr = remaining_output_ptr.add(8);
-        }
-    }
+unsafe fn untransform_recorr_var3(
+    color0_ptr: *const u16,
+    color1_ptr: *const u16,
+    indices_ptr: *const u32,
+    output_ptr: *mut u8,
+    block_count: usize,
+) {
+    untransform_recorr::<3>(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
 }
 
 #[target_feature(enable = "avx2")]
 #[allow(clippy::identity_op)]
-unsafe fn untransform_recorr_var3(
+unsafe fn untransform_recorr<const VARIANT: u8>(
     mut color0_ptr: *const u16,
     mut color1_ptr: *const u16,
     mut indices_ptr: *const u32,
@@ -251,9 +88,22 @@ unsafe fn untransform_recorr_var3(
             let indices_1 = _mm256_loadu_si256(indices_ptr.add(8) as *const __m256i);
             indices_ptr = indices_ptr.add(16);
 
-            // Apply YCoCg-R variant 3 recorrelation
-            let recorrelated_color0s = recorrelate_ycocg_r_var3_avx2(color0s);
-            let recorrelated_color1s = recorrelate_ycocg_r_var3_avx2(color1s);
+            // Apply YCoCg-R recorrelation to the colors using the specified variant
+            let (recorrelated_color0s, recorrelated_color1s) = match VARIANT {
+                1 => (
+                    recorrelate_ycocg_r_var1_avx2(color0s),
+                    recorrelate_ycocg_r_var1_avx2(color1s),
+                ),
+                2 => (
+                    recorrelate_ycocg_r_var2_avx2(color0s),
+                    recorrelate_ycocg_r_var2_avx2(color1s),
+                ),
+                3 => (
+                    recorrelate_ycocg_r_var3_avx2(color0s),
+                    recorrelate_ycocg_r_var3_avx2(color1s),
+                ),
+                _ => unreachable_unchecked(),
+            };
 
             // Mix the colours back into their c0+c1 pairs
             let colors_0_0 = _mm256_unpacklo_epi16(recorrelated_color0s, recorrelated_color1s);
@@ -301,11 +151,24 @@ unsafe fn untransform_recorr_var3(
             let color1 = remaining_color1_ptr.read_unaligned();
             let indices = remaining_indices_ptr.read_unaligned();
 
-            // Apply YCoCg-R variant 3 recorrelation to the color pair
+            // Apply YCoCg-R recorrelation to the color pair using the specified variant
             let color0_obj = Color565::from_raw(color0);
             let color1_obj = Color565::from_raw(color1);
-            let recorr_color0 = color0_obj.recorrelate_ycocg_r_var3();
-            let recorr_color1 = color1_obj.recorrelate_ycocg_r_var3();
+            let (recorr_color0, recorr_color1) = match VARIANT {
+                1 => (
+                    color0_obj.recorrelate_ycocg_r_var1(),
+                    color1_obj.recorrelate_ycocg_r_var1(),
+                ),
+                2 => (
+                    color0_obj.recorrelate_ycocg_r_var2(),
+                    color1_obj.recorrelate_ycocg_r_var2(),
+                ),
+                3 => (
+                    color0_obj.recorrelate_ycocg_r_var3(),
+                    color1_obj.recorrelate_ycocg_r_var3(),
+                ),
+                _ => unreachable_unchecked(),
+            };
 
             // Write BC1 block format: [color0: u16, color1: u16, indices: u32]
             (remaining_output_ptr as *mut u16).write_unaligned(recorr_color0.raw_value());
@@ -385,7 +248,7 @@ mod tests {
             assert_implementation_matches_reference(
                 original.as_slice(),
                 &reconstructed[1..],
-                "avx2_unsplit_split_colour_split_blocks_and_recorrelate (unaligned)",
+                "untransform_with_split_colour_and_recorr (avx2, unaligned)",
                 num_blocks,
             );
         }

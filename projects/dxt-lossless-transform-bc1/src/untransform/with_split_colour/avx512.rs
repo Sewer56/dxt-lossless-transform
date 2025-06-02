@@ -291,7 +291,7 @@ mod tests {
             assert_implementation_matches_reference(
                 original.as_slice(),
                 &reconstructed[1..],
-                "avx512_unsplit_split_colour_split_blocks (unaligned)",
+                "untransform_with_split_colour (avx512, unaligned)",
                 num_blocks,
             );
         }

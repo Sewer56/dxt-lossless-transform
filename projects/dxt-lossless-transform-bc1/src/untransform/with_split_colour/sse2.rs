@@ -138,7 +138,7 @@ mod tests {
             assert_implementation_matches_reference(
                 original.as_slice(),
                 &reconstructed[1..],
-                "sse2_unsplit_split_colour_split_blocks (unaligned)",
+                "untransform_with_split_colour (sse2, unaligned)",
                 num_blocks,
             );
         }

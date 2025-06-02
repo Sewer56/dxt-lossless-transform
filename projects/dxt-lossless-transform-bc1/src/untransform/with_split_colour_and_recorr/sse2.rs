@@ -8,7 +8,7 @@ use core::hint::unreachable_unchecked;
 use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
 use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::sse2::*;
 
-pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_recorrelate(
+pub(crate) unsafe fn untransform_with_split_colour_and_recorr(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,
@@ -18,34 +18,21 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_recorrelate(
 ) {
     match recorrelation_mode {
         YCoCgVariant::None => unreachable_unchecked(),
-        YCoCgVariant::Variant1 => unsplit_split_colour_split_blocks_and_recorrelate_variant_1(
-            color0_ptr,
-            color1_ptr,
-            indices_ptr,
-            output_ptr,
-            block_count,
-        ),
-        YCoCgVariant::Variant2 => unsplit_split_colour_split_blocks_and_recorrelate_variant_2(
-            color0_ptr,
-            color1_ptr,
-            indices_ptr,
-            output_ptr,
-            block_count,
-        ),
-        YCoCgVariant::Variant3 => unsplit_split_colour_split_blocks_and_recorrelate_variant_3(
-            color0_ptr,
-            color1_ptr,
-            indices_ptr,
-            output_ptr,
-            block_count,
-        ),
+        YCoCgVariant::Variant1 => {
+            untransform_recorr_var1(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
+        }
+        YCoCgVariant::Variant2 => {
+            untransform_recorr_var2(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
+        }
+        YCoCgVariant::Variant3 => {
+            untransform_recorr_var3(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
+        }
     }
 }
 
 #[target_feature(enable = "sse2")]
 #[allow(clippy::identity_op)]
-#[inline(never)] // improve register budget.
-unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_variant_1(
+unsafe fn untransform_recorr_var1(
     mut color0_ptr: *const u16,
     mut color1_ptr: *const u16,
     mut indices_ptr: *const u32,
@@ -132,8 +119,7 @@ unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_variant_1(
 
 #[target_feature(enable = "sse2")]
 #[allow(clippy::identity_op)]
-#[inline(never)] // improve register budget.
-unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_variant_2(
+unsafe fn untransform_recorr_var2(
     mut color0_ptr: *const u16,
     mut color1_ptr: *const u16,
     mut indices_ptr: *const u32,
@@ -220,8 +206,7 @@ unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_variant_2(
 
 #[target_feature(enable = "sse2")]
 #[allow(clippy::identity_op)]
-#[inline(never)] // improve register budget.
-unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_variant_3(
+unsafe fn untransform_recorr_var3(
     mut color0_ptr: *const u16,
     mut color1_ptr: *const u16,
     mut indices_ptr: *const u32,
@@ -319,19 +304,10 @@ mod tests {
     use rstest::rstest;
 
     #[rstest]
-    #[case(
-        unsplit_split_colour_split_blocks_and_recorrelate_variant_1,
-        YCoCgVariant::Variant1
-    )]
-    #[case(
-        unsplit_split_colour_split_blocks_and_recorrelate_variant_2,
-        YCoCgVariant::Variant2
-    )]
-    #[case(
-        unsplit_split_colour_split_blocks_and_recorrelate_variant_3,
-        YCoCgVariant::Variant3
-    )]
-    fn test_unsplit_split_colour_split_blocks_and_recorrelate_vs_generic(
+    #[case(untransform_recorr_var1, YCoCgVariant::Variant1)]
+    #[case(untransform_recorr_var2, YCoCgVariant::Variant2)]
+    #[case(untransform_recorr_var3, YCoCgVariant::Variant3)]
+    fn can_untransform_unaligned(
         #[case] function: unsafe fn(*const u16, *const u16, *const u32, *mut u8, usize) -> (),
         #[case] decorr_variant: YCoCgVariant,
     ) {

@@ -5,24 +5,8 @@ use dxt_lossless_transform_common::{
 };
 
 use crate::split_blocks::unsplit::unsplit_block_with_separate_pointers;
-//use multiversion::multiversion;
 
-/// Generic implementation of combined recorrelation and unsplitting for split colour-split blocks.
-/// This function recorrelates the colors from their transformed/correlated form and directly
-/// writes them into BC1 block format along with the indices.
-///
-/// # Arguments
-/// * `color0_ptr` - Pointer to the array of color0 values (in transformed/correlated form)
-/// * `color1_ptr` - Pointer to the array of color1 values (in transformed/correlated form)  
-/// * `indices_ptr` - Pointer to the array of 4-byte indices for each block
-/// * `output_ptr` - Pointer to the output buffer for BC1 blocks (8 bytes per block)
-/// * `block_count` - Number of blocks to process
-/// * `recorrelation_mode` - The YCoCg variant to use for recorrelation
-///
-/// # Safety
-/// This function is unsafe because it operates on raw pointers. The caller must ensure all
-/// pointers are valid and point to sufficient memory.
-pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_generic(
+pub(crate) unsafe fn untransform_with_split_colour_and_recorr_generic(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,
@@ -69,44 +53,19 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_generic(
 
     match recorrelation_mode {
         YCoCgVariant::None => unreachable_unchecked(),
-        YCoCgVariant::Variant1 => unsplit_split_colour_split_blocks_and_recorrelate_variant1(
-            color0_ptr,
-            color1_ptr,
-            indices_ptr,
-            output_ptr,
-            block_count,
-        ),
-        YCoCgVariant::Variant2 => unsplit_split_colour_split_blocks_and_recorrelate_variant2(
-            color0_ptr,
-            color1_ptr,
-            indices_ptr,
-            output_ptr,
-            block_count,
-        ),
-        YCoCgVariant::Variant3 => unsplit_split_colour_split_blocks_and_recorrelate_variant3(
-            color0_ptr,
-            color1_ptr,
-            indices_ptr,
-            output_ptr,
-            block_count,
-        ),
+        YCoCgVariant::Variant1 => {
+            untransform_recorr_var1(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
+        }
+        YCoCgVariant::Variant2 => {
+            untransform_recorr_var2(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
+        }
+        YCoCgVariant::Variant3 => {
+            untransform_recorr_var3(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
+        }
     }
 }
 
-/// Specialized implementation for [`YCoCgVariant::Variant1`] recorrelation.
-/// This function applies variant 1 recorrelation before writing the colors.
-///
-/// # Arguments
-/// * `color0_ptr` - Pointer to the array of color0 values (in transformed/correlated form)
-/// * `color1_ptr` - Pointer to the array of color1 values (in transformed/correlated form)  
-/// * `indices_ptr` - Pointer to the array of 4-byte indices for each block
-/// * `output_ptr` - Pointer to the output buffer for BC1 blocks (8 bytes per block)
-/// * `block_count` - Number of blocks to process
-///
-/// # Safety
-/// This function is unsafe because it operates on raw pointers. The caller must ensure all
-/// pointers are valid and point to sufficient memory.
-pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_variant1(
+unsafe fn untransform_recorr_var1(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,
@@ -143,20 +102,7 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_variant1(
     }
 }
 
-/// Specialized implementation for [`YCoCgVariant::Variant2`] recorrelation.
-/// This function applies variant 2 recorrelation before writing the colors.
-///
-/// # Arguments
-/// * `color0_ptr` - Pointer to the array of color0 values (in transformed/correlated form)
-/// * `color1_ptr` - Pointer to the array of color1 values (in transformed/correlated form)  
-/// * `indices_ptr` - Pointer to the array of 4-byte indices for each block
-/// * `output_ptr` - Pointer to the output buffer for BC1 blocks (8 bytes per block)
-/// * `block_count` - Number of blocks to process
-///
-/// # Safety
-/// This function is unsafe because it operates on raw pointers. The caller must ensure all
-/// pointers are valid and point to sufficient memory.
-pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_variant2(
+unsafe fn untransform_recorr_var2(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,
@@ -193,20 +139,7 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_variant2(
     }
 }
 
-/// Specialized implementation for [`YCoCgVariant::Variant3`] recorrelation.
-/// This function applies variant 3 recorrelation before writing the colors.
-///
-/// # Arguments
-/// * `color0_ptr` - Pointer to the array of color0 values (in transformed/correlated form)
-/// * `color1_ptr` - Pointer to the array of color1 values (in transformed/correlated form)  
-/// * `indices_ptr` - Pointer to the array of 4-byte indices for each block
-/// * `output_ptr` - Pointer to the output buffer for BC1 blocks (8 bytes per block)
-/// * `block_count` - Number of blocks to process
-///
-/// # Safety
-/// This function is unsafe because it operates on raw pointers. The caller must ensure all
-/// pointers are valid and point to sufficient memory.
-pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_recorrelate_variant3(
+unsafe fn untransform_recorr_var3(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,

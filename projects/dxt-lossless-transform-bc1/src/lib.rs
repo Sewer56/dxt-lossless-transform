@@ -298,7 +298,7 @@ pub unsafe fn untransform_bc1(
         if detransform_options.decorrelation_mode == YCoCgVariant::None {
             // Optimized single-pass operation: unsplit split colors and combine with indices
             // directly into BC1 blocks, avoiding intermediate memory copies
-            with_split_colour::unsplit_split_colour_split_blocks(
+            with_split_colour::untransform_with_split_colour(
                 input_ptr as *const u16,              // color0 values
                 input_ptr.add(len / 4) as *const u16, // color1 values
                 input_ptr.add(len / 2) as *const u32, // indices
@@ -306,7 +306,7 @@ pub unsafe fn untransform_bc1(
                 len / 8,                              // number of blocks (8 bytes per block)
             );
         } else {
-            with_split_colour_and_recorr::unsplit_split_colour_split_blocks_and_decorrelate(
+            with_split_colour_and_recorr::untransform_with_split_colour_and_recorr(
                 input_ptr as *const u16,              // color0 values
                 input_ptr.add(len / 4) as *const u16, // color1 values
                 input_ptr.add(len / 2) as *const u32, // indices
@@ -320,7 +320,7 @@ pub unsafe fn untransform_bc1(
         unsplit_blocks(input_ptr, output_ptr, len);
     } else {
         // Unsplit blocks + decorrelate.
-        with_recorrelate::untransform_split_and_decorrelate(
+        with_recorrelate::untransform_with_recorrelate(
             input_ptr,
             output_ptr,
             len,

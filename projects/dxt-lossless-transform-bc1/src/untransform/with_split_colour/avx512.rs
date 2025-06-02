@@ -7,7 +7,7 @@ use core::arch::x86::*;
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[allow(clippy::identity_op)]
-pub unsafe fn avx512_unsplit_split_colour_split_blocks(
+pub unsafe fn untransform_with_split_colour(
     mut color0_ptr: *const u16,
     mut color1_ptr: *const u16,
     mut indices_ptr: *const u32,
@@ -236,7 +236,7 @@ pub unsafe fn avx512_unsplit_split_colour_split_blocks(
 
 #[cfg(test)]
 mod tests {
-    use super::avx512_unsplit_split_colour_split_blocks;
+    use super::untransform_with_split_colour;
     use crate::normalize_blocks::ColorNormalizationMode;
     use crate::split_blocks::split::tests::assert_implementation_matches_reference;
     use crate::{
@@ -246,7 +246,7 @@ mod tests {
     use dxt_lossless_transform_common::cpu_detect::{has_avx512bw, has_avx512f};
 
     #[test]
-    fn test_avx512_unsplit_split_colour_split_blocks_vs_generic() {
+    fn can_untransform_unaligned() {
         if !has_avx512f() & has_avx512bw() {
             return;
         }
@@ -279,7 +279,7 @@ mod tests {
             unsafe {
                 // Reconstruct using the implementation being tested with unaligned pointers
                 reconstructed.as_mut_slice().fill(0);
-                avx512_unsplit_split_colour_split_blocks(
+                untransform_with_split_colour(
                     transformed_unaligned.as_ptr().add(1) as *const u16,
                     transformed_unaligned.as_ptr().add(1 + num_blocks * 2) as *const u16,
                     transformed_unaligned.as_ptr().add(1 + num_blocks * 4) as *const u32,

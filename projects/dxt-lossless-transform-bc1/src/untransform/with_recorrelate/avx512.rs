@@ -2,14 +2,39 @@
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
+use core::hint::unreachable_unchecked;
 use core::ptr::{read_unaligned, write_unaligned};
-use dxt_lossless_transform_common::color_565::Color565;
+use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
+
+#[cfg(feature = "nightly")]
+pub(crate) unsafe fn untransform_with_recorrelate(
+    colors_ptr: *const u32,
+    indices_ptr: *const u32,
+    output_ptr: *mut u8,
+    num_blocks: usize,
+    decorrelation_mode: YCoCgVariant,
+) {
+    match decorrelation_mode {
+        YCoCgVariant::Variant1 => {
+            untransform_recorr_var1(colors_ptr, indices_ptr, output_ptr, num_blocks);
+        }
+        YCoCgVariant::Variant2 => {
+            untransform_recorr_var2(colors_ptr, indices_ptr, output_ptr, num_blocks);
+        }
+        YCoCgVariant::Variant3 => {
+            untransform_recorr_var3(colors_ptr, indices_ptr, output_ptr, num_blocks);
+        }
+        YCoCgVariant::None => {
+            // This should be unreachable based on the calling context
+            unreachable_unchecked()
+        }
+    }
+}
 
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
-#[inline(never)] // improve register budget.
-pub(crate) unsafe fn untransform_split_and_decorrelate_variant1_avx512(
+unsafe fn untransform_recorr_var1(
     colors_ptr: *const u32,
     indices_ptr: *const u32,
     output_ptr: *mut u8,
@@ -109,8 +134,7 @@ pub(crate) unsafe fn untransform_split_and_decorrelate_variant1_avx512(
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
-#[inline(never)] // improve register budget.
-pub(crate) unsafe fn untransform_split_and_decorrelate_variant2_avx512(
+unsafe fn untransform_recorr_var2(
     colors_ptr: *const u32,
     indices_ptr: *const u32,
     output_ptr: *mut u8,
@@ -214,8 +238,7 @@ pub(crate) unsafe fn untransform_split_and_decorrelate_variant2_avx512(
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
-#[inline(never)] // improve register budget.
-pub(crate) unsafe fn untransform_split_and_decorrelate_variant3_avx512(
+unsafe fn untransform_recorr_var3(
     colors_ptr: *const u32,
     indices_ptr: *const u32,
     output_ptr: *mut u8,
@@ -316,18 +339,6 @@ pub(crate) unsafe fn untransform_split_and_decorrelate_variant3_avx512(
     }
 }
 
-/// Recorrelate a register of [`Color565`] values using YCoCg-R variant 1
-///
-/// Takes a `__m512i` register containing 32 [`Color565`] values (16 pairs of colors as u32s)
-/// and returns a register with the colors recorrelated using YCoCg-R variant 1.
-///
-/// # Safety
-///
-/// Requires `avx512f` and `avx512bw` target features to be enabled.
-/// The input register must contain valid [`Color565`] data packed as u32 pairs.
-///
-/// [`Color565`]: crate::color_565::Color565
-///
 /// # Remarks
 ///
 /// Returned value is not in the order it was received.
@@ -430,17 +441,6 @@ unsafe fn recorrelate_ycocg_r_variant1_avx512(colors_raw: __m512i) -> __m512i {
     _mm512_ternarylogic_epi32(recorrelated_colors, cg_component, mask_31, 248) // Final OR
 }
 
-/// Recorrelate a register of [`Color565`] values using YCoCg-R variant 2
-///
-/// Takes a `__m512i` register containing 32 [`Color565`] values (16 pairs of colors as u32s)
-/// and returns a register with the colors recorrelated using YCoCg-R variant 2.
-///
-/// # Safety
-///
-/// Requires `avx512f` and `avx512bw` target features to be enabled.
-/// The input register must contain valid [`Color565`] data packed as u32 pairs.
-///
-/// [`Color565`]: crate::color_565::Color565
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
@@ -524,17 +524,6 @@ unsafe fn recorrelate_ycocg_r_variant2_avx512(colors_raw: __m512i) -> __m512i {
     _mm512_ternarylogic_epi32(recorrelated_colors, cg_component, mask_31, 248) // Final OR
 }
 
-/// Recorrelate a register of [`Color565`] values using YCoCg-R variant 3
-///
-/// Takes a `__m512i` register containing 32 [`Color565`] values (16 pairs of colors as u32s)
-/// and returns a register with the colors recorrelated using YCoCg-R variant 3.
-///
-/// # Safety
-///
-/// Requires `avx512f` and `avx512bw` target features to be enabled.
-/// The input register must contain valid [`Color565`] data packed as u32 pairs.
-///
-/// [`Color565`]: crate::color_565::Color565
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
@@ -622,4 +611,75 @@ unsafe fn recorrelate_ycocg_r_variant3_avx512(colors_raw: __m512i) -> __m512i {
     let recorrelated_colors =
         _mm512_ternarylogic_epi32(colors_shifted_5, recorrelated_colors, const_32, 236); // Different ternary logic for variant3
     _mm512_ternarylogic_epi32(recorrelated_colors, cg_component, mask_31, 248) // Final OR
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::normalize_blocks::ColorNormalizationMode;
+    use crate::split_blocks::split::tests::assert_implementation_matches_reference;
+
+    use crate::with_recorrelate::avx512::*;
+    use crate::{
+        split_blocks::split::tests::generate_bc1_test_data, transform_bc1, Bc1TransformDetails,
+    };
+    use dxt_lossless_transform_common::color_565::YCoCgVariant;
+    use dxt_lossless_transform_common::cpu_detect::{has_avx512bw, has_avx512f};
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(untransform_recorr_var1, YCoCgVariant::Variant1)]
+    #[case(untransform_recorr_var2, YCoCgVariant::Variant2)]
+    #[case(untransform_recorr_var3, YCoCgVariant::Variant3)]
+    fn can_untransform_unaligned(
+        #[case] function: unsafe fn(*const u32, *const u32, *mut u8, usize) -> (),
+        #[case] decorr_variant: YCoCgVariant,
+    ) {
+        if !has_avx512f() & has_avx512bw() {
+            return;
+        }
+
+        for num_blocks in 1..=512 {
+            let original = generate_bc1_test_data(num_blocks);
+
+            // Transform using standard implementation
+            let mut transformed = vec![0u8; original.len()];
+            let mut work = vec![0u8; original.len()];
+            unsafe {
+                transform_bc1(
+                    original.as_ptr(),
+                    transformed.as_mut_ptr(),
+                    work.as_mut_ptr(),
+                    original.len(),
+                    Bc1TransformDetails {
+                        color_normalization_mode: ColorNormalizationMode::None,
+                        decorrelation_mode: decorr_variant,
+                        split_colour_endpoints: false,
+                    },
+                );
+            }
+
+            // Add 1 extra byte at the beginning to create misaligned buffers
+            let mut transformed_unaligned = vec![0u8; transformed.len() + 1];
+            transformed_unaligned[1..].copy_from_slice(&transformed);
+            let mut reconstructed = vec![0u8; original.len() + 1];
+
+            unsafe {
+                // Reconstruct using the implementation being tested with unaligned pointers
+                reconstructed.as_mut_slice().fill(0);
+                function(
+                    transformed_unaligned.as_ptr().add(1) as *const u32,
+                    transformed_unaligned.as_ptr().add(1 + num_blocks * 4) as *const u32,
+                    reconstructed.as_mut_ptr().add(1),
+                    num_blocks,
+                );
+            }
+
+            assert_implementation_matches_reference(
+                original.as_slice(),
+                &reconstructed[1..],
+                "unaligned untransform with recorrelation (avx512)",
+                num_blocks,
+            );
+        }
+    }
 }

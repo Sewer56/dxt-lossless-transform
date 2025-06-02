@@ -52,26 +52,7 @@ mod sse2;
 
 mod generic;
 
-/// Optimized function to decorrelate and unsplit split colour-split blocks directly to BC1 blocks.
-/// This combines the decorrelation of split colors and unsplitting of blocks into a single
-/// operation to avoid intermediate memory copies.
-///
-/// # Arguments
-/// * `color0_ptr` - Pointer to the array of color0 values (in transformed/correlated form)
-/// * `color1_ptr` - Pointer to the array of color1 values (in transformed/correlated form)  
-/// * `indices_ptr` - Pointer to the array of 4-byte indices for each block
-/// * `output_ptr` - Pointer to the output buffer for BC1 blocks (8 bytes per block)
-/// * `block_count` - Number of blocks to process
-/// * `decorrelation_mode` - The YCoCg variant to use for decorrelation
-///
-/// # Safety
-/// This function is unsafe because it operates on raw pointers. The caller must ensure:
-/// - All pointers are valid and properly aligned
-/// - `color0_ptr` points to at least `block_count` valid `u16` values
-/// - `color1_ptr` points to at least `block_count` valid `u16` values
-/// - `indices_ptr` points to at least `block_count` valid `u32` values
-/// - `output_ptr` points to at least `block_count * 8` bytes for BC1 blocks
-pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate(
+pub(crate) unsafe fn untransform_with_split_colour_and_recorr(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,
@@ -81,7 +62,7 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate(
 ) {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     {
-        unsplit_split_colour_split_blocks_and_decorrelate_x86(
+        untransform_with_split_colour_and_recorr_x86(
             color0_ptr,
             color1_ptr,
             indices_ptr,
@@ -93,7 +74,7 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate(
 
     #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
     {
-        generic::unsplit_split_colour_split_blocks_and_recorrelate_generic(
+        generic::untransform_with_split_colour_and_recorr_generic(
             color0_ptr,
             color1_ptr,
             indices_ptr,
@@ -105,7 +86,7 @@ pub(crate) unsafe fn unsplit_split_colour_split_blocks_and_decorrelate(
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
+unsafe fn untransform_with_split_colour_and_recorr_x86(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,
@@ -117,7 +98,7 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
     {
         #[cfg(feature = "nightly")]
         if has_avx512f() {
-            return avx512::unsplit_split_colour_split_blocks_and_recorrelate(
+            return avx512::untransform_with_split_colour_and_recorr(
                 color0_ptr,
                 color1_ptr,
                 indices_ptr,
@@ -128,7 +109,7 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
         }
 
         if has_avx2() {
-            avx2::unsplit_split_colour_split_blocks_and_recorrelate(
+            avx2::untransform_with_split_colour_and_recorr(
                 color0_ptr,
                 color1_ptr,
                 indices_ptr,
@@ -140,7 +121,7 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
         }
 
         if has_sse2() {
-            sse2::unsplit_split_colour_split_blocks_and_recorrelate(
+            sse2::untransform_with_split_colour_and_recorr(
                 color0_ptr,
                 color1_ptr,
                 indices_ptr,
@@ -156,7 +137,7 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512bw") {
-            avx512::unsplit_split_colour_split_blocks_and_recorrelate(
+            avx512::untransform_with_split_colour_and_recorr(
                 color0_ptr,
                 color1_ptr,
                 indices_ptr,
@@ -168,7 +149,7 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
         }
 
         if cfg!(target_feature = "avx2") {
-            avx2::unsplit_split_colour_split_blocks_and_recorrelate(
+            avx2::untransform_with_split_colour_and_recorr(
                 color0_ptr,
                 color1_ptr,
                 indices_ptr,
@@ -180,7 +161,7 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
         }
 
         if cfg!(target_feature = "sse2") {
-            sse2::unsplit_split_colour_split_blocks_and_recorrelate(
+            sse2::untransform_with_split_colour_and_recorr(
                 color0_ptr,
                 color1_ptr,
                 indices_ptr,
@@ -192,7 +173,7 @@ unsafe fn unsplit_split_colour_split_blocks_and_decorrelate_x86(
         }
     }
 
-    generic::unsplit_split_colour_split_blocks_and_recorrelate_generic(
+    generic::untransform_with_split_colour_and_recorr_generic(
         color0_ptr,
         color1_ptr,
         indices_ptr,

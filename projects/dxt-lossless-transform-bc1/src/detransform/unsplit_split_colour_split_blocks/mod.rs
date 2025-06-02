@@ -34,8 +34,6 @@
 //!   4      | 4    | indices (2 bits per pixel, little-endian)
 //!   ```
 
-use multiversion::multiversion;
-
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 mod avx512;

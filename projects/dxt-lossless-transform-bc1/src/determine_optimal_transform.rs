@@ -345,8 +345,8 @@ pub enum DetermineBestTransformError {
 
 #[cfg(test)]
 mod tests {
+    use crate::test_prelude::*;
     use super::*;
-    use rstest::rstest;
 
     /// Simple dummy file size estimator that just returns the input length
     fn dummy_file_size_estimator(_data: *const u8, len: usize) -> usize {

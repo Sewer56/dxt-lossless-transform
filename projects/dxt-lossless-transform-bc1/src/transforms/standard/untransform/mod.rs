@@ -196,10 +196,8 @@ pub unsafe fn unsplit_block_with_separate_pointers(
 
 #[cfg(test)]
 mod tests {
-
     use super::{unsplit_block_with_separate_pointers, untransform};
-    use dxt_lossless_transform_common::allocate::allocate_align_64;
-    use safe_allocator_api::RawAlloc;
+    use crate::test_prelude::*;
 
     /// Helper to assert implementation results match reference implementation
     pub(crate) fn assert_implementation_matches_reference(

@@ -415,13 +415,9 @@ pub unsafe fn shuffle_permute_unroll_2_with_separate_pointers(
 
 #[cfg(test)]
 mod tests {
+    use crate::test_prelude::*;
     use super::*;
-    use crate::transforms::standard::transform::tests::assert_implementation_matches_reference;
-    use crate::transforms::standard::transform::tests::generate_bc1_test_data;
-    use crate::transforms::standard::transform::tests::transform_with_reference_implementation;
     use core::ptr::copy_nonoverlapping;
-    use dxt_lossless_transform_common::allocate::allocate_align_64;
-    use rstest::rstest;
 
     type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
 

@@ -326,3 +326,7 @@ pub unsafe fn untransform_bc1(
         );
     }
 }
+
+/// Common test prelude for avoiding duplicate imports in test modules
+#[cfg(test)]
+pub mod test_prelude;

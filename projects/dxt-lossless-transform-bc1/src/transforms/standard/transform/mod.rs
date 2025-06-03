@@ -191,10 +191,8 @@ unsafe fn transform_with_separate_pointers_x86(
 
 #[cfg(test)]
 pub mod tests {
-    use dxt_lossless_transform_common::allocate::allocate_align_64;
-    use safe_allocator_api::RawAlloc;
-
     use super::*;
+    use crate::test_prelude::*;
 
     /// Transforms the input data using a good known reference implementation.
     pub(crate) fn transform_with_reference_implementation(input: &[u8], output: &mut [u8]) {
@@ -294,10 +292,10 @@ pub mod tests {
 
             unsafe {
                 // Reference: contiguous output
-                transform(input.as_ptr(), output_ref.as_mut_ptr(), len);
+                super::transform(input.as_ptr(), output_ref.as_mut_ptr(), len);
 
                 // Test separate pointers variant
-                transform_with_separate_pointers(
+                super::transform_with_separate_pointers(
                     input.as_ptr(),
                     colors_sep.as_mut_ptr() as *mut u32,
                     indices_sep.as_mut_ptr() as *mut u32,

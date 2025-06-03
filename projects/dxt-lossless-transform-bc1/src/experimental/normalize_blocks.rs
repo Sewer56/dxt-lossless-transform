@@ -577,9 +577,7 @@ pub enum ColorNormalizationMode {
 
 #[cfg(test)]
 mod tests {
-    use rstest::rstest;
-
-    use super::*;
+    use crate::test_prelude::*;
 
     /// Test normalizing a solid color block
     #[rstest]

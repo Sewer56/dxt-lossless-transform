@@ -95,11 +95,9 @@ pub unsafe fn untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 
 #[cfg(test)]
 mod tests {
+    use crate::test_prelude::*;
     use crate::transforms::standard::transform;
-    use crate::transforms::standard::transform::tests::generate_bc1_test_data;
-    use crate::transforms::standard::transform::tests::transform_with_reference_implementation;
     use crate::transforms::standard::untransform::untransform;
-    use dxt_lossless_transform_common::allocate::allocate_align_64;
 
     #[test]
     fn can_transform_untransform() {

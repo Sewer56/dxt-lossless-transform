@@ -670,10 +670,14 @@ impl Color565 {
             // hack around Multiversion
             for x in 0..num_items / 2 {
                 unsafe {
-                    let color_0 = &*src_ptr_0.add(x);
-                    let color_1 = &*src_ptr_1.add(x);
-                    *dst_ptr.add(x * 2) = color_0.recorrelate_ycocg_r_var1();
-                    *dst_ptr.add((x * 2) + 1) = color_1.recorrelate_ycocg_r_var1();
+                    let color_0 = &src_ptr_0.add(x).read_unaligned();
+                    let color_1 = &src_ptr_1.add(x).read_unaligned();
+                    dst_ptr
+                        .add(x * 2)
+                        .write_unaligned(color_0.recorrelate_ycocg_r_var1());
+                    dst_ptr
+                        .add((x * 2) + 1)
+                        .write_unaligned(color_1.recorrelate_ycocg_r_var1());
                 }
             }
         }
@@ -969,10 +973,14 @@ impl Color565 {
             // hack around Multiversion
             for x in 0..num_items / 2 {
                 unsafe {
-                    let color_0 = &*src_ptr_0.add(x);
-                    let color_1 = &*src_ptr_1.add(x);
-                    *dst_ptr.add(x * 2) = color_0.recorrelate_ycocg_r_var2();
-                    *dst_ptr.add((x * 2) + 1) = color_1.recorrelate_ycocg_r_var2();
+                    let color_0 = &src_ptr_0.add(x).read_unaligned();
+                    let color_1 = &src_ptr_1.add(x).read_unaligned();
+                    dst_ptr
+                        .add(x * 2)
+                        .write_unaligned(color_0.recorrelate_ycocg_r_var2());
+                    dst_ptr
+                        .add((x * 2) + 1)
+                        .write_unaligned(color_1.recorrelate_ycocg_r_var2());
                 }
             }
         }
@@ -1268,10 +1276,14 @@ impl Color565 {
             // hack around Multiversion
             for x in 0..num_items / 2 {
                 unsafe {
-                    let color_0 = &*src_ptr_0.add(x);
-                    let color_1 = &*src_ptr_1.add(x);
-                    *dst_ptr.add(x * 2) = color_0.recorrelate_ycocg_r_var3();
-                    *dst_ptr.add((x * 2) + 1) = color_1.recorrelate_ycocg_r_var3();
+                    let color_0 = &src_ptr_0.add(x).read_unaligned();
+                    let color_1 = &src_ptr_1.add(x).read_unaligned();
+                    dst_ptr
+                        .add(x * 2)
+                        .write_unaligned(color_0.recorrelate_ycocg_r_var3());
+                    dst_ptr
+                        .add((x * 2) + 1)
+                        .write_unaligned(color_1.recorrelate_ycocg_r_var3());
                 }
             }
         }

@@ -215,6 +215,14 @@ fn process_file(
                         },
                     ),
                     (
+                        "NoSplit/YCoCg1",
+                        Bc1TransformDetails {
+                            color_normalization_mode: ColorNormalizationMode::None,
+                            decorrelation_mode: YCoCgVariant::Variant1,
+                            split_colour_endpoints: false,
+                        },
+                    ),
+                    (
                         "Split/None",
                         Bc1TransformDetails {
                             color_normalization_mode: ColorNormalizationMode::None,
@@ -358,7 +366,6 @@ unsafe fn process_scenario(
         untransform_bc1(
             decompressed_data.as_ptr(),
             final_output.as_mut_ptr(),
-            work_buffer.as_mut_ptr(),
             len_bytes,
             transform_details.into(),
         );
@@ -382,7 +389,6 @@ unsafe fn process_scenario(
             untransform_bc1(
                 decompressed_data.as_ptr(),
                 final_output.as_mut_ptr(),
-                work_buffer.as_mut_ptr(),
                 len_bytes,
                 transform_details.into(),
             );

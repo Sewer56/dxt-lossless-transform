@@ -4,7 +4,7 @@
     {
       "label": "[host] Cargo Watch Test (Auto Test on Save)",
       "type": "shell",
-      "command": "cargo watch -x \"test\" -w projects/",
+      "command": "cargo +nightly watch -x \"test --all-features\" -w projects/",
       "group": "test",
       "presentation": {
         "reveal": "always"
@@ -14,7 +14,7 @@
     {
       "label": "[host] Cargo Watch Tarpaulin (Auto Coverage on Save)",
       "type": "shell",
-      "command": "cargo watch -x \"tarpaulin --skip-clean --out Xml --out Html --engine llvm --target-dir target/coverage-build\" -w projects/",
+      "command": "cargo +nightly watch -x \"tarpaulin --all-features --skip-clean --out Xml --out Html --engine llvm --target-dir target/coverage-build\" -w projects/",
       "group": "test",
       "presentation": {
         "reveal": "always"
@@ -24,7 +24,7 @@
     {
       "label": "[host] Generate Code Coverage",
       "type": "shell",
-      "command": "cargo tarpaulin --out Xml --out Html --engine llvm --target-dir target/coverage-build",
+      "command": "cargo +nightly tarpaulin --all-features --out Xml --out Html --engine llvm --target-dir target/coverage-build",
       "group": "test",
       "presentation": {
         "reveal": "always"
@@ -34,7 +34,7 @@
     {
       "label": "[64bit-bigendian]  Cargo Watch Test (Auto Test on Save)",
       "type": "shell",
-      "command": "cargo watch -w projects/ -- cross test --target powerpc64-unknown-linux-gnu",
+      "command": "cargo watch -w projects/ -- cross +nightly test --all-features --target powerpc64-unknown-linux-gnu",
       "group": "test",
       "presentation": {
         "reveal": "always"

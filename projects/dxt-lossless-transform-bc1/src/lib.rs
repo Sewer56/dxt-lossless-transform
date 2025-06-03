@@ -1,6 +1,9 @@
 #![doc = include_str!(concat!("../", core::env!("CARGO_PKG_README")))]
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(feature = "nightly", feature(stdarch_x86_avx512))]
+#![cfg_attr(
+    all(feature = "nightly", any(target_arch = "x86_64", target_arch = "x86")),
+    feature(stdarch_x86_avx512)
+)]
 
 use dxt_lossless_transform_common::{
     color_565::{Color565, YCoCgVariant},
@@ -8,13 +11,15 @@ use dxt_lossless_transform_common::{
 };
 use normalize_blocks::{normalize_split_blocks_in_place, ColorNormalizationMode};
 use split_blocks::{
-    split::split_blocks_with_separate_pointers,
-    split_blocks,
-    unsplit::{unsplit_block_with_separate_pointers, unsplit_blocks},
+    split::split_blocks_with_separate_pointers, split_blocks, unsplit::unsplit_blocks,
 };
+
+use crate::untransform::{with_recorrelate, with_split_colour, with_split_colour_and_recorr};
+
 pub mod determine_optimal_transform;
 pub mod normalize_blocks;
 pub mod split_blocks;
+pub mod untransform;
 pub mod util;
 
 /// The information about the BC1 transform that was just performed.
@@ -282,7 +287,6 @@ pub unsafe fn transform_bc1(
 pub unsafe fn untransform_bc1(
     input_ptr: *const u8,
     output_ptr: *mut u8,
-    work_ptr: *mut u8,
     len: usize,
     detransform_options: Bc1DetransformDetails,
 ) {
@@ -291,40 +295,36 @@ pub unsafe fn untransform_bc1(
     let has_split_colours = detransform_options.split_colour_endpoints;
 
     if has_split_colours {
-        // Recorrelate colours into work area, doing the unsplit in the same process.
-        Color565::recorrelate_ycocg_r_ptr_split(
-            input_ptr as *mut Color565,
-            input_ptr.add(len / 4) as *mut Color565,
-            work_ptr as *mut Color565,
-            (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
-            detransform_options.decorrelation_mode,
-        );
-
-        // Now unsplit the colours, placing them into the final buffer
-        unsplit_block_with_separate_pointers(
-            work_ptr as *const u32,
-            input_ptr.add(len / 2) as *const u32,
-            output_ptr,
-            len,
-        );
+        if detransform_options.decorrelation_mode == YCoCgVariant::None {
+            // Optimized single-pass operation: unsplit split colors and combine with indices
+            // directly into BC1 blocks, avoiding intermediate memory copies
+            with_split_colour::untransform_with_split_colour(
+                input_ptr as *const u16,              // color0 values
+                input_ptr.add(len / 4) as *const u16, // color1 values
+                input_ptr.add(len / 2) as *const u32, // indices
+                output_ptr,                           // output BC1 blocks
+                len / 8,                              // number of blocks (8 bytes per block)
+            );
+        } else {
+            with_split_colour_and_recorr::untransform_with_split_colour_and_recorr(
+                input_ptr as *const u16,              // color0 values
+                input_ptr.add(len / 4) as *const u16, // color1 values
+                input_ptr.add(len / 2) as *const u32, // indices
+                output_ptr,                           // output BC1 blocks
+                len / 8,                              // number of blocks (8 bytes per block)
+                detransform_options.decorrelation_mode,
+            );
+        }
     } else if detransform_options.decorrelation_mode == YCoCgVariant::None {
-        // If no decorrelation, we can just unsplit directly.
+        // Only split blocks.
         unsplit_blocks(input_ptr, output_ptr, len);
     } else {
-        // Recorrelate colours into work area.
-        Color565::recorrelate_ycocg_r_ptr(
-            input_ptr as *const Color565,
-            work_ptr as *mut Color565,
-            (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
-            detransform_options.decorrelation_mode,
-        );
-
-        // Now unsplit the blocks, placing them into the final buffer
-        unsplit_block_with_separate_pointers(
-            work_ptr as *const u32,
-            input_ptr.add(len / 2) as *const u32,
+        // Unsplit blocks + decorrelate.
+        with_recorrelate::untransform_with_recorrelate(
+            input_ptr,
             output_ptr,
             len,
+            detransform_options.decorrelation_mode,
         );
     }
 }

@@ -91,11 +91,10 @@ pub unsafe extern "C" fn transform_format(
 pub unsafe extern "C" fn untransform_format(
     input_ptr: *const u8,
     output_ptr: *mut u8,
-    work_ptr: *mut u8,
     len: usize,
     format: DdsFormat,
 ) {
-    crate::untransform_format(input_ptr, output_ptr, work_ptr, len, format)
+    crate::untransform_format(input_ptr, output_ptr, len, format)
 }
 
 /// Transform BC1 data from standard interleaved format to separated color/index format

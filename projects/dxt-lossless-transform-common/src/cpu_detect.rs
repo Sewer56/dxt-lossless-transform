@@ -55,6 +55,22 @@ pub fn has_avx512vl() -> bool {
     cpuid_avx512vl::get()
 }
 
+/// Checks if the CPU supports AVX512BW (AVX-512 Byte and Word) instructions.  
+///  
+/// This function is only available when compiling with the `nightly` feature enabled.  
+/// AVX512BW extends AVX-512 with byte and word operations, enabling more efficient  
+/// processing of 8-bit and 16-bit data types. This can be beneficial for color processing.  
+///  
+/// # Returns  
+/// `true` if the CPU supports AVX512BW instructions, `false` otherwise.
+#[inline]
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub fn has_avx512bw() -> bool {
+    cpufeatures::new!(cpuid_avx512bw, "avx512bw");
+    cpuid_avx512bw::get()
+}
+
 /// Checks if the CPU supports SSSE3 (Supplemental SSE3) instructions.
 ///
 /// SSSE3 isn't really used anywhere currently; just in some unused routines which ended up

@@ -46,9 +46,6 @@
 
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
-#[cfg(not(feature = "no-runtime-cpu-detection"))]
-use dxt_lossless_transform_common::cpu_detect::*;
-
 pub mod generic;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -108,6 +105,9 @@ pub unsafe fn untransform_with_recorrelate_x86(
     num_blocks: usize,
     recorrelation_mode: YCoCgVariant,
 ) {
+    #[cfg(not(feature = "no-runtime-cpu-detection"))]
+    use dxt_lossless_transform_common::cpu_detect::*;
+
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         #[cfg(feature = "nightly")]

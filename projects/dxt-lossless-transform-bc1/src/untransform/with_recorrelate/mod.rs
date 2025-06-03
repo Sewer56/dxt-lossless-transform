@@ -106,7 +106,7 @@ pub unsafe fn untransform_with_recorrelate_x86(
     indices_ptr: *const u32,
     output_ptr: *mut u8,
     num_blocks: usize,
-    decorrelation_mode: YCoCgVariant,
+    recorrelation_mode: YCoCgVariant,
 ) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
@@ -117,7 +117,7 @@ pub unsafe fn untransform_with_recorrelate_x86(
                 indices_ptr,
                 output_ptr,
                 num_blocks,
-                decorrelation_mode,
+                recorrelation_mode,
             );
             return;
         }
@@ -128,7 +128,7 @@ pub unsafe fn untransform_with_recorrelate_x86(
                 indices_ptr,
                 output_ptr,
                 num_blocks,
-                decorrelation_mode,
+                recorrelation_mode,
             );
             return;
         }
@@ -139,7 +139,7 @@ pub unsafe fn untransform_with_recorrelate_x86(
                 indices_ptr,
                 output_ptr,
                 num_blocks,
-                decorrelation_mode,
+                recorrelation_mode,
             );
             return;
         }
@@ -154,7 +154,7 @@ pub unsafe fn untransform_with_recorrelate_x86(
                 indices_ptr,
                 output_ptr,
                 num_blocks,
-                decorrelation_mode,
+                recorrelation_mode,
             );
             return;
         }
@@ -166,7 +166,7 @@ pub unsafe fn untransform_with_recorrelate_x86(
                 indices_ptr,
                 output_ptr,
                 num_blocks,
-                decorrelation_mode,
+                recorrelation_mode,
             );
             return;
         }
@@ -178,7 +178,7 @@ pub unsafe fn untransform_with_recorrelate_x86(
                 indices_ptr,
                 output_ptr,
                 num_blocks,
-                decorrelation_mode,
+                recorrelation_mode,
             );
             return;
         }
@@ -190,6 +190,6 @@ pub unsafe fn untransform_with_recorrelate_x86(
         indices_ptr,
         output_ptr,
         num_blocks,
-        decorrelation_mode,
+        recorrelation_mode,
     );
 }

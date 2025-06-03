@@ -54,6 +54,9 @@ jobs:
           # Nightly features (AVX512)
           - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, features: "nightly debug-bc1", rust-toolchain: 'nightly' }
           - { os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, features: "nightly debug-bc1", rust-toolchain: 'nightly' }
+          # No CPU detection
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, features: "no-runtime-cpu-detection debug-bc1" }
+          - { os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, features: "no-runtime-cpu-detection debug-bc1" }
 
     runs-on: ${{ matrix.os }}
 

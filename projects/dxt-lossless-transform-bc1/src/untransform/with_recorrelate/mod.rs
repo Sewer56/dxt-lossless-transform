@@ -47,10 +47,12 @@
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
 #[cfg(not(feature = "no-runtime-cpu-detection"))]
-#[cfg(feature = "nightly")]
 use dxt_lossless_transform_common::cpu_detect::*;
 
 pub mod generic;
+
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub mod avx2;
 
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -115,6 +117,18 @@ pub unsafe fn untransform_with_recorrelate_x86(
             );
             return;
         }
+
+        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+        if has_avx2() {
+            avx2::untransform_with_recorrelate(
+                colors_ptr,
+                indices_ptr,
+                output_ptr,
+                num_blocks,
+                decorrelation_mode,
+            );
+            return;
+        }
     }
 
     #[cfg(feature = "no-runtime-cpu-detection")]
@@ -122,6 +136,18 @@ pub unsafe fn untransform_with_recorrelate_x86(
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512bw") {
             avx512::untransform_with_recorrelate(
+                colors_ptr,
+                indices_ptr,
+                output_ptr,
+                num_blocks,
+                decorrelation_mode,
+            );
+            return;
+        }
+
+        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+        if cfg!(target_feature = "avx2") {
+            avx2::untransform_with_recorrelate(
                 colors_ptr,
                 indices_ptr,
                 output_ptr,

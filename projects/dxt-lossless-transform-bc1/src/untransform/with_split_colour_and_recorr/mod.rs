@@ -41,9 +41,6 @@ use dxt_lossless_transform_common::color_565::YCoCgVariant;
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 mod avx512;
 
-#[cfg(not(feature = "no-runtime-cpu-detection"))]
-use dxt_lossless_transform_common::cpu_detect::*;
-
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 mod avx2;
 
@@ -94,6 +91,9 @@ unsafe fn untransform_with_split_colour_and_recorr_x86(
     block_count: usize,
     decorrelation_mode: YCoCgVariant,
 ) {
+    #[cfg(not(feature = "no-runtime-cpu-detection"))]
+    use dxt_lossless_transform_common::cpu_detect::*;
+
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         #[cfg(feature = "nightly")]

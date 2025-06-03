@@ -345,7 +345,7 @@ mod tests {
         #[case] function: unsafe fn(*const u16, *const u16, *const u32, *mut u8, usize) -> (),
         #[case] decorr_variant: YCoCgVariant,
     ) {
-        if has_avx512f() && has_avx512bw() {
+        if !has_avx512f() || !has_avx512bw() {
             return;
         }
 

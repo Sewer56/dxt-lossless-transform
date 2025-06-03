@@ -129,13 +129,25 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
     let remaining_count = block_count - aligned_count;
     match VARIANT {
         1 => super::generic::untransform_recorr_var1(
-            color0_ptr, color1_ptr, indices_ptr, output_ptr, remaining_count
+            color0_ptr,
+            color1_ptr,
+            indices_ptr,
+            output_ptr,
+            remaining_count,
         ),
         2 => super::generic::untransform_recorr_var2(
-            color0_ptr, color1_ptr, indices_ptr, output_ptr, remaining_count
+            color0_ptr,
+            color1_ptr,
+            indices_ptr,
+            output_ptr,
+            remaining_count,
         ),
         3 => super::generic::untransform_recorr_var3(
-            color0_ptr, color1_ptr, indices_ptr, output_ptr, remaining_count
+            color0_ptr,
+            color1_ptr,
+            indices_ptr,
+            output_ptr,
+            remaining_count,
         ),
         _ => unreachable_unchecked(),
     }

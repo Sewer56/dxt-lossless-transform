@@ -207,7 +207,11 @@ pub unsafe fn untransform_with_split_colour(
     // Process any remaining blocks (less than 32) using generic implementation
     let remaining_count = block_count - aligned_count;
     super::generic::untransform_with_split_colour(
-        color0_ptr, color1_ptr, indices_ptr, output_ptr, remaining_count
+        color0_ptr,
+        color1_ptr,
+        indices_ptr,
+        output_ptr,
+        remaining_count,
     );
 }
 
@@ -224,7 +228,7 @@ mod tests {
 
     #[test]
     fn can_untransform_unaligned() {
-        if !has_avx512f() & has_avx512bw() {
+        if !has_avx512f() || !has_avx512bw() {
             return;
         }
 

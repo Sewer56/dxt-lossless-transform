@@ -3,9 +3,7 @@ use core::{
     ptr::{copy_nonoverlapping, null_mut},
 };
 use criterion::{criterion_group, criterion_main, Criterion};
-use dxt_lossless_transform_bc1::normalize_blocks::{
-    normalize_blocks, normalize_blocks_all_modes, ColorNormalizationMode,
-};
+use dxt_lossless_transform_bc1::experimental::normalize_blocks::*;
 use safe_allocator_api::RawAlloc;
 use std::fs;
 

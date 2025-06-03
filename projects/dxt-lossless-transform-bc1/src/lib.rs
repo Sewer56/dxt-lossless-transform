@@ -5,21 +5,19 @@
     feature(stdarch_x86_avx512)
 )]
 
+use crate::transforms::{
+    standard::{transform, transform_with_separate_pointers, untransform},
+    with_recorrelate, with_split_colour, with_split_colour_and_recorr,
+};
 use dxt_lossless_transform_common::{
     color_565::{Color565, YCoCgVariant},
     transforms::split_565_color_endpoints::split_color_endpoints,
 };
-use normalize_blocks::{normalize_split_blocks_in_place, ColorNormalizationMode};
-use split_blocks::{
-    split::split_blocks_with_separate_pointers, split_blocks, unsplit::unsplit_blocks,
-};
-
-use crate::untransform::{with_recorrelate, with_split_colour, with_split_colour_and_recorr};
+use experimental::normalize_blocks::{normalize_split_blocks_in_place, ColorNormalizationMode};
 
 pub mod determine_optimal_transform;
-pub mod normalize_blocks;
-pub mod split_blocks;
-pub mod untransform;
+pub mod experimental;
+pub mod transforms;
 pub mod util;
 
 /// The information about the BC1 transform that was just performed.
@@ -168,7 +166,7 @@ pub unsafe fn transform_bc1(
     // Both normalization and split colours. 11
     if has_normalization && has_split_colours {
         // Split the blocks, colours to work area, indices to final destination.
-        split_blocks_with_separate_pointers(
+        transform_with_separate_pointers(
             input_ptr,                           // from our input
             work_ptr as *mut u32,                // colours to go our work area
             output_ptr.add(len / 2) as *mut u32, // but the indices go to their final destination
@@ -201,7 +199,7 @@ pub unsafe fn transform_bc1(
     // Only normalization. 10
     else if has_normalization {
         // Split the blocks into the output area.
-        split_blocks(input_ptr, output_ptr, len);
+        transform(input_ptr, output_ptr, len);
 
         // Now normalize them in place. In place is faster because it avoids copying the data unnecessarily.
         normalize_split_blocks_in_place(
@@ -222,7 +220,7 @@ pub unsafe fn transform_bc1(
     // Only split colours. 01
     else if has_split_colours {
         // Split the blocks, colours to work area, indices to final destination.
-        split_blocks_with_separate_pointers(
+        transform_with_separate_pointers(
             input_ptr,                           // from our input
             work_ptr as *mut u32,                // colours to go our work area
             output_ptr.add(len / 2) as *mut u32, // but the indices go to their final destination
@@ -247,7 +245,7 @@ pub unsafe fn transform_bc1(
     // None. 00
     else {
         // Split the blocks directly into expected output.
-        split_blocks(input_ptr, output_ptr, len);
+        transform(input_ptr, output_ptr, len);
 
         // And if there's colour decorrelation, do it right now (if needed, no-ops if mode is 'none')
         Color565::decorrelate_ycocg_r_ptr(
@@ -317,7 +315,7 @@ pub unsafe fn untransform_bc1(
         }
     } else if detransform_options.decorrelation_mode == YCoCgVariant::None {
         // Only split blocks.
-        unsplit_blocks(input_ptr, output_ptr, len);
+        untransform(input_ptr, output_ptr, len);
     } else {
         // Unsplit blocks + decorrelate.
         with_recorrelate::untransform_with_recorrelate(

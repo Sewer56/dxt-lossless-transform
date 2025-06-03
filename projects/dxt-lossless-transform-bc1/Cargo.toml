@@ -36,13 +36,13 @@ pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
 
 # Benchmark Stuff
 [[bench]]
-name = "split_blocks"
-path = "benches/split_blocks/main.rs"
+name = "transform_standard"
+path = "benches/transform_standard/main.rs"
 harness = false
 
 [[bench]]
-name = "unsplit_blocks"
-path = "benches/unsplit_blocks/main.rs"
+name = "untransform_standard"
+path = "benches/untransform_standard/main.rs"
 harness = false
 
 [[bench]]

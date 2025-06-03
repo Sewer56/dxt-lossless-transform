@@ -3,7 +3,7 @@
 // This fuzz test validates the BC1 normalizer by checking that the normalized blocks decode 
 // to the same pixels as the original blocks.
 
-use dxt_lossless_transform_bc1::{normalize_blocks::{normalize_blocks, ColorNormalizationMode}, util::decode_bc1_block};
+use dxt_lossless_transform_bc1::{experimental::normalize_blocks::*, util::decode_bc1_block};
 use libfuzzer_sys::{arbitrary, fuzz_target};
 
 #[derive(Clone, Debug, arbitrary::Arbitrary)]

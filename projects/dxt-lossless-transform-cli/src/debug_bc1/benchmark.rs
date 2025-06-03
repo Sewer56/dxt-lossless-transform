@@ -24,7 +24,7 @@ use core::time::Duration;
 use dxt_lossless_transform_api::DdsFormat;
 use dxt_lossless_transform_bc1::{
     determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions},
-    normalize_blocks::ColorNormalizationMode,
+    experimental::normalize_blocks::ColorNormalizationMode,
     transform_bc1, untransform_bc1, Bc1TransformDetails,
 };
 use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};

@@ -1,6 +1,6 @@
 use crate::{
-    normalize_blocks::{normalize_blocks_all_modes, ColorNormalizationMode},
-    split_blocks::split_blocks,
+    experimental::normalize_blocks::{normalize_blocks_all_modes, ColorNormalizationMode},
+    transforms::standard::transform,
     Bc1TransformDetails,
 };
 use core::mem::size_of;
@@ -142,7 +142,7 @@ where
         // At least 1 block was normalized, so we have to test all options.
         // Now split all blocks.
         for x in 0..NUM_NORMALIZE {
-            split_blocks(normalize_buffers_ptrs[x], split_blocks_buffers_ptrs[x], len);
+            transform(normalize_buffers_ptrs[x], split_blocks_buffers_ptrs[x], len);
         }
 
         for norm_idx in 0..NUM_NORMALIZE {
@@ -176,7 +176,7 @@ where
     } else {
         // No blocks were normalized, we can skip testing normalize steps
         // Since no normalization occurred, we can use the original input directly after splitting
-        split_blocks(input_ptr, split_blocks_buffers_ptrs[0], len);
+        transform(input_ptr, split_blocks_buffers_ptrs[0], len);
 
         for decorrelation_mode in YCoCgVariant::all_values() {
             for split_colours in [true, false] {
@@ -238,7 +238,7 @@ where
     let mut result_buffer = allocate_align_64(len)?;
 
     // Split blocks directly from input without normalization
-    split_blocks(input_ptr, split_blocks_buffer.as_mut_ptr(), len);
+    transform(input_ptr, split_blocks_buffer.as_mut_ptr(), len);
 
     let mut best_transform_details = Bc1TransformDetails::default();
     let mut best_size = usize::MAX;

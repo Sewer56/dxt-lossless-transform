@@ -1,84 +1,3 @@
-//! # Block Normalization Process
-//!
-//! This module contains the code used to normalize BC1 blocks to improve compression ratio
-//! by making solid color blocks and transparent blocks have consistent representations.
-//!
-//! ## BC1 Block Format
-//!
-//! First, let's recall the BC1 block format:
-//!
-//! ```text
-//! Address: 0        2        4       8
-//!          +--------+--------+--------+
-//! Data:    | Color0 | Color1 | Indices|
-//!          +--------+--------+--------+
-//! ```
-//!
-//! Where:
-//! - `Color0` and `Color1` are 16-bit RGB565 color values (2 bytes each)
-//! - `Indices` are 4 bytes containing sixteen 2-bit indices (one for each pixel in the 4x4 block)
-//!
-//! ## Normalization Rules
-//!
-//! The normalization process applies the following rules to improve compression:
-//!
-//! ### 1. Solid Color Blocks
-//!
-//! When an entire block represents a single solid color with a clean conversion between RGBA8888
-//! and RGB565, we standardize the representation:
-//!
-//! ```text
-//! +--------+--------+--------+
-//! | Color  | 0x0000 |  0x00  |
-//! +--------+--------+--------+
-//! ```
-//!
-//! We place the block's color in `Color0`, set `Color1` to zero, and set all indices to zero
-//! (represented by all-zero bytes in the indices section). Can also be repeat of same byte.
-//!
-//! The implementation checks for this case by:
-//! 1. Decoding the block to get all 16 pixels
-//! 2. Checking that all pixels have the same color
-//! 3. Verifying the color can be cleanly round-tripped through RGB565 encoding
-//! 4. Constructing a new normalized block with the pattern above
-//!
-//! ### 2. Fully Transparent Blocks
-//!
-//! For blocks that are completely transparent (common in textures with alpha), we standardize
-//! the representation to all 1's:
-//!
-//! ```text
-//! +--------+--------+--------+
-//! | 0xFFFF | 0xFFFF | 0xFFFF |
-//! +--------+--------+--------+
-//! ```
-//!
-//! The implementation detects transparent blocks by:
-//! 1. Decoding all 16 pixels in the block
-//! 2. Checking if all pixels have alpha=0 (check if first pixel is transparent, after checking if all are equal)
-//! 3. Setting the entire block content to 0xFF bytes
-//!
-//! ### 3. Mixed Transparency Blocks
-//!
-//! In BC1, when `Color0 <= Color1`, the block is in "punch-through alpha" mode, where index `11`
-//! represents a transparent pixel. Blocks containing both opaque and transparent pixels
-//! (mixed alpha) use this mode.
-//!
-//! For these blocks, we can't apply significant normalization without changing the visual
-//! appearance, so we preserve them unchanged.
-//!
-//! ## Implementation Details
-//!
-//! The normalization process uses the BC1 decoder to analyze the block content, then rebuilds
-//! blocks according to the rules above.
-//!
-//! When normalizing blocks, we:
-//!
-//! 1. Look at the RGB565 color values to determine if we're in alpha mode (`Color0 <= Color1`)
-//! 2. Decode the block to get the 16 pixels with their colors
-//! 3. Apply one of the three normalization cases based on the block properties
-//! 4. Write the normalized block to the output
-
 use crate::util::decode_bc1_block;
 use core::{hint::unreachable_unchecked, ptr::{copy_nonoverlapping, eq, null_mut, read_unaligned, write_bytes}};
 use dxt_lossless_transform_common::{color_565::Color565, decoded_4x4_block::Decoded4x4Block};
@@ -578,6 +497,7 @@ pub enum ColorNormalizationMode {
 #[cfg(test)]
 mod tests {
     use crate::test_prelude::*;
+    use super::*;
 
     /// Test normalizing a solid color block
     #[rstest]

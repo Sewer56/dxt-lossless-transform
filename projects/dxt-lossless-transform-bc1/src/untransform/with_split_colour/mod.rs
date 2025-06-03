@@ -79,6 +79,7 @@ pub(crate) unsafe fn untransform_with_split_colour(
     }
 }
 
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub unsafe fn untransform_with_split_colour_x86(
     color0_ptr: *const u16,
     color1_ptr: *const u16,

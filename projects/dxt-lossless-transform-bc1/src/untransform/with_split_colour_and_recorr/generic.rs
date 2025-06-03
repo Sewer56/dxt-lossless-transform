@@ -154,7 +154,6 @@ mod tests {
         split_blocks::split::tests::generate_bc1_test_data, transform_bc1, Bc1TransformDetails,
     };
     use dxt_lossless_transform_common::color_565::YCoCgVariant;
-    use dxt_lossless_transform_common::cpu_detect::has_sse2;
     use rstest::rstest;
 
     #[rstest]
@@ -162,10 +161,6 @@ mod tests {
     #[case(YCoCgVariant::Variant2)]
     #[case(YCoCgVariant::Variant3)]
     fn can_untransform_unaligned(#[case] decorr_variant: YCoCgVariant) {
-        if !has_sse2() {
-            return;
-        }
-
         for num_blocks in 1..=512 {
             let original = generate_bc1_test_data(num_blocks);
 

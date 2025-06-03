@@ -100,6 +100,7 @@ pub(crate) unsafe fn untransform_with_recorrelate(
     }
 }
 
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub unsafe fn untransform_with_recorrelate_x86(
     colors_ptr: *const u32,
     indices_ptr: *const u32,
@@ -121,7 +122,6 @@ pub unsafe fn untransform_with_recorrelate_x86(
             return;
         }
 
-        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         if has_avx2() {
             avx2::untransform_with_recorrelate(
                 colors_ptr,
@@ -133,7 +133,6 @@ pub unsafe fn untransform_with_recorrelate_x86(
             return;
         }
 
-        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         if has_sse2() {
             sse2::untransform_with_recorrelate(
                 colors_ptr,

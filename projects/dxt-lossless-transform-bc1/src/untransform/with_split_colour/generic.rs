@@ -89,7 +89,7 @@ mod tests {
             assert_implementation_matches_reference(
                 original.as_slice(),
                 &reconstructed[1..],
-                "untransform_with_split_colour (avx2, unaligned)",
+                "untransform_with_split_colour (generic, unaligned)",
                 num_blocks,
             );
         }

@@ -98,7 +98,7 @@ unsafe fn untransform_with_split_colour_and_recorr_x86(
     {
         #[cfg(feature = "nightly")]
         if has_avx512f() {
-            return avx512::untransform_with_split_colour_and_recorr(
+            avx512::untransform_with_split_colour_and_recorr(
                 color0_ptr,
                 color1_ptr,
                 indices_ptr,
@@ -106,6 +106,7 @@ unsafe fn untransform_with_split_colour_and_recorr_x86(
                 block_count,
                 decorrelation_mode,
             );
+            return;
         }
 
         if has_avx2() {

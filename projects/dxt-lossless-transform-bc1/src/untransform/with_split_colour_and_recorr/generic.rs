@@ -65,7 +65,7 @@ pub(crate) unsafe fn untransform_with_split_colour_and_recorr_generic(
 }
 
 // Wrapper functions for assembly inspection using `cargo asm`
-unsafe fn untransform_recorr_var1(
+pub(crate) unsafe fn untransform_recorr_var1(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,
@@ -75,7 +75,7 @@ unsafe fn untransform_recorr_var1(
     untransform_recorr::<1>(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
 }
 
-unsafe fn untransform_recorr_var2(
+pub(crate) unsafe fn untransform_recorr_var2(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,
@@ -85,7 +85,7 @@ unsafe fn untransform_recorr_var2(
     untransform_recorr::<2>(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
 }
 
-unsafe fn untransform_recorr_var3(
+pub(crate) unsafe fn untransform_recorr_var3(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,

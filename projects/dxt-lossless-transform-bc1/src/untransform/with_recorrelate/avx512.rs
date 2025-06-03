@@ -3,8 +3,7 @@ use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 use core::hint::unreachable_unchecked;
-use core::ptr::{read_unaligned, write_unaligned};
-use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
+use dxt_lossless_transform_common::color_565::YCoCgVariant;
 use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx512::{
     recorrelate_ycocg_r_var1_avx512, recorrelate_ycocg_r_var2_avx512,
     recorrelate_ycocg_r_var3_avx512,
@@ -136,44 +135,21 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
 
     // === Scalar Fallback for Remaining Blocks ===
     // Handle any remaining blocks that couldn't be processed in the vectorized loop
-    // (when num_blocks is not a multiple of 16)
-    for block_idx in vectorized_blocks..num_blocks {
-        // Read both values first (better instruction scheduling)
-        let color_raw = read_unaligned(colors_ptr.add(block_idx));
-        let index_value = read_unaligned(indices_ptr.add(block_idx));
-
-        // Extract both [`Color565`] values from the u32
-        let color0 = Color565::from_raw(color_raw as u16);
-        let color1 = Color565::from_raw((color_raw >> 16) as u16);
-
-        // Apply recorrelation to both colors using the specified variant
-        let (recorr_color0, recorr_color1) = match VARIANT {
-            1 => (
-                color0.recorrelate_ycocg_r_var1(),
-                color1.recorrelate_ycocg_r_var1(),
-            ),
-            2 => (
-                color0.recorrelate_ycocg_r_var2(),
-                color1.recorrelate_ycocg_r_var2(),
-            ),
-            3 => (
-                color0.recorrelate_ycocg_r_var3(),
-                color1.recorrelate_ycocg_r_var3(),
-            ),
-            _ => unreachable_unchecked(),
-        };
-
-        // Pack both recorrelated colors back into u32
-        let recorrelated_colors =
-            (recorr_color0.raw_value() as u32) | ((recorr_color1.raw_value() as u32) << 16);
-
-        // Write both values together
-        write_unaligned(
-            output_ptr.add(block_idx * 8) as *mut u32,
-            recorrelated_colors,
-        );
-        write_unaligned(output_ptr.add(block_idx * 8 + 4) as *mut u32, index_value);
-    }
+    // (when num_blocks is not a multiple of 32) using generic implementation
+    let remaining_count = num_blocks - vectorized_blocks;
+    let variant = match VARIANT {
+        1 => YCoCgVariant::Variant1,
+        2 => YCoCgVariant::Variant2,
+        3 => YCoCgVariant::Variant3,
+        _ => unreachable_unchecked(),
+    };
+    super::generic::untransform_with_recorrelate_generic(
+        colors_ptr.add(vectorized_blocks),
+        indices_ptr.add(vectorized_blocks),
+        output_ptr.add(vectorized_blocks * 8),
+        remaining_count,
+        variant,
+    );
 }
 
 #[cfg(test)]

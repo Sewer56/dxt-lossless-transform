@@ -5,8 +5,7 @@ use core::arch::x86_64::*;
 use core::arch::x86::*;
 
 use core::hint::unreachable_unchecked;
-use core::ptr::{read_unaligned, write_unaligned};
-use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
+use dxt_lossless_transform_common::color_565::YCoCgVariant;
 use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx512::*;
 
 // Shared constants for all variants
@@ -298,53 +297,30 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
 
     // Process any remaining blocks (less than 32) using scalar code
     let remaining_count = block_count - aligned_count;
-    if remaining_count > 0 {
-        let mut remaining_color0_ptr = color0_ptr;
-        let mut remaining_color1_ptr = color1_ptr;
-        let mut remaining_indices_ptr = indices_ptr;
-        let mut remaining_output_ptr = output_ptr;
-
-        let remaining_color0_ptr_end = remaining_color0_ptr.add(remaining_count);
-
-        while remaining_color0_ptr < remaining_color0_ptr_end {
-            // Read the split color values
-            let color0 = read_unaligned(remaining_color0_ptr);
-            let color1 = read_unaligned(remaining_color1_ptr);
-            let indices = read_unaligned(remaining_indices_ptr);
-
-            // Apply YCoCg-R recorrelation to the color pair using the specified variant
-            let color0_obj = Color565::from_raw(color0);
-            let color1_obj = Color565::from_raw(color1);
-            let (recorr_color0, recorr_color1) = match VARIANT {
-                1 => (
-                    color0_obj.recorrelate_ycocg_r_var1(),
-                    color1_obj.recorrelate_ycocg_r_var1(),
-                ),
-                2 => (
-                    color0_obj.recorrelate_ycocg_r_var2(),
-                    color1_obj.recorrelate_ycocg_r_var2(),
-                ),
-                3 => (
-                    color0_obj.recorrelate_ycocg_r_var3(),
-                    color1_obj.recorrelate_ycocg_r_var3(),
-                ),
-                _ => unreachable_unchecked(),
-            };
-
-            // Write BC1 block format: [color0: u16, color1: u16, indices: u32]
-            write_unaligned(remaining_output_ptr as *mut u16, recorr_color0.raw_value());
-            write_unaligned(
-                remaining_output_ptr.add(2) as *mut u16,
-                recorr_color1.raw_value(),
-            );
-            write_unaligned(remaining_output_ptr.add(4) as *mut u32, indices);
-
-            // Advance all pointers
-            remaining_color0_ptr = remaining_color0_ptr.add(1);
-            remaining_color1_ptr = remaining_color1_ptr.add(1);
-            remaining_indices_ptr = remaining_indices_ptr.add(1);
-            remaining_output_ptr = remaining_output_ptr.add(8);
-        }
+    // Delegate to the generic implementation for remaining blocks
+    match VARIANT {
+        1 => super::generic::untransform_recorr_var1(
+            color0_ptr,
+            color1_ptr,
+            indices_ptr,
+            output_ptr,
+            remaining_count,
+        ),
+        2 => super::generic::untransform_recorr_var2(
+            color0_ptr,
+            color1_ptr,
+            indices_ptr,
+            output_ptr,
+            remaining_count,
+        ),
+        3 => super::generic::untransform_recorr_var3(
+            color0_ptr,
+            color1_ptr,
+            indices_ptr,
+            output_ptr,
+            remaining_count,
+        ),
+        _ => unreachable_unchecked(),
     }
 }
 

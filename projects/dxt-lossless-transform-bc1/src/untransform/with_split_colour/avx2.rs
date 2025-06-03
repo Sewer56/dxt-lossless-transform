@@ -61,34 +61,11 @@ pub unsafe fn untransform_with_split_colour(
         }
     }
 
-    // Process any remaining blocks (less than 32) using scalar code
+    // Process any remaining blocks (less than 16) using generic implementation
     let remaining_count = block_count - aligned_count;
-    if remaining_count > 0 {
-        let mut remaining_color0_ptr = color0_ptr;
-        let mut remaining_color1_ptr = color1_ptr;
-        let mut remaining_indices_ptr = indices_ptr;
-        let mut remaining_output_ptr = output_ptr;
-
-        let remaining_color0_ptr_end = remaining_color0_ptr.add(remaining_count);
-
-        while remaining_color0_ptr < remaining_color0_ptr_end {
-            // Read the split color values
-            let color0 = remaining_color0_ptr.read_unaligned();
-            let color1 = remaining_color1_ptr.read_unaligned();
-            let indices = remaining_indices_ptr.read_unaligned();
-
-            // Write BC1 block format: [color0: u16, color1: u16, indices: u32]
-            (remaining_output_ptr as *mut u16).write_unaligned(color0);
-            (remaining_output_ptr.add(2) as *mut u16).write_unaligned(color1);
-            (remaining_output_ptr.add(4) as *mut u32).write_unaligned(indices);
-
-            // Advance all pointers
-            remaining_color0_ptr = remaining_color0_ptr.add(1);
-            remaining_color1_ptr = remaining_color1_ptr.add(1);
-            remaining_indices_ptr = remaining_indices_ptr.add(1);
-            remaining_output_ptr = remaining_output_ptr.add(8);
-        }
-    }
+    super::generic::untransform_with_split_colour(
+        color0_ptr, color1_ptr, indices_ptr, output_ptr, remaining_count
+    );
 }
 
 #[cfg(test)]

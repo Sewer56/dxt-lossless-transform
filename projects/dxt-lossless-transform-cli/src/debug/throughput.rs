@@ -22,7 +22,9 @@ impl Throughput {
 
 impl fmt::Display for Throughput {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}/s", self.0)
+        // Forward the formatting options to the inner ByteSize
+        fmt::Display::fmt(&self.0, f)?;
+        write!(f, "/s") // and append "/s" to indicate throughput
     }
 }
 

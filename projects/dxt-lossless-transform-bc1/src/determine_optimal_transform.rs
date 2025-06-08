@@ -1,12 +1,12 @@
+use crate::experimental::determine_best_transform_details_with_normalization;
 use crate::{
-    normalize_blocks::{normalize_blocks_all_modes, ColorNormalizationMode},
-    split_blocks::split_blocks,
+    experimental::normalize_blocks::ColorNormalizationMode, transforms::standard::transform,
     Bc1TransformDetails,
 };
 use core::mem::size_of;
 use core::slice;
 use dxt_lossless_transform_common::{
-    allocate::{allocate_align_64, AllocateError, FixedRawAllocArray},
+    allocate::{allocate_align_64, AllocateError},
     color_565::{Color565, YCoCgVariant},
     transforms::split_565_color_endpoints::split_color_endpoints,
 };
@@ -92,121 +92,6 @@ where
     }
 }
 
-/// Determine the best transform details with full normalization testing.
-///
-/// # Parameters
-///
-/// - `input_ptr`: A pointer to the input data (input BC1 blocks)
-/// - `len`: The length of the input data in bytes
-///
-/// # Returns
-///
-/// The best (smallest size) format for the given data.
-///
-/// # Remarks
-///
-/// This function tests all normalization options, the characteristics of this function are:
-///
-/// - 1/24th of the compression speed ([`ColorNormalizationMode`] * [`YCoCgVariant`] * 2 (split_colours))
-/// - Uses 6x the memory of input size
-///
-/// # Safety
-///
-/// Function is unsafe because it deals with raw pointers which must be correct.
-unsafe fn determine_best_transform_details_with_normalization<F>(
-    input_ptr: *const u8,
-    len: usize,
-    transform_options: Bc1EstimateOptions<F>,
-) -> Result<Bc1TransformDetails, DetermineBestTransformError>
-where
-    F: Fn(*const u8, usize) -> usize,
-{
-    const NUM_NORMALIZE: usize = ColorNormalizationMode::all_values().len();
-    let mut normalize_buffers = FixedRawAllocArray::<NUM_NORMALIZE>::new(len)?;
-    let mut split_blocks_buffers = FixedRawAllocArray::<NUM_NORMALIZE>::new(len)?;
-    let normalize_buffers_ptrs = normalize_buffers.get_pointer_slice();
-    let split_blocks_buffers_ptrs = split_blocks_buffers.get_pointer_slice();
-
-    // Normalize blocks into all possible modes.
-    let any_normalized = normalize_blocks_all_modes(input_ptr, &normalize_buffers_ptrs, len);
-
-    // Now we got all blocks normalized and split, and have to test all the different possibilities.
-    // We can repurpose the normalize_buffers
-    let mut best_transform_details = Bc1TransformDetails::default();
-    let mut best_size = usize::MAX;
-
-    // split_blocks_buffers_ptrs: buffer_a
-    // result_pointers: buffer_b (output)
-    let result_pointers = normalize_buffers.get_pointer_slice();
-    if any_normalized {
-        // At least 1 block was normalized, so we have to test all options.
-        // Now split all blocks.
-        for x in 0..NUM_NORMALIZE {
-            split_blocks(normalize_buffers_ptrs[x], split_blocks_buffers_ptrs[x], len);
-        }
-
-        for norm_idx in 0..NUM_NORMALIZE {
-            for decorrelation_mode in YCoCgVariant::all_values() {
-                for split_colours in [true, false] {
-                    // Get the current mode we're testing.
-                    let current_mode = Bc1TransformDetails {
-                        color_normalization_mode: ColorNormalizationMode::all_values()[norm_idx],
-                        decorrelation_mode: *decorrelation_mode,
-                        split_colour_endpoints: split_colours,
-                    };
-
-                    // Get input/output buffers.
-                    let input = split_blocks_buffers_ptrs[norm_idx];
-                    let output = result_pointers[norm_idx];
-
-                    test_normalize_variant(
-                        input,
-                        output,
-                        len,
-                        &transform_options,
-                        &mut best_transform_details,
-                        &mut best_size,
-                        current_mode,
-                    );
-                }
-            }
-        }
-
-        Ok(best_transform_details)
-    } else {
-        // No blocks were normalized, we can skip testing normalize steps
-        // Since no normalization occurred, we can use the original input directly after splitting
-        split_blocks(input_ptr, split_blocks_buffers_ptrs[0], len);
-
-        for decorrelation_mode in YCoCgVariant::all_values() {
-            for split_colours in [true, false] {
-                // Get the current mode we're testing.
-                let current_mode = Bc1TransformDetails {
-                    color_normalization_mode: ColorNormalizationMode::None, // Skip normalization step
-                    decorrelation_mode: *decorrelation_mode,
-                    split_colour_endpoints: split_colours,
-                };
-
-                // Get input/output buffers.
-                let input = split_blocks_buffers_ptrs[0]; // Use first buffer since no normalization variants
-                let output = result_pointers[0];
-
-                test_normalize_variant(
-                    input,
-                    output,
-                    len,
-                    &transform_options,
-                    &mut best_transform_details,
-                    &mut best_size,
-                    current_mode,
-                );
-            }
-        }
-
-        Ok(best_transform_details)
-    }
-}
-
 /// Determine the best transform details without normalization testing (fast variant).
 ///
 /// # Parameters
@@ -238,7 +123,7 @@ where
     let mut result_buffer = allocate_align_64(len)?;
 
     // Split blocks directly from input without normalization
-    split_blocks(input_ptr, split_blocks_buffer.as_mut_ptr(), len);
+    transform(input_ptr, split_blocks_buffer.as_mut_ptr(), len);
 
     let mut best_transform_details = Bc1TransformDetails::default();
     let mut best_size = usize::MAX;
@@ -273,7 +158,7 @@ where
 
 #[allow(clippy::too_many_arguments)]
 #[inline]
-unsafe fn test_normalize_variant<F>(
+pub(crate) unsafe fn test_normalize_variant<F>(
     input: *mut u8,
     output: *mut u8,
     len: usize,
@@ -346,7 +231,7 @@ pub enum DetermineBestTransformError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rstest::rstest;
+    use crate::test_prelude::*;
 
     /// Simple dummy file size estimator that just returns the input length
     fn dummy_file_size_estimator(_data: *const u8, len: usize) -> usize {

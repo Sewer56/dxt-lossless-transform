@@ -115,8 +115,6 @@ pub fn decode_bc1_block_from_slice(src: &[u8]) -> Option<Decoded4x4Block> {
 
 #[cfg(test)]
 mod tests {
-    use dxt_lossless_transform_common::decoded_4x4_block::Decoded4x4Block;
-
     use super::*;
 
     #[test]

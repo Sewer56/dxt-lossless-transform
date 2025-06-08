@@ -18,9 +18,10 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use dxt_lossless_transform_api::DdsFormat;
 use dxt_lossless_transform_bc1::{
     determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions},
+    experimental::normalize_blocks::ColorNormalizationMode,
     transform_bc1, Bc1TransformDetails,
 };
-use dxt_lossless_transform_common::allocate::allocate_align_64;
+use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::{fs, sync::Mutex};
 
@@ -281,20 +282,16 @@ unsafe fn analyze_bc1_api_recommendation(
 /// Formats [`Bc1TransformDetails`] as a human-readable string  
 fn format_transform_details(details: Bc1TransformDetails) -> String {
     let norm_mode = match details.color_normalization_mode {
-        dxt_lossless_transform_bc1::normalize_blocks::ColorNormalizationMode::None => "None",
-        dxt_lossless_transform_bc1::normalize_blocks::ColorNormalizationMode::Color0Only => {
-            "C0Only"
-        }
-        dxt_lossless_transform_bc1::normalize_blocks::ColorNormalizationMode::ReplicateColor => {
-            "Replicate"
-        }
+        ColorNormalizationMode::None => "None",
+        ColorNormalizationMode::Color0Only => "C0Only",
+        ColorNormalizationMode::ReplicateColor => "Replicate",
     };
 
     let decorr_mode = match details.decorrelation_mode {
-        dxt_lossless_transform_common::color_565::YCoCgVariant::None => "None",
-        dxt_lossless_transform_common::color_565::YCoCgVariant::Variant1 => "YCoCg1",
-        dxt_lossless_transform_common::color_565::YCoCgVariant::Variant2 => "YCoCg2",
-        dxt_lossless_transform_common::color_565::YCoCgVariant::Variant3 => "YCoCg3",
+        YCoCgVariant::None => "None",
+        YCoCgVariant::Variant1 => "YCoCg1",
+        YCoCgVariant::Variant2 => "YCoCg2",
+        YCoCgVariant::Variant3 => "YCoCg3",
     };
 
     let split_endpoints = if details.split_colour_endpoints {

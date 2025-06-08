@@ -67,7 +67,7 @@ We can split the colour endpoints
 +-------+-------+ +-------+-------+
 ```
 
-### Making Solid Blocks Represented the Same Across Texture (Normalizing Blocks)
+### Making Solid Blocks Represented the Same Across Texture (Normalizing Blocks) [Experimental]
 
 BC1 can represent solid color blocks in multiple ways.
 We make this representation consistent whenever possible.

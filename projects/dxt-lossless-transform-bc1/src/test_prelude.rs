@@ -22,6 +22,7 @@ pub(crate) use crate::transforms::standard::transform::tests::{
 pub use dxt_lossless_transform_common::allocate::allocate_align_64;
 pub use dxt_lossless_transform_common::color_565::YCoCgVariant;
 pub use dxt_lossless_transform_common::color_8888::Color8888;
+#[allow(unused_imports)] // Might be unused in some CPU architectures, and that's ok.
 pub use dxt_lossless_transform_common::cpu_detect::*;
 pub use dxt_lossless_transform_common::decoded_4x4_block::Decoded4x4Block;
 

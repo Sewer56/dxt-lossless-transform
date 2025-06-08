@@ -159,66 +159,9 @@ pub unsafe fn transform_bc1(
 ) {
     debug_assert!(len % 8 == 0);
 
-    let has_normalization =
-        transform_options.color_normalization_mode != ColorNormalizationMode::None;
     let has_split_colours = transform_options.split_colour_endpoints;
 
-    // Both normalization and split colours. 11
-    if has_normalization && has_split_colours {
-        // Split the blocks, colours to work area, indices to final destination.
-        transform_with_separate_pointers(
-            input_ptr,                           // from our input
-            work_ptr as *mut u32,                // colours to go our work area
-            output_ptr.add(len / 2) as *mut u32, // but the indices go to their final destination
-            len,
-        );
-
-        // Now normalize the blocks in place. In place is faster because it avoids copying the data unnecessarily.
-        normalize_split_blocks_in_place(
-            work_ptr,                // colours are in first half of the work buffer
-            output_ptr.add(len / 2), // indices are in second half of the output buffer
-            len / 8,                 // 8 bytes per block, so len / 8 blocks
-            transform_options.color_normalization_mode,
-        );
-
-        // Split the colour endpoints, writing them to the output buffer alongside the indices for final result
-        split_color_endpoints(
-            work_ptr as *const Color565,
-            output_ptr as *mut Color565,
-            len / 2,
-        );
-
-        // Decorrelate the colours in-place (if needed, no-ops if mode is 'none')
-        Color565::decorrelate_ycocg_r_ptr(
-            output_ptr as *const Color565,
-            output_ptr as *mut Color565,
-            (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
-            transform_options.decorrelation_mode,
-        );
-    }
-    // Only normalization. 10
-    else if has_normalization {
-        // Split the blocks into the output area.
-        transform(input_ptr, output_ptr, len);
-
-        // Now normalize them in place. In place is faster because it avoids copying the data unnecessarily.
-        normalize_split_blocks_in_place(
-            output_ptr,              // colours are in first half of the output buffer
-            output_ptr.add(len / 2), // indices are in second half of the output buffer
-            len / 8,                 // 8 bytes per block, so len / 8 blocks
-            transform_options.color_normalization_mode,
-        );
-
-        // Decorrelate the colours in-place (if needed, no-ops if mode is 'none')
-        Color565::decorrelate_ycocg_r_ptr(
-            output_ptr as *const Color565,
-            output_ptr as *mut Color565,
-            (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
-            transform_options.decorrelation_mode,
-        );
-    }
-    // Only split colours. 01
-    else if has_split_colours {
+    if has_split_colours {
         // Split the blocks, colours to work area, indices to final destination.
         transform_with_separate_pointers(
             input_ptr,                           // from our input
@@ -241,8 +184,10 @@ pub unsafe fn transform_bc1(
             (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
             transform_options.decorrelation_mode,
         );
+    } else if transform_options.decorrelation_mode == YCoCgVariant::None {
+        // Only split blocks
+        transform(input_ptr, output_ptr, len);
     }
-    // None. 00
     else {
         // Split the blocks directly into expected output.
         transform(input_ptr, output_ptr, len);

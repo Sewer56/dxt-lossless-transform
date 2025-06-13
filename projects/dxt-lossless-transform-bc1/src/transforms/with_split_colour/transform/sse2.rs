@@ -50,21 +50,21 @@ pub(crate) unsafe fn transform_with_split_colour(
         // SSE2 is a bit limited here, so we'll use what we can to get by.
 
         // Shuffle so the first 8 bytes have their color0 and color1 components chunked into u32s
-        let col0_grouped_lo = _mm_shufflelo_epi16(colours_0, 0b11_01_10_00);
-        let col0_grouped = _mm_shufflehi_epi16(col0_grouped_lo, 0b11_01_10_00);
+        let colours_u32_grouped_0_lo = _mm_shufflelo_epi16(colours_0, 0b11_01_10_00);
+        let colours_u32_grouped_0 = _mm_shufflehi_epi16(colours_u32_grouped_0_lo, 0b11_01_10_00);
 
-        let col1_grouped_lo = _mm_shufflelo_epi16(colours_1, 0b11_01_10_00);
-        let col1_grouped = _mm_shufflehi_epi16(col1_grouped_lo, 0b11_01_10_00);
+        let colours_u32_grouped_1_lo = _mm_shufflelo_epi16(colours_1, 0b11_01_10_00);
+        let colours_u32_grouped_1 = _mm_shufflehi_epi16(colours_u32_grouped_1_lo, 0b11_01_10_00);
 
         // Now combine back into single colour registers by shuffling the u32s into their respective positions.
         let colours_0 = _mm_castps_si128(_mm_shuffle_ps(
-            _mm_castsi128_ps(col0_grouped),
-            _mm_castsi128_ps(col1_grouped),
+            _mm_castsi128_ps(colours_u32_grouped_0),
+            _mm_castsi128_ps(colours_u32_grouped_1),
             0b10_00_10_00,
         ));
         let colours_1 = _mm_castps_si128(_mm_shuffle_ps(
-            _mm_castsi128_ps(col0_grouped),
-            _mm_castsi128_ps(col1_grouped),
+            _mm_castsi128_ps(colours_u32_grouped_0),
+            _mm_castsi128_ps(colours_u32_grouped_1),
             0b11_01_11_01,
         ));
 

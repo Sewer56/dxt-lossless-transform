@@ -72,17 +72,21 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
     // Process 16 blocks at a time using AVX2 SIMD instructions (unroll 2)
     // Calculate number of blocks that can be processed in vectorized chunks
     let vectorized_blocks = num_blocks & !15; // Round down to multiple of 16
-    let mut block_index = 0;
 
     if vectorized_blocks > 0 {
-        // Main SIMD processing loop - handles 16 blocks per iteration (unroll 2)
-        while block_index < vectorized_blocks {
-            // Load colors and indices (32 bytes each, containing 8 blocks worth of data)
-            let colors_0 = _mm256_loadu_si256(colors_ptr.add(block_index) as *const __m256i);
-            let colors_1 = _mm256_loadu_si256(colors_ptr.add(block_index + 8) as *const __m256i);
+        let colors_end = colors_ptr.add(vectorized_blocks);
+        let mut current_colors_ptr = colors_ptr;
+        let mut current_indices_ptr = indices_ptr;
+        let mut current_output_ptr = output_ptr;
 
-            let indices_0 = _mm256_loadu_si256(indices_ptr.add(block_index) as *const __m256i);
-            let indices_1 = _mm256_loadu_si256(indices_ptr.add(block_index + 8) as *const __m256i);
+        // Main SIMD processing loop - handles 16 blocks per iteration (unroll 2)
+        while current_colors_ptr < colors_end {
+            // Load colors and indices (32 bytes each, containing 8 blocks worth of data)
+            let colors_0 = _mm256_loadu_si256(current_colors_ptr as *const __m256i);
+            let colors_1 = _mm256_loadu_si256(current_colors_ptr.add(8) as *const __m256i);
+
+            let indices_0 = _mm256_loadu_si256(current_indices_ptr as *const __m256i);
+            let indices_1 = _mm256_loadu_si256(current_indices_ptr.add(8) as *const __m256i);
 
             // Apply permutation to get proper ordering (equivalent to vpermq with 0xD8)
             // 0xD8 = 11 01 10 00 = [0, 2, 1, 3] which reorders 64-bit elements
@@ -113,21 +117,14 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
             let output_3 = _mm256_unpackhi_epi32(recorrelated_colors_1, indices_perm_1);
 
             // Store results (each __m256i contains 8 BC1 blocks worth of data)
-            _mm256_storeu_si256(output_ptr.add(block_index * 8) as *mut __m256i, output_0);
-            _mm256_storeu_si256(
-                output_ptr.add(block_index * 8 + 32) as *mut __m256i,
-                output_1,
-            );
-            _mm256_storeu_si256(
-                output_ptr.add(block_index * 8 + 64) as *mut __m256i,
-                output_2,
-            );
-            _mm256_storeu_si256(
-                output_ptr.add(block_index * 8 + 96) as *mut __m256i,
-                output_3,
-            );
+            _mm256_storeu_si256(current_output_ptr as *mut __m256i, output_0);
+            _mm256_storeu_si256(current_output_ptr.add(32) as *mut __m256i, output_1);
+            _mm256_storeu_si256(current_output_ptr.add(64) as *mut __m256i, output_2);
+            _mm256_storeu_si256(current_output_ptr.add(96) as *mut __m256i, output_3);
 
-            block_index += 16;
+            current_colors_ptr = current_colors_ptr.add(16);
+            current_indices_ptr = current_indices_ptr.add(16);
+            current_output_ptr = current_output_ptr.add(128);
         }
     }
 
@@ -152,8 +149,8 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
 
 #[cfg(test)]
 mod tests {
-    use crate::test_prelude::*;
     use super::*;
+    use crate::test_prelude::*;
     use dxt_lossless_transform_common::cpu_detect::has_avx2;
 
     #[rstest]

@@ -59,7 +59,8 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
     mut output_ptr: *mut u8,
     num_blocks: usize,
 ) {
-    for _ in 0..num_blocks {
+    let colors_end = colors_ptr.add(num_blocks);
+    while colors_ptr < colors_end {
         // Read both values first (better instruction scheduling)
         let color_raw = read_unaligned(colors_ptr);
         let index_value = read_unaligned(indices_ptr);
@@ -102,8 +103,8 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
 
 #[cfg(test)]
 mod tests {
-    use crate::test_prelude::*;
     use super::*;
+    use crate::test_prelude::*;
 
     #[rstest]
     #[case(untransform_recorr_var1, YCoCgVariant::Variant1)]

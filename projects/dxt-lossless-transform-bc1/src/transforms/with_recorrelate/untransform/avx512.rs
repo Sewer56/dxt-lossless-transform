@@ -74,7 +74,6 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
     // Process 32 blocks at a time using AVX512 SIMD instructions (unroll 2)
     // Calculate number of blocks that can be processed in vectorized chunks
     let vectorized_blocks = num_blocks & !31; // Round down to multiple of 32
-    let mut block_index = 0;
 
     if vectorized_blocks > 0 {
         // Set up permutation patterns for interleaving colors and indices (moved outside loop)
@@ -85,14 +84,19 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
         let perm_low = _mm512_cvtepi8_epi32(_mm_loadu_si128(PERM_LOW_BYTES.as_ptr() as *const _));
         let perm_high = _mm512_cvtepi8_epi32(_mm_loadu_si128(PERM_HIGH_BYTES.as_ptr() as *const _));
 
-        // Main SIMD processing loop - handles 32 blocks per iteration (unroll 2)
-        while block_index < vectorized_blocks {
-            // Load first set of colors and indices (64 bytes each)
-            let colors_0 = _mm512_loadu_si512(colors_ptr.add(block_index) as *const __m512i);
-            let colors_1 = _mm512_loadu_si512(colors_ptr.add(block_index + 16) as *const __m512i);
+        let colors_end = colors_ptr.add(vectorized_blocks);
+        let mut current_colors_ptr = colors_ptr;
+        let mut current_indices_ptr = indices_ptr;
+        let mut current_output_ptr = output_ptr;
 
-            let indices_0 = _mm512_loadu_si512(indices_ptr.add(block_index) as *const __m512i);
-            let indices_1 = _mm512_loadu_si512(indices_ptr.add(block_index + 16) as *const __m512i);
+        // Main SIMD processing loop - handles 32 blocks per iteration (unroll 2)
+        while current_colors_ptr < colors_end {
+            // Load first set of colors and indices (64 bytes each)
+            let colors_0 = _mm512_loadu_si512(current_colors_ptr as *const __m512i);
+            let colors_1 = _mm512_loadu_si512(current_colors_ptr.add(16) as *const __m512i);
+
+            let indices_0 = _mm512_loadu_si512(current_indices_ptr as *const __m512i);
+            let indices_1 = _mm512_loadu_si512(current_indices_ptr.add(16) as *const __m512i);
 
             // Apply recorrelation to the colors based on the variant
             let recorrelated_colors_0 = match VARIANT {
@@ -115,21 +119,14 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
             let output_3 = _mm512_permutex2var_epi32(recorrelated_colors_1, perm_high, indices_1);
 
             // Store results (equivalent to vmovdqu64 instructions)
-            _mm512_storeu_si512(output_ptr.add(block_index * 8) as *mut __m512i, output_0);
-            _mm512_storeu_si512(
-                output_ptr.add(block_index * 8 + 64) as *mut __m512i,
-                output_1,
-            );
-            _mm512_storeu_si512(
-                output_ptr.add(block_index * 8 + 128) as *mut __m512i,
-                output_2,
-            );
-            _mm512_storeu_si512(
-                output_ptr.add(block_index * 8 + 192) as *mut __m512i,
-                output_3,
-            );
+            _mm512_storeu_si512(current_output_ptr as *mut __m512i, output_0);
+            _mm512_storeu_si512(current_output_ptr.add(64) as *mut __m512i, output_1);
+            _mm512_storeu_si512(current_output_ptr.add(128) as *mut __m512i, output_2);
+            _mm512_storeu_si512(current_output_ptr.add(192) as *mut __m512i, output_3);
 
-            block_index += 32;
+            current_colors_ptr = current_colors_ptr.add(32);
+            current_indices_ptr = current_indices_ptr.add(32);
+            current_output_ptr = current_output_ptr.add(256);
         }
     }
 
@@ -154,8 +151,8 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
 
 #[cfg(test)]
 mod tests {
-    use crate::test_prelude::*;
     use super::*;
+    use crate::test_prelude::*;
 
     #[rstest]
     #[case(untransform_recorr_var1, YCoCgVariant::Variant1)]

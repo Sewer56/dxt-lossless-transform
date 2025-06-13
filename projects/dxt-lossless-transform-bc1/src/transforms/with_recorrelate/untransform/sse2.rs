@@ -77,15 +77,20 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
     let mut block_index = 0;
 
     if vectorized_blocks > 0 {
+        let colors_end = colors_ptr.add(vectorized_blocks);
+        let mut current_colors_ptr = colors_ptr;
+        let mut current_indices_ptr = indices_ptr;
+        let mut current_output_ptr = output_ptr;
+
         // Main SIMD processing loop - handles 8 blocks per iteration (unroll 2)
-        while block_index < vectorized_blocks {
+        while current_colors_ptr < colors_end {
             // Load colors and indices (16 bytes each)
             // This corresponds to 8 blocks worth of data
-            let colors_0 = _mm_loadu_si128(colors_ptr.add(block_index) as *const __m128i);
-            let colors_1 = _mm_loadu_si128(colors_ptr.add(block_index + 4) as *const __m128i);
+            let colors_0 = _mm_loadu_si128(current_colors_ptr as *const __m128i);
+            let colors_1 = _mm_loadu_si128(current_colors_ptr.add(4) as *const __m128i);
 
-            let indices_0 = _mm_loadu_si128(indices_ptr.add(block_index) as *const __m128i);
-            let indices_1 = _mm_loadu_si128(indices_ptr.add(block_index + 4) as *const __m128i);
+            let indices_0 = _mm_loadu_si128(current_indices_ptr as *const __m128i);
+            let indices_1 = _mm_loadu_si128(current_indices_ptr.add(4) as *const __m128i);
 
             // Apply recorrelation to the colors based on the variant
             let recorrelated_colors_0 = match VARIANT {
@@ -116,25 +121,17 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
             let interleaved_3 = _mm_unpackhi_epi32(colors_1_copy, indices_1); // color6,index6,color7,index7
 
             // Store all results (64 bytes total)
-            _mm_storeu_si128(
-                output_ptr.add(block_index * 8) as *mut __m128i,
-                interleaved_0,
-            );
-            _mm_storeu_si128(
-                output_ptr.add(block_index * 8 + 16) as *mut __m128i,
-                interleaved_2,
-            );
-            _mm_storeu_si128(
-                output_ptr.add(block_index * 8 + 32) as *mut __m128i,
-                interleaved_1,
-            );
-            _mm_storeu_si128(
-                output_ptr.add(block_index * 8 + 48) as *mut __m128i,
-                interleaved_3,
-            );
+            _mm_storeu_si128(current_output_ptr as *mut __m128i, interleaved_0);
+            _mm_storeu_si128(current_output_ptr.add(16) as *mut __m128i, interleaved_2);
+            _mm_storeu_si128(current_output_ptr.add(32) as *mut __m128i, interleaved_1);
+            _mm_storeu_si128(current_output_ptr.add(48) as *mut __m128i, interleaved_3);
 
-            block_index += 8;
+            current_colors_ptr = current_colors_ptr.add(8);
+            current_indices_ptr = current_indices_ptr.add(8);
+            current_output_ptr = current_output_ptr.add(64);
         }
+
+        block_index = vectorized_blocks;
     }
 
     // === Fallback for Remaining Blocks ===
@@ -158,8 +155,8 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
 
 #[cfg(test)]
 mod tests {
-    use crate::test_prelude::*;
     use super::*;
+    use crate::test_prelude::*;
 
     #[rstest]
     #[case(untransform_recorr_var1, YCoCgVariant::Variant1)]

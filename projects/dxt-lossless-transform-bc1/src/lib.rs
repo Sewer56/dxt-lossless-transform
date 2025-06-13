@@ -189,13 +189,10 @@ pub unsafe fn transform_bc1(
         transform(input_ptr, output_ptr, len);
     } else {
         // Split the blocks directly into expected output.
-        transform(input_ptr, output_ptr, len);
-
-        // And if there's colour decorrelation, do it right now (if needed, no-ops if mode is 'none')
-        Color565::decorrelate_ycocg_r_ptr(
-            output_ptr as *const Color565,
-            output_ptr as *mut Color565,
-            (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
+        with_recorrelate::transform_with_decorrelate(
+            input_ptr,
+            output_ptr,
+            len,
             transform_options.decorrelation_mode,
         );
     }

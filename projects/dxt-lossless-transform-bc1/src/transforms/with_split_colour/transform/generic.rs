@@ -23,7 +23,8 @@ pub(crate) unsafe fn transform_with_split_colour(
         let mut indices_ptr = indices_ptr;
 
         // Process each block
-        for _ in 0..block_count {
+        let input_end = input_ptr.add(block_count * 8);
+        while input_ptr < input_end {
             // Read BC1 block format: [color0: u16, color1: u16, indices: u32]
             let color0 = (input_ptr as *const u16).read_unaligned();
             let color1 = (input_ptr.add(2) as *const u16).read_unaligned();

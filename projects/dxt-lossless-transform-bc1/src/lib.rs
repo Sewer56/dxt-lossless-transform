@@ -162,28 +162,38 @@ pub unsafe fn transform_bc1(
     let has_split_colours = transform_options.split_colour_endpoints;
 
     if has_split_colours {
-        // Split the blocks, colours to work area, indices to final destination.
-        transform_with_separate_pointers(
-            input_ptr,                           // from our input
-            work_ptr as *mut u32,                // colours to go our work area
-            output_ptr.add(len / 2) as *mut u32, // but the indices go to their final destination
-            len,
-        );
+        if transform_options.decorrelation_mode == YCoCgVariant::None {
+            with_split_colour::transform_with_split_colour(
+                input_ptr,
+                output_ptr as *mut u16,              // color0 values
+                output_ptr.add(len / 4) as *mut u16, // color1 values
+                output_ptr.add(len / 2) as *mut u32, // indices in last half
+                len / 8,                             // number of blocks (8 bytes per block)
+            );
+        } else {
+            // Split the blocks, colours to work area, indices to final destination.
+            transform_with_separate_pointers(
+                input_ptr,                           // from our input
+                work_ptr as *mut u32,                // colours to go our work area
+                output_ptr.add(len / 2) as *mut u32, // but the indices go to their final destination
+                len,
+            );
 
-        // Split the colour endpoints, writing them to the final output buffer.
-        split_color_endpoints(
-            work_ptr as *const Color565,
-            output_ptr as *mut Color565,
-            len / 2,
-        );
+            // Split the colour endpoints, writing them to the final output buffer.
+            split_color_endpoints(
+                work_ptr as *const Color565,
+                output_ptr as *mut Color565,
+                len / 2,
+            );
 
-        // Decorrelate the colours in output buffer in-place (if needed, no-ops if mode is 'none')
-        Color565::decorrelate_ycocg_r_ptr(
-            output_ptr as *const Color565,
-            output_ptr as *mut Color565,
-            (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
-            transform_options.decorrelation_mode,
-        );
+            // Decorrelate the colours in output buffer in-place (if needed, no-ops if mode is 'none')
+            Color565::decorrelate_ycocg_r_ptr(
+                output_ptr as *const Color565,
+                output_ptr as *mut Color565,
+                (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
+                transform_options.decorrelation_mode,
+            );
+        }
     } else if transform_options.decorrelation_mode == YCoCgVariant::None {
         // Only split blocks
         transform(input_ptr, output_ptr, len);

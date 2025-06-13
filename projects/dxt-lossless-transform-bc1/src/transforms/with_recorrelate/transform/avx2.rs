@@ -97,7 +97,6 @@ unsafe fn transform_decorr<const VARIANT: u8>(
 // Wrappers for asm inspection
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx2")]
-#[allow(dead_code)]
 pub(crate) unsafe fn transform_decorr_var1(
     input_ptr: *const u8,
     colours_out: *mut u32,
@@ -109,7 +108,6 @@ pub(crate) unsafe fn transform_decorr_var1(
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx2")]
-#[allow(dead_code)]
 pub(crate) unsafe fn transform_decorr_var2(
     input_ptr: *const u8,
     colours_out: *mut u32,
@@ -121,7 +119,6 @@ pub(crate) unsafe fn transform_decorr_var2(
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx2")]
-#[allow(dead_code)]
 pub(crate) unsafe fn transform_decorr_var3(
     input_ptr: *const u8,
     colours_out: *mut u32,
@@ -132,7 +129,6 @@ pub(crate) unsafe fn transform_decorr_var3(
 }
 
 // Runtime dispatcher
-#[allow(dead_code)]
 #[inline(always)]
 pub(crate) unsafe fn transform_with_decorrelate(
     input_ptr: *const u8,

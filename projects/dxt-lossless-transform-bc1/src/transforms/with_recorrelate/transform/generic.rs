@@ -13,7 +13,7 @@ use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
 /// - colours_ptr must be valid for writes of num_blocks * 4 bytes
 /// - indices_ptr must be valid for writes of num_blocks * 4 bytes
 /// - decorrelation_mode must be a valid [`YCoCgVariant`]
-pub(crate) unsafe fn transform_with_recorrelate_generic(
+pub(crate) unsafe fn transform_with_decorrelate_generic(
     input_ptr: *const u8,
     colours_ptr: *mut u32,
     indices_ptr: *mut u32,
@@ -22,19 +22,19 @@ pub(crate) unsafe fn transform_with_recorrelate_generic(
 ) {
     match decorrelation_mode {
         YCoCgVariant::Variant1 => {
-            transform_recorr::<1>(input_ptr, colours_ptr, indices_ptr, num_blocks)
+            transform_decorr::<1>(input_ptr, colours_ptr, indices_ptr, num_blocks)
         }
         YCoCgVariant::Variant2 => {
-            transform_recorr::<2>(input_ptr, colours_ptr, indices_ptr, num_blocks)
+            transform_decorr::<2>(input_ptr, colours_ptr, indices_ptr, num_blocks)
         }
         YCoCgVariant::Variant3 => {
-            transform_recorr::<3>(input_ptr, colours_ptr, indices_ptr, num_blocks)
+            transform_decorr::<3>(input_ptr, colours_ptr, indices_ptr, num_blocks)
         }
         YCoCgVariant::None => unreachable_unchecked(),
     }
 }
 
-unsafe fn transform_recorr<const VARIANT: u8>(
+unsafe fn transform_decorr<const VARIANT: u8>(
     mut input_ptr: *const u8,
     mut colours_ptr: *mut u32,
     mut indices_ptr: *mut u32,
@@ -83,31 +83,30 @@ unsafe fn transform_recorr<const VARIANT: u8>(
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    use crate::transforms::with_recorrelate::untransform::generic::untransform_with_recorrelate_generic;
+    use crate::transforms::with_recorrelate::untransform::untransform_with_recorrelate;
 
     #[rstest]
     #[case(YCoCgVariant::Variant1)]
     #[case(YCoCgVariant::Variant2)]
     #[case(YCoCgVariant::Variant3)]
-    fn roundtrip_transform_with_recorrelate(#[case] variant: YCoCgVariant) {
+    fn roundtrip_transform_with_decorrelate(#[case] variant: YCoCgVariant) {
         for num_blocks in 1..=512 {
             let input = generate_bc1_test_data(num_blocks);
             let len = input.len();
             let mut transformed = vec![0u8; len];
             let mut reconstructed = vec![0u8; len];
             unsafe {
-                transform_with_recorrelate_generic(
+                transform_with_decorrelate_generic(
                     input.as_ptr(),
                     transformed.as_mut_ptr() as *mut u32,
                     transformed.as_mut_ptr().add(len / 2) as *mut u32,
                     num_blocks,
                     variant,
                 );
-                untransform_with_recorrelate_generic(
-                    transformed.as_ptr() as *const u32,
-                    transformed.as_ptr().add(len / 2) as *const u32,
+                untransform_with_recorrelate(
+                    transformed.as_ptr(),
                     reconstructed.as_mut_ptr(),
-                    num_blocks,
+                    num_blocks * 8,
                     variant,
                 );
             }

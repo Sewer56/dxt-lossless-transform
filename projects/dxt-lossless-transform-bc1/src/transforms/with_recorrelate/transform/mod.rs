@@ -18,7 +18,7 @@ pub mod sse2;
 /// - `output_ptr` must be valid for writes of `len` bytes
 /// - `len` must be divisible by 8
 #[inline]
-pub(crate) unsafe fn transform_with_recorrelate(
+pub(crate) unsafe fn transform_with_decorrelate(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
@@ -32,7 +32,7 @@ pub(crate) unsafe fn transform_with_recorrelate(
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
-        transform_with_recorrelate_x86(
+        transform_with_decorrelate_x86(
             input_ptr,
             colors_ptr,
             indices_ptr,
@@ -43,7 +43,7 @@ pub(crate) unsafe fn transform_with_recorrelate(
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        generic::transform_with_recorrelate_generic(
+        generic::transform_with_decorrelate_generic(
             input_ptr,
             colors_ptr,
             indices_ptr,
@@ -55,7 +55,7 @@ pub(crate) unsafe fn transform_with_recorrelate(
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
-unsafe fn transform_with_recorrelate_x86(
+unsafe fn transform_with_decorrelate_x86(
     input_ptr: *const u8,
     colors_ptr: *mut u32,
     indices_ptr: *mut u32,
@@ -69,7 +69,7 @@ unsafe fn transform_with_recorrelate_x86(
     {
         #[cfg(feature = "nightly")]
         if has_avx512f() && has_avx512bw() {
-            avx512::transform_with_recorrelate(
+            avx512::transform_with_decorrelate(
                 input_ptr,
                 colors_ptr,
                 indices_ptr,
@@ -80,7 +80,7 @@ unsafe fn transform_with_recorrelate_x86(
         }
 
         if has_avx2() {
-            avx2::transform_with_recorrelate(
+            avx2::transform_with_decorrelate(
                 input_ptr,
                 colors_ptr,
                 indices_ptr,
@@ -91,7 +91,7 @@ unsafe fn transform_with_recorrelate_x86(
         }
 
         if has_sse2() {
-            sse2::transform_with_recorrelate(
+            sse2::transform_with_decorrelate(
                 input_ptr,
                 colors_ptr,
                 indices_ptr,
@@ -106,7 +106,7 @@ unsafe fn transform_with_recorrelate_x86(
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512bw") {
-            avx512::transform_with_recorrelate(
+            avx512::transform_with_decorrelate(
                 input_ptr,
                 colors_ptr,
                 indices_ptr,
@@ -118,7 +118,7 @@ unsafe fn transform_with_recorrelate_x86(
 
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         if cfg!(target_feature = "avx2") {
-            avx2::transform_with_recorrelate(
+            avx2::transform_with_decorrelate(
                 input_ptr,
                 colors_ptr,
                 indices_ptr,
@@ -130,7 +130,7 @@ unsafe fn transform_with_recorrelate_x86(
 
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         if cfg!(target_feature = "sse2") {
-            sse2::transform_with_recorrelate(
+            sse2::transform_with_decorrelate(
                 input_ptr,
                 colors_ptr,
                 indices_ptr,
@@ -142,7 +142,7 @@ unsafe fn transform_with_recorrelate_x86(
     }
 
     // Fallback to generic implementation
-    generic::transform_with_recorrelate_generic(
+    generic::transform_with_decorrelate_generic(
         input_ptr,
         colors_ptr,
         indices_ptr,

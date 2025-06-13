@@ -19,7 +19,8 @@ unsafe fn transform_decorr<const VARIANT: u8>(
 ) {
     let mut in_ptr = input_ptr;
     let blocks16 = num_blocks / 16;
-    for _ in 0..blocks16 {
+    let input_end = input_ptr.add(blocks16 * 16 * 8); // blocks16 * 16 blocks per iteration * 8 bytes per block
+    while in_ptr < input_end {
         // Load 16 blocks = 128 bytes
         let data0 = _mm256_loadu_si256(in_ptr as *const __m256i);
         let data1 = _mm256_loadu_si256(in_ptr.add(32) as *const __m256i);

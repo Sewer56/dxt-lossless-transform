@@ -33,7 +33,8 @@ unsafe fn transform_decorr<const VARIANT: u8>(
             _mm512_cvtepi8_epi32(_mm_loadu_si128(PERM_COLORS_BYTES.as_ptr() as *const _));
         let perm_indices =
             _mm512_cvtepi8_epi32(_mm_loadu_si128(PERM_INDICES_BYTES.as_ptr() as *const _));
-        for _ in 0..blocks32 {
+        let input_end = input_ptr.add(blocks32 * 32 * 8); // blocks32 * 32 blocks per iteration * 8 bytes per block
+        while src < input_end {
             // Load 256 bytes = 32 blocks
             let src0 = _mm512_loadu_si512(src as *const __m512i);
             let src1 = _mm512_loadu_si512(src.add(64) as *const __m512i);

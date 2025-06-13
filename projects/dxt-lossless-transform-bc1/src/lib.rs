@@ -13,7 +13,7 @@ use dxt_lossless_transform_common::{
     color_565::{Color565, YCoCgVariant},
     transforms::split_565_color_endpoints::split_color_endpoints,
 };
-use experimental::normalize_blocks::{normalize_split_blocks_in_place, ColorNormalizationMode};
+use experimental::normalize_blocks::ColorNormalizationMode;
 
 pub mod determine_optimal_transform;
 pub mod experimental;
@@ -187,8 +187,7 @@ pub unsafe fn transform_bc1(
     } else if transform_options.decorrelation_mode == YCoCgVariant::None {
         // Only split blocks
         transform(input_ptr, output_ptr, len);
-    }
-    else {
+    } else {
         // Split the blocks directly into expected output.
         transform(input_ptr, output_ptr, len);
 

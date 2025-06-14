@@ -55,17 +55,12 @@ mod tests {
     use super::*;
     use crate::test_prelude::*;
 
-    type DetransformFn = unsafe fn(*const u8, *mut u8, usize);
-
     #[rstest]
     #[case(u32_detransform, "u32")]
-    fn test_portable32_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
-        run_standard_untransform_aligned_test(detransform_fn, 512, impl_name);
-    }
-
-    #[rstest]
-    #[case(u32_detransform, "u32")]
-    fn test_portable32_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+    fn test_portable32_unaligned(
+        #[case] detransform_fn: StandardTransformFn,
+        #[case] impl_name: &str,
+    ) {
         run_standard_untransform_unaligned_test(detransform_fn, 512, impl_name);
     }
 }

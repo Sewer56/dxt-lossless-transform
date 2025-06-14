@@ -221,7 +221,7 @@ pub type WithRecorrelateUntransformFn = unsafe fn(*const u32, *const u32, *mut u
 
 /// Executes a with_recorrelate untransform test on 1‥=max_blocks BC1 blocks using unaligned buffers.
 /// This helper eliminates code duplication across AVX2, AVX512, SSE2, and generic untransform tests.
-/// 
+///
 /// The `max_blocks` parameter should equal twice the number of blocks processed in one main loop
 /// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 8).
 #[inline]
@@ -269,45 +269,6 @@ pub fn run_with_recorrelate_untransform_unaligned_test(
             original.as_slice(),
             &reconstructed[1..],
             impl_name,
-            num_blocks,
-        );
-    }
-}
-
-/// Executes a standard reference transform followed by the given untransform implementation
-/// on 1‥=max_blocks BC1 blocks, using aligned input/output buffers.
-#[inline]
-pub fn run_standard_untransform_aligned_test(
-    detransform_fn: StandardTransformFn,
-    max_blocks: usize,
-    impl_name: &str,
-) {
-    for num_blocks in 1..=max_blocks {
-        let original = generate_bc1_test_data(num_blocks);
-        let mut transformed = allocate_align_64(original.len()).unwrap();
-        let mut reconstructed = allocate_align_64(original.len()).unwrap();
-
-        unsafe {
-            // Transform with the reference path
-            crate::transforms::standard::transform(
-                original.as_ptr(),
-                transformed.as_mut_ptr(),
-                original.len(),
-            );
-
-            // Reconstruct with the implementation under test
-            reconstructed.as_mut_slice().fill(0);
-            detransform_fn(
-                transformed.as_ptr(),
-                reconstructed.as_mut_ptr(),
-                transformed.len(),
-            );
-        }
-
-        assert_implementation_matches_reference(
-            original.as_slice(),
-            reconstructed.as_slice(),
-            &format!("{impl_name} (aligned)"),
             num_blocks,
         );
     }

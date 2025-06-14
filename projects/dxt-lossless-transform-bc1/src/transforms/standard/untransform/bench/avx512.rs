@@ -104,27 +104,13 @@ pub unsafe fn permute_512_detransform_unroll_2_with_components_intrinsics(
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    type DetransformFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
     #[case(
         permute_512_detransform_unroll_2_intrinsics,
         "avx512_permute_unroll_2_intrinsics"
     )]
-    fn test_avx512_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
-        if !has_avx512f() {
-            return;
-        }
-
-        run_standard_untransform_aligned_test(detransform_fn, 512, impl_name);
-    }
-
-    #[rstest]
-    #[case(
-        permute_512_detransform_unroll_2_intrinsics,
-        "avx512_permute_unroll_2_intrinsics"
-    )]
-    fn test_avx512_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
+    fn test_avx512_unaligned(#[case] detransform_fn: StandardTransformFn, #[case] impl_name: &str) {
         if !has_avx512f() {
             return;
         }

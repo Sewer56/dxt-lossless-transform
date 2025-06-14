@@ -168,10 +168,10 @@ pub unsafe fn transform_bc1(
             );
         }
     } else if transform_options.decorrelation_mode == YCoCgVariant::None {
-        // Only split blocks
+        // Standard transform – no split-colour and no decorrelation.
         transform(input_ptr, output_ptr, len);
     } else {
-        // Split the blocks directly into expected output.
+        // Standard transform + decorrelate.
         with_recorrelate::transform_with_decorrelate(
             input_ptr,
             output_ptr,
@@ -231,10 +231,10 @@ pub unsafe fn untransform_bc1(
             );
         }
     } else if detransform_options.decorrelation_mode == YCoCgVariant::None {
-        // Only split blocks.
+        // Standard transform – no split-colour and no decorrelation.
         untransform(input_ptr, output_ptr, len);
     } else {
-        // Unsplit blocks + decorrelate.
+        // Standard transform + recorrelate.
         with_recorrelate::untransform_with_recorrelate(
             input_ptr,
             output_ptr,

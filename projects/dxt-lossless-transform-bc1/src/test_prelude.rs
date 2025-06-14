@@ -88,18 +88,19 @@ fn validate_bc1_test_data_generator() {
 // Shared test helpers lifted from individual transform tests
 // -------------------------------------------------------------------------------------------------
 
-// Re-export the reference untransform function so tests can access it through the prelude
-pub use crate::transforms::standard;
-
 /// Common type alias for transform/permute functions used across BC1 tests.
 #[allow(clippy::type_complexity)]
-pub type TransformFn = unsafe fn(*const u8, *mut u8, usize);
+pub type StandardTransformFn = unsafe fn(*const u8, *mut u8, usize);
+
+/// Common type alias for decorrelate transform functions used across BC1 with_recorrelate tests.
+#[allow(clippy::type_complexity)]
+pub type WithDecorrelateTransformFn = unsafe fn(*const u8, *mut u32, *mut u32, usize);
 
 /// Executes a transform → untransform round-trip on 1‥=max_blocks BC1 blocks and
 /// asserts that the final data matches the original input.
 #[inline]
 pub fn run_standard_transform_roundtrip_test(
-    transform_fn: TransformFn,
+    transform_fn: StandardTransformFn,
     max_blocks: usize,
     impl_name: &str,
 ) {
@@ -111,13 +112,101 @@ pub fn run_standard_transform_roundtrip_test(
 
         unsafe {
             transform_fn(input.as_ptr(), transformed.as_mut_ptr(), len);
-            standard::untransform(transformed.as_ptr(), reconstructed.as_mut_ptr(), len);
+            crate::transforms::standard::untransform(
+                transformed.as_ptr(),
+                reconstructed.as_mut_ptr(),
+                len,
+            );
         }
 
         assert_eq!(
             reconstructed.as_slice(),
             input.as_slice(),
             "Mismatch {impl_name} roundtrip for {num_blocks} blocks",
+        );
+    }
+}
+
+/// Executes a decorrelate transform → untransform round-trip on 1‥=max_blocks BC1 blocks
+/// using the specified transform function and YCoCg variant, asserting that the final data
+/// matches the original input.
+#[inline]
+pub fn run_with_decorrelate_transform_roundtrip_test(
+    transform_fn: WithDecorrelateTransformFn,
+    variant: YCoCgVariant,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transforms::with_recorrelate::untransform::untransform_with_recorrelate;
+
+    for num_blocks in 1..=max_blocks {
+        let input = generate_bc1_test_data(num_blocks);
+        let len = input.len();
+        let mut transformed = vec![0u8; len];
+        let mut reconstructed = vec![0u8; len];
+
+        unsafe {
+            transform_fn(
+                input.as_ptr(),
+                transformed.as_mut_ptr() as *mut u32,
+                transformed.as_mut_ptr().add(len / 2) as *mut u32,
+                num_blocks,
+            );
+            untransform_with_recorrelate(
+                transformed.as_ptr(),
+                reconstructed.as_mut_ptr(),
+                num_blocks * 8,
+                variant,
+            );
+        }
+
+        assert_eq!(
+            reconstructed.as_slice(),
+            input.as_slice(),
+            "Mismatch {impl_name} roundtrip variant {variant:?} for {num_blocks} blocks",
+        );
+    }
+}
+
+/// Executes a decorrelate transform → untransform round-trip on 1‥=max_blocks BC1 blocks
+/// using the specified generic transform function and YCoCg variant, asserting that the final
+/// data matches the original input. This variant takes an additional [`YCoCgVariant`] parameter
+/// for the transform function.
+#[inline]
+pub fn run_decorrelate_transform_roundtrip_test_with_variant(
+    transform_fn: unsafe fn(*const u8, *mut u32, *mut u32, usize, YCoCgVariant),
+    variant: YCoCgVariant,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transforms::with_recorrelate::untransform::untransform_with_recorrelate;
+
+    for num_blocks in 1..=max_blocks {
+        let input = generate_bc1_test_data(num_blocks);
+        let len = input.len();
+        let mut transformed = vec![0u8; len];
+        let mut reconstructed = vec![0u8; len];
+
+        unsafe {
+            transform_fn(
+                input.as_ptr(),
+                transformed.as_mut_ptr() as *mut u32,
+                transformed.as_mut_ptr().add(len / 2) as *mut u32,
+                num_blocks,
+                variant,
+            );
+            untransform_with_recorrelate(
+                transformed.as_ptr(),
+                reconstructed.as_mut_ptr(),
+                num_blocks * 8,
+                variant,
+            );
+        }
+
+        assert_eq!(
+            reconstructed.as_slice(),
+            input.as_slice(),
+            "Mismatch {impl_name} roundtrip variant {variant:?} for {num_blocks} blocks",
         );
     }
 }
@@ -130,7 +219,7 @@ pub fn run_standard_transform_roundtrip_test(
 /// on 1‥=max_blocks BC1 blocks, using aligned input/output buffers.
 #[inline]
 pub fn run_standard_untransform_aligned_test(
-    detransform_fn: TransformFn,
+    detransform_fn: StandardTransformFn,
     max_blocks: usize,
     impl_name: &str,
 ) {
@@ -141,7 +230,11 @@ pub fn run_standard_untransform_aligned_test(
 
         unsafe {
             // Transform with the reference path
-            standard::transform(original.as_ptr(), transformed.as_mut_ptr(), original.len());
+            crate::transforms::standard::transform(
+                original.as_ptr(),
+                transformed.as_mut_ptr(),
+                original.len(),
+            );
 
             // Reconstruct with the implementation under test
             reconstructed.as_mut_slice().fill(0);
@@ -165,7 +258,7 @@ pub fn run_standard_untransform_aligned_test(
 /// with deliberately mis-aligned (offset by 1 byte) input and output pointers.
 #[inline]
 pub fn run_standard_untransform_unaligned_test(
-    detransform_fn: TransformFn,
+    detransform_fn: StandardTransformFn,
     max_blocks: usize,
     impl_name: &str,
 ) {
@@ -175,7 +268,11 @@ pub fn run_standard_untransform_unaligned_test(
         // Transform using the reference path
         let mut transformed = vec![0u8; original.len()];
         unsafe {
-            standard::transform(original.as_ptr(), transformed.as_mut_ptr(), original.len());
+            crate::transforms::standard::transform(
+                original.as_ptr(),
+                transformed.as_mut_ptr(),
+                original.len(),
+            );
 
             // Shift by one byte to mis-align the buffers
             let mut transformed_unaligned = vec![0u8; transformed.len() + 1];

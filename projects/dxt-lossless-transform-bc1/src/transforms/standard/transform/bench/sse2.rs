@@ -226,7 +226,7 @@ mod tests {
     #[case(punpckhqdq_unroll_4, "SSE2 punpckhqdq unroll-4")]
     #[case(punpckhqdq_unroll_2, "SSE2 punpckhqdq unroll-2")]
     #[case(shufps_unroll_2, "SSE2 shuffle unroll-2")]
-    fn sse2_transform_roundtrip(#[case] permute_fn: TransformFn, #[case] impl_name: &str) {
+    fn sse2_transform_roundtrip(#[case] permute_fn: StandardTransformFn, #[case] impl_name: &str) {
         if !has_sse2() {
             return;
         }

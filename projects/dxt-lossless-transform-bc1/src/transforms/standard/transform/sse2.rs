@@ -98,7 +98,7 @@ mod tests {
 
     #[rstest]
     #[case(shufps_unroll_4, "SSE2 shuffle unroll-4")]
-    fn sse2_transform_roundtrip(#[case] permute_fn: TransformFn, #[case] impl_name: &str) {
+    fn sse2_transform_roundtrip(#[case] permute_fn: StandardTransformFn, #[case] impl_name: &str) {
         if !has_sse2() {
             return;
         }

@@ -85,38 +85,17 @@ unsafe fn transform_decorr<const VARIANT: u8>(
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    use crate::transforms::with_recorrelate::untransform::untransform_with_recorrelate;
 
     #[rstest]
     #[case(YCoCgVariant::Variant1)]
     #[case(YCoCgVariant::Variant2)]
     #[case(YCoCgVariant::Variant3)]
     fn roundtrip_transform_with_decorrelate(#[case] variant: YCoCgVariant) {
-        for num_blocks in 1..=512 {
-            let input = generate_bc1_test_data(num_blocks);
-            let len = input.len();
-            let mut transformed = vec![0u8; len];
-            let mut reconstructed = vec![0u8; len];
-            unsafe {
-                transform_with_decorrelate_generic(
-                    input.as_ptr(),
-                    transformed.as_mut_ptr() as *mut u32,
-                    transformed.as_mut_ptr().add(len / 2) as *mut u32,
-                    num_blocks,
-                    variant,
-                );
-                untransform_with_recorrelate(
-                    transformed.as_ptr(),
-                    reconstructed.as_mut_ptr(),
-                    num_blocks * 8,
-                    variant,
-                );
-            }
-            assert_eq!(
-                reconstructed.as_slice(),
-                input.as_slice(),
-                "roundtrip mismatch for variant {variant:?}"
-            );
-        }
+        run_decorrelate_transform_roundtrip_test_with_variant(
+            transform_with_decorrelate_generic,
+            variant,
+            128,
+            "generic",
+        );
     }
 }

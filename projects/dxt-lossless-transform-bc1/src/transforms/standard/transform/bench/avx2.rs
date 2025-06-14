@@ -326,7 +326,7 @@ mod tests {
     #[case(permute, "permute")]
     #[case(permute_unroll_2, "permute unroll 2")]
     #[case(gather, "gather")]
-    fn avx2_transform_roundtrip(#[case] permute_fn: TransformFn, #[case] impl_name: &str) {
+    fn avx2_transform_roundtrip(#[case] permute_fn: StandardTransformFn, #[case] impl_name: &str) {
         if !has_avx2() {
             return;
         }

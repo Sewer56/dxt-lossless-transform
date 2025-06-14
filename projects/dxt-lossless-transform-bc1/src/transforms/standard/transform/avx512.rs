@@ -1,5 +1,6 @@
-use core::arch::*;
 use crate::transforms::standard::transform::portable32::u32_with_separate_pointers;
+use core::arch::*;
+
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
@@ -111,7 +112,10 @@ mod tests {
 
     #[rstest]
     #[case(permute_512, "avx512 permute")]
-    fn avx512_transform_roundtrip(#[case] permute_fn: TransformFn, #[case] impl_name: &str) {
+    fn avx512_transform_roundtrip(
+        #[case] permute_fn: StandardTransformFn,
+        #[case] impl_name: &str,
+    ) {
         if !has_avx512f() {
             return;
         }

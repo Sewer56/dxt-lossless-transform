@@ -560,7 +560,7 @@ mod tests {
     #[case(shift_with_count_unroll_2, "shift_with_count unroll-2")]
     #[case(shift_with_count_unroll_4, "shift_with_count unroll-4")]
     #[case(shift_with_count_unroll_8, "shift_with_count unroll-8")]
-    fn portable64_transform_roundtrip(#[case] transform_fn: TransformFn, #[case] impl_name: &str) {
+    fn portable64_transform_roundtrip(#[case] transform_fn: StandardTransformFn, #[case] impl_name: &str) {
         run_standard_transform_roundtrip_test(transform_fn, 512, impl_name);
     }
 }

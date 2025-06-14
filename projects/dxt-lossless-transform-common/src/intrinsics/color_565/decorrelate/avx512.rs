@@ -39,6 +39,7 @@ use core::arch::x86_64::*;
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
+#[inline]
 pub unsafe fn decorrelate_ycocg_r_var1_avx512(colors_raw: __m512i) -> __m512i {
     // === Constants from assembly ===
     let mask_31 = _mm512_set1_epi32(0x001F001F); // .LCPI21_1: mask for 5-bit values (31,31)
@@ -116,6 +117,7 @@ pub unsafe fn decorrelate_ycocg_r_var1_avx512(colors_raw: __m512i) -> __m512i {
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
+#[inline]
 pub unsafe fn decorrelate_ycocg_r_var2_avx512(colors_raw: __m512i) -> __m512i {
     // === Constants from assembly ===
     let mask_31 = _mm512_set1_epi32(0x001F001F); // .LCPI22_1: mask for 5-bit values (31,31)
@@ -199,6 +201,7 @@ pub unsafe fn decorrelate_ycocg_r_var2_avx512(colors_raw: __m512i) -> __m512i {
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
+#[inline]
 pub unsafe fn decorrelate_ycocg_r_var3_avx512(colors_raw: __m512i) -> __m512i {
     // === Constants from assembly ===
     let mask_31 = _mm512_set1_epi16(31); // .LCPI24_2: mask for 5-bit values (0x001F)

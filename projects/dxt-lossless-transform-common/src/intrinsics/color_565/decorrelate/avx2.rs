@@ -37,6 +37,7 @@ use core::arch::x86_64::*;
 ///
 /// [`Color565`]: crate::color_565::Color565
 #[target_feature(enable = "avx2")]
+#[inline]
 pub unsafe fn decorrelate_ycocg_r_var1_avx2(colors_raw: __m256i) -> __m256i {
     // Constants
     let mask_5bit = _mm256_set1_epi16(0x1F); // 31 in decimal, 0b11111 in binary
@@ -91,6 +92,7 @@ pub unsafe fn decorrelate_ycocg_r_var1_avx2(colors_raw: __m256i) -> __m256i {
 ///
 /// [`Color565`]: crate::color_565::Color565
 #[target_feature(enable = "avx2")]
+#[inline]
 pub unsafe fn decorrelate_ycocg_r_var2_avx2(colors_raw: __m256i) -> __m256i {
     // Constants
     let mask_5bit = _mm256_set1_epi16(0x1F); // 31 in decimal, 0b11111 in binary
@@ -145,6 +147,7 @@ pub unsafe fn decorrelate_ycocg_r_var2_avx2(colors_raw: __m256i) -> __m256i {
 ///
 /// [`Color565`]: crate::color_565::Color565
 #[target_feature(enable = "avx2")]
+#[inline]
 pub unsafe fn decorrelate_ycocg_r_var3_avx2(colors_raw: __m256i) -> __m256i {
     // Constants
     let mask_5bit = _mm256_set1_epi16(0x1F); // 31 in decimal, 0b11111 in binary

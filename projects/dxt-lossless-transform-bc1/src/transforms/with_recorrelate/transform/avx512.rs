@@ -143,24 +143,26 @@ mod tests {
     use crate::transforms::with_recorrelate::untransform::untransform_with_recorrelate;
 
     #[rstest]
-    #[case(transform_decorr_var1, YCoCgVariant::Variant1)]
-    #[case(transform_decorr_var2, YCoCgVariant::Variant2)]
-    #[case(transform_decorr_var3, YCoCgVariant::Variant3)]
-    fn avx512_transform_roundtrip(
-        #[case] func: unsafe fn(*const u8, *mut u32, *mut u32, usize),
-        #[case] variant: YCoCgVariant,
-    ) {
+    #[case(YCoCgVariant::Variant1)]
+    #[case(YCoCgVariant::Variant2)]
+    #[case(YCoCgVariant::Variant3)]
+    fn avx512_transform_roundtrip(#[case] variant: YCoCgVariant) {
+        if !has_avx512f() {
+            return;
+        }
+
         for num_blocks in 1..=128 {
             let input = generate_bc1_test_data(num_blocks);
             let len = input.len();
             let mut transformed = vec![0u8; len];
             let mut reconstructed = vec![0u8; len];
             unsafe {
-                func(
+                transform_with_decorrelate(
                     input.as_ptr(),
                     transformed.as_mut_ptr() as *mut u32,
                     transformed.as_mut_ptr().add(len / 2) as *mut u32,
                     num_blocks,
+                    variant,
                 );
                 untransform_with_recorrelate(
                     transformed.as_ptr(),

@@ -9,9 +9,9 @@ use core::arch::x86_64::*;
 #[target_feature(enable = "avx2")]
 pub(crate) unsafe fn transform_with_split_colour(
     mut input_ptr: *const u8,
-    mut color0_ptr: *mut u16,
-    mut color1_ptr: *mut u16,
-    mut indices_ptr: *mut u32,
+    mut color0_out: *mut u16,
+    mut color1_out: *mut u16,
+    mut indices_out: *mut u32,
     block_count: usize,
 ) {
     let len = block_count * 8; // BC1 block size is 8 bytes
@@ -92,23 +92,23 @@ pub(crate) unsafe fn transform_with_split_colour(
         let colors_blocks_1 = _mm256_permutevar8x32_epi32(colors_grouped_1, permute_idx);
 
         // Store all results together to utilize store pipeline
-        _mm256_storeu_si256(color0_ptr as *mut __m256i, colors_blocks_0); // Store colors
-        _mm256_storeu_si256(color1_ptr as *mut __m256i, colors_blocks_1); // Store colors
-        color0_ptr = color0_ptr.add(16); // color0_ptr += 32 bytes / 2 = 16 u16s
-        color1_ptr = color1_ptr.add(16); // color1_ptr += 32 bytes / 2 = 16 u16s
+        _mm256_storeu_si256(color0_out as *mut __m256i, colors_blocks_0); // Store colors
+        _mm256_storeu_si256(color1_out as *mut __m256i, colors_blocks_1); // Store colors
+        color0_out = color0_out.add(16); // color0_ptr += 32 bytes / 2 = 16 u16s
+        color1_out = color1_out.add(16); // color1_ptr += 32 bytes / 2 = 16 u16s
 
-        _mm256_storeu_si256(indices_ptr as *mut __m256i, indices_blocks_0); // Store indices
-        _mm256_storeu_si256(indices_ptr.add(8) as *mut __m256i, indices_blocks_1); // Store indices (@ +32 bytes)
-        indices_ptr = indices_ptr.add(16); // indices_ptr += 64 bytes / 4 = 16 u32s
+        _mm256_storeu_si256(indices_out as *mut __m256i, indices_blocks_0); // Store indices
+        _mm256_storeu_si256(indices_out.add(8) as *mut __m256i, indices_blocks_1); // Store indices (@ +32 bytes)
+        indices_out = indices_out.add(16); // indices_ptr += 64 bytes / 4 = 16 u32s
     }
 
     // Process any remaining elements after the aligned blocks
     let remaining_blocks = (len - aligned_len) / 8;
     generic::transform_with_split_colour(
         input_ptr,
-        color0_ptr,
-        color1_ptr,
-        indices_ptr,
+        color0_out,
+        color1_out,
+        indices_out,
         remaining_blocks,
     );
 }

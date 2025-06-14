@@ -244,8 +244,8 @@ pub unsafe fn shufps_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: us
 #[target_feature(enable = "sse2")]
 pub unsafe fn shufps_unroll_4_with_separate_pointers(
     mut input_ptr: *const u8,
-    mut colors_ptr: *mut u32,
-    mut indices_ptr: *mut u32,
+    mut colors_out: *mut u32,
+    mut indices_out: *mut u32,
     len: usize,
 ) {
     debug_assert!(len % 8 == 0);
@@ -289,8 +289,8 @@ pub unsafe fn shufps_unroll_4_with_separate_pointers(
                 "jb 2b",
 
                 src_ptr = inout(reg) input_ptr,
-                colors_ptr = inout(reg) colors_ptr,
-                indices_ptr = inout(reg) indices_ptr,
+                colors_ptr = inout(reg) colors_out,
+                indices_ptr = inout(reg) indices_out,
                 end = inout(reg) aligned_end,
                 xmm0 = out(xmm_reg) _,
                 xmm1 = out(xmm_reg) _,
@@ -305,15 +305,13 @@ pub unsafe fn shufps_unroll_4_with_separate_pointers(
 
     // Process any remaining elements after the aligned blocks
     let remaining = len - aligned_len;
-    if remaining > 0 {
-        u32_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, remaining);
-    }
+    u32_with_separate_pointers(input_ptr, colors_out, indices_out, remaining);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::test_prelude::*;
     use super::*;
+    use crate::test_prelude::*;
     use core::ptr::copy_nonoverlapping;
     type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
 

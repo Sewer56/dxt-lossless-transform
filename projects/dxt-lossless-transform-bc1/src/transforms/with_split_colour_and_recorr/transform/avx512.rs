@@ -226,21 +226,21 @@ pub(crate) unsafe fn transform_decorr_var3(
 #[inline(always)]
 pub(crate) unsafe fn transform_with_split_colour_and_decorr(
     input_ptr: *const u8,
-    color0_ptr: *mut u16,
-    color1_ptr: *mut u16,
-    indices_ptr: *mut u32,
+    color0_out: *mut u16,
+    color1_out: *mut u16,
+    indices_out: *mut u32,
     blocks: usize,
     variant: YCoCgVariant,
 ) {
     match variant {
         YCoCgVariant::Variant1 => {
-            transform_decorr_var1(input_ptr, color0_ptr, color1_ptr, indices_ptr, blocks)
+            transform_decorr_var1(input_ptr, color0_out, color1_out, indices_out, blocks)
         }
         YCoCgVariant::Variant2 => {
-            transform_decorr_var2(input_ptr, color0_ptr, color1_ptr, indices_ptr, blocks)
+            transform_decorr_var2(input_ptr, color0_out, color1_out, indices_out, blocks)
         }
         YCoCgVariant::Variant3 => {
-            transform_decorr_var3(input_ptr, color0_ptr, color1_ptr, indices_ptr, blocks)
+            transform_decorr_var3(input_ptr, color0_out, color1_out, indices_out, blocks)
         }
         YCoCgVariant::None => unreachable_unchecked(),
     }

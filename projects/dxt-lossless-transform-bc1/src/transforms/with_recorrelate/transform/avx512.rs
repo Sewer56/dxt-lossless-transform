@@ -120,20 +120,20 @@ pub(crate) unsafe fn transform_decorr_var3(
 #[inline(always)]
 pub(crate) unsafe fn transform_with_decorrelate(
     input_ptr: *const u8,
-    colours_ptr: *mut u32,
-    indices_ptr: *mut u32,
+    colours_out: *mut u32,
+    indices_out: *mut u32,
     num_blocks: usize,
     variant: YCoCgVariant,
 ) {
     match variant {
         YCoCgVariant::Variant1 => {
-            transform_decorr_var1(input_ptr, colours_ptr, indices_ptr, num_blocks)
+            transform_decorr_var1(input_ptr, colours_out, indices_out, num_blocks)
         }
         YCoCgVariant::Variant2 => {
-            transform_decorr_var2(input_ptr, colours_ptr, indices_ptr, num_blocks)
+            transform_decorr_var2(input_ptr, colours_out, indices_out, num_blocks)
         }
         YCoCgVariant::Variant3 => {
-            transform_decorr_var3(input_ptr, colours_ptr, indices_ptr, num_blocks)
+            transform_decorr_var3(input_ptr, colours_out, indices_out, num_blocks)
         }
         YCoCgVariant::None => unreachable_unchecked(),
     }

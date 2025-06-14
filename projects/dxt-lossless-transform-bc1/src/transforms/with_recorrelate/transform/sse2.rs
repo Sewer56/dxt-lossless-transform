@@ -13,21 +13,20 @@ use dxt_lossless_transform_common::intrinsics::color_565::decorrelate::sse2::{
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "sse2")]
 unsafe fn transform_decorr<const VARIANT: u8>(
-    input_ptr: *const u8,
-    mut colours_ptr: *mut u32,
-    mut indices_ptr: *mut u32,
+    mut input_ptr: *const u8,
+    mut colours_out: *mut u32,
+    mut indices_out: *mut u32,
     num_blocks: usize,
 ) {
-    let mut in_ptr = input_ptr;
     let blocks8 = num_blocks / 8; // round down via division
     let input_end = input_ptr.add(blocks8 * 8 * 8); // blocks8 * 8 blocks per iteration * 8 bytes per block
-    while in_ptr < input_end {
+    while input_ptr < input_end {
         // Load four 16-byte chunks = 8 blocks
-        let data0 = _mm_loadu_si128(in_ptr as *const __m128i);
-        let data1 = _mm_loadu_si128(in_ptr.add(16) as *const __m128i);
-        let data2 = _mm_loadu_si128(in_ptr.add(32) as *const __m128i);
-        let data3 = _mm_loadu_si128(in_ptr.add(48) as *const __m128i);
-        in_ptr = in_ptr.add(64);
+        let data0 = _mm_loadu_si128(input_ptr as *const __m128i);
+        let data1 = _mm_loadu_si128(input_ptr.add(16) as *const __m128i);
+        let data2 = _mm_loadu_si128(input_ptr.add(32) as *const __m128i);
+        let data3 = _mm_loadu_si128(input_ptr.add(48) as *const __m128i);
+        input_ptr = input_ptr.add(64);
 
         // Split colors and indices using shufps patterns
         let colors0 = _mm_castps_si128(_mm_shuffle_ps(
@@ -66,13 +65,13 @@ unsafe fn transform_decorr<const VARIANT: u8>(
         };
 
         // Store results
-        _mm_storeu_si128(colours_ptr as *mut __m128i, colors0);
-        _mm_storeu_si128((colours_ptr as *mut __m128i).add(1), colors1);
-        _mm_storeu_si128(indices_ptr as *mut __m128i, indices0);
-        _mm_storeu_si128((indices_ptr as *mut __m128i).add(1), indices1);
+        _mm_storeu_si128(colours_out as *mut __m128i, colors0);
+        _mm_storeu_si128((colours_out as *mut __m128i).add(1), colors1);
+        _mm_storeu_si128(indices_out as *mut __m128i, indices0);
+        _mm_storeu_si128((indices_out as *mut __m128i).add(1), indices1);
 
-        colours_ptr = colours_ptr.add(8); // 32 bytes
-        indices_ptr = indices_ptr.add(8); // 32 bytes
+        colours_out = colours_out.add(8); // 32 bytes
+        indices_out = indices_out.add(8); // 32 bytes
     }
     // Handle any remaining blocks
     let remaining_blocks = num_blocks % 8;
@@ -83,9 +82,9 @@ unsafe fn transform_decorr<const VARIANT: u8>(
         _ => unreachable_unchecked(),
     };
     generic::transform_with_decorrelate_generic(
-        in_ptr,
-        colours_ptr,
-        indices_ptr,
+        input_ptr,
+        colours_out,
+        indices_out,
         remaining_blocks,
         variant_enum,
     );
@@ -129,20 +128,20 @@ pub(crate) unsafe fn transform_decorr_var3(
 #[inline(always)]
 pub(crate) unsafe fn transform_with_decorrelate(
     input_ptr: *const u8,
-    colours_ptr: *mut u32,
-    indices_ptr: *mut u32,
+    colours_out: *mut u32,
+    indices_out: *mut u32,
     num_blocks: usize,
     variant: YCoCgVariant,
 ) {
     match variant {
         YCoCgVariant::Variant1 => {
-            transform_decorr_var1(input_ptr, colours_ptr, indices_ptr, num_blocks)
+            transform_decorr_var1(input_ptr, colours_out, indices_out, num_blocks)
         }
         YCoCgVariant::Variant2 => {
-            transform_decorr_var2(input_ptr, colours_ptr, indices_ptr, num_blocks)
+            transform_decorr_var2(input_ptr, colours_out, indices_out, num_blocks)
         }
         YCoCgVariant::Variant3 => {
-            transform_decorr_var3(input_ptr, colours_ptr, indices_ptr, num_blocks)
+            transform_decorr_var3(input_ptr, colours_out, indices_out, num_blocks)
         }
         YCoCgVariant::None => unreachable_unchecked(),
     }

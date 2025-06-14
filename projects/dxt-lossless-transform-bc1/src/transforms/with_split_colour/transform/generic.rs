@@ -7,18 +7,19 @@
 /// - `color0_ptr` must be valid for writes of `block_count * 2` bytes
 /// - `color1_ptr` must be valid for writes of `block_count * 2` bytes
 /// - `indices_ptr` must be valid for writes of `block_count * 4` bytes
+#[inline]
 pub(crate) unsafe fn transform_with_split_colour(
     input_ptr: *const u8,
-    color0_ptr: *mut u16,
-    color1_ptr: *mut u16,
-    indices_ptr: *mut u32,
+    color0_out: *mut u16,
+    color1_out: *mut u16,
+    indices_out: *mut u32,
     block_count: usize,
 ) {
     // Initialize pointers
     let mut input_ptr = input_ptr;
-    let mut color0_ptr = color0_ptr;
-    let mut color1_ptr = color1_ptr;
-    let mut indices_ptr = indices_ptr;
+    let mut color0_ptr = color0_out;
+    let mut color1_ptr = color1_out;
+    let mut indices_ptr = indices_out;
 
     // Process each block
     let input_end = input_ptr.add(block_count * 8);

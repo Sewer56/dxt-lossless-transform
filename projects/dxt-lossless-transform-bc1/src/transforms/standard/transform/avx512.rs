@@ -47,16 +47,16 @@ pub unsafe fn permute_512_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, le
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
-/// - colors_ptr must be valid for writes of len/2 bytes (4 bytes per block)
-/// - indices_ptr must be valid for writes of len/2 bytes (4 bytes per block)
+/// - colors_out must be valid for writes of len/2 bytes (4 bytes per block)
+/// - indices_out must be valid for writes of len/2 bytes (4 bytes per block)
 /// - len must be divisible by 8
 /// - The color and index buffers must not overlap with each other or the input buffer
 #[allow(unused_assignments)] // no feature for 512
 #[target_feature(enable = "avx512f")]
 pub unsafe fn permute_512_with_separate_pointers(
     mut input_ptr: *const u8,
-    mut colors_ptr: *mut u32,
-    mut indices_ptr: *mut u32,
+    mut colors_out: *mut u32,
+    mut indices_out: *mut u32,
     len: usize,
 ) {
     debug_assert!(len % 8 == 0);
@@ -103,8 +103,8 @@ pub unsafe fn permute_512_with_separate_pointers(
                 "jb 2b",
 
                 src_ptr = inout(reg) input_ptr,
-                colors_ptr = inout(reg) colors_ptr,
-                indices_ptr = inout(reg) indices_ptr,
+                colors_ptr = inout(reg) colors_out,
+                indices_ptr = inout(reg) indices_out,
                 end_ptr = in(reg) aligned_end_input,
                 perm_colors = in(zmm_reg) perm_colors,
                 perm_indices = in(zmm_reg) perm_indices,
@@ -118,9 +118,7 @@ pub unsafe fn permute_512_with_separate_pointers(
 
     // Process any remaining elements after the aligned blocks
     let remaining = len - aligned_len;
-    if remaining > 0 {
-        u32_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, remaining);
-    }
+    u32_with_separate_pointers(input_ptr, colors_out, indices_out, remaining);
 }
 
 /// AVX512 variant with 2x unroll that writes colors and indices to separate pointers
@@ -216,8 +214,8 @@ pub unsafe fn permute_512_unroll_2_with_separate_pointers(
 
 #[cfg(test)]
 mod tests {
-    use crate::test_prelude::*;
     use super::*;
+    use crate::test_prelude::*;
     use core::ptr::copy_nonoverlapping;
 
     type PermuteFn = unsafe fn(*const u8, *mut u8, usize);

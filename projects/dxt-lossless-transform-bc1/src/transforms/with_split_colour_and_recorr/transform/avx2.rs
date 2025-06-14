@@ -13,9 +13,9 @@ use dxt_lossless_transform_common::intrinsics::color_565::decorrelate::avx2::{
 #[target_feature(enable = "avx2")]
 unsafe fn transform_impl<const VARIANT: u8>(
     mut input_ptr: *const u8,
-    mut color0_ptr: *mut u16,
-    mut color1_ptr: *mut u16,
-    mut indices_ptr: *mut u32,
+    mut color0_out: *mut u16,
+    mut color1_out: *mut u16,
+    mut indices_out: *mut u32,
     block_count: usize,
 ) {
     let permute_idx = _mm256_setr_epi32(0, 4, 1, 5, 2, 6, 3, 7);
@@ -104,34 +104,32 @@ unsafe fn transform_impl<const VARIANT: u8>(
         };
 
         // Store all results together to utilize store pipeline
-        _mm256_storeu_si256(color0_ptr as *mut __m256i, colors_blocks_0); // Store colors
-        _mm256_storeu_si256(color1_ptr as *mut __m256i, colors_blocks_1); // Store colors
-        color0_ptr = color0_ptr.add(16); // color0_ptr += 32 bytes / 2 = 16 u16s
-        color1_ptr = color1_ptr.add(16); // color1_ptr += 32 bytes / 2 = 16 u16s
+        _mm256_storeu_si256(color0_out as *mut __m256i, colors_blocks_0); // Store colors
+        _mm256_storeu_si256(color1_out as *mut __m256i, colors_blocks_1); // Store colors
+        color0_out = color0_out.add(16); // color0_ptr += 32 bytes / 2 = 16 u16s
+        color1_out = color1_out.add(16); // color1_ptr += 32 bytes / 2 = 16 u16s
 
-        _mm256_storeu_si256(indices_ptr as *mut __m256i, indices_blocks_0); // Store indices
-        _mm256_storeu_si256(indices_ptr.add(8) as *mut __m256i, indices_blocks_1); // Store indices (@ +32 bytes)
-        indices_ptr = indices_ptr.add(16); // indices_ptr += 64 bytes / 4 = 16 u32s
+        _mm256_storeu_si256(indices_out as *mut __m256i, indices_blocks_0); // Store indices
+        _mm256_storeu_si256(indices_out.add(8) as *mut __m256i, indices_blocks_1); // Store indices (@ +32 bytes)
+        indices_out = indices_out.add(16); // indices_ptr += 64 bytes / 4 = 16 u32s
     }
 
     // Remainder blocks handled by generic implementation
     let rem = block_count % 16;
-    if rem > 0 {
-        let variant_enum = match VARIANT {
-            1 => YCoCgVariant::Variant1,
-            2 => YCoCgVariant::Variant2,
-            3 => YCoCgVariant::Variant3,
-            _ => unreachable_unchecked(),
-        };
-        generic::transform_with_split_colour_and_decorr_generic(
-            input_ptr,
-            color0_ptr,
-            color1_ptr,
-            indices_ptr,
-            rem,
-            variant_enum,
-        );
-    }
+    let variant_enum = match VARIANT {
+        1 => YCoCgVariant::Variant1,
+        2 => YCoCgVariant::Variant2,
+        3 => YCoCgVariant::Variant3,
+        _ => unreachable_unchecked(),
+    };
+    generic::transform_with_split_colour_and_decorr_generic(
+        input_ptr,
+        color0_out,
+        color1_out,
+        indices_out,
+        rem,
+        variant_enum,
+    );
 }
 
 // Wrappers for asm inspection

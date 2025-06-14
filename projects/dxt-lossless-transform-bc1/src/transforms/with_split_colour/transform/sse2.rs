@@ -9,9 +9,9 @@ use core::arch::x86_64::*;
 #[target_feature(enable = "sse2")]
 pub(crate) unsafe fn transform_with_split_colour(
     mut input_ptr: *const u8,
-    mut color0_ptr: *mut u16,
-    mut color1_ptr: *mut u16,
-    mut indices_ptr: *mut u32,
+    mut color0_out: *mut u16,
+    mut color1_out: *mut u16,
+    mut indices_out: *mut u32,
     block_count: usize,
 ) {
     let blocks8 = block_count / 8; // round down via division
@@ -69,18 +69,18 @@ pub(crate) unsafe fn transform_with_split_colour(
         ));
 
         // Store results
-        _mm_storeu_si128(color0_ptr as *mut __m128i, colours_0);
-        _mm_storeu_si128(color1_ptr as *mut __m128i, colours_1);
-        _mm_storeu_si128(indices_ptr as *mut __m128i, idx0);
-        _mm_storeu_si128((indices_ptr as *mut __m128i).add(1), idx1);
+        _mm_storeu_si128(color0_out as *mut __m128i, colours_0);
+        _mm_storeu_si128(color1_out as *mut __m128i, colours_1);
+        _mm_storeu_si128(indices_out as *mut __m128i, idx0);
+        _mm_storeu_si128((indices_out as *mut __m128i).add(1), idx1);
 
-        color0_ptr = color0_ptr.add(8); // 16 bytes
-        color1_ptr = color1_ptr.add(8); // 16 bytes
-        indices_ptr = indices_ptr.add(8); // 32 bytes
+        color0_out = color0_out.add(8); // 16 bytes
+        color1_out = color1_out.add(8); // 16 bytes
+        indices_out = indices_out.add(8); // 32 bytes
     }
     // Handle any remaining blocks using generic fallback
     let rem = block_count % 8;
-    generic::transform_with_split_colour(input_ptr, color0_ptr, color1_ptr, indices_ptr, rem);
+    generic::transform_with_split_colour(input_ptr, color0_out, color1_out, indices_out, rem);
 }
 
 #[cfg(test)]

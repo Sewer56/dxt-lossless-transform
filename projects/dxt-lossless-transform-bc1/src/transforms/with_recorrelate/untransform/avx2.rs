@@ -9,21 +9,21 @@ use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx2::{
 };
 
 pub(crate) unsafe fn untransform_with_recorrelate(
-    colors_ptr: *const u32,
-    indices_ptr: *const u32,
+    colors_in: *const u32,
+    indices_in: *const u32,
     output_ptr: *mut u8,
     num_blocks: usize,
     decorrelation_mode: YCoCgVariant,
 ) {
     match decorrelation_mode {
         YCoCgVariant::Variant1 => {
-            untransform_recorr_var1(colors_ptr, indices_ptr, output_ptr, num_blocks);
+            untransform_recorr_var1(colors_in, indices_in, output_ptr, num_blocks);
         }
         YCoCgVariant::Variant2 => {
-            untransform_recorr_var2(colors_ptr, indices_ptr, output_ptr, num_blocks);
+            untransform_recorr_var2(colors_in, indices_in, output_ptr, num_blocks);
         }
         YCoCgVariant::Variant3 => {
-            untransform_recorr_var3(colors_ptr, indices_ptr, output_ptr, num_blocks);
+            untransform_recorr_var3(colors_in, indices_in, output_ptr, num_blocks);
         }
         YCoCgVariant::None => {
             // This should be unreachable based on the calling context
@@ -33,99 +33,92 @@ pub(crate) unsafe fn untransform_with_recorrelate(
 }
 
 // Wrapper functions for assembly inspection using `cargo asm`
-
 unsafe fn untransform_recorr_var1(
-    colors_ptr: *const u32,
-    indices_ptr: *const u32,
+    colors_in: *const u32,
+    indices_in: *const u32,
     output_ptr: *mut u8,
     num_blocks: usize,
 ) {
-    untransform_recorr::<1>(colors_ptr, indices_ptr, output_ptr, num_blocks)
+    untransform_recorr::<1>(colors_in, indices_in, output_ptr, num_blocks)
 }
 
 unsafe fn untransform_recorr_var2(
-    colors_ptr: *const u32,
-    indices_ptr: *const u32,
+    colors_in: *const u32,
+    indices_in: *const u32,
     output_ptr: *mut u8,
     num_blocks: usize,
 ) {
-    untransform_recorr::<2>(colors_ptr, indices_ptr, output_ptr, num_blocks)
+    untransform_recorr::<2>(colors_in, indices_in, output_ptr, num_blocks)
 }
 
 unsafe fn untransform_recorr_var3(
-    colors_ptr: *const u32,
-    indices_ptr: *const u32,
+    colors_in: *const u32,
+    indices_in: *const u32,
     output_ptr: *mut u8,
     num_blocks: usize,
 ) {
-    untransform_recorr::<3>(colors_ptr, indices_ptr, output_ptr, num_blocks)
+    untransform_recorr::<3>(colors_in, indices_in, output_ptr, num_blocks)
 }
 
 #[target_feature(enable = "avx2")]
 unsafe fn untransform_recorr<const VARIANT: u8>(
-    colors_ptr: *const u32,
-    indices_ptr: *const u32,
-    output_ptr: *mut u8,
+    mut colors_in: *const u32,
+    mut indices_in: *const u32,
+    mut output_ptr: *mut u8,
     num_blocks: usize,
 ) {
     // === Main Vectorized Loop ===
     // Process 16 blocks at a time using AVX2 SIMD instructions (unroll 2)
     // Calculate number of blocks that can be processed in vectorized chunks
     let vectorized_blocks = num_blocks & !15; // Round down to multiple of 16
+    let colors_end = colors_in.add(vectorized_blocks);
 
-    if vectorized_blocks > 0 {
-        let colors_end = colors_ptr.add(vectorized_blocks);
-        let mut current_colors_ptr = colors_ptr;
-        let mut current_indices_ptr = indices_ptr;
-        let mut current_output_ptr = output_ptr;
+    // Main SIMD processing loop - handles 16 blocks per iteration (unroll 2)
+    while colors_in < colors_end {
+        // Load colors and indices (32 bytes each, containing 8 blocks worth of data)
+        let colors_0 = _mm256_loadu_si256(colors_in as *const __m256i);
+        let colors_1 = _mm256_loadu_si256(colors_in.add(8) as *const __m256i);
 
-        // Main SIMD processing loop - handles 16 blocks per iteration (unroll 2)
-        while current_colors_ptr < colors_end {
-            // Load colors and indices (32 bytes each, containing 8 blocks worth of data)
-            let colors_0 = _mm256_loadu_si256(current_colors_ptr as *const __m256i);
-            let colors_1 = _mm256_loadu_si256(current_colors_ptr.add(8) as *const __m256i);
+        let indices_0 = _mm256_loadu_si256(indices_in as *const __m256i);
+        let indices_1 = _mm256_loadu_si256(indices_in.add(8) as *const __m256i);
 
-            let indices_0 = _mm256_loadu_si256(current_indices_ptr as *const __m256i);
-            let indices_1 = _mm256_loadu_si256(current_indices_ptr.add(8) as *const __m256i);
+        // Apply permutation to get proper ordering (equivalent to vpermq with 0xD8)
+        // 0xD8 = 11 01 10 00 = [0, 2, 1, 3] which reorders 64-bit elements
+        let colors_perm_0 = _mm256_permute4x64_epi64(colors_0, 0xD8);
+        let colors_perm_1 = _mm256_permute4x64_epi64(colors_1, 0xD8);
+        let indices_perm_0 = _mm256_permute4x64_epi64(indices_0, 0xD8);
+        let indices_perm_1 = _mm256_permute4x64_epi64(indices_1, 0xD8);
 
-            // Apply permutation to get proper ordering (equivalent to vpermq with 0xD8)
-            // 0xD8 = 11 01 10 00 = [0, 2, 1, 3] which reorders 64-bit elements
-            let colors_perm_0 = _mm256_permute4x64_epi64(colors_0, 0xD8);
-            let colors_perm_1 = _mm256_permute4x64_epi64(colors_1, 0xD8);
-            let indices_perm_0 = _mm256_permute4x64_epi64(indices_0, 0xD8);
-            let indices_perm_1 = _mm256_permute4x64_epi64(indices_1, 0xD8);
+        // Apply recorrelation to the colors based on the variant
+        let recorrelated_colors_0 = match VARIANT {
+            1 => recorrelate_ycocg_r_var1_avx2(colors_perm_0),
+            2 => recorrelate_ycocg_r_var2_avx2(colors_perm_0),
+            3 => recorrelate_ycocg_r_var3_avx2(colors_perm_0),
+            _ => unreachable_unchecked(),
+        };
+        let recorrelated_colors_1 = match VARIANT {
+            1 => recorrelate_ycocg_r_var1_avx2(colors_perm_1),
+            2 => recorrelate_ycocg_r_var2_avx2(colors_perm_1),
+            3 => recorrelate_ycocg_r_var3_avx2(colors_perm_1),
+            _ => unreachable_unchecked(),
+        };
 
-            // Apply recorrelation to the colors based on the variant
-            let recorrelated_colors_0 = match VARIANT {
-                1 => recorrelate_ycocg_r_var1_avx2(colors_perm_0),
-                2 => recorrelate_ycocg_r_var2_avx2(colors_perm_0),
-                3 => recorrelate_ycocg_r_var3_avx2(colors_perm_0),
-                _ => unreachable_unchecked(),
-            };
-            let recorrelated_colors_1 = match VARIANT {
-                1 => recorrelate_ycocg_r_var1_avx2(colors_perm_1),
-                2 => recorrelate_ycocg_r_var2_avx2(colors_perm_1),
-                3 => recorrelate_ycocg_r_var3_avx2(colors_perm_1),
-                _ => unreachable_unchecked(),
-            };
+        // Interleave colors and indices using unpack operations
+        // This is equivalent to vpunpckldq and vpunpckhdq from the assembly
+        let output_0 = _mm256_unpacklo_epi32(recorrelated_colors_0, indices_perm_0);
+        let output_1 = _mm256_unpackhi_epi32(recorrelated_colors_0, indices_perm_0);
+        let output_2 = _mm256_unpacklo_epi32(recorrelated_colors_1, indices_perm_1);
+        let output_3 = _mm256_unpackhi_epi32(recorrelated_colors_1, indices_perm_1);
 
-            // Interleave colors and indices using unpack operations
-            // This is equivalent to vpunpckldq and vpunpckhdq from the assembly
-            let output_0 = _mm256_unpacklo_epi32(recorrelated_colors_0, indices_perm_0);
-            let output_1 = _mm256_unpackhi_epi32(recorrelated_colors_0, indices_perm_0);
-            let output_2 = _mm256_unpacklo_epi32(recorrelated_colors_1, indices_perm_1);
-            let output_3 = _mm256_unpackhi_epi32(recorrelated_colors_1, indices_perm_1);
+        // Store results (each __m256i contains 8 BC1 blocks worth of data)
+        _mm256_storeu_si256(output_ptr as *mut __m256i, output_0);
+        _mm256_storeu_si256(output_ptr.add(32) as *mut __m256i, output_1);
+        _mm256_storeu_si256(output_ptr.add(64) as *mut __m256i, output_2);
+        _mm256_storeu_si256(output_ptr.add(96) as *mut __m256i, output_3);
 
-            // Store results (each __m256i contains 8 BC1 blocks worth of data)
-            _mm256_storeu_si256(current_output_ptr as *mut __m256i, output_0);
-            _mm256_storeu_si256(current_output_ptr.add(32) as *mut __m256i, output_1);
-            _mm256_storeu_si256(current_output_ptr.add(64) as *mut __m256i, output_2);
-            _mm256_storeu_si256(current_output_ptr.add(96) as *mut __m256i, output_3);
-
-            current_colors_ptr = current_colors_ptr.add(16);
-            current_indices_ptr = current_indices_ptr.add(16);
-            current_output_ptr = current_output_ptr.add(128);
-        }
+        colors_in = colors_in.add(16);
+        indices_in = indices_in.add(16);
+        output_ptr = output_ptr.add(128);
     }
 
     // === Scalar Fallback for Remaining Blocks ===
@@ -139,9 +132,9 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
         _ => unreachable_unchecked(),
     };
     super::generic::untransform_with_recorrelate_generic(
-        colors_ptr.add(vectorized_blocks),
-        indices_ptr.add(vectorized_blocks),
-        output_ptr.add(vectorized_blocks * 8),
+        colors_in,
+        indices_in,
+        output_ptr,
         remaining_count,
         variant,
     );

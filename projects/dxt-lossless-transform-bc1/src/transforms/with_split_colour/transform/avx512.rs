@@ -16,12 +16,11 @@ use core::arch::x86_64::*;
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[allow(clippy::identity_op)]
-#[no_mangle]
 pub(crate) unsafe fn transform_with_split_colour(
     mut input_ptr: *const u8,
-    mut color0_ptr: *mut u16,
-    mut color1_ptr: *mut u16,
-    mut indices_ptr: *mut u32,
+    mut color0_out: *mut u16,
+    mut color1_out: *mut u16,
+    mut indices_out: *mut u32,
     block_count: usize,
 ) {
     debug_assert!(block_count > 0);
@@ -139,24 +138,24 @@ pub(crate) unsafe fn transform_with_split_colour(
         let color1_only = _mm512_permutex2var_epi16(colors_0, perm_color1_epi16, colors_1);
 
         // Store color0 and color1 (64 bytes each).
-        _mm512_storeu_si512(color0_ptr as *mut __m512i, color0_only);
-        _mm512_storeu_si512(color1_ptr as *mut __m512i, color1_only);
-        color0_ptr = color0_ptr.add(BLOCKS_PER_ITER);
-        color1_ptr = color1_ptr.add(BLOCKS_PER_ITER);
+        _mm512_storeu_si512(color0_out as *mut __m512i, color0_only);
+        _mm512_storeu_si512(color1_out as *mut __m512i, color1_only);
+        color0_out = color0_out.add(BLOCKS_PER_ITER);
+        color1_out = color1_out.add(BLOCKS_PER_ITER);
 
         // Store indices (two 64-byte stores = 32 u32 values).
-        _mm512_storeu_si512(indices_ptr as *mut __m512i, indices_0);
-        _mm512_storeu_si512(indices_ptr.add(16) as *mut __m512i, indices_1);
-        indices_ptr = indices_ptr.add(BLOCKS_PER_ITER);
+        _mm512_storeu_si512(indices_out as *mut __m512i, indices_0);
+        _mm512_storeu_si512(indices_out.add(16) as *mut __m512i, indices_1);
+        indices_out = indices_out.add(BLOCKS_PER_ITER);
     }
 
     // Process any remaining blocks via the portable fallback.
     let remaining_blocks = block_count - aligned_blocks;
     generic::transform_with_split_colour(
         input_ptr,
-        color0_ptr,
-        color1_ptr,
-        indices_ptr,
+        color0_out,
+        color1_out,
+        indices_out,
         remaining_blocks,
     );
 }

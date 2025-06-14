@@ -25,14 +25,15 @@ mod sse2;
 /// Refer to individual backend implementations for exact requirements. In
 /// general:
 /// - `input_ptr` must be valid for `block_count*8` bytes of reads.
-/// - `color0_ptr`, `color1_ptr` must be valid for `block_count*2` bytes of writes.
-/// - `indices_ptr` must be valid for `block_count*4` bytes of writes.
+/// - `color0_out` must be valid for `block_count*2` bytes of writes.
+/// - `color1_out` must be valid for `block_count*2` bytes of writes.
+/// - `indices_out` must be valid for `block_count*4` bytes of writes.
 #[inline]
 pub unsafe fn transform_with_split_colour_and_recorr(
     input_ptr: *const u8,
-    color0_ptr: *mut u16,
-    color1_ptr: *mut u16,
-    indices_ptr: *mut u32,
+    color0_out: *mut u16,
+    color1_out: *mut u16,
+    indices_out: *mut u32,
     block_count: usize,
     decorrelation_mode: YCoCgVariant,
 ) {
@@ -42,9 +43,9 @@ pub unsafe fn transform_with_split_colour_and_recorr(
     {
         transform_with_split_colour_and_recorr_x86(
             input_ptr,
-            color0_ptr,
-            color1_ptr,
-            indices_ptr,
+            color0_out,
+            color1_out,
+            indices_out,
             block_count,
             decorrelation_mode,
         );
@@ -54,9 +55,9 @@ pub unsafe fn transform_with_split_colour_and_recorr(
     {
         generic::transform_with_split_colour_and_decorr_generic(
             input_ptr,
-            color0_ptr,
-            color1_ptr,
-            indices_ptr,
+            color0_out,
+            color1_out,
+            indices_out,
             block_count,
             decorrelation_mode,
         );

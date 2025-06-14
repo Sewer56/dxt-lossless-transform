@@ -4,22 +4,23 @@ use core::ptr::write_unaligned;
 use dxt_lossless_transform_common::color_565::Color565;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
+#[inline]
 pub(crate) unsafe fn untransform_with_recorrelate_generic(
-    colors_ptr: *const u32,
-    indices_ptr: *const u32,
+    colors_in: *const u32,
+    indices_in: *const u32,
     output_ptr: *mut u8,
     num_blocks: usize,
     decorrelation_mode: YCoCgVariant,
 ) {
     match decorrelation_mode {
         YCoCgVariant::Variant1 => {
-            untransform_recorr_var1(colors_ptr, indices_ptr, output_ptr, num_blocks);
+            untransform_recorr_var1(colors_in, indices_in, output_ptr, num_blocks);
         }
         YCoCgVariant::Variant2 => {
-            untransform_recorr_var2(colors_ptr, indices_ptr, output_ptr, num_blocks);
+            untransform_recorr_var2(colors_in, indices_in, output_ptr, num_blocks);
         }
         YCoCgVariant::Variant3 => {
-            untransform_recorr_var3(colors_ptr, indices_ptr, output_ptr, num_blocks);
+            untransform_recorr_var3(colors_in, indices_in, output_ptr, num_blocks);
         }
         YCoCgVariant::None => unreachable_unchecked(),
     }
@@ -27,46 +28,46 @@ pub(crate) unsafe fn untransform_with_recorrelate_generic(
 
 // Wrapper functions for assembly inspection using `cargo asm`
 unsafe fn untransform_recorr_var1(
-    colors_ptr: *const u32,
-    indices_ptr: *const u32,
+    colors_in: *const u32,
+    indices_in: *const u32,
     output_ptr: *mut u8,
     num_blocks: usize,
 ) {
-    untransform_recorr::<1>(colors_ptr, indices_ptr, output_ptr, num_blocks)
+    untransform_recorr::<1>(colors_in, indices_in, output_ptr, num_blocks)
 }
 
 unsafe fn untransform_recorr_var2(
-    colors_ptr: *const u32,
-    indices_ptr: *const u32,
+    colors_in: *const u32,
+    indices_in: *const u32,
     output_ptr: *mut u8,
     num_blocks: usize,
 ) {
-    untransform_recorr::<2>(colors_ptr, indices_ptr, output_ptr, num_blocks)
+    untransform_recorr::<2>(colors_in, indices_in, output_ptr, num_blocks)
 }
 
 unsafe fn untransform_recorr_var3(
-    colors_ptr: *const u32,
-    indices_ptr: *const u32,
+    colors_in: *const u32,
+    indices_in: *const u32,
     output_ptr: *mut u8,
     num_blocks: usize,
 ) {
-    untransform_recorr::<3>(colors_ptr, indices_ptr, output_ptr, num_blocks)
+    untransform_recorr::<3>(colors_in, indices_in, output_ptr, num_blocks)
 }
 
 unsafe fn untransform_recorr<const VARIANT: u8>(
-    mut colors_ptr: *const u32,
-    mut indices_ptr: *const u32,
+    mut colors_in: *const u32,
+    mut indices_in: *const u32,
     mut output_ptr: *mut u8,
     num_blocks: usize,
 ) {
-    let colors_end = colors_ptr.add(num_blocks);
-    while colors_ptr < colors_end {
+    let colors_end = colors_in.add(num_blocks);
+    while colors_in < colors_end {
         // Read both values first (better instruction scheduling)
-        let color_raw = read_unaligned(colors_ptr);
-        let index_value = read_unaligned(indices_ptr);
+        let color_raw = read_unaligned(colors_in);
+        let index_value = read_unaligned(indices_in);
 
-        colors_ptr = colors_ptr.add(1);
-        indices_ptr = indices_ptr.add(1);
+        colors_in = colors_in.add(1);
+        indices_in = indices_in.add(1);
 
         // Extract both [`Color565`] values from the u32
         let color0 = Color565::from_raw(color_raw as u16);

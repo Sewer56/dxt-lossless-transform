@@ -13,9 +13,9 @@ use dxt_lossless_transform_common::intrinsics::color_565::decorrelate::sse2::{
 #[target_feature(enable = "sse2")]
 unsafe fn transform_impl<const VARIANT: u8>(
     mut input_ptr: *const u8,
-    mut color0_ptr: *mut u16,
-    mut color1_ptr: *mut u16,
-    mut indices_ptr: *mut u32,
+    mut color0_out: *mut u16,
+    mut color1_out: *mut u16,
+    mut indices_out: *mut u32,
     block_count: usize,
 ) {
     let blocks8 = block_count / 8; // round down via division
@@ -88,34 +88,32 @@ unsafe fn transform_impl<const VARIANT: u8>(
         };
 
         // Store results
-        _mm_storeu_si128(color0_ptr as *mut __m128i, colours_0);
-        _mm_storeu_si128(color1_ptr as *mut __m128i, colours_1);
-        _mm_storeu_si128(indices_ptr as *mut __m128i, idx0);
-        _mm_storeu_si128((indices_ptr as *mut __m128i).add(1), idx1);
+        _mm_storeu_si128(color0_out as *mut __m128i, colours_0);
+        _mm_storeu_si128(color1_out as *mut __m128i, colours_1);
+        _mm_storeu_si128(indices_out as *mut __m128i, idx0);
+        _mm_storeu_si128((indices_out as *mut __m128i).add(1), idx1);
 
-        color0_ptr = color0_ptr.add(8); // 16 bytes
-        color1_ptr = color1_ptr.add(8); // 16 bytes
-        indices_ptr = indices_ptr.add(8); // 32 bytes
+        color0_out = color0_out.add(8); // 16 bytes
+        color1_out = color1_out.add(8); // 16 bytes
+        indices_out = indices_out.add(8); // 32 bytes
     }
 
     // Remainder
     let remainder_blocks = block_count % 8;
-    if remainder_blocks > 0 {
-        let variant_enum = match VARIANT {
-            1 => YCoCgVariant::Variant1,
-            2 => YCoCgVariant::Variant2,
-            3 => YCoCgVariant::Variant3,
-            _ => unreachable_unchecked(),
-        };
-        generic::transform_with_split_colour_and_decorr_generic(
-            input_ptr,
-            color0_ptr,
-            color1_ptr,
-            indices_ptr,
-            remainder_blocks,
-            variant_enum,
-        );
-    }
+    let variant_enum = match VARIANT {
+        1 => YCoCgVariant::Variant1,
+        2 => YCoCgVariant::Variant2,
+        3 => YCoCgVariant::Variant3,
+        _ => unreachable_unchecked(),
+    };
+    generic::transform_with_split_colour_and_decorr_generic(
+        input_ptr,
+        color0_out,
+        color1_out,
+        indices_out,
+        remainder_blocks,
+        variant_enum,
+    );
 }
 
 // Wrappers for asm inspection
@@ -153,21 +151,21 @@ unsafe fn transform_var3(
 #[inline(always)]
 pub(crate) unsafe fn transform_with_split_colour_and_decorr(
     input_ptr: *const u8,
-    color0_ptr: *mut u16,
-    color1_ptr: *mut u16,
-    indices_ptr: *mut u32,
+    color0_out: *mut u16,
+    color1_out: *mut u16,
+    indices_out: *mut u32,
     blocks: usize,
     variant: YCoCgVariant,
 ) {
     match variant {
         YCoCgVariant::Variant1 => {
-            transform_var1(input_ptr, color0_ptr, color1_ptr, indices_ptr, blocks)
+            transform_var1(input_ptr, color0_out, color1_out, indices_out, blocks)
         }
         YCoCgVariant::Variant2 => {
-            transform_var2(input_ptr, color0_ptr, color1_ptr, indices_ptr, blocks)
+            transform_var2(input_ptr, color0_out, color1_out, indices_out, blocks)
         }
         YCoCgVariant::Variant3 => {
-            transform_var3(input_ptr, color0_ptr, color1_ptr, indices_ptr, blocks)
+            transform_var3(input_ptr, color0_out, color1_out, indices_out, blocks)
         }
         YCoCgVariant::None => unreachable_unchecked(),
     }

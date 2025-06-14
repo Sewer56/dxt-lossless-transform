@@ -1,4 +1,5 @@
 #![allow(clippy::missing_safety_doc)]
+#![cfg(not(tarpaulin_include))]
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod sse2;

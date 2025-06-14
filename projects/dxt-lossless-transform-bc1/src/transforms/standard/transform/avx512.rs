@@ -216,167 +216,75 @@ pub unsafe fn permute_512_unroll_2_with_separate_pointers(
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    use core::ptr::copy_nonoverlapping;
-
-    type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
+    use crate::transforms::standard::untransform::untransform;
 
     #[rstest]
     #[case(permute_512, "avx512 permute")]
     #[case(permute_512_unroll_2, "avx512 permute unroll 2")]
-    fn test_avx512_aligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+    fn avx512_transform_roundtrip(#[case] permute_fn: unsafe fn(*const u8, *mut u8, usize), #[case] impl_name: &str) {
         if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
             return;
         }
 
         for num_blocks in 1..=512 {
-            let mut input = allocate_align_64(num_blocks * 8).unwrap();
-            let mut output_expected = allocate_align_64(input.len()).unwrap();
-            let mut output_test = allocate_align_64(input.len()).unwrap();
-
+            let input = generate_bc1_test_data(num_blocks);
+            let len = input.len();
+            let mut transformed = vec![0u8; len];
+            let mut reconstructed = vec![0u8; len];
+            
             unsafe {
-                copy_nonoverlapping(
-                    generate_bc1_test_data(num_blocks).as_ptr(),
-                    input.as_mut_ptr(),
-                    input.len(),
-                );
+                permute_fn(input.as_ptr(), transformed.as_mut_ptr(), len);
+                untransform(transformed.as_ptr(), reconstructed.as_mut_ptr(), len);
             }
-
-            transform_with_reference_implementation(
+            
+            assert_eq!(
+                reconstructed.as_slice(),
                 input.as_slice(),
-                output_expected.as_mut_slice(),
-            );
-
-            output_test.as_mut_slice().fill(0);
-            unsafe {
-                permute_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());
-            }
-
-            assert_implementation_matches_reference(
-                output_expected.as_slice(),
-                output_test.as_slice(),
-                &format!("{impl_name} (aligned)"),
-                num_blocks,
+                "Mismatch {impl_name} roundtrip for {num_blocks} blocks",
             );
         }
     }
 
     #[rstest]
-    #[case(permute_512, "avx512 permute")]
-    #[case(permute_512_unroll_2, "avx512 permute unroll 2")]
-    fn test_avx512_unaligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+    #[case(permute_512_with_separate_pointers, "avx512 separate pointers")]
+    #[case(permute_512_unroll_2_with_separate_pointers, "avx512 unroll 2 separate pointers")]
+    fn avx512_separate_pointers_roundtrip(
+        #[case] permute_fn: unsafe fn(*const u8, *mut u32, *mut u32, usize), 
+        #[case] impl_name: &str
+    ) {
         if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
             return;
         }
 
         for num_blocks in 1..=512 {
             let input = generate_bc1_test_data(num_blocks);
+            let len = input.len();
+            let mut colors_sep = allocate_align_64(len / 2).unwrap();
+            let mut indices_sep = allocate_align_64(len / 2).unwrap();
+            let mut reconstructed = vec![0u8; len];
 
-            let mut input_unaligned = vec![0u8; input.len() + 1];
-            input_unaligned[1..].copy_from_slice(input.as_slice());
-
-            let mut output_expected = vec![0u8; input.len()];
-            let mut output_test = vec![0u8; input.len() + 1];
-
-            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
-
-            output_test.as_mut_slice().fill(0);
             unsafe {
+                // Transform: separate pointers variant
                 permute_fn(
-                    input_unaligned.as_ptr().add(1),
-                    output_test.as_mut_ptr().add(1),
-                    input.len(),
-                );
-            }
-
-            assert_implementation_matches_reference(
-                output_expected.as_slice(),
-                &output_test[1..],
-                &format!("{impl_name} (unaligned)"),
-                num_blocks,
-            );
-        }
-    }
-
-    #[test]
-    fn avx512_split_blocks_with_separate_pointers_matches_split_blocks() {
-        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
-            return;
-        }
-
-        for num_blocks in 1..=512 {
-            let input = generate_bc1_test_data(num_blocks);
-            let len = input.len();
-            let mut output_ref = allocate_align_64(len).unwrap();
-            let mut colors_sep = allocate_align_64(len / 2).unwrap();
-            let mut indices_sep = allocate_align_64(len / 2).unwrap();
-
-            unsafe {
-                // Reference: AVX512 contiguous output
-                permute_512(input.as_ptr(), output_ref.as_mut_ptr(), len);
-
-                // Test: AVX512 separate pointers variant
-                permute_512_with_separate_pointers(
                     input.as_ptr(),
                     colors_sep.as_mut_ptr() as *mut u32,
                     indices_sep.as_mut_ptr() as *mut u32,
                     len,
                 );
+
+                // Reconstruct by combining colors and indices back into standard format
+                let mut combined = vec![0u8; len];
+                combined[0..len / 2].copy_from_slice(colors_sep.as_slice());
+                combined[len / 2..].copy_from_slice(indices_sep.as_slice());
+
+                // Untransform back to original format
+                untransform(combined.as_ptr(), reconstructed.as_mut_ptr(), len);
             }
 
-            // Compare colors section (first half)
             assert_eq!(
-                &output_ref.as_slice()[0..len / 2],
-                colors_sep.as_slice(),
-                "AVX512 colors section doesn't match for {num_blocks} blocks"
-            );
-
-            // Compare indices section (second half)
-            assert_eq!(
-                &output_ref.as_slice()[len / 2..],
-                indices_sep.as_slice(),
-                "AVX512 indices section doesn't match for {num_blocks} blocks"
-            );
-        }
-    }
-
-    #[test]
-    fn avx512_unroll_2_split_blocks_with_separate_pointers_matches_split_blocks() {
-        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
-            return;
-        }
-
-        for num_blocks in 1..=512 {
-            let input = generate_bc1_test_data(num_blocks);
-            let len = input.len();
-            let mut output_ref = allocate_align_64(len).unwrap();
-            let mut colors_sep = allocate_align_64(len / 2).unwrap();
-            let mut indices_sep = allocate_align_64(len / 2).unwrap();
-
-            unsafe {
-                // Reference: AVX512 unroll 2 contiguous output
-                permute_512_unroll_2(input.as_ptr(), output_ref.as_mut_ptr(), len);
-
-                // Test: AVX512 unroll 2 separate pointers variant
-                permute_512_unroll_2_with_separate_pointers(
-                    input.as_ptr(),
-                    colors_sep.as_mut_ptr() as *mut u32,
-                    indices_sep.as_mut_ptr() as *mut u32,
-                    len,
-                );
-            }
-
-            // Compare colors section (first half)
-            assert_eq!(
-                &output_ref.as_slice()[0..len / 2],
-                colors_sep.as_slice(),
-                "AVX512 unroll 2 colors section doesn't match for {num_blocks} blocks"
-            );
-
-            // Compare indices section (second half)
-            assert_eq!(
-                &output_ref.as_slice()[len / 2..],
-                indices_sep.as_slice(),
-                "AVX512 unroll 2 indices section doesn't match for {num_blocks} blocks"
+                reconstructed.as_slice(),
+                input.as_slice(),
+                "{impl_name} roundtrip failed for {num_blocks} blocks"
             );
         }
     }

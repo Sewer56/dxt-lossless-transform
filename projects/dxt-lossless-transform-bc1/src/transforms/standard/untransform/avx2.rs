@@ -379,7 +379,6 @@ pub unsafe fn unpck_detransform_unroll_2(
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    use crate::transforms::standard::transform::u32;
 
     type DetransformFn = unsafe fn(*const u8, *mut u8, usize);
 
@@ -400,7 +399,7 @@ mod tests {
 
             unsafe {
                 // Transform using standard implementation
-                u32(original.as_ptr(), transformed.as_mut_ptr(), original.len());
+                transform(original.as_ptr(), transformed.as_mut_ptr(), original.len());
 
                 // Reconstruct using the implementation being tested
                 reconstructed.as_mut_slice().fill(0);
@@ -432,7 +431,7 @@ mod tests {
             // Transform using standard implementation
             let mut transformed = vec![0u8; original.len()];
             unsafe {
-                u32(original.as_ptr(), transformed.as_mut_ptr(), original.len());
+                transform(original.as_ptr(), transformed.as_mut_ptr(), original.len());
             }
 
             // Add 1 extra byte at the beginning to create misaligned buffers

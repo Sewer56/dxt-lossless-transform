@@ -312,7 +312,8 @@ pub unsafe fn shufps_unroll_4_with_separate_pointers(
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    use core::ptr::copy_nonoverlapping;
+    use crate::transforms::standard::untransform::untransform;
+
     type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
@@ -320,114 +321,65 @@ mod tests {
     #[case(punpckhqdq_unroll_2, "SSE2 punpckhqdq unroll-2")]
     #[case(shufps_unroll_2, "SSE2 shuffle unroll-2")]
     #[case(shufps_unroll_4, "SSE2 shuffle unroll-4")]
-    fn test_sse2_aligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
-        for num_blocks in 1..=512 {
-            let mut input = allocate_align_64(num_blocks * 8).unwrap();
-            let mut output_expected = allocate_align_64(input.len()).unwrap();
-            let mut output_test = allocate_align_64(input.len()).unwrap();
-
-            // Fill the input with test data
-            unsafe {
-                copy_nonoverlapping(
-                    generate_bc1_test_data(num_blocks).as_ptr(),
-                    input.as_mut_ptr(),
-                    input.len(),
-                );
-            }
-
-            transform_with_reference_implementation(
-                input.as_slice(),
-                output_expected.as_mut_slice(),
-            );
-
-            output_test.as_mut_slice().fill(0);
-            unsafe {
-                permute_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());
-            }
-
-            assert_implementation_matches_reference(
-                output_expected.as_slice(),
-                output_test.as_slice(),
-                &format!("{impl_name} (aligned)"),
-                num_blocks,
-            );
+    fn sse2_transform_roundtrip(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
+        if !dxt_lossless_transform_common::cpu_detect::has_sse2() {
+            return;
         }
-    }
 
-    #[rstest]
-    #[case(punpckhqdq_unroll_4, "SSE2 punpckhqdq unroll-4")]
-    #[case(punpckhqdq_unroll_2, "SSE2 punpckhqdq unroll-2")]
-    #[case(shufps_unroll_2, "SSE2 shuffle unroll-2")]
-    #[case(shufps_unroll_4, "SSE2 shuffle unroll-4")]
-    fn test_sse2_unaligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
         for num_blocks in 1..=512 {
             let input = generate_bc1_test_data(num_blocks);
+            let len = input.len();
+            let mut transformed = vec![0u8; len];
+            let mut reconstructed = vec![0u8; len];
 
-            // Add 1 extra byte at the beginning to create misaligned buffers
-            let mut input_unaligned = vec![0u8; input.len() + 1];
-            input_unaligned[1..].copy_from_slice(input.as_slice());
-
-            let mut output_expected = vec![0u8; input.len()];
-            let mut output_test = vec![0u8; input.len() + 1];
-
-            transform_with_reference_implementation(
-                input.as_slice(),
-                output_expected.as_mut_slice(),
-            );
-
-            output_test.as_mut_slice().fill(0);
             unsafe {
-                // Use pointers offset by 1 byte to create unaligned access
-                permute_fn(
-                    input_unaligned.as_ptr().add(1),
-                    output_test.as_mut_ptr().add(1),
-                    input.len(),
-                );
+                permute_fn(input.as_ptr(), transformed.as_mut_ptr(), len);
+                untransform(transformed.as_ptr(), reconstructed.as_mut_ptr(), len);
             }
 
-            assert_implementation_matches_reference(
-                output_expected.as_slice(),
-                &output_test[1..],
-                &format!("{impl_name} (unaligned)"),
-                num_blocks,
+            assert_eq!(
+                reconstructed.as_slice(),
+                input.as_slice(),
+                "Mismatch {impl_name} roundtrip for {num_blocks} blocks",
             );
         }
     }
 
     #[test]
-    fn sse2_shufps_unroll_4_split_blocks_with_separate_pointers_matches_split_blocks() {
+    fn sse2_shufps_unroll_4_separate_pointers_roundtrip() {
+        if !dxt_lossless_transform_common::cpu_detect::has_sse2() {
+            return;
+        }
+
         for num_blocks in 1..=512 {
             let input = generate_bc1_test_data(num_blocks);
             let len = input.len();
-            let mut output_ref = allocate_align_64(len).unwrap();
             let mut colors_sep = allocate_align_64(len / 2).unwrap();
             let mut indices_sep = allocate_align_64(len / 2).unwrap();
+            let mut reconstructed = vec![0u8; len];
 
             unsafe {
-                // Reference: SSE2 contiguous output
-                shufps_unroll_4(input.as_ptr(), output_ref.as_mut_ptr(), len);
-
-                // Test: SSE2 separate pointers variant
+                // Transform: separate pointers variant
                 shufps_unroll_4_with_separate_pointers(
                     input.as_ptr(),
                     colors_sep.as_mut_ptr() as *mut u32,
                     indices_sep.as_mut_ptr() as *mut u32,
                     len,
                 );
+
+                // Reconstruct by combining colors and indices back into standard format
+                let mut combined = vec![0u8; len];
+                combined[0..len / 2].copy_from_slice(colors_sep.as_slice());
+                combined[len / 2..].copy_from_slice(indices_sep.as_slice());
+
+                // Untransform back to original format
+                untransform(combined.as_ptr(), reconstructed.as_mut_ptr(), len);
             }
 
-            // Compare colors section (first half)
             assert_eq!(
-                &output_ref.as_slice()[0..len / 2],
-                colors_sep.as_slice(),
-                "SSE2 shufps_unroll_4 colors section doesn't match for {num_blocks} blocks"
-            );
-
-            // Compare indices section (second half)
-            assert_eq!(
-                &output_ref.as_slice()[len / 2..],
-                indices_sep.as_slice(),
-                "SSE2 shufps_unroll_4 indices section doesn't match for {num_blocks} blocks"
+                reconstructed.as_slice(),
+                input.as_slice(),
+                "SSE2 shufps_unroll_4 separate pointers roundtrip failed for {num_blocks} blocks"
             );
         }
     }

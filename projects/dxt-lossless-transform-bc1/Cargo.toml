@@ -17,6 +17,8 @@ pgo = []
 no-runtime-cpu-detection = []
 # Use nightly compiler features (AVX512)
 nightly = ["dxt-lossless-transform-common/nightly"]
+# Code only required for benchmarks.
+bench = []
 
 [dependencies]
 dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }

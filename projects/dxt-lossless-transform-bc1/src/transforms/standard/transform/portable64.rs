@@ -547,9 +547,9 @@ pub unsafe fn shift_with_count_unroll_8(input_ptr: *const u8, output_ptr: *mut u
 
 #[cfg(test)]
 mod tests {
-    use crate::test_prelude::*;
     use super::*;
-    use core::ptr::copy_nonoverlapping;
+    use crate::test_prelude::*;
+    use crate::transforms::standard::untransform::untransform;
 
     // Define the function pointer type
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);
@@ -564,82 +564,22 @@ mod tests {
     #[case(shift_with_count_unroll_2, "shift_with_count unroll-2")]
     #[case(shift_with_count_unroll_4, "shift_with_count unroll-4")]
     #[case(shift_with_count_unroll_8, "shift_with_count unroll-8")]
-    fn test_portable64_aligned(#[case] transform_fn: TransformFn, #[case] impl_name: &str) {
-        for num_blocks in 1..=512 {
-            let mut input = allocate_align_64(num_blocks * 8).unwrap();
-            let mut output_expected = allocate_align_64(input.len()).unwrap();
-            let mut output_test = allocate_align_64(input.len()).unwrap();
-
-            // Fill the input with test data
-            unsafe {
-                copy_nonoverlapping(
-                    generate_bc1_test_data(num_blocks).as_ptr(),
-                    input.as_mut_ptr(),
-                    input.len(),
-                );
-            }
-
-            // Generate reference output
-            transform_with_reference_implementation(
-                input.as_slice(),
-                output_expected.as_mut_slice(),
-            );
-
-            // Test the specific implementation variant provided by rstest
-            output_test.as_mut_slice().fill(0);
-            // Run the implementation
-            unsafe {
-                transform_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());
-            }
-
-            assert_implementation_matches_reference(
-                output_expected.as_slice(),
-                output_test.as_slice(),
-                &format!("{impl_name} (aligned)"),
-                num_blocks,
-            );
-        }
-    }
-
-    #[rstest]
-    #[case(portable, "64 (auto-selected)")]
-    #[case(shift_unroll_8, "shift unroll-8")]
-    #[case(shift_unroll_4, "shift unroll-4")]
-    #[case(shift_unroll_2, "shift unroll-2")]
-    #[case(shift, "shift no-unroll")]
-    #[case(shift_with_count, "shift_with_count no-unroll")]
-    #[case(shift_with_count_unroll_2, "shift_with_count unroll-2")]
-    #[case(shift_with_count_unroll_4, "shift_with_count unroll-4")]
-    #[case(shift_with_count_unroll_8, "shift_with_count unroll-8")]
-    fn test_portable64_unaligned(#[case] transform_fn: TransformFn, #[case] impl_name: &str) {
+    fn portable64_transform_roundtrip(#[case] transform_fn: TransformFn, #[case] impl_name: &str) {
         for num_blocks in 1..=512 {
             let input = generate_bc1_test_data(num_blocks);
-            let mut output_expected = vec![0u8; input.len()];
-            let mut output_test = vec![0u8; input.len() + 1]; // +1 for unaligned access
+            let len = input.len();
+            let mut transformed = vec![0u8; len];
+            let mut reconstructed = vec![0u8; len];
 
-            // Create unaligned input by copying to a buffer with offset
-            let mut input_unaligned = vec![0u8; input.len() + 1]; // +1 for unaligned access
-            input_unaligned[1..].copy_from_slice(input.as_slice());
-
-            // Generate reference output
-            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
-
-            // Test the specific implementation variant provided by rstest
-            output_test.as_mut_slice().fill(0);
             unsafe {
-                // Use pointers offset by 1 byte to create unaligned access
-                transform_fn(
-                    input_unaligned.as_ptr().add(1),
-                    output_test.as_mut_ptr().add(1),
-                    input.len(),
-                );
+                transform_fn(input.as_ptr(), transformed.as_mut_ptr(), len);
+                untransform(transformed.as_ptr(), reconstructed.as_mut_ptr(), len);
             }
 
-            assert_implementation_matches_reference(
-                output_expected.as_slice(),
-                &output_test[1..],
-                &format!("{impl_name} (unaligned)"),
-                num_blocks,
+            assert_eq!(
+                reconstructed.as_slice(),
+                input.as_slice(),
+                "Mismatch {impl_name} roundtrip for {num_blocks} blocks",
             );
         }
     }

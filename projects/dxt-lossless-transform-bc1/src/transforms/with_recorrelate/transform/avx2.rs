@@ -166,6 +166,10 @@ mod tests {
         #[case] variant: YCoCgVariant,
         #[case] max_blocks: usize,
     ) {
+        if !has_avx2() {
+            return;
+        }
+
         run_with_decorrelate_transform_roundtrip_test(func, variant, max_blocks, "AVX2");
     }
 }

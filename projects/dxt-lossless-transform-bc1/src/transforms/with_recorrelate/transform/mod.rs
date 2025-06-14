@@ -57,8 +57,8 @@ pub(crate) unsafe fn transform_with_decorrelate(
 #[inline(always)]
 unsafe fn transform_with_decorrelate_x86(
     input_ptr: *const u8,
-    colors_ptr: *mut u32,
-    indices_ptr: *mut u32,
+    colors_out: *mut u32,
+    indices_out: *mut u32,
     num_blocks: usize,
     decorrelation_mode: YCoCgVariant,
 ) {
@@ -71,8 +71,8 @@ unsafe fn transform_with_decorrelate_x86(
         if has_avx512f() && has_avx512bw() {
             avx512::transform_with_decorrelate(
                 input_ptr,
-                colors_ptr,
-                indices_ptr,
+                colors_out,
+                indices_out,
                 num_blocks,
                 decorrelation_mode,
             );
@@ -82,8 +82,8 @@ unsafe fn transform_with_decorrelate_x86(
         if has_avx2() {
             avx2::transform_with_decorrelate(
                 input_ptr,
-                colors_ptr,
-                indices_ptr,
+                colors_out,
+                indices_out,
                 num_blocks,
                 decorrelation_mode,
             );
@@ -93,8 +93,8 @@ unsafe fn transform_with_decorrelate_x86(
         if has_sse2() {
             sse2::transform_with_decorrelate(
                 input_ptr,
-                colors_ptr,
-                indices_ptr,
+                colors_out,
+                indices_out,
                 num_blocks,
                 decorrelation_mode,
             );
@@ -108,8 +108,8 @@ unsafe fn transform_with_decorrelate_x86(
         if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512bw") {
             avx512::transform_with_decorrelate(
                 input_ptr,
-                colors_ptr,
-                indices_ptr,
+                colors_out,
+                indices_out,
                 num_blocks,
                 decorrelation_mode,
             );
@@ -120,8 +120,8 @@ unsafe fn transform_with_decorrelate_x86(
         if cfg!(target_feature = "avx2") {
             avx2::transform_with_decorrelate(
                 input_ptr,
-                colors_ptr,
-                indices_ptr,
+                colors_out,
+                indices_out,
                 num_blocks,
                 decorrelation_mode,
             );
@@ -132,8 +132,8 @@ unsafe fn transform_with_decorrelate_x86(
         if cfg!(target_feature = "sse2") {
             sse2::transform_with_decorrelate(
                 input_ptr,
-                colors_ptr,
-                indices_ptr,
+                colors_out,
+                indices_out,
                 num_blocks,
                 decorrelation_mode,
             );
@@ -144,8 +144,8 @@ unsafe fn transform_with_decorrelate_x86(
     // Fallback to generic implementation
     generic::transform_with_decorrelate_generic(
         input_ptr,
-        colors_ptr,
-        indices_ptr,
+        colors_out,
+        indices_out,
         num_blocks,
         decorrelation_mode,
     );

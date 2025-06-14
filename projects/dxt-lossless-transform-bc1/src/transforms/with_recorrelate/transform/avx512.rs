@@ -16,67 +16,70 @@ const PERM_INDICES_BYTES: [i8; 16] = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23,
 
 #[target_feature(enable = "avx512f")]
 unsafe fn transform_decorr<const VARIANT: u8>(
-    input_ptr: *const u8,
-    colours_ptr: *mut u32,
-    indices_ptr: *mut u32,
+    mut input_ptr: *const u8,
+    mut colours_out: *mut u32,
+    mut indices_out: *mut u32,
     num_blocks: usize,
 ) {
-    // Pointer and block setup
-    let mut src = input_ptr;
-    let mut col_out = colours_ptr;
-    let mut idx_out = indices_ptr;
-    let blocks32 = num_blocks / 32;
-    let rem = num_blocks % 32;
-    if blocks32 > 0 {
-        // Load permutation patterns and sign-extend to dwords
-        let perm_colors =
-            _mm512_cvtepi8_epi32(_mm_loadu_si128(PERM_COLORS_BYTES.as_ptr() as *const _));
-        let perm_indices =
-            _mm512_cvtepi8_epi32(_mm_loadu_si128(PERM_INDICES_BYTES.as_ptr() as *const _));
-        let input_end = input_ptr.add(blocks32 * 32 * 8); // blocks32 * 32 blocks per iteration * 8 bytes per block
-        while src < input_end {
-            // Load 256 bytes (4 × 64-byte ZMM registers) = 32 BC1 blocks.
-            let in0 = _mm512_loadu_si512(src as *const __m512i);
-            let in1 = _mm512_loadu_si512(src.add(64) as *const __m512i);
-            let in2 = _mm512_loadu_si512(src.add(128) as *const __m512i);
-            let in3 = _mm512_loadu_si512(src.add(192) as *const __m512i);
-            src = src.add(256);
+    // Load permutation patterns and sign-extend to dwords
+    let perm_colors = _mm512_cvtepi8_epi32(_mm_loadu_si128(PERM_COLORS_BYTES.as_ptr() as *const _));
+    let perm_indices =
+        _mm512_cvtepi8_epi32(_mm_loadu_si128(PERM_INDICES_BYTES.as_ptr() as *const _));
 
-            // Split and decorrelate colors
-            let col0 = _mm512_permutex2var_epi32(in0, perm_colors, in1);
-            let rec0 = match VARIANT {
-                1 => decorrelate_ycocg_r_var1_avx512(col0),
-                2 => decorrelate_ycocg_r_var2_avx512(col0),
-                3 => decorrelate_ycocg_r_var3_avx512(col0),
-                _ => unreachable_unchecked(),
-            };
-            _mm512_storeu_si512(col_out as *mut __m512i, rec0);
-            let col1 = _mm512_permutex2var_epi32(in2, perm_colors, in3);
-            let rec1 = match VARIANT {
-                1 => decorrelate_ycocg_r_var1_avx512(col1),
-                2 => decorrelate_ycocg_r_var2_avx512(col1),
-                3 => decorrelate_ycocg_r_var3_avx512(col1),
-                _ => unreachable_unchecked(),
-            };
-            _mm512_storeu_si512(col_out.add(16) as *mut __m512i, rec1);
-            col_out = col_out.add(32);
-            // Split indices and store
-            let idx0 = _mm512_permutex2var_epi32(in0, perm_indices, in1);
-            _mm512_storeu_si512(idx_out as *mut __m512i, idx0);
-            let idx1 = _mm512_permutex2var_epi32(in2, perm_indices, in3);
-            _mm512_storeu_si512(idx_out.add(16) as *mut __m512i, idx1);
-            idx_out = idx_out.add(32);
-        }
-    }
-    if rem > 0 {
-        let variant_enum = match VARIANT {
-            1 => YCoCgVariant::Variant1,
-            2 => YCoCgVariant::Variant2,
-            3 => YCoCgVariant::Variant3,
+    // Pointer and block setup
+    let blocks32 = num_blocks / 32;
+    let input_end = input_ptr.add(blocks32 * 32 * 8); // blocks32 * 32 blocks per iteration * 8 bytes per block
+
+    while input_ptr < input_end {
+        // Load 256 bytes (4 × 64-byte ZMM registers) = 32 BC1 blocks.
+        let in0 = _mm512_loadu_si512(input_ptr as *const __m512i);
+        let in1 = _mm512_loadu_si512(input_ptr.add(64) as *const __m512i);
+        let in2 = _mm512_loadu_si512(input_ptr.add(128) as *const __m512i);
+        let in3 = _mm512_loadu_si512(input_ptr.add(192) as *const __m512i);
+        input_ptr = input_ptr.add(256);
+
+        // Split and decorrelate colors
+        let col0 = _mm512_permutex2var_epi32(in0, perm_colors, in1);
+        let col0 = match VARIANT {
+            1 => decorrelate_ycocg_r_var1_avx512(col0),
+            2 => decorrelate_ycocg_r_var2_avx512(col0),
+            3 => decorrelate_ycocg_r_var3_avx512(col0),
             _ => unreachable_unchecked(),
         };
-        generic::transform_with_decorrelate_generic(src, col_out, idx_out, rem, variant_enum);
+        _mm512_storeu_si512(colours_out as *mut __m512i, col0);
+
+        let col1 = _mm512_permutex2var_epi32(in2, perm_colors, in3);
+        let col1 = match VARIANT {
+            1 => decorrelate_ycocg_r_var1_avx512(col1),
+            2 => decorrelate_ycocg_r_var2_avx512(col1),
+            3 => decorrelate_ycocg_r_var3_avx512(col1),
+            _ => unreachable_unchecked(),
+        };
+        _mm512_storeu_si512(colours_out.add(16) as *mut __m512i, col1);
+        colours_out = colours_out.add(32);
+
+        // Split indices and store
+        let idx0 = _mm512_permutex2var_epi32(in0, perm_indices, in1);
+        let idx1 = _mm512_permutex2var_epi32(in2, perm_indices, in3);
+        _mm512_storeu_si512(indices_out as *mut __m512i, idx0);
+        _mm512_storeu_si512(indices_out.add(16) as *mut __m512i, idx1);
+        indices_out = indices_out.add(32);
     }
+
+    let remaining_blocks = num_blocks % 32;
+    let variant_enum = match VARIANT {
+        1 => YCoCgVariant::Variant1,
+        2 => YCoCgVariant::Variant2,
+        3 => YCoCgVariant::Variant3,
+        _ => unreachable_unchecked(),
+    };
+    generic::transform_with_decorrelate_generic(
+        input_ptr,
+        colours_out,
+        indices_out,
+        remaining_blocks,
+        variant_enum,
+    );
 }
 
 // Wrappers for asm inspection

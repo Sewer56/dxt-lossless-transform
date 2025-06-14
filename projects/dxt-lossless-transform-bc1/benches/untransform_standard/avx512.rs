@@ -1,5 +1,5 @@
 use criterion::*;
-use dxt_lossless_transform_bc1::transforms::standard::untransform::*;
+use dxt_lossless_transform_bc1::transforms::standard::untransform::bench::*;
 use safe_allocator_api::RawAlloc;
 
 fn bench_permute_512_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {

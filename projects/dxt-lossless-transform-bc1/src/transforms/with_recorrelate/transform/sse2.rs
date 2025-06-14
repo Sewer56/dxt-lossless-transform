@@ -151,40 +151,16 @@ pub(crate) unsafe fn transform_with_decorrelate(
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    use crate::transforms::with_recorrelate::untransform::untransform_with_recorrelate;
 
     #[rstest]
-    #[case(transform_decorr_var1, YCoCgVariant::Variant1)]
-    #[case(transform_decorr_var2, YCoCgVariant::Variant2)]
-    #[case(transform_decorr_var3, YCoCgVariant::Variant3)]
+    #[case(transform_decorr_var1, YCoCgVariant::Variant1, 16)]
+    #[case(transform_decorr_var2, YCoCgVariant::Variant2, 16)]
+    #[case(transform_decorr_var3, YCoCgVariant::Variant3, 16)]
     fn sse2_transform_roundtrip(
         #[case] func: unsafe fn(*const u8, *mut u32, *mut u32, usize),
         #[case] variant: YCoCgVariant,
+        #[case] max_blocks: usize,
     ) {
-        for num_blocks in 1..=128 {
-            let input = generate_bc1_test_data(num_blocks);
-            let len = input.len();
-            let mut transformed = vec![0u8; len];
-            let mut reconstructed = vec![0u8; len];
-            unsafe {
-                func(
-                    input.as_ptr(),
-                    transformed.as_mut_ptr() as *mut u32,
-                    transformed.as_mut_ptr().add(len / 2) as *mut u32,
-                    num_blocks,
-                );
-                untransform_with_recorrelate(
-                    transformed.as_ptr(),
-                    reconstructed.as_mut_ptr(),
-                    num_blocks * 8,
-                    variant,
-                );
-            }
-            assert_eq!(
-                reconstructed.as_slice(),
-                input.as_slice(),
-                "Mismatch SSE2 roundtrip variant {variant:?}"
-            );
-        }
+        run_with_decorrelate_transform_roundtrip_test(func, variant, max_blocks, "SSE2");
     }
 }

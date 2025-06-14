@@ -3,7 +3,10 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use dxt_lossless_transform_common::cpu_detect::*;
 use safe_allocator_api::RawAlloc;
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(all(
+    any(target_os = "linux", target_os = "macos"),
+    any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")
+))]
 use pprof::criterion::{Output, PProfProfiler};
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -30,8 +33,8 @@ fn criterion_benchmark(c: &mut Criterion) {
     let important_benches_only = true; // Set to false to enable extra benches, unrolls, etc.
 
     group.throughput(criterion::Throughput::Bytes(size as u64));
-    group.warm_up_time(Duration::from_secs(60));
-    group.measurement_time(Duration::from_secs(60));
+    group.warm_up_time(Duration::from_secs(3));
+    group.measurement_time(Duration::from_secs(10));
 
     // Run architecture-specific benchmarks
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -92,14 +95,20 @@ fn criterion_benchmark(c: &mut Criterion) {
     }
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(all(
+    any(target_os = "linux", target_os = "macos"),
+    any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")
+))]
 criterion_group! {
     name = benches;
     config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
     targets = criterion_benchmark
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(not(all(
+    any(target_os = "linux", target_os = "macos"),
+    any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")
+)))]
 criterion_group! {
     name = benches;
     config = Criterion::default();

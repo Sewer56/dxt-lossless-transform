@@ -1,4 +1,4 @@
-name: Test, Upload Coverage and Release Rust
+name: Test, Coverage, Release on Tag
 
 on:
   push:
@@ -35,28 +35,39 @@ jobs:
     strategy:
       matrix:
         include:
-          # Common Linux Targets
-          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, rust-toolchain: 'stable', features: 'debug-bc1' }
-          - { os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, rust-toolchain: 'stable', features: 'debug-bc1' }
-          - { os: ubuntu-latest, target: aarch64-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable', features: 'debug-bc1' }
-          - { os: ubuntu-latest, target: armv7-unknown-linux-gnueabihf, use-cross: true, rust-toolchain: 'stable', features: 'debug-bc1' }
-          # Common Windows Targets
-          - { os: windows-latest, target: x86_64-pc-windows-msvc, use-cross: false, rust-toolchain: 'stable', features: 'debug-bc1' }
-          - { os: windows-latest, target: i686-pc-windows-msvc, use-cross: false, rust-toolchain: 'stable', features: 'debug-bc1' }
-          # - { os: windows-latest, target: aarch64-pc-windows-msvc, use-cross: true }
-          # Common Apple Targets
-          - { os: macos-13, target: x86_64-apple-darwin, use-cross: false, rust-toolchain: 'stable', features: 'debug-bc1' }
-          - { os: macos-14, target: aarch64-apple-darwin, use-cross: false, rust-toolchain: 'stable', features: 'debug-bc1' }
-          # Big Endian (64-bit)
-          - { os: ubuntu-latest, target: powerpc64-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable', features: 'debug-bc1' }
+          # Linux All features (nightly)
+          - { label: "Linux x64 (All Features, Nightly)", os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
+          - { label: "Linux x86 (All Features, Nightly)", os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
+          
+          # Linux No features (stable)
+          - { label: "Linux x64 (Stable)", os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, rust-toolchain: 'stable' }
+          - { label: "Linux x86 (Stable)", os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, rust-toolchain: 'stable' }
+          
+          # No CPU detection (on x86)
+          - { label: "Linux x64 (No CPU Detection)", os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, features: "no-runtime-cpu-detection", rust-toolchain: 'stable' }
+          - { label: "Linux x86 (No CPU Detection)", os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, features: "no-runtime-cpu-detection", rust-toolchain: 'stable' }
+          
+          # 32-bit ARM (e.g. Raspberry Pi, Legacy Android)
+          - { label: "Linux 32-bit ARMv7", os: ubuntu-latest, target: armv7-unknown-linux-gnueabihf, use-cross: true, rust-toolchain: 'stable' }
+
           # Big Endian (32-bit)
-          - { os: ubuntu-latest, target: powerpc-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable', features: 'debug-bc1' }
-          # Nightly features (AVX512)
-          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, features: "nightly debug-bc1", rust-toolchain: 'nightly' }
-          - { os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, features: "nightly debug-bc1", rust-toolchain: 'nightly' }
-          # No CPU detection
-          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, features: "no-runtime-cpu-detection debug-bc1", rust-toolchain: 'nightly' }
-          - { os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, features: "no-runtime-cpu-detection debug-bc1", rust-toolchain: 'nightly' }
+          - { label: "Linux + Big Endian 32-bit", os: ubuntu-latest, target: powerpc-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable' }
+          
+          # Big Endian (64-bit)
+          - { label: "Linux + Big Endian 64-bit", os: ubuntu-latest, target: powerpc64-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable' }
+
+          # Windows
+          - { label: "Windows x64", os: windows-latest, target: x86_64-pc-windows-msvc, use-cross: false, rust-toolchain: 'stable' }
+          - { label: "Windows x86", os: windows-latest, target: i686-pc-windows-msvc, use-cross: false, rust-toolchain: 'stable' }
+          
+          # macOS
+          - { label: "macOS Intel", os: macos-13, target: x86_64-apple-darwin, use-cross: false, rust-toolchain: 'stable' }
+          - { label: "macOS Apple Silicon", os: macos-14, target: aarch64-apple-darwin, use-cross: false, rust-toolchain: 'stable' }
+
+          # Android (Mobile)
+          - { label: "Android ARM64", os: ubuntu-latest, target: aarch64-linux-android, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
+          - { label: "Android ARM v7", os: ubuntu-latest, target: armv7-linux-androideabi, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
+          # - { label: "Android x64", os: ubuntu-latest, target: x86_64-linux-android, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
 
     runs-on: ${{ matrix.os }}
 
@@ -71,6 +82,7 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           features: ${{ matrix.features }}
           rust-toolchain: ${{ matrix.rust-toolchain }}
+          additional-test-args: ${{ matrix.additional-test-args }}
 
       # Uncomment after first release.
       # - name: Check semver
@@ -80,22 +92,22 @@ jobs:
     strategy:
       matrix:
         include:
-          # Common Linux Targets
-          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false }
-          - { os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false }
-          - { os: ubuntu-latest, target: aarch64-unknown-linux-gnu, use-cross: true }
-          - { os: ubuntu-latest, target: armv7-unknown-linux-gnueabihf, use-cross: true }
-          # Common Windows Targets
-          - { os: windows-latest, target: x86_64-pc-windows-msvc, use-cross: false }
-          - { os: windows-latest, target: i686-pc-windows-msvc, use-cross: false }
-          # - { os: windows-latest, target: aarch64-pc-windows-msvc, use-cross: true }
-          # Common Apple Targets
-          - { os: macos-13, target: x86_64-apple-darwin, use-cross: false }
-          - { os: macos-14, target: aarch64-apple-darwin, use-cross: false }
-          # Big Endian (64-bit)
-          - { os: ubuntu-latest, target: powerpc64-unknown-linux-gnu, use-cross: true }
-          # Big Endian (32-bit)
-          - { os: ubuntu-latest, target: powerpc-unknown-linux-gnu, use-cross: true }
+          # Linux Targets
+          - { label: "Build Linux x64", os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, additional-rustc-args: "--all-features", rust-toolchain: 'nightly' }
+          - { label: "Build Linux x86", os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, additional-rustc-args: "--all-features", rust-toolchain: 'nightly' }
+          
+          # Windows Targets
+          - { label: "Build Windows x64", os: windows-latest, target: x86_64-pc-windows-msvc, use-cross: false, additional-rustc-args: "--all-features", rust-toolchain: 'nightly' }
+          - { label: "Build Windows x86", os: windows-latest, target: i686-pc-windows-msvc, use-cross: false, additional-rustc-args: "--all-features", rust-toolchain: 'nightly' }
+          
+          # macOS Targets
+          - { label: "Build macOS Intel", os: macos-13, target: x86_64-apple-darwin, use-cross: false, additional-rustc-args: "--all-features", rust-toolchain: 'nightly' }
+          - { label: "Build macOS Apple Silicon", os: macos-14, target: aarch64-apple-darwin, use-cross: false, additional-rustc-args: "--all-features", rust-toolchain: 'nightly' }
+
+          # Android
+          - { label: "Build Android ARM64", os: ubuntu-latest, target: aarch64-linux-android, use-cross: true, additional-rustc-args: "--all-features", rust-toolchain: 'nightly' }
+          - { label: "Build Android ARM v7", os: ubuntu-latest, target: armv7-linux-androideabi, use-cross: true, additional-rustc-args: "--all-features", rust-toolchain: 'nightly' }
+          - { label: "Build Android x64", os: ubuntu-latest, target: x86_64-linux-android, use-cross: true, additional-rustc-args: "--all-features", rust-toolchain: 'nightly' }
 
     runs-on: ${{ matrix.os }}
 
@@ -110,6 +122,7 @@ jobs:
           workspace-path: "."
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
+          additional-rustc-args: ${{ matrix.additional-rustc-args }}
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: true
 
@@ -122,6 +135,7 @@ jobs:
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
           features: "c-exports"
+          additional-rustc-args: ${{ matrix.additional-rustc-args }}
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false
 

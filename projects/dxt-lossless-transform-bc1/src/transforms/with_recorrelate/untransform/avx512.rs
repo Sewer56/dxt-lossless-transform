@@ -157,53 +157,18 @@ mod tests {
     #[case(untransform_recorr_var2, YCoCgVariant::Variant2)]
     #[case(untransform_recorr_var3, YCoCgVariant::Variant3)]
     fn can_untransform_unaligned(
-        #[case] function: unsafe fn(*const u32, *const u32, *mut u8, usize) -> (),
+        #[case] function: WithRecorrelateUntransformFn,
         #[case] decorr_variant: YCoCgVariant,
     ) {
-        if !has_avx512f() || !has_avx512bw() {
+        if !(has_avx512f() && has_avx512bw()) {
             return;
         }
 
-        for num_blocks in 1..=512 {
-            let original = generate_bc1_test_data(num_blocks);
-
-            // Transform using standard implementation
-            let mut transformed = vec![0u8; original.len()];
-            unsafe {
-                transform_bc1(
-                    original.as_ptr(),
-                    transformed.as_mut_ptr(),
-                    original.len(),
-                    Bc1TransformDetails {
-                        color_normalization_mode: ColorNormalizationMode::None,
-                        decorrelation_mode: decorr_variant,
-                        split_colour_endpoints: false,
-                    },
-                );
-            }
-
-            // Add 1 extra byte at the beginning to create misaligned buffers
-            let mut transformed_unaligned = vec![0u8; transformed.len() + 1];
-            transformed_unaligned[1..].copy_from_slice(&transformed);
-            let mut reconstructed = vec![0u8; original.len() + 1];
-
-            unsafe {
-                // Reconstruct using the implementation being tested with unaligned pointers
-                reconstructed.as_mut_slice().fill(0);
-                function(
-                    transformed_unaligned.as_ptr().add(1) as *const u32,
-                    transformed_unaligned.as_ptr().add(1 + num_blocks * 4) as *const u32,
-                    reconstructed.as_mut_ptr().add(1),
-                    num_blocks,
-                );
-            }
-
-            assert_implementation_matches_reference(
-                original.as_slice(),
-                &reconstructed[1..],
-                "untransform_with_recorrelate (avx512)",
-                num_blocks,
-            );
-        }
+        run_with_recorrelate_untransform_unaligned_test(
+            function,
+            decorr_variant,
+            "untransform_with_recorrelate (avx512)",
+            64, // 256 bytes tested per main loop iteration (* 2 / 8 == 64)
+        );
     }
 }

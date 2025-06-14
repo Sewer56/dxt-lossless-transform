@@ -17,6 +17,8 @@ pgo = []
 no-runtime-cpu-detection = []
 # Use nightly compiler features (AVX512)
 nightly = ["dxt-lossless-transform-common/nightly"]
+# Code only required for benchmarks.
+bench = []
 
 [dependencies]
 dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }
@@ -31,7 +33,7 @@ criterion = "0.5.1"
 rstest = "0.25.0"
 safe-allocator-api = "0.4.0"
 
-[target.'cfg(unix)'.dev-dependencies]
+[target.'cfg(all(any(target_os = "linux", target_os = "macos"), any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))'.dev-dependencies]
 pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
 
 # Benchmark Stuff
@@ -39,21 +41,25 @@ pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
 name = "transform_standard"
 path = "benches/transform_standard/main.rs"
 harness = false
+required-features = ["bench"]
 
 [[bench]]
 name = "untransform_standard"
 path = "benches/untransform_standard/main.rs"
 harness = false
+required-features = ["bench"]
 
 [[bench]]
 name = "block_decode"
 path = "benches/block_decode/main.rs"
 harness = false
+required-features = ["bench"]
 
 [[bench]]
 name = "normalize_blocks"
 path = "benches/normalize_blocks/main.rs"
 harness = false
+required-features = ["bench"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }

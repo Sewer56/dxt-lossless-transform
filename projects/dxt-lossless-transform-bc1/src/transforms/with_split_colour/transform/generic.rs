@@ -46,39 +46,10 @@ pub(crate) unsafe fn transform_with_split_colour(
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    use crate::transforms::with_split_colour::untransform::untransform_with_split_colour;
 
     #[rstest]
     fn generic_transform_roundtrip() {
-        for num_blocks in 1..=128 {
-            let original = generate_bc1_test_data(num_blocks);
-            let mut colour0 = vec![0u16; num_blocks];
-            let mut colour1 = vec![0u16; num_blocks];
-            let mut indices = vec![0u32; num_blocks];
-            let mut reconstructed = vec![0u8; original.len()];
-
-            unsafe {
-                transform_with_split_colour(
-                    original.as_ptr(),
-                    colour0.as_mut_ptr(),
-                    colour1.as_mut_ptr(),
-                    indices.as_mut_ptr(),
-                    num_blocks,
-                );
-                untransform_with_split_colour(
-                    colour0.as_ptr(),
-                    colour1.as_ptr(),
-                    indices.as_ptr(),
-                    reconstructed.as_mut_ptr(),
-                    num_blocks,
-                );
-            }
-
-            assert_eq!(
-                reconstructed.as_slice(),
-                original.as_slice(),
-                "generic transform split-colour roundtrip"
-            );
-        }
+        // Generic processes 8 bytes per iteration (* 2 / 8 == 2)
+        run_split_colour_transform_roundtrip_test(transform_with_split_colour, 2, "Generic");
     }
 }

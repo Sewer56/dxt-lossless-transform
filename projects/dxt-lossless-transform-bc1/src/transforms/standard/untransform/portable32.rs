@@ -21,6 +21,7 @@ pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
 /// - indices_ptr must be valid for reads of len/2 bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
+#[inline]
 pub(crate) unsafe fn u32_detransform_with_separate_pointers(
     mut colours_ptr: *const u32,
     mut indices_ptr: *const u32,
@@ -250,8 +251,8 @@ pub unsafe fn u32_detransform_unroll_8(input_ptr: *const u8, output_ptr: *mut u8
 
 #[cfg(test)]
 mod tests {
-    use crate::test_prelude::*;
     use super::*;
+    use crate::test_prelude::*;
     use crate::transforms::standard::transform::u32;
 
     type DetransformFn = unsafe fn(*const u8, *mut u8, usize);

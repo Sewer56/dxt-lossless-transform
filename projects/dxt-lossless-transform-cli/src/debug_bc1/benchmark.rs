@@ -322,13 +322,11 @@ unsafe fn process_scenario(
 ) -> Result<Option<BenchmarkScenarioResult>, TransformError> {
     // Allocate buffers
     let mut transformed_data = allocate_align_64(len_bytes)?;
-    let mut work_buffer = allocate_align_64(len_bytes)?;
 
     // Transform the original data
     transform_bc1(
         data_ptr,
         transformed_data.as_mut_ptr(),
-        work_buffer.as_mut_ptr(),
         len_bytes,
         transform_details,
     );

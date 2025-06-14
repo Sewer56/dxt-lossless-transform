@@ -21,17 +21,16 @@ pub unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 /// - colours_ptr must be valid for writes of len/2 bytes
 /// - indices_ptr must be valid for writes of len/2 bytes
 /// - len must be divisible by 8
+#[inline]
 pub(crate) unsafe fn u32_with_separate_pointers(
-    input_ptr: *const u8,
-    mut colours_ptr: *mut u32,
-    mut indices_ptr: *mut u32,
+    mut input_ptr: *const u8,
+    mut colours_out: *mut u32,
+    mut indices_out: *mut u32,
     len: usize,
 ) {
     debug_assert!(len % 8 == 0);
 
     let max_ptr = input_ptr.add(len) as *mut u8;
-    let mut input_ptr = input_ptr as *mut u8;
-
     while input_ptr < max_ptr {
         // Split into colours (lower 4 bytes) and indices (upper 4 bytes)
         let color_value = read_unaligned(input_ptr as *const u32);
@@ -39,11 +38,11 @@ pub(crate) unsafe fn u32_with_separate_pointers(
         input_ptr = input_ptr.add(8);
 
         // Store colours and indices to their respective halves
-        write_unaligned(colours_ptr, color_value);
-        write_unaligned(indices_ptr, index_value);
+        write_unaligned(colours_out, color_value);
+        write_unaligned(indices_out, index_value);
 
-        colours_ptr = colours_ptr.add(1);
-        indices_ptr = indices_ptr.add(1);
+        colours_out = colours_out.add(1);
+        indices_out = indices_out.add(1);
     }
 }
 
@@ -254,8 +253,8 @@ pub unsafe fn u32_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 
 #[cfg(test)]
 mod tests {
-    use crate::test_prelude::*;
     use super::*;
+    use crate::test_prelude::*;
     use core::ptr::copy_nonoverlapping;
 
     type PermuteFn = unsafe fn(*const u8, *mut u8, usize);

@@ -30,8 +30,5 @@ pub use dxt_lossless_transform_common::decoded_4x4_block::Decoded4x4Block;
 pub use core::ptr::{copy_nonoverlapping, write_bytes};
 pub use safe_allocator_api::RawAlloc;
 
-// Common untransform functions that are frequently tested
-pub use crate::with_split_colour_and_recorr::untransform_with_split_colour_and_recorr;
-
 // Re-export super for convenience in test modules
 pub use super::*;

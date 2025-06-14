@@ -161,9 +161,9 @@ unsafe fn get_shared_constants() -> (__m512i, __m512i, __m512i, __m512i) {
 }
 
 pub(crate) unsafe fn untransform_with_split_colour_and_recorr(
-    color0_ptr: *const u16,
-    color1_ptr: *const u16,
-    indices_ptr: *const u32,
+    color0_in: *const u16,
+    color1_in: *const u16,
+    indices_in: *const u32,
     output_ptr: *mut u8,
     block_count: usize,
     recorrelation_mode: YCoCgVariant,
@@ -171,55 +171,55 @@ pub(crate) unsafe fn untransform_with_split_colour_and_recorr(
     match recorrelation_mode {
         YCoCgVariant::None => unreachable_unchecked(),
         YCoCgVariant::Variant1 => {
-            untransform_recorr_var1(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
+            untransform_recorr_var1(color0_in, color1_in, indices_in, output_ptr, block_count)
         }
         YCoCgVariant::Variant2 => {
-            untransform_recorr_var2(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
+            untransform_recorr_var2(color0_in, color1_in, indices_in, output_ptr, block_count)
         }
         YCoCgVariant::Variant3 => {
-            untransform_recorr_var3(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
+            untransform_recorr_var3(color0_in, color1_in, indices_in, output_ptr, block_count)
         }
     }
 }
 
 // Wrapper functions for assembly inspection using `cargo asm`
 unsafe fn untransform_recorr_var1(
-    color0_ptr: *const u16,
-    color1_ptr: *const u16,
-    indices_ptr: *const u32,
+    color0_in: *const u16,
+    color1_in: *const u16,
+    indices_in: *const u32,
     output_ptr: *mut u8,
     block_count: usize,
 ) {
-    untransform_recorr::<1>(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
+    untransform_recorr::<1>(color0_in, color1_in, indices_in, output_ptr, block_count)
 }
 
 unsafe fn untransform_recorr_var2(
-    color0_ptr: *const u16,
-    color1_ptr: *const u16,
-    indices_ptr: *const u32,
+    color0_in: *const u16,
+    color1_in: *const u16,
+    indices_in: *const u32,
     output_ptr: *mut u8,
     block_count: usize,
 ) {
-    untransform_recorr::<2>(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
+    untransform_recorr::<2>(color0_in, color1_in, indices_in, output_ptr, block_count)
 }
 
 unsafe fn untransform_recorr_var3(
-    color0_ptr: *const u16,
-    color1_ptr: *const u16,
-    indices_ptr: *const u32,
+    color0_in: *const u16,
+    color1_in: *const u16,
+    indices_in: *const u32,
     output_ptr: *mut u8,
     block_count: usize,
 ) {
-    untransform_recorr::<3>(color0_ptr, color1_ptr, indices_ptr, output_ptr, block_count)
+    untransform_recorr::<3>(color0_in, color1_in, indices_in, output_ptr, block_count)
 }
 
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[allow(clippy::identity_op)]
 unsafe fn untransform_recorr<const VARIANT: u8>(
-    mut color0_ptr: *const u16,
-    mut color1_ptr: *const u16,
-    mut indices_ptr: *const u32,
+    mut color0_in: *const u16,
+    mut color1_in: *const u16,
+    mut indices_in: *const u32,
     mut output_ptr: *mut u8,
     block_count: usize,
 ) {
@@ -227,72 +227,70 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
 
     // Process 32 blocks (256 bytes) at a time
     let aligned_count = block_count - (block_count % 32);
-    let color0_ptr_aligned_end = color0_ptr.add(aligned_count);
+    let color0_ptr_aligned_end = color0_in.add(aligned_count);
 
-    if aligned_count > 0 {
-        // Get shared constants for permutation masks
-        let (perm_color_interleave_high, perm_color_interleave_low, perm_output_0, perm_output_1) =
-            get_shared_constants();
+    // Get shared constants for permutation masks
+    let (perm_color_interleave_high, perm_color_interleave_low, perm_output_0, perm_output_1) =
+        get_shared_constants();
 
-        while color0_ptr < color0_ptr_aligned_end {
-            // Load 32 blocks worth of data
-            // Load 64 bytes (32 u16 values) of color0 data - 1 read
-            let color0s = _mm512_loadu_si512(color0_ptr as *const __m512i);
-            color0_ptr = color0_ptr.add(32);
+    while color0_in < color0_ptr_aligned_end {
+        // Load 32 blocks worth of data
+        // Load 64 bytes (32 u16 values) of color0 data - 1 read
+        let color0s = _mm512_loadu_si512(color0_in as *const __m512i);
+        color0_in = color0_in.add(32);
 
-            // Load 64 bytes (32 u16 values) of color1 data - 1 read
-            let color1s = _mm512_loadu_si512(color1_ptr as *const __m512i);
-            color1_ptr = color1_ptr.add(32);
+        // Load 64 bytes (32 u16 values) of color1 data - 1 read
+        let color1s = _mm512_loadu_si512(color1_in as *const __m512i);
+        color1_in = color1_in.add(32);
 
-            // Load 128 bytes (32 u32 values) of indices data - 2 reads
-            let indices_0 = _mm512_loadu_si512(indices_ptr as *const __m512i);
-            let indices_1 = _mm512_loadu_si512(indices_ptr.add(16) as *const __m512i);
-            indices_ptr = indices_ptr.add(32);
+        // Load 128 bytes (32 u32 values) of indices data - 2 reads
+        let indices_0 = _mm512_loadu_si512(indices_in as *const __m512i);
+        let indices_1 = _mm512_loadu_si512(indices_in.add(16) as *const __m512i);
+        indices_in = indices_in.add(32);
 
-            // Apply YCoCg-R recorrelation using the specified variant
-            let (recorrelated_color0s, recorrelated_color1s) = match VARIANT {
-                1 => (
-                    recorrelate_ycocg_r_var1_avx512(color0s),
-                    recorrelate_ycocg_r_var1_avx512(color1s),
-                ),
-                2 => (
-                    recorrelate_ycocg_r_var2_avx512(color0s),
-                    recorrelate_ycocg_r_var2_avx512(color1s),
-                ),
-                3 => (
-                    recorrelate_ycocg_r_var3_avx512(color0s),
-                    recorrelate_ycocg_r_var3_avx512(color1s),
-                ),
-                _ => unreachable_unchecked(),
-            };
+        // Apply YCoCg-R recorrelation using the specified variant
+        let (recorrelated_color0s, recorrelated_color1s) = match VARIANT {
+            1 => (
+                recorrelate_ycocg_r_var1_avx512(color0s),
+                recorrelate_ycocg_r_var1_avx512(color1s),
+            ),
+            2 => (
+                recorrelate_ycocg_r_var2_avx512(color0s),
+                recorrelate_ycocg_r_var2_avx512(color1s),
+            ),
+            3 => (
+                recorrelate_ycocg_r_var3_avx512(color0s),
+                recorrelate_ycocg_r_var3_avx512(color1s),
+            ),
+            _ => unreachable_unchecked(),
+        };
 
-            // Interleave color0 and color1 into alternating pairs (first 16 blocks)
-            let colors_0 = _mm512_permutex2var_epi16(
-                recorrelated_color0s,
-                perm_color_interleave_low,
-                recorrelated_color1s,
-            );
-            let colors_1 = _mm512_permutex2var_epi16(
-                recorrelated_color0s,
-                perm_color_interleave_high,
-                recorrelated_color1s,
-            );
+        // Interleave color0 and color1 into alternating pairs (first 16 blocks)
+        let colors_0 = _mm512_permutex2var_epi16(
+            recorrelated_color0s,
+            perm_color_interleave_low,
+            recorrelated_color1s,
+        );
+        let colors_1 = _mm512_permutex2var_epi16(
+            recorrelated_color0s,
+            perm_color_interleave_high,
+            recorrelated_color1s,
+        );
 
-            // Now interleave the recorrelated color pairs with indices to create final BC1 blocks
-            let output_0 = _mm512_permutex2var_epi16(colors_0, perm_output_0, indices_0);
-            let output_1 = _mm512_permutex2var_epi16(colors_0, perm_output_1, indices_0);
-            let output_2 = _mm512_permutex2var_epi16(colors_1, perm_output_0, indices_1);
-            let output_3 = _mm512_permutex2var_epi16(colors_1, perm_output_1, indices_1);
+        // Now interleave the recorrelated color pairs with indices to create final BC1 blocks
+        let output_0 = _mm512_permutex2var_epi16(colors_0, perm_output_0, indices_0);
+        let output_1 = _mm512_permutex2var_epi16(colors_0, perm_output_1, indices_0);
+        let output_2 = _mm512_permutex2var_epi16(colors_1, perm_output_0, indices_1);
+        let output_3 = _mm512_permutex2var_epi16(colors_1, perm_output_1, indices_1);
 
-            // Write results - 32 blocks * 8 bytes = 256 bytes total
-            _mm512_storeu_si512(output_ptr as *mut __m512i, output_0);
-            _mm512_storeu_si512(output_ptr.add(64) as *mut __m512i, output_1);
-            _mm512_storeu_si512(output_ptr.add(128) as *mut __m512i, output_2);
-            _mm512_storeu_si512(output_ptr.add(192) as *mut __m512i, output_3);
+        // Write results - 32 blocks * 8 bytes = 256 bytes total
+        _mm512_storeu_si512(output_ptr as *mut __m512i, output_0);
+        _mm512_storeu_si512(output_ptr.add(64) as *mut __m512i, output_1);
+        _mm512_storeu_si512(output_ptr.add(128) as *mut __m512i, output_2);
+        _mm512_storeu_si512(output_ptr.add(192) as *mut __m512i, output_3);
 
-            // Advance output pointer
-            output_ptr = output_ptr.add(256);
-        }
+        // Advance output pointer
+        output_ptr = output_ptr.add(256);
     }
 
     // Process any remaining blocks (less than 32) using scalar code
@@ -300,23 +298,23 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
     // Delegate to the generic implementation for remaining blocks
     match VARIANT {
         1 => super::generic::untransform_recorr_var1(
-            color0_ptr,
-            color1_ptr,
-            indices_ptr,
+            color0_in,
+            color1_in,
+            indices_in,
             output_ptr,
             remaining_count,
         ),
         2 => super::generic::untransform_recorr_var2(
-            color0_ptr,
-            color1_ptr,
-            indices_ptr,
+            color0_in,
+            color1_in,
+            indices_in,
             output_ptr,
             remaining_count,
         ),
         3 => super::generic::untransform_recorr_var3(
-            color0_ptr,
-            color1_ptr,
-            indices_ptr,
+            color0_in,
+            color1_in,
+            indices_in,
             output_ptr,
             remaining_count,
         ),
@@ -346,12 +344,10 @@ mod tests {
 
             // Transform using standard implementation
             let mut transformed = vec![0u8; original.len()];
-            let mut work = vec![0u8; original.len()];
             unsafe {
                 transform_bc1(
                     original.as_ptr(),
                     transformed.as_mut_ptr(),
-                    work.as_mut_ptr(),
                     original.len(),
                     Bc1TransformDetails {
                         color_normalization_mode: ColorNormalizationMode::None,

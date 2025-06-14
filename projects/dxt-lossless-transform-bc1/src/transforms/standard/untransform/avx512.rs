@@ -38,12 +38,12 @@ pub unsafe fn permute_512_detransform_unroll_2(
 pub unsafe fn permute_512_detransform_unroll_2_with_components(
     mut output_ptr: *mut u8,
     len: usize,
-    mut indices_ptr: *const u8,
-    mut colors_ptr: *const u8,
+    mut indices_in: *const u8,
+    mut colors_in: *const u8,
 ) {
     debug_assert!(len % 8 == 0, "len must be divisible by 8");
     let aligned_len = len - (len % 256);
-    let colors_aligned_end = colors_ptr.add(aligned_len / 2);
+    let colors_aligned_end = colors_in.add(aligned_len / 2);
 
     if aligned_len > 0 {
         // Define permutation constants for vpermt2d
@@ -91,8 +91,8 @@ pub unsafe fn permute_512_detransform_unroll_2_with_components(
                 "cmp {colors_ptr}, {end}",
                 "jb 2b",
 
-                colors_ptr = inout(reg) colors_ptr,
-                indices_ptr = inout(reg) indices_ptr,
+                colors_ptr = inout(reg) colors_in,
+                indices_ptr = inout(reg) indices_in,
                 dst_ptr = inout(reg) output_ptr,
                 end = in(reg) colors_aligned_end,
                 perm_low = in(zmm_reg) perm_low,
@@ -109,14 +109,12 @@ pub unsafe fn permute_512_detransform_unroll_2_with_components(
 
     // Process any remaining elements after the aligned blocks
     let remaining = len - aligned_len;
-    if remaining > 0 {
-        u32_detransform_with_separate_pointers(
-            colors_ptr as *const u32,
-            indices_ptr as *const u32,
-            output_ptr,
-            remaining,
-        );
-    }
+    u32_detransform_with_separate_pointers(
+        colors_in as *const u32,
+        indices_in as *const u32,
+        output_ptr,
+        remaining,
+    );
 }
 
 /// # Safety
@@ -215,8 +213,8 @@ pub unsafe fn permute_512_detransform_unroll_2_with_components_intrinsics(
 
 #[cfg(test)]
 mod tests {
-    use crate::test_prelude::*;
     use super::*;
+    use crate::test_prelude::*;
     use crate::transforms::standard::transform::u32;
 
     type DetransformFn = unsafe fn(*const u8, *mut u8, usize);

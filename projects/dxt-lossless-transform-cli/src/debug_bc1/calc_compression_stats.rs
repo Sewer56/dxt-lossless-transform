@@ -183,8 +183,6 @@ fn analyze_bc1_compression_transforms(
 ) -> Result<Vec<Bc1TransformResult>, TransformError> {
     // Allocate aligned buffers for transformations
     let mut transformed_data = allocate_align_64(len_bytes)?;
-    let mut work_buffer = allocate_align_64(len_bytes)?;
-
     let mut results = Vec::new();
     unsafe {
         // Test all transform combinations
@@ -193,7 +191,6 @@ fn analyze_bc1_compression_transforms(
             transform_bc1(
                 data_ptr,
                 transformed_data.as_mut_ptr(),
-                work_buffer.as_mut_ptr(),
                 len_bytes,
                 transform_options,
             );
@@ -215,6 +212,7 @@ fn analyze_bc1_compression_transforms(
     Ok(results)
 }
 
+#[allow(clippy::too_many_arguments)]
 unsafe fn analyze_bc1_api_recommendation(
     data_ptr: *const u8,
     len_bytes: usize,
@@ -254,12 +252,9 @@ unsafe fn analyze_bc1_api_recommendation(
 
     // Transform the data using the recommended details and measure the size
     let mut transformed_data = allocate_align_64(len_bytes)?;
-    let mut work_buffer = allocate_align_64(len_bytes)?;
-
     transform_bc1(
         data_ptr,
         transformed_data.as_mut_ptr(),
-        work_buffer.as_mut_ptr(),
         len_bytes,
         best_details,
     );

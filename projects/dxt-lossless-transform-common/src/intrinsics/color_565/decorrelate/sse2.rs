@@ -212,38 +212,23 @@ mod tests {
     #[case(
         decorrelate_ycocg_r_var1_sse2,
         Color565::decorrelate_ycocg_r_var1_ptr,
-        "SSE2",
         "variant 1"
     )]
     #[case(
         decorrelate_ycocg_r_var2_sse2,
         Color565::decorrelate_ycocg_r_var2_ptr,
-        "SSSE3",
         "variant 2"
     )]
     #[case(
         decorrelate_ycocg_r_var3_sse2,
         Color565::decorrelate_ycocg_r_var3_ptr,
-        "SSE2",
         "variant 3"
     )]
     fn test_sse_vs_reference_implementation(
         #[case] intrinsic_fn: unsafe fn(__m128i) -> __m128i,
         #[case] reference_fn: unsafe fn(*const Color565, *mut Color565, usize),
-        #[case] arch_name: &str,
         #[case] variant_name: &str,
     ) {
-        // Check feature availability based on the function being tested
-        let feature_available = match arch_name {
-            "SSE2" => is_x86_feature_detected!("sse2"),
-            "SSSE3" => is_x86_feature_detected!("ssse3"),
-            _ => false,
-        };
-
-        if !feature_available {
-            return;
-        }
-
         let test_colors = get_test_colors();
 
         unsafe {
@@ -267,7 +252,7 @@ mod tests {
             {
                 assert_eq!(
                     intrinsic_result, reference_result,
-                    "{arch_name} {variant_name} mismatch at index {x}: intrinsic={intrinsic_result:?}, reference={reference_result:?}"
+                    "{variant_name} mismatch at index {x}: intrinsic={intrinsic_result:?}, reference={reference_result:?}"
                 );
             }
         }

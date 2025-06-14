@@ -87,38 +87,10 @@ pub(crate) unsafe fn transform_with_split_colour(
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    use crate::transforms::with_split_colour::untransform::untransform_with_split_colour;
 
     #[rstest]
     fn sse2_transform_roundtrip() {
-        for num_blocks in 1..=128 {
-            let input = generate_bc1_test_data(num_blocks);
-            let len = input.len();
-            let mut colour0 = vec![0u16; num_blocks];
-            let mut colour1 = vec![0u16; num_blocks];
-            let mut indices = vec![0u32; num_blocks];
-            let mut reconstructed = vec![0u8; len];
-            unsafe {
-                transform_with_split_colour(
-                    input.as_ptr(),
-                    colour0.as_mut_ptr(),
-                    colour1.as_mut_ptr(),
-                    indices.as_mut_ptr(),
-                    num_blocks,
-                );
-                untransform_with_split_colour(
-                    colour0.as_ptr(),
-                    colour1.as_ptr(),
-                    indices.as_ptr(),
-                    reconstructed.as_mut_ptr(),
-                    num_blocks,
-                );
-            }
-            assert_eq!(
-                reconstructed.as_slice(),
-                input.as_slice(),
-                "Mismatch SSE2 roundtrip split-colour",
-            );
-        }
+        // 64 bytes processed per main loop iteration (* 2 / 8 == 16)
+        run_split_colour_transform_roundtrip_test(transform_with_split_colour, 16, "SSE2");
     }
 }

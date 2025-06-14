@@ -169,6 +169,10 @@ mod tests {
 
     #[rstest]
     fn avx512_transform_roundtrip() {
+        if !has_avx512f() || !has_avx512bw() {
+            return;
+        }
+
         for num_blocks in 1..=128 {
             let input = generate_bc1_test_data(num_blocks);
             let len = input.len();

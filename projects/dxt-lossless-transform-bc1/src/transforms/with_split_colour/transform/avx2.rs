@@ -121,6 +121,10 @@ mod tests {
 
     #[rstest]
     fn avx2_transform_roundtrip() {
+        if !has_avx2() {
+            return;
+        }
+
         for num_blocks in 1..=128 {
             let input = generate_bc1_test_data(num_blocks);
             let len = input.len();

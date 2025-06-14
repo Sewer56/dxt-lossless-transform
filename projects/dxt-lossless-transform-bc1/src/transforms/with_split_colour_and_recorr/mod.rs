@@ -43,6 +43,36 @@ pub mod untransform;
 
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
+/// Transform BC1 data from standard interleaved format to three separate arrays
+/// (color0, color1, indices) while applying YCoCg decorrelation using best known
+/// implementation for current CPU.
+///
+/// # Safety
+///
+/// - input_ptr must be valid for reads of block_count * 8 bytes
+/// - color0_ptr must be valid for writes of block_count * 2 bytes
+/// - color1_ptr must be valid for writes of block_count * 2 bytes
+/// - indices_ptr must be valid for writes of block_count * 4 bytes
+/// - It is recommended that all pointers are at least 16-byte aligned (recommended 32-byte align)
+#[inline]
+pub unsafe fn transform_with_split_colour_and_recorr(
+    input_ptr: *const u8,
+    color0_ptr: *mut u16,
+    color1_ptr: *mut u16,
+    indices_ptr: *mut u32,
+    block_count: usize,
+    decorrelation_mode: YCoCgVariant,
+) {
+    transform::transform_with_split_colour_and_recorr(
+        input_ptr,
+        color0_ptr,
+        color1_ptr,
+        indices_ptr,
+        block_count,
+        decorrelation_mode,
+    );
+}
+
 /// Transform BC1 data from three separate arrays (color0, color1, indices) back to
 /// standard interleaved format while applying YCoCg decorrelation using best known
 /// implementation for current CPU.

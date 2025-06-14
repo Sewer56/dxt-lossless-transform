@@ -58,7 +58,6 @@ pub(crate) fn handle_roundtrip_command(cmd: RoundtripCmd) -> Result<(), Transfor
 fn test_bc1_roundtrip(data_ptr: *const u8, len_bytes: usize) -> Result<(), TransformError> {
     // Allocate aligned buffers
     let mut transformed_data = allocate_align_64(len_bytes)?;
-    let mut work_buffer = allocate_align_64(len_bytes)?;
     let mut roundtrip_data = allocate_align_64(len_bytes)?;
 
     unsafe {
@@ -68,20 +67,17 @@ fn test_bc1_roundtrip(data_ptr: *const u8, len_bytes: usize) -> Result<(), Trans
             transform_bc1(
                 data_ptr,
                 transformed_data.as_mut_ptr(),
-                work_buffer.as_mut_ptr(),
                 len_bytes,
                 transform_options,
             );
 
             // Untransform the data back
-            work_buffer.as_mut_slice().fill(0x00); // reset work buffer
             untransform_bc1(
                 transformed_data.as_ptr(),
                 roundtrip_data.as_mut_ptr(),
                 len_bytes,
                 transform_options.into(),
             );
-            work_buffer.as_mut_slice().fill(0x00); // reset work buffer (again)
 
             // Compare all pixels by decoding each block
             let num_blocks = len_bytes / 8;

@@ -39,8 +39,8 @@ pub(crate) unsafe fn untransform_with_split_colour(
 
 #[cfg(test)]
 mod tests {
-    use crate::test_prelude::*;
     use super::untransform_with_split_colour;
+    use crate::test_prelude::*;
 
     #[test]
     fn can_untransform_unaligned() {
@@ -49,12 +49,10 @@ mod tests {
 
             // Transform using standard implementation
             let mut transformed = vec![0u8; original.len()];
-            let mut work = vec![0u8; original.len()];
             unsafe {
                 transform_bc1(
                     original.as_ptr(),
                     transformed.as_mut_ptr(),
-                    work.as_mut_ptr(),
                     original.len(),
                     Bc1TransformDetails {
                         color_normalization_mode: ColorNormalizationMode::None,

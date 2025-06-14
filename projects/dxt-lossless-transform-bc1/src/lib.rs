@@ -5,20 +5,17 @@
     feature(stdarch_x86_avx512)
 )]
 
-use crate::transforms::{
-    standard::{transform, transform_with_separate_pointers, untransform},
-    with_recorrelate, with_split_colour, with_split_colour_and_recorr,
-};
-use dxt_lossless_transform_common::{
-    color_565::{Color565, YCoCgVariant},
-    transforms::split_565_color_endpoints::split_color_endpoints,
-};
-use experimental::normalize_blocks::ColorNormalizationMode;
-
 pub mod determine_optimal_transform;
 pub mod experimental;
 pub mod transforms;
 pub mod util;
+
+use crate::transforms::{
+    standard::{transform, untransform},
+    with_recorrelate, with_split_colour, with_split_colour_and_recorr,
+};
+use dxt_lossless_transform_common::color_565::YCoCgVariant;
+use experimental::normalize_blocks::ColorNormalizationMode;
 
 /// The information about the BC1 transform that was just performed.
 /// Each item transformed via [`transform_bc1`] will produce an instance of this struct.
@@ -127,33 +124,21 @@ impl Bc1TransformDetails {
 ///
 /// - `input_ptr`: A pointer to the input data (input BC1 blocks)
 /// - `output_ptr`: A pointer to the output data (output BC1 blocks)
-/// - `work_ptr`: A pointer to a work buffer (used by function)
 /// - `len`: The length of the input data in bytes (size of `input_ptr`, `output_ptr` and half size of `work_ptr`)
 /// - `transform_options`: The transform options to use.
 ///   Obtained from [`determine_optimal_transform::determine_best_transform_details`] or
 ///   [`Bc1TransformDetails::default`] for less optimal result(s).
 ///
-/// # Remarks
-///
-/// The transform is lossless, in the sense that each pixel will produce an identical value upon
-/// decode, however, it is not guaranteed that after decode, the file will produce an identical hash.
-///
-/// `output_ptr` will be written to twice if normalization is used (it normally is).
-/// This may have performance implications if `output_ptr` is a pointer to a memory mapped file
-/// and amount of available memory is scarce. Outside of that, memory should be fairly unaffected.
-///
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - work_ptr must be valid for writes of len/2 bytes
 /// - len must be divisible by 8
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
 pub unsafe fn transform_bc1(
     input_ptr: *const u8,
     output_ptr: *mut u8,
-    work_ptr: *mut u8,
     len: usize,
     transform_options: Bc1TransformDetails,
 ) {
@@ -171,26 +156,12 @@ pub unsafe fn transform_bc1(
                 len / 8,                             // number of blocks (8 bytes per block)
             );
         } else {
-            // Split the blocks, colours to work area, indices to final destination.
-            transform_with_separate_pointers(
-                input_ptr,                           // from our input
-                work_ptr as *mut u32,                // colours to go our work area
-                output_ptr.add(len / 2) as *mut u32, // but the indices go to their final destination
-                len,
-            );
-
-            // Split the colour endpoints, writing them to the final output buffer.
-            split_color_endpoints(
-                work_ptr as *const Color565,
-                output_ptr as *mut Color565,
-                len / 2,
-            );
-
-            // Decorrelate the colours in output buffer in-place (if needed, no-ops if mode is 'none')
-            Color565::decorrelate_ycocg_r_ptr(
-                output_ptr as *const Color565,
-                output_ptr as *mut Color565,
-                (len / 2) / size_of::<Color565>(), // (len / 2): Length of colour endpoints in bytes
+            with_split_colour_and_recorr::transform_with_split_colour_and_recorr(
+                input_ptr,
+                output_ptr as *mut u16,              // color0 values
+                output_ptr.add(len / 4) as *mut u16, // color1 values
+                output_ptr.add(len / 2) as *mut u32, // indices in last half
+                len / 8,                             // number of blocks (8 bytes per block)
                 transform_options.decorrelation_mode,
             );
         }
@@ -215,21 +186,14 @@ pub unsafe fn transform_bc1(
 /// - `input_ptr`: A pointer to the input data (input BC1 blocks).
 ///   Output from [`transform_bc1`].
 /// - `output_ptr`: A pointer to the output data (output BC1 blocks)
-/// - `work_ptr`: A pointer to a work buffer (used by function).
 /// - `len`: The length of the input data in bytes
 /// - `detransform_options`: A struct containing information about the transform that was originally performed.
 ///   Must match the settings used in [`transform_bc1`] function (excluding color normalization).
-///
-/// # Remarks
-///
-/// The transform is lossless, in the sense that each pixel will produce an identical value upon
-/// decode, however, it is not guaranteed that after decode, the file will produce an identical hash.
 ///
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - work_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]

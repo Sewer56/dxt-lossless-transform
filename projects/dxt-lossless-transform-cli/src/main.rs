@@ -13,7 +13,6 @@ mod util;
 use argh::FromArgs;
 use core::{error::Error, ops::Sub, ptr::copy_nonoverlapping};
 use dxt_lossless_transform_api::*;
-use dxt_lossless_transform_common::allocate::allocate_align_64;
 use error::TransformError;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{
@@ -188,14 +187,7 @@ pub unsafe fn transform_format(
     len: usize,
     format: DdsFormat,
 ) {
-    let mut work_ptr = allocate_align_64(len).expect("Failed to allocate work buffer");
-    dxt_lossless_transform_api::transform_format(
-        input_ptr,
-        output_ptr,
-        work_ptr.as_mut_ptr(),
-        len,
-        format,
-    )
+    dxt_lossless_transform_api::transform_format(input_ptr, output_ptr, len, format)
 }
 
 /// # Safety

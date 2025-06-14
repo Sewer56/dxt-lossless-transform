@@ -1,4 +1,4 @@
-name: Test, Upload Coverage and Release Rust
+name: Test, Coverage, Release on Tag
 
 on:
   push:

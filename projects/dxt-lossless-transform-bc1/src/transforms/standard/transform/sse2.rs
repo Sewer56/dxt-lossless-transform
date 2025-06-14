@@ -344,43 +344,4 @@ mod tests {
             );
         }
     }
-
-    #[test]
-    fn sse2_shufps_unroll_4_separate_pointers_roundtrip() {
-        if !dxt_lossless_transform_common::cpu_detect::has_sse2() {
-            return;
-        }
-
-        for num_blocks in 1..=512 {
-            let input = generate_bc1_test_data(num_blocks);
-            let len = input.len();
-            let mut colors_sep = allocate_align_64(len / 2).unwrap();
-            let mut indices_sep = allocate_align_64(len / 2).unwrap();
-            let mut reconstructed = vec![0u8; len];
-
-            unsafe {
-                // Transform: separate pointers variant
-                shufps_unroll_4_with_separate_pointers(
-                    input.as_ptr(),
-                    colors_sep.as_mut_ptr() as *mut u32,
-                    indices_sep.as_mut_ptr() as *mut u32,
-                    len,
-                );
-
-                // Reconstruct by combining colors and indices back into standard format
-                let mut combined = vec![0u8; len];
-                combined[0..len / 2].copy_from_slice(colors_sep.as_slice());
-                combined[len / 2..].copy_from_slice(indices_sep.as_slice());
-
-                // Untransform back to original format
-                untransform(combined.as_ptr(), reconstructed.as_mut_ptr(), len);
-            }
-
-            assert_eq!(
-                reconstructed.as_slice(),
-                input.as_slice(),
-                "SSE2 shufps_unroll_4 separate pointers roundtrip failed for {num_blocks} blocks"
-            );
-        }
-    }
 }

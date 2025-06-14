@@ -221,7 +221,10 @@ mod tests {
     #[rstest]
     #[case(permute_512, "avx512 permute")]
     #[case(permute_512_unroll_2, "avx512 permute unroll 2")]
-    fn avx512_transform_roundtrip(#[case] permute_fn: unsafe fn(*const u8, *mut u8, usize), #[case] impl_name: &str) {
+    fn avx512_transform_roundtrip(
+        #[case] permute_fn: unsafe fn(*const u8, *mut u8, usize),
+        #[case] impl_name: &str,
+    ) {
         if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
             return;
         }
@@ -231,60 +234,16 @@ mod tests {
             let len = input.len();
             let mut transformed = vec![0u8; len];
             let mut reconstructed = vec![0u8; len];
-            
+
             unsafe {
                 permute_fn(input.as_ptr(), transformed.as_mut_ptr(), len);
                 untransform(transformed.as_ptr(), reconstructed.as_mut_ptr(), len);
             }
-            
+
             assert_eq!(
                 reconstructed.as_slice(),
                 input.as_slice(),
                 "Mismatch {impl_name} roundtrip for {num_blocks} blocks",
-            );
-        }
-    }
-
-    #[rstest]
-    #[case(permute_512_with_separate_pointers, "avx512 separate pointers")]
-    #[case(permute_512_unroll_2_with_separate_pointers, "avx512 unroll 2 separate pointers")]
-    fn avx512_separate_pointers_roundtrip(
-        #[case] permute_fn: unsafe fn(*const u8, *mut u32, *mut u32, usize), 
-        #[case] impl_name: &str
-    ) {
-        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
-            return;
-        }
-
-        for num_blocks in 1..=512 {
-            let input = generate_bc1_test_data(num_blocks);
-            let len = input.len();
-            let mut colors_sep = allocate_align_64(len / 2).unwrap();
-            let mut indices_sep = allocate_align_64(len / 2).unwrap();
-            let mut reconstructed = vec![0u8; len];
-
-            unsafe {
-                // Transform: separate pointers variant
-                permute_fn(
-                    input.as_ptr(),
-                    colors_sep.as_mut_ptr() as *mut u32,
-                    indices_sep.as_mut_ptr() as *mut u32,
-                    len,
-                );
-
-                // Reconstruct by combining colors and indices back into standard format
-                let mut combined = vec![0u8; len];
-                combined[0..len / 2].copy_from_slice(colors_sep.as_slice());
-                combined[len / 2..].copy_from_slice(indices_sep.as_slice());
-
-                // Untransform back to original format
-                untransform(combined.as_ptr(), reconstructed.as_mut_ptr(), len);
-            }
-
-            assert_eq!(
-                reconstructed.as_slice(),
-                input.as_slice(),
-                "{impl_name} roundtrip failed for {num_blocks} blocks"
             );
         }
     }

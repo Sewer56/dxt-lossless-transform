@@ -215,6 +215,65 @@ pub fn run_decorrelate_transform_roundtrip_test_with_variant(
 // Helper functions for untransform tests
 // --------------------------------------
 
+/// Common type alias for with_recorrelate untransform functions used across BC1 tests.
+#[allow(clippy::type_complexity)]
+pub type WithRecorrelateUntransformFn = unsafe fn(*const u32, *const u32, *mut u8, usize) -> ();
+
+/// Executes a with_recorrelate untransform test on 1‥=max_blocks BC1 blocks using unaligned buffers.
+/// This helper eliminates code duplication across AVX2, AVX512, SSE2, and generic untransform tests.
+/// 
+/// The `max_blocks` parameter should equal twice the number of blocks processed in one main loop
+/// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 8).
+#[inline]
+pub fn run_with_recorrelate_untransform_unaligned_test(
+    untransform_fn: WithRecorrelateUntransformFn,
+    decorr_variant: YCoCgVariant,
+    impl_name: &str,
+    max_blocks: usize,
+) {
+    for num_blocks in 1..=max_blocks {
+        let original = generate_bc1_test_data(num_blocks);
+
+        // Transform using standard implementation
+        let mut transformed = vec![0u8; original.len()];
+        unsafe {
+            transform_bc1(
+                original.as_ptr(),
+                transformed.as_mut_ptr(),
+                original.len(),
+                Bc1TransformDetails {
+                    color_normalization_mode: ColorNormalizationMode::None,
+                    decorrelation_mode: decorr_variant,
+                    split_colour_endpoints: false,
+                },
+            );
+        }
+
+        // Add 1 extra byte at the beginning to create misaligned buffers
+        let mut transformed_unaligned = vec![0u8; transformed.len() + 1];
+        transformed_unaligned[1..].copy_from_slice(&transformed);
+        let mut reconstructed = vec![0u8; original.len() + 1];
+
+        unsafe {
+            // Reconstruct using the implementation being tested with unaligned pointers
+            reconstructed.as_mut_slice().fill(0);
+            untransform_fn(
+                transformed_unaligned.as_ptr().add(1) as *const u32,
+                transformed_unaligned.as_ptr().add(1 + num_blocks * 4) as *const u32,
+                reconstructed.as_mut_ptr().add(1),
+                num_blocks,
+            );
+        }
+
+        assert_implementation_matches_reference(
+            original.as_slice(),
+            &reconstructed[1..],
+            impl_name,
+            num_blocks,
+        );
+    }
+}
+
 /// Executes a standard reference transform followed by the given untransform implementation
 /// on 1‥=max_blocks BC1 blocks, using aligned input/output buffers.
 #[inline]

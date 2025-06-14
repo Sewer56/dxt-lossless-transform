@@ -276,6 +276,9 @@ pub fn run_with_recorrelate_untransform_unaligned_test(
 
 /// Same as [`run_standard_untransform_aligned_test`] but also validates the implementation
 /// with deliberately mis-aligned (offset by 1 byte) input and output pointers.
+/// 
+/// The `max_blocks` parameter should equal twice the number of blocks processed in one main loop
+/// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 8).
 #[inline]
 pub fn run_standard_untransform_unaligned_test(
     detransform_fn: StandardTransformFn,

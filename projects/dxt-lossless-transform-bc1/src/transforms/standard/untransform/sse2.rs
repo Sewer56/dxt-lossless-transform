@@ -103,6 +103,7 @@ mod tests {
     #[rstest]
     #[case(unpck_detransform_unroll_2, "unpck_unroll_2")]
     fn test_sse2_unaligned(#[case] detransform_fn: StandardTransformFn, #[case] impl_name: &str) {
-        run_standard_untransform_unaligned_test(detransform_fn, 512, impl_name);
+        // 64 bytes processed per main loop iteration (* 2 / 8 == 16)
+        run_standard_untransform_unaligned_test(detransform_fn, 16, impl_name);
     }
 }

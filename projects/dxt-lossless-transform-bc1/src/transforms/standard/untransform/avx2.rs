@@ -109,6 +109,7 @@ mod tests {
     #[rstest]
     #[case(permd_detransform_unroll_2, "avx_permd_unroll_2")]
     fn test_avx2_unaligned(#[case] detransform_fn: StandardTransformFn, #[case] impl_name: &str) {
-        run_standard_untransform_unaligned_test(detransform_fn, 512, impl_name);
+        // 128 bytes processed per main loop iteration (* 2 / 8 == 32)
+        run_standard_untransform_unaligned_test(detransform_fn, 32, impl_name);
     }
 }

@@ -61,6 +61,7 @@ mod tests {
         #[case] detransform_fn: StandardTransformFn,
         #[case] impl_name: &str,
     ) {
-        run_standard_untransform_unaligned_test(detransform_fn, 512, impl_name);
+        // 8 bytes processed per main loop iteration (* 2 / 8 == 2)
+        run_standard_untransform_unaligned_test(detransform_fn, 2, impl_name);
     }
 }

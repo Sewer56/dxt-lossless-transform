@@ -129,6 +129,7 @@ mod tests {
             return;
         }
 
-        run_standard_untransform_unaligned_test(detransform_fn, 512, impl_name);
+        // 256 bytes processed per main loop iteration (* 2 / 8 == 64)
+        run_standard_untransform_unaligned_test(detransform_fn, 64, impl_name);
     }
 }

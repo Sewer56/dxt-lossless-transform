@@ -14,7 +14,7 @@ pub(crate) unsafe fn transform_with_split_colour(
     mut indices_ptr: *mut u32,
     block_count: usize,
 ) {
-    let blocks8 = block_count / 8;
+    let blocks8 = block_count / 8; // round down via division
     let input_end = input_ptr.add(blocks8 * 8 * 8); // blocks8 * 8 blocks per iteration * 8 bytes per block
     while input_ptr < input_end {
         // Load four 16-byte chunks = 8 blocks

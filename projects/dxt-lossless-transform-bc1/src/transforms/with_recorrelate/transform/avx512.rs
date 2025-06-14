@@ -35,14 +35,15 @@ unsafe fn transform_decorr<const VARIANT: u8>(
             _mm512_cvtepi8_epi32(_mm_loadu_si128(PERM_INDICES_BYTES.as_ptr() as *const _));
         let input_end = input_ptr.add(blocks32 * 32 * 8); // blocks32 * 32 blocks per iteration * 8 bytes per block
         while src < input_end {
-            // Load 256 bytes = 32 blocks
-            let src0 = _mm512_loadu_si512(src as *const __m512i);
-            let src1 = _mm512_loadu_si512(src.add(64) as *const __m512i);
-            let src2 = _mm512_loadu_si512(src.add(128) as *const __m512i);
-            let src3 = _mm512_loadu_si512(src.add(192) as *const __m512i);
+            // Load 256 bytes (4 × 64-byte ZMM registers) = 32 BC1 blocks.
+            let in0 = _mm512_loadu_si512(src as *const __m512i);
+            let in1 = _mm512_loadu_si512(src.add(64) as *const __m512i);
+            let in2 = _mm512_loadu_si512(src.add(128) as *const __m512i);
+            let in3 = _mm512_loadu_si512(src.add(192) as *const __m512i);
             src = src.add(256);
+
             // Split and decorrelate colors
-            let col0 = _mm512_permutex2var_epi32(src0, perm_colors, src1);
+            let col0 = _mm512_permutex2var_epi32(in0, perm_colors, in1);
             let rec0 = match VARIANT {
                 1 => decorrelate_ycocg_r_var1_avx512(col0),
                 2 => decorrelate_ycocg_r_var2_avx512(col0),
@@ -50,7 +51,7 @@ unsafe fn transform_decorr<const VARIANT: u8>(
                 _ => unreachable_unchecked(),
             };
             _mm512_storeu_si512(col_out as *mut __m512i, rec0);
-            let col1 = _mm512_permutex2var_epi32(src2, perm_colors, src3);
+            let col1 = _mm512_permutex2var_epi32(in2, perm_colors, in3);
             let rec1 = match VARIANT {
                 1 => decorrelate_ycocg_r_var1_avx512(col1),
                 2 => decorrelate_ycocg_r_var2_avx512(col1),
@@ -60,9 +61,9 @@ unsafe fn transform_decorr<const VARIANT: u8>(
             _mm512_storeu_si512(col_out.add(16) as *mut __m512i, rec1);
             col_out = col_out.add(32);
             // Split indices and store
-            let idx0 = _mm512_permutex2var_epi32(src0, perm_indices, src1);
+            let idx0 = _mm512_permutex2var_epi32(in0, perm_indices, in1);
             _mm512_storeu_si512(idx_out as *mut __m512i, idx0);
-            let idx1 = _mm512_permutex2var_epi32(src2, perm_indices, src3);
+            let idx1 = _mm512_permutex2var_epi32(in2, perm_indices, in3);
             _mm512_storeu_si512(idx_out.add(16) as *mut __m512i, idx1);
             idx_out = idx_out.add(32);
         }

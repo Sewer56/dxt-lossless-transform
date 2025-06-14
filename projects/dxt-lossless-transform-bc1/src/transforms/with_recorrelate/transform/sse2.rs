@@ -19,7 +19,7 @@ unsafe fn transform_decorr<const VARIANT: u8>(
     num_blocks: usize,
 ) {
     let mut in_ptr = input_ptr;
-    let blocks8 = num_blocks / 8;
+    let blocks8 = num_blocks / 8; // round down via division
     let input_end = input_ptr.add(blocks8 * 8 * 8); // blocks8 * 8 blocks per iteration * 8 bytes per block
     while in_ptr < input_end {
         // Load four 16-byte chunks = 8 blocks

@@ -127,22 +127,20 @@ pub(crate) unsafe fn transform_with_split_colour(
         let in3 = _mm512_loadu_si512(input_ptr.add(192) as *const __m512i);
         input_ptr = input_ptr.add(256);
 
-        // Note: LLVM optimizes this away to intrinsics like vpermt2w + vpermt2w.
-        // And it is correct. I'm glad I wrote it with intrinsics this time, not inline asm.
-        // Gather colour and index dwords using vpermt2d equivalent.
+        // Extract colours and indices into separate registers.
         let colors_0 = _mm512_permutex2var_epi32(in0, perm_colors, in1);
         let colors_1 = _mm512_permutex2var_epi32(in2, perm_colors, in3);
 
         let indices_0 = _mm512_permutex2var_epi32(in0, perm_indices, in1);
         let indices_1 = _mm512_permutex2var_epi32(in2, perm_indices, in3);
 
-        // Extract colour0 and colour1 words directly with epi16 permutation.
-        let color0_packed = _mm512_permutex2var_epi16(colors_0, perm_color0_epi16, colors_1);
-        let color1_packed = _mm512_permutex2var_epi16(colors_0, perm_color1_epi16, colors_1);
+        // Group extracted colours into color0 and color1 components.
+        let color0_only = _mm512_permutex2var_epi16(colors_0, perm_color0_epi16, colors_1);
+        let color1_only = _mm512_permutex2var_epi16(colors_0, perm_color1_epi16, colors_1);
 
-        // Store colour0 and colour1 (64 bytes each).
-        _mm512_storeu_si512(color0_ptr as *mut __m512i, color0_packed);
-        _mm512_storeu_si512(color1_ptr as *mut __m512i, color1_packed);
+        // Store color0 and color1 (64 bytes each).
+        _mm512_storeu_si512(color0_ptr as *mut __m512i, color0_only);
+        _mm512_storeu_si512(color1_ptr as *mut __m512i, color1_only);
         color0_ptr = color0_ptr.add(BLOCKS_PER_ITER);
         color1_ptr = color1_ptr.add(BLOCKS_PER_ITER);
 

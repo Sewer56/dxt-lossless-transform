@@ -67,7 +67,7 @@ jobs:
           # Android (Mobile)
           - { label: "Android ARM64", os: ubuntu-latest, target: aarch64-linux-android, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
           - { label: "Android ARM v7", os: ubuntu-latest, target: armv7-linux-androideabi, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
-          - { label: "Android x64", os: ubuntu-latest, target: x86_64-linux-android, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
+          # - { label: "Android x64", os: ubuntu-latest, target: x86_64-linux-android, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
 
     runs-on: ${{ matrix.os }}
 

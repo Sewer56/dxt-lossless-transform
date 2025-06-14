@@ -9,7 +9,6 @@ use pprof::criterion::{Output, PProfProfiler};
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;
 mod portable32;
-mod portable64;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod sse2;
 
@@ -70,13 +69,6 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     // Run all portable benchmarks
     portable32::run_benchmarks(
-        &mut group,
-        &input,
-        &mut output,
-        size,
-        important_benches_only,
-    );
-    portable64::run_benchmarks(
         &mut group,
         &input,
         &mut output,

@@ -41,21 +41,25 @@ pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
 name = "transform_standard"
 path = "benches/transform_standard/main.rs"
 harness = false
+required-features = ["bench"]
 
 [[bench]]
 name = "untransform_standard"
 path = "benches/untransform_standard/main.rs"
 harness = false
+required-features = ["bench"]
 
 [[bench]]
 name = "block_decode"
 path = "benches/block_decode/main.rs"
 harness = false
+required-features = ["bench"]
 
 [[bench]]
 name = "normalize_blocks"
 path = "benches/normalize_blocks/main.rs"
 harness = false
+required-features = ["bench"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }

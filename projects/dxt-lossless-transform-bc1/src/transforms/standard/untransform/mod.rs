@@ -1,5 +1,4 @@
 pub mod portable32;
-pub use portable32::*;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod sse2;
@@ -11,9 +10,8 @@ pub mod avx2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx512;
 
-#[cfg(feature = "nightly")]
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use avx512::*;
+#[cfg(feature = "bench")]
+pub mod bench;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
@@ -57,7 +55,7 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
     }
 
     // Fallback to portable implementation
-    u32_detransform(input_ptr, output_ptr, len)
+    portable32::u32_detransform(input_ptr, output_ptr, len)
 }
 
 /// Unsplit BC1 blocks, putting them back into standard interleaved format from a separated color/index format
@@ -80,7 +78,7 @@ pub unsafe fn untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        u32_detransform(input_ptr, output_ptr, len)
+        portable32::u32_detransform(input_ptr, output_ptr, len)
     }
 }
 
@@ -94,8 +92,9 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
 ) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
+        use dxt_lossless_transform_common::cpu_detect::*;
         #[cfg(feature = "nightly")]
-        if dxt_lossless_transform_common::cpu_detect::has_avx512f() {
+        if has_avx512f() {
             avx512::permute_512_detransform_unroll_2_with_components(
                 output_ptr,
                 len,
@@ -105,7 +104,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
             return;
         }
 
-        if dxt_lossless_transform_common::cpu_detect::has_avx2() {
+        if has_avx2() {
             avx2::permd_detransform_unroll_2_with_components(
                 output_ptr,
                 len,
@@ -115,7 +114,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
             return;
         }
 
-        if dxt_lossless_transform_common::cpu_detect::has_sse2() {
+        if has_sse2() {
             sse2::unpck_detransform_unroll_2_with_components(
                 output_ptr,
                 len,
@@ -161,7 +160,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
     }
 
     // Fallback to portable implementation
-    u32_detransform_with_separate_pointers(colors_ptr, indices_ptr, output_ptr, len)
+    portable32::u32_detransform_with_separate_pointers(colors_ptr, indices_ptr, output_ptr, len)
 }
 
 /// Unsplit BC1 blocks, putting them back into standard interleaved format from a separated color/index format
@@ -190,7 +189,7 @@ pub unsafe fn unsplit_block_with_separate_pointers(
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        u32_detransform_with_separate_pointers(colors_ptr, indices_ptr, output_ptr, len)
+        portable32::u32_detransform_with_separate_pointers(colors_ptr, indices_ptr, output_ptr, len)
     }
 }
 

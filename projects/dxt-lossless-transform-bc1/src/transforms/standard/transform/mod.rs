@@ -1,28 +1,17 @@
-pub mod portable64;
-pub use portable64::*;
-
 pub mod portable32;
-pub use portable32::*;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod sse2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use sse2::*;
-
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx2;
-
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use avx2::*;
 
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx512;
 
-#[cfg(feature = "nightly")]
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use avx512::*;
+#[cfg(feature = "bench")]
+pub mod bench;
 
 /// Split BC1 blocks from standard interleaved format to separated color/index format
 /// using the best known implementation for the current CPU.
@@ -88,20 +77,22 @@ pub unsafe fn transform_with_separate_pointers(
 unsafe fn transform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
+        use dxt_lossless_transform_common::cpu_detect::*;
+
         // Runtime feature detection
         #[cfg(feature = "nightly")]
-        if dxt_lossless_transform_common::cpu_detect::has_avx512f() {
-            permute_512(input_ptr, output_ptr, len);
+        if has_avx512f() {
+            avx512::permute_512(input_ptr, output_ptr, len);
             return;
         }
 
-        if dxt_lossless_transform_common::cpu_detect::has_avx2() {
-            shuffle_permute_unroll_2(input_ptr, output_ptr, len);
+        if has_avx2() {
+            avx2::shuffle_permute_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
-        if dxt_lossless_transform_common::cpu_detect::has_sse2() {
-            shufps_unroll_4(input_ptr, output_ptr, len);
+        if has_sse2() {
+            sse2::shufps_unroll_4(input_ptr, output_ptr, len);
             return;
         }
     }
@@ -110,23 +101,23 @@ unsafe fn transform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") {
-            permute_512(input_ptr, output_ptr, len);
+            avx512::permute_512(input_ptr, output_ptr, len);
             return;
         }
 
         if cfg!(target_feature = "avx2") {
-            shuffle_permute_unroll_2(input_ptr, output_ptr, len);
+            avx2::shuffle_permute_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
         if cfg!(target_feature = "sse2") {
-            shufps_unroll_4(input_ptr, output_ptr, len);
+            sse2::shufps_unroll_4(input_ptr, output_ptr, len);
             return;
         }
     }
 
     // Fallback to portable implementation
-    u32(input_ptr, output_ptr, len)
+    portable32::u32(input_ptr, output_ptr, len)
 }
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -139,14 +130,16 @@ unsafe fn transform_with_separate_pointers_x86(
 ) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
+        use dxt_lossless_transform_common::cpu_detect::*;
+
         #[cfg(feature = "nightly")]
-        if dxt_lossless_transform_common::cpu_detect::has_avx512f() {
-            permute_512_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+        if has_avx512f() {
+            avx512::permute_512_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
             return;
         }
 
-        if dxt_lossless_transform_common::cpu_detect::has_avx2() {
-            shuffle_permute_unroll_2_with_separate_pointers(
+        if has_avx2() {
+            avx2::shuffle_permute_unroll_2_with_separate_pointers(
                 input_ptr,
                 colors_ptr,
                 indices_ptr,
@@ -155,8 +148,8 @@ unsafe fn transform_with_separate_pointers_x86(
             return;
         }
 
-        if dxt_lossless_transform_common::cpu_detect::has_sse2() {
-            shufps_unroll_4_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+        if has_sse2() {
+            sse2::shufps_unroll_4_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
             return;
         }
     }
@@ -165,12 +158,12 @@ unsafe fn transform_with_separate_pointers_x86(
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") {
-            permute_512_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+            avx512::permute_512_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
             return;
         }
 
         if cfg!(target_feature = "avx2") {
-            shuffle_permute_unroll_2_with_separate_pointers(
+            avx2::shuffle_permute_unroll_2_with_separate_pointers(
                 input_ptr,
                 colors_ptr,
                 indices_ptr,
@@ -180,7 +173,7 @@ unsafe fn transform_with_separate_pointers_x86(
         }
 
         if cfg!(target_feature = "sse2") {
-            shufps_unroll_4_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
+            sse2::shufps_unroll_4_with_separate_pointers(input_ptr, colors_ptr, indices_ptr, len);
             return;
         }
     }

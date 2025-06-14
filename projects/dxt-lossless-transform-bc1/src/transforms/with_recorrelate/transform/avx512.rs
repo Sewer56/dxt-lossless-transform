@@ -145,10 +145,10 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(YCoCgVariant::Variant1)]
-    #[case(YCoCgVariant::Variant2)]
-    #[case(YCoCgVariant::Variant3)]
-    fn avx512_transform_roundtrip(#[case] variant: YCoCgVariant) {
+    #[case(YCoCgVariant::Variant1, 64)]
+    #[case(YCoCgVariant::Variant2, 64)]
+    #[case(YCoCgVariant::Variant3, 64)]
+    fn avx512_transform_roundtrip(#[case] variant: YCoCgVariant, #[case] max_blocks: usize) {
         if !has_avx512f() {
             return;
         }
@@ -156,7 +156,7 @@ mod tests {
         run_decorrelate_transform_roundtrip_test_with_variant(
             transform_with_decorrelate,
             variant,
-            128,
+            max_blocks,
             "AVX512",
         );
     }

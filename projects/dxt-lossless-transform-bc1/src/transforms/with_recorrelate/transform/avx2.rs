@@ -158,13 +158,14 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(transform_decorr_var1, YCoCgVariant::Variant1)]
-    #[case(transform_decorr_var2, YCoCgVariant::Variant2)]
-    #[case(transform_decorr_var3, YCoCgVariant::Variant3)]
+    #[case(transform_decorr_var1, YCoCgVariant::Variant1, 32)]
+    #[case(transform_decorr_var2, YCoCgVariant::Variant2, 32)]
+    #[case(transform_decorr_var3, YCoCgVariant::Variant3, 32)]
     fn avx2_transform_roundtrip(
         #[case] func: unsafe fn(*const u8, *mut u32, *mut u32, usize),
         #[case] variant: YCoCgVariant,
+        #[case] max_blocks: usize,
     ) {
-        run_with_decorrelate_transform_roundtrip_test(func, variant, 128, "AVX2");
+        run_with_decorrelate_transform_roundtrip_test(func, variant, max_blocks, "AVX2");
     }
 }

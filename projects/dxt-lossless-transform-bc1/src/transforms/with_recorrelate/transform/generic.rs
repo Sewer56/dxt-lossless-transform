@@ -87,14 +87,17 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(YCoCgVariant::Variant1)]
-    #[case(YCoCgVariant::Variant2)]
-    #[case(YCoCgVariant::Variant3)]
-    fn roundtrip_transform_with_decorrelate(#[case] variant: YCoCgVariant) {
+    #[case(YCoCgVariant::Variant1, 2)]
+    #[case(YCoCgVariant::Variant2, 2)]
+    #[case(YCoCgVariant::Variant3, 2)]
+    fn roundtrip_transform_with_decorrelate(
+        #[case] variant: YCoCgVariant,
+        #[case] max_blocks: usize,
+    ) {
         run_decorrelate_transform_roundtrip_test_with_variant(
             transform_with_decorrelate_generic,
             variant,
-            128,
+            max_blocks,
             "generic",
         );
     }

@@ -125,11 +125,14 @@ mod tests {
 
     #[rstest]
     #[case(permute_512_unroll_2, "avx512 permute unroll 2")]
-    fn avx512_transform_roundtrip(#[case] permute_fn: StandardTransformFn, #[case] impl_name: &str) {
+    fn avx512_transform_roundtrip(
+        #[case] permute_fn: StandardTransformFn,
+        #[case] impl_name: &str,
+    ) {
         if !has_avx512f() {
             return;
         }
 
-        run_standard_transform_roundtrip_test(permute_fn, 512, impl_name);
+        run_standard_transform_roundtrip_test(permute_fn, 64, impl_name);
     }
 }

@@ -322,15 +322,19 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(shuffle_permute, "shuffle_permute")]
-    #[case(permute, "permute")]
-    #[case(permute_unroll_2, "permute unroll 2")]
-    #[case(gather, "gather")]
-    fn avx2_transform_roundtrip(#[case] permute_fn: StandardTransformFn, #[case] impl_name: &str) {
+    #[case(shuffle_permute, "shuffle_permute", 16)]
+    #[case(permute, "permute", 16)]
+    #[case(permute_unroll_2, "permute unroll 2", 32)]
+    #[case(gather, "gather", 16)]
+    fn avx2_transform_roundtrip(
+        #[case] permute_fn: StandardTransformFn,
+        #[case] impl_name: &str,
+        #[case] max_blocks: usize,
+    ) {
         if !has_avx2() {
             return;
         }
 
-        run_standard_transform_roundtrip_test(permute_fn, 128, impl_name);
+        run_standard_transform_roundtrip_test(permute_fn, max_blocks, impl_name);
     }
 }

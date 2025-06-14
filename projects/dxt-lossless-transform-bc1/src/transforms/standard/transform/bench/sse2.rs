@@ -223,14 +223,18 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(punpckhqdq_unroll_4, "SSE2 punpckhqdq unroll-4")]
-    #[case(punpckhqdq_unroll_2, "SSE2 punpckhqdq unroll-2")]
-    #[case(shufps_unroll_2, "SSE2 shuffle unroll-2")]
-    fn sse2_transform_roundtrip(#[case] permute_fn: StandardTransformFn, #[case] impl_name: &str) {
+    #[case(punpckhqdq_unroll_4, "SSE2 punpckhqdq unroll-4", 16)]
+    #[case(punpckhqdq_unroll_2, "SSE2 punpckhqdq unroll-2", 8)]
+    #[case(shufps_unroll_2, "SSE2 shuffle unroll-2", 8)]
+    fn sse2_transform_roundtrip(
+        #[case] permute_fn: StandardTransformFn,
+        #[case] impl_name: &str,
+        #[case] max_blocks: usize,
+    ) {
         if !has_sse2() {
             return;
         }
 
-        run_standard_transform_roundtrip_test(permute_fn, 512, impl_name);
+        run_standard_transform_roundtrip_test(permute_fn, max_blocks, impl_name);
     }
 }

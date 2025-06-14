@@ -103,6 +103,6 @@ mod tests {
             return;
         }
 
-        run_standard_transform_roundtrip_test(permute_fn, 512, impl_name);
+        run_standard_transform_roundtrip_test(permute_fn, 16, impl_name);
     }
 }

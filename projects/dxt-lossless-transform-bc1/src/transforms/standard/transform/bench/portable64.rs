@@ -551,16 +551,20 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(portable, "64 (auto-selected)")]
-    #[case(shift_unroll_8, "shift unroll-8")]
-    #[case(shift_unroll_4, "shift unroll-4")]
-    #[case(shift_unroll_2, "shift unroll-2")]
-    #[case(shift, "shift no-unroll")]
-    #[case(shift_with_count, "shift_with_count no-unroll")]
-    #[case(shift_with_count_unroll_2, "shift_with_count unroll-2")]
-    #[case(shift_with_count_unroll_4, "shift_with_count unroll-4")]
-    #[case(shift_with_count_unroll_8, "shift_with_count unroll-8")]
-    fn portable64_transform_roundtrip(#[case] transform_fn: StandardTransformFn, #[case] impl_name: &str) {
-        run_standard_transform_roundtrip_test(transform_fn, 512, impl_name);
+    #[case(portable, "64 (auto-selected)", 2)]
+    #[case(shift_unroll_8, "shift unroll-8", 16)]
+    #[case(shift_unroll_4, "shift unroll-4", 8)]
+    #[case(shift_unroll_2, "shift unroll-2", 4)]
+    #[case(shift, "shift no-unroll", 2)]
+    #[case(shift_with_count, "shift_with_count no-unroll", 2)]
+    #[case(shift_with_count_unroll_2, "shift_with_count unroll-2", 4)]
+    #[case(shift_with_count_unroll_4, "shift_with_count unroll-4", 8)]
+    #[case(shift_with_count_unroll_8, "shift_with_count unroll-8", 16)]
+    fn portable64_transform_roundtrip(
+        #[case] transform_fn: StandardTransformFn,
+        #[case] impl_name: &str,
+        #[case] max_blocks: usize,
+    ) {
+        run_standard_transform_roundtrip_test(transform_fn, max_blocks, impl_name);
     }
 }

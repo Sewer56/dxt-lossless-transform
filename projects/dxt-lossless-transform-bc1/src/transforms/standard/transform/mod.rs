@@ -33,7 +33,7 @@ pub unsafe fn transform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        u32(input_ptr, output_ptr, len)
+        portable32::u32(input_ptr, output_ptr, len)
     }
 }
 

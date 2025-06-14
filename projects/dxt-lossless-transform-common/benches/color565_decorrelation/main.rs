@@ -4,7 +4,10 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use dxt_lossless_transform_common::color_565::Color565;
 use safe_allocator_api::RawAlloc;
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(all(
+    any(target_os = "linux", target_os = "macos"),
+    any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")
+))]
 use pprof::criterion::{Output, PProfProfiler};
 
 pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
@@ -237,14 +240,20 @@ fn criterion_benchmark(c: &mut Criterion) {
     group.finish();
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(all(
+    any(target_os = "linux", target_os = "macos"),
+    any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")
+))]
 criterion_group! {
     name = benches;
     config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
     targets = criterion_benchmark
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(not(all(
+    any(target_os = "linux", target_os = "macos"),
+    any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")
+)))]
 criterion_group! {
     name = benches;
     config = Criterion::default();

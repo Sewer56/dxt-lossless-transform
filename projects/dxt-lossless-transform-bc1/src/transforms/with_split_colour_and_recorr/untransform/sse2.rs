@@ -156,6 +156,7 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
 #[cfg(test)]
 mod tests {
     use crate::test_prelude::*;
+    use crate::transforms::with_split_colour_and_recorr::untransform::untransform_with_split_colour_and_recorr;
 
     #[rstest]
     #[case(YCoCgVariant::Variant1)]

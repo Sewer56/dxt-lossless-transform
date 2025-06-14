@@ -55,7 +55,7 @@ use dxt_lossless_transform_common::color_565::YCoCgVariant;
 /// - indices_ptr must be valid for writes of block_count * 4 bytes
 /// - It is recommended that all pointers are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn transform_with_split_colour_and_recorr(
+pub(crate) unsafe fn transform_with_split_colour_and_recorr(
     input_ptr: *const u8,
     color0_ptr: *mut u16,
     color1_ptr: *mut u16,
@@ -85,7 +85,7 @@ pub unsafe fn transform_with_split_colour_and_recorr(
 /// - output_ptr must be valid for writes of block_count * 8 bytes
 /// - It is recommended that all pointers are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn untransform_with_split_colour_and_recorr(
+pub(crate) unsafe fn untransform_with_split_colour_and_recorr(
     color0_ptr: *const u16,
     color1_ptr: *const u16,
     indices_ptr: *const u32,

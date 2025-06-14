@@ -212,6 +212,7 @@ fn analyze_bc1_compression_transforms(
     Ok(results)
 }
 
+#[allow(clippy::too_many_arguments)]
 unsafe fn analyze_bc1_api_recommendation(
     data_ptr: *const u8,
     len_bytes: usize,

@@ -65,32 +65,27 @@ unsafe fn untransform_recorr_var3(
 
 #[target_feature(enable = "sse2")]
 unsafe fn untransform_recorr<const VARIANT: u8>(
-    colors_ptr: *const u32,
-    indices_ptr: *const u32,
-    output_ptr: *mut u8,
+    mut colors_ptr: *const u32,
+    mut indices_ptr: *const u32,
+    mut output_ptr: *mut u8,
     num_blocks: usize,
 ) {
     // === Main Vectorized Loop ===
     // Process 8 blocks at a time using SSE2 SIMD instructions (unroll 2)
     // Calculate number of blocks that can be processed in vectorized chunks
     let vectorized_blocks = num_blocks & !7; // Round down to multiple of 8
-    let mut block_index = 0;
-
     if vectorized_blocks > 0 {
         let colors_end = colors_ptr.add(vectorized_blocks);
-        let mut current_colors_ptr = colors_ptr;
-        let mut current_indices_ptr = indices_ptr;
-        let mut current_output_ptr = output_ptr;
 
         // Main SIMD processing loop - handles 8 blocks per iteration (unroll 2)
-        while current_colors_ptr < colors_end {
+        while colors_ptr < colors_end {
             // Load colors and indices (16 bytes each)
             // This corresponds to 8 blocks worth of data
-            let colors_0 = _mm_loadu_si128(current_colors_ptr as *const __m128i);
-            let colors_1 = _mm_loadu_si128(current_colors_ptr.add(4) as *const __m128i);
+            let colors_0 = _mm_loadu_si128(colors_ptr as *const __m128i);
+            let colors_1 = _mm_loadu_si128(colors_ptr.add(4) as *const __m128i);
 
-            let indices_0 = _mm_loadu_si128(current_indices_ptr as *const __m128i);
-            let indices_1 = _mm_loadu_si128(current_indices_ptr.add(4) as *const __m128i);
+            let indices_0 = _mm_loadu_si128(indices_ptr as *const __m128i);
+            let indices_1 = _mm_loadu_si128(indices_ptr.add(4) as *const __m128i);
 
             // Apply recorrelation to the colors based on the variant
             let recorrelated_colors_0 = match VARIANT {
@@ -121,36 +116,32 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
             let interleaved_3 = _mm_unpackhi_epi32(colors_1_copy, indices_1); // color6,index6,color7,index7
 
             // Store all results (64 bytes total)
-            _mm_storeu_si128(current_output_ptr as *mut __m128i, interleaved_0);
-            _mm_storeu_si128(current_output_ptr.add(16) as *mut __m128i, interleaved_2);
-            _mm_storeu_si128(current_output_ptr.add(32) as *mut __m128i, interleaved_1);
-            _mm_storeu_si128(current_output_ptr.add(48) as *mut __m128i, interleaved_3);
+            _mm_storeu_si128(output_ptr as *mut __m128i, interleaved_0);
+            _mm_storeu_si128(output_ptr.add(16) as *mut __m128i, interleaved_2);
+            _mm_storeu_si128(output_ptr.add(32) as *mut __m128i, interleaved_1);
+            _mm_storeu_si128(output_ptr.add(48) as *mut __m128i, interleaved_3);
 
-            current_colors_ptr = current_colors_ptr.add(8);
-            current_indices_ptr = current_indices_ptr.add(8);
-            current_output_ptr = current_output_ptr.add(64);
+            colors_ptr = colors_ptr.add(8);
+            indices_ptr = indices_ptr.add(8);
+            output_ptr = output_ptr.add(64);
         }
-
-        block_index = vectorized_blocks;
     }
 
     // === Fallback for Remaining Blocks ===
     // Process any remaining blocks using generic implementation
-    let remaining_blocks = num_blocks - block_index;
-    if remaining_blocks > 0 {
-        untransform_with_recorrelate_generic(
-            colors_ptr.add(block_index),
-            indices_ptr.add(block_index),
-            output_ptr.add(block_index * 8),
-            remaining_blocks,
-            match VARIANT {
-                1 => YCoCgVariant::Variant1,
-                2 => YCoCgVariant::Variant2,
-                3 => YCoCgVariant::Variant3,
-                _ => unreachable_unchecked(),
-            },
-        );
-    }
+    let remaining_blocks = num_blocks - vectorized_blocks;
+    untransform_with_recorrelate_generic(
+        colors_ptr,
+        indices_ptr,
+        output_ptr,
+        remaining_blocks,
+        match VARIANT {
+            1 => YCoCgVariant::Variant1,
+            2 => YCoCgVariant::Variant2,
+            3 => YCoCgVariant::Variant3,
+            _ => unreachable_unchecked(),
+        },
+    );
 }
 
 #[cfg(test)]

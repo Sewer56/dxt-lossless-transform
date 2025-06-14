@@ -549,10 +549,6 @@ pub unsafe fn shift_with_count_unroll_8(input_ptr: *const u8, output_ptr: *mut u
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    use crate::transforms::standard::untransform::untransform;
-
-    // Define the function pointer type
-    type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
     #[case(portable, "64 (auto-selected)")]
@@ -565,22 +561,6 @@ mod tests {
     #[case(shift_with_count_unroll_4, "shift_with_count unroll-4")]
     #[case(shift_with_count_unroll_8, "shift_with_count unroll-8")]
     fn portable64_transform_roundtrip(#[case] transform_fn: TransformFn, #[case] impl_name: &str) {
-        for num_blocks in 1..=512 {
-            let input = generate_bc1_test_data(num_blocks);
-            let len = input.len();
-            let mut transformed = vec![0u8; len];
-            let mut reconstructed = vec![0u8; len];
-
-            unsafe {
-                transform_fn(input.as_ptr(), transformed.as_mut_ptr(), len);
-                untransform(transformed.as_ptr(), reconstructed.as_mut_ptr(), len);
-            }
-
-            assert_eq!(
-                reconstructed.as_slice(),
-                input.as_slice(),
-                "Mismatch {impl_name} roundtrip for {num_blocks} blocks",
-            );
-        }
+        run_standard_transform_roundtrip_test(transform_fn, 512, impl_name);
     }
 }

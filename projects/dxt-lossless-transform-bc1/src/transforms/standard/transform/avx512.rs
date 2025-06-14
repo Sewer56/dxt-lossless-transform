@@ -216,35 +216,15 @@ pub unsafe fn permute_512_unroll_2_with_separate_pointers(
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    use crate::transforms::standard::untransform::untransform;
 
     #[rstest]
     #[case(permute_512, "avx512 permute")]
     #[case(permute_512_unroll_2, "avx512 permute unroll 2")]
-    fn avx512_transform_roundtrip(
-        #[case] permute_fn: unsafe fn(*const u8, *mut u8, usize),
-        #[case] impl_name: &str,
-    ) {
-        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
+    fn avx512_transform_roundtrip(#[case] permute_fn: TransformFn, #[case] impl_name: &str) {
+        if !has_avx512f() {
             return;
         }
 
-        for num_blocks in 1..=512 {
-            let input = generate_bc1_test_data(num_blocks);
-            let len = input.len();
-            let mut transformed = vec![0u8; len];
-            let mut reconstructed = vec![0u8; len];
-
-            unsafe {
-                permute_fn(input.as_ptr(), transformed.as_mut_ptr(), len);
-                untransform(transformed.as_ptr(), reconstructed.as_mut_ptr(), len);
-            }
-
-            assert_eq!(
-                reconstructed.as_slice(),
-                input.as_slice(),
-                "Mismatch {impl_name} roundtrip for {num_blocks} blocks",
-            );
-        }
+        run_standard_transform_roundtrip_test(permute_fn, 512, impl_name);
     }
 }

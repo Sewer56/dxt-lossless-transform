@@ -255,32 +255,13 @@ pub unsafe fn u32_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    use crate::transforms::standard::untransform::untransform;
-
-    type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
     #[case(u32, "u32 no-unroll")]
     #[case(u32_unroll_2, "u32 unroll_2")]
     #[case(u32_unroll_4, "u32 unroll_4")]
     #[case(u32_unroll_8, "u32 unroll_8")]
-    fn portable32_transform_roundtrip(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
-        for num_blocks in 1..=512 {
-            let input = generate_bc1_test_data(num_blocks);
-            let len = input.len();
-            let mut transformed = vec![0u8; len];
-            let mut reconstructed = vec![0u8; len];
-
-            unsafe {
-                permute_fn(input.as_ptr(), transformed.as_mut_ptr(), len);
-                untransform(transformed.as_ptr(), reconstructed.as_mut_ptr(), len);
-            }
-
-            assert_eq!(
-                reconstructed.as_slice(),
-                input.as_slice(),
-                "Mismatch {impl_name} roundtrip for {num_blocks} blocks",
-            );
-        }
+    fn portable32_transform_roundtrip(#[case] permute_fn: TransformFn, #[case] impl_name: &str) {
+        run_standard_transform_roundtrip_test(permute_fn, 512, impl_name);
     }
 }

@@ -83,3 +83,119 @@ fn validate_bc1_test_data_generator() {
     let output = generate_bc1_test_data(3);
     assert_eq!(output.as_slice(), expected.as_slice());
 }
+
+// -------------------------------------------------------------------------------------------------
+// Shared test helpers lifted from individual transform tests
+// -------------------------------------------------------------------------------------------------
+
+// Re-export the reference untransform function so tests can access it through the prelude
+pub use crate::transforms::standard;
+
+/// Common type alias for transform/permute functions used across BC1 tests.
+#[allow(clippy::type_complexity)]
+pub type TransformFn = unsafe fn(*const u8, *mut u8, usize);
+
+/// Executes a transform → untransform round-trip on 1‥=max_blocks BC1 blocks and
+/// asserts that the final data matches the original input.
+#[inline]
+pub fn run_standard_transform_roundtrip_test(
+    transform_fn: TransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    for num_blocks in 1..=max_blocks {
+        let input = generate_bc1_test_data(num_blocks);
+        let len = input.len();
+        let mut transformed = vec![0u8; len];
+        let mut reconstructed = vec![0u8; len];
+
+        unsafe {
+            transform_fn(input.as_ptr(), transformed.as_mut_ptr(), len);
+            standard::untransform(transformed.as_ptr(), reconstructed.as_mut_ptr(), len);
+        }
+
+        assert_eq!(
+            reconstructed.as_slice(),
+            input.as_slice(),
+            "Mismatch {impl_name} roundtrip for {num_blocks} blocks",
+        );
+    }
+}
+
+// --------------------------------------
+// Helper functions for untransform tests
+// --------------------------------------
+
+/// Executes a standard reference transform followed by the given untransform implementation
+/// on 1‥=max_blocks BC1 blocks, using aligned input/output buffers.
+#[inline]
+pub fn run_standard_untransform_aligned_test(
+    detransform_fn: TransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    for num_blocks in 1..=max_blocks {
+        let original = generate_bc1_test_data(num_blocks);
+        let mut transformed = allocate_align_64(original.len()).unwrap();
+        let mut reconstructed = allocate_align_64(original.len()).unwrap();
+
+        unsafe {
+            // Transform with the reference path
+            standard::transform(original.as_ptr(), transformed.as_mut_ptr(), original.len());
+
+            // Reconstruct with the implementation under test
+            reconstructed.as_mut_slice().fill(0);
+            detransform_fn(
+                transformed.as_ptr(),
+                reconstructed.as_mut_ptr(),
+                transformed.len(),
+            );
+        }
+
+        assert_implementation_matches_reference(
+            original.as_slice(),
+            reconstructed.as_slice(),
+            &format!("{impl_name} (aligned)"),
+            num_blocks,
+        );
+    }
+}
+
+/// Same as [`run_standard_untransform_aligned_test`] but also validates the implementation
+/// with deliberately mis-aligned (offset by 1 byte) input and output pointers.
+#[inline]
+pub fn run_standard_untransform_unaligned_test(
+    detransform_fn: TransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    for num_blocks in 1..=max_blocks {
+        let original = generate_bc1_test_data(num_blocks);
+
+        // Transform using the reference path
+        let mut transformed = vec![0u8; original.len()];
+        unsafe {
+            standard::transform(original.as_ptr(), transformed.as_mut_ptr(), original.len());
+
+            // Shift by one byte to mis-align the buffers
+            let mut transformed_unaligned = vec![0u8; transformed.len() + 1];
+            transformed_unaligned[1..].copy_from_slice(&transformed);
+
+            let mut reconstructed = vec![0u8; original.len() + 1];
+
+            reconstructed.as_mut_slice().fill(0);
+            detransform_fn(
+                transformed_unaligned.as_ptr().add(1),
+                reconstructed.as_mut_ptr().add(1),
+                transformed.len(),
+            );
+
+            assert_implementation_matches_reference(
+                original.as_slice(),
+                &reconstructed[1..],
+                &format!("{impl_name} (unaligned)"),
+                num_blocks,
+            );
+        }
+    }
+}

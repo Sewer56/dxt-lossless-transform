@@ -224,35 +224,11 @@ mod tests {
         "avx512_permute_unroll_2_intrinsics"
     )]
     fn test_avx512_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
-        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
+        if !has_avx512f() {
             return;
         }
 
-        for num_blocks in 1..=512 {
-            let original = generate_bc1_test_data(num_blocks);
-            let mut transformed = allocate_align_64(original.len()).unwrap();
-            let mut reconstructed = allocate_align_64(original.len()).unwrap();
-
-            unsafe {
-                // Transform using standard implementation
-                transform(original.as_ptr(), transformed.as_mut_ptr(), original.len());
-
-                // Reconstruct using the implementation being tested
-                reconstructed.as_mut_slice().fill(0);
-                detransform_fn(
-                    transformed.as_ptr(),
-                    reconstructed.as_mut_ptr(),
-                    transformed.len(),
-                );
-            }
-
-            assert_implementation_matches_reference(
-                original.as_slice(),
-                reconstructed.as_slice(),
-                &format!("{impl_name} (aligned)"),
-                num_blocks,
-            );
-        }
+        run_standard_untransform_aligned_test(detransform_fn, 512, impl_name);
     }
 
     #[rstest]
@@ -262,41 +238,10 @@ mod tests {
         "avx512_permute_unroll_2_intrinsics"
     )]
     fn test_avx512_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
-        if !dxt_lossless_transform_common::cpu_detect::has_avx512f() {
+        if !has_avx512f() {
             return;
         }
 
-        for num_blocks in 1..=512 {
-            let original = generate_bc1_test_data(num_blocks);
-
-            // Transform using standard implementation
-            let mut transformed = vec![0u8; original.len()];
-            unsafe {
-                transform(original.as_ptr(), transformed.as_mut_ptr(), original.len());
-            }
-
-            // Add 1 extra byte at the beginning to create misaligned buffers
-            let mut transformed_unaligned = vec![0u8; transformed.len() + 1];
-            transformed_unaligned[1..].copy_from_slice(&transformed);
-
-            let mut reconstructed = vec![0u8; original.len() + 1];
-
-            unsafe {
-                // Reconstruct using the implementation being tested with unaligned pointers
-                reconstructed.as_mut_slice().fill(0);
-                detransform_fn(
-                    transformed_unaligned.as_ptr().add(1),
-                    reconstructed.as_mut_ptr().add(1),
-                    transformed.len(),
-                );
-            }
-
-            assert_implementation_matches_reference(
-                original.as_slice(),
-                &reconstructed[1..],
-                &format!("{impl_name} (unaligned)"),
-                num_blocks,
-            );
-        }
+        run_standard_untransform_unaligned_test(detransform_fn, 512, impl_name);
     }
 }

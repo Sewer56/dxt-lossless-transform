@@ -54,6 +54,8 @@ use dxt_lossless_transform_common::color_565::YCoCgVariant;
 /// - color1_ptr must be valid for writes of block_count * 2 bytes
 /// - indices_ptr must be valid for writes of block_count * 4 bytes
 /// - It is recommended that all pointers are at least 16-byte aligned (recommended 32-byte align)
+///
+/// The buffers must not overlap.
 #[inline]
 pub(crate) unsafe fn transform_with_split_colour_and_recorr(
     input_ptr: *const u8,

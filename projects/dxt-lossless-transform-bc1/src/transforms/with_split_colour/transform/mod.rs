@@ -20,6 +20,8 @@ pub mod generic;
 /// - `color0_ptr` must be valid for writes of `block_count * 2` bytes
 /// - `color1_ptr` must be valid for writes of `block_count * 2` bytes
 /// - `indices_ptr` must be valid for writes of `block_count * 4` bytes
+///
+/// The buffers must not overlap.
 #[inline]
 pub(crate) unsafe fn transform_with_split_colour(
     input_ptr: *const u8,

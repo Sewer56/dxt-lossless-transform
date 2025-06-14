@@ -126,7 +126,7 @@ impl Bc1TransformDetails {
 ///
 /// - `input_ptr`: A pointer to the input data (input BC1 blocks)
 /// - `output_ptr`: A pointer to the output data (output BC1 blocks)
-/// - `len`: The length of the input data in bytes (size of `input_ptr`, `output_ptr` and half size of `work_ptr`)
+/// - `len`: The length of the input data in bytes (size of `input_ptr`, `output_ptr`)
 /// - `transform_options`: The transform options to use.
 ///   Obtained from [`determine_optimal_transform::determine_best_transform_details`] or
 ///   [`Bc1TransformDetails::default`] for less optimal result(s).

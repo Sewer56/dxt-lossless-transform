@@ -87,42 +87,18 @@ unsafe fn transform_split_decorr<const VARIANT: u8>(
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    use crate::transforms::with_split_colour_and_recorr::untransform::untransform_with_split_colour_and_recorr;
 
     #[rstest]
     #[case(YCoCgVariant::Variant1)]
     #[case(YCoCgVariant::Variant2)]
     #[case(YCoCgVariant::Variant3)]
     fn generic_transform_roundtrip(#[case] variant: YCoCgVariant) {
-        for blocks in 1..=256 {
-            let input = generate_bc1_test_data(blocks);
-            let mut colour0 = vec![0u16; blocks];
-            let mut colour1 = vec![0u16; blocks];
-            let mut indices = vec![0u32; blocks];
-            let mut reconstructed = vec![0u8; input.len()];
-            unsafe {
-                transform_with_split_colour_and_decorr_generic(
-                    input.as_ptr(),
-                    colour0.as_mut_ptr(),
-                    colour1.as_mut_ptr(),
-                    indices.as_mut_ptr(),
-                    blocks,
-                    variant,
-                );
-                untransform_with_split_colour_and_recorr(
-                    colour0.as_ptr(),
-                    colour1.as_ptr(),
-                    indices.as_ptr(),
-                    reconstructed.as_mut_ptr(),
-                    blocks,
-                    variant,
-                );
-            }
-            assert_eq!(
-                input.as_slice(),
-                reconstructed.as_slice(),
-                "Generic roundtrip mismatch for {variant:?}"
-            );
-        }
+        // Generic implementation processes one block at a time
+        run_split_colour_with_decorr_transform_roundtrip_test(
+            transform_with_split_colour_and_decorr_generic,
+            variant,
+            2,
+            "Generic",
+        );
     }
 }

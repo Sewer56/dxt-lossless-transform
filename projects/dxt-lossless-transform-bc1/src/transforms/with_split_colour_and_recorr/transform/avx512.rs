@@ -250,7 +250,6 @@ pub(crate) unsafe fn transform_with_split_colour_and_decorr(
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    use crate::transforms::with_split_colour_and_recorr::untransform::untransform_with_split_colour_and_recorr;
 
     #[rstest]
     #[case(YCoCgVariant::Variant1)]
@@ -260,35 +259,12 @@ mod tests {
         if !has_avx512f() || !has_avx512bw() {
             return;
         }
-        for blocks in 1..=64 {
-            let input = generate_bc1_test_data(blocks);
-            let mut c0 = vec![0u16; blocks];
-            let mut c1 = vec![0u16; blocks];
-            let mut idx = vec![0u32; blocks];
-            let mut recon = vec![0u8; input.len()];
-            unsafe {
-                transform_with_split_colour_and_decorr(
-                    input.as_ptr(),
-                    c0.as_mut_ptr(),
-                    c1.as_mut_ptr(),
-                    idx.as_mut_ptr(),
-                    blocks,
-                    variant,
-                );
-                untransform_with_split_colour_and_recorr(
-                    c0.as_ptr(),
-                    c1.as_ptr(),
-                    idx.as_ptr(),
-                    recon.as_mut_ptr(),
-                    blocks,
-                    variant,
-                );
-            }
-            assert_eq!(
-                input.as_slice(),
-                recon.as_slice(),
-                "AVX512 roundtrip mismatch {variant:?}"
-            );
-        }
+        // 128 bytes processed per main loop iteration (* 2 / 8 == 32)
+        run_split_colour_with_decorr_transform_roundtrip_test(
+            transform_with_split_colour_and_decorr,
+            variant,
+            32,
+            "AVX512",
+        );
     }
 }

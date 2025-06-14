@@ -100,6 +100,11 @@ pub type WithDecorrelateTransformFn = unsafe fn(*const u8, *mut u32, *mut u32, u
 #[allow(clippy::type_complexity)]
 pub type SplitColourTransformFn = unsafe fn(*const u8, *mut u16, *mut u16, *mut u32, usize);
 
+/// Common type alias for split-colour with decorrelation transform functions used across BC1 tests.
+#[allow(clippy::type_complexity)]
+pub type SplitColourWithDecorrTransformFn =
+    unsafe fn(*const u8, *mut u16, *mut u16, *mut u32, usize, YCoCgVariant);
+
 /// Executes a transform → untransform round-trip on 1‥=max_blocks BC1 blocks and
 /// asserts that the final data matches the original input.
 #[inline]
@@ -257,6 +262,56 @@ pub fn run_split_colour_transform_roundtrip_test(
             reconstructed.as_slice(),
             input.as_slice(),
             "Mismatch {impl_name} roundtrip split-colour for {num_blocks} blocks",
+        );
+    }
+}
+
+/// Executes a split-colour with decorrelation transform → untransform round-trip on 1‥=max_blocks
+/// BC1 blocks using the specified transform function and YCoCg variant, asserting that the final data
+/// matches the original input.
+///
+/// The `max_blocks` parameter should equal twice the number of blocks processed in one main loop
+/// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 8).
+#[inline]
+pub fn run_split_colour_with_decorr_transform_roundtrip_test(
+    transform_fn: SplitColourWithDecorrTransformFn,
+    variant: YCoCgVariant,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transforms::with_split_colour_and_recorr::untransform::untransform_with_split_colour_and_recorr;
+
+    for num_blocks in 1..=max_blocks {
+        let input = generate_bc1_test_data(num_blocks);
+        let len = input.len();
+        let mut colour0 = vec![0u16; num_blocks];
+        let mut colour1 = vec![0u16; num_blocks];
+        let mut indices = vec![0u32; num_blocks];
+        let mut reconstructed = vec![0u8; len];
+
+        unsafe {
+            transform_fn(
+                input.as_ptr(),
+                colour0.as_mut_ptr(),
+                colour1.as_mut_ptr(),
+                indices.as_mut_ptr(),
+                num_blocks,
+                variant,
+            );
+            untransform_with_split_colour_and_recorr(
+                colour0.as_ptr(),
+                colour1.as_ptr(),
+                indices.as_ptr(),
+                reconstructed.as_mut_ptr(),
+                num_blocks,
+                variant,
+            );
+        }
+
+        assert_eq!(
+            reconstructed.as_slice(),
+            input.as_slice(),
+            "Mismatch {impl_name} roundtrip split-colour with decorr {variant:?} for {num_blocks} blocks",
         );
     }
 }

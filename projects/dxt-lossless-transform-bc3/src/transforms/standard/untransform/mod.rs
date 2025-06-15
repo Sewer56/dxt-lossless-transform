@@ -1,19 +1,14 @@
 pub mod portable;
-pub use portable::*;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod sse2;
-
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use sse2::*;
 
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx512;
 
-#[cfg(feature = "nightly")]
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use avx512::*;
+#[cfg(feature = "bench")]
+pub mod bench;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
@@ -45,9 +40,9 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
         sse2::u64_detransform_sse2(input_ptr, output_ptr, len);
     }
 
-    #[cfg(target_arch = "x86")]
+    #[cfg(not(target_arch = "x86_64"))]
     {
-        u32_detransform_v2(input_ptr, output_ptr, len);
+        portable::u32_detransform_v2(input_ptr, output_ptr, len);
     }
 }
 
@@ -71,7 +66,7 @@ pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        u32_detransform_v2(input_ptr, output_ptr, len)
+        portable::u32_detransform_v2(input_ptr, output_ptr, len)
     }
 }
 

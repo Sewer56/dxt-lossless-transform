@@ -7,7 +7,7 @@ use core::arch::asm;
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
-pub unsafe fn shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
     // Process 4 blocks (64 bytes) at a time
     let alpha_ptr = input_ptr;
@@ -25,7 +25,7 @@ pub unsafe fn shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
-pub unsafe fn shuffle_with_components(
+pub(crate) unsafe fn shuffle_with_components(
     mut output_ptr: *mut u8,
     len: usize,
     mut alpha_ptr: *const u8,

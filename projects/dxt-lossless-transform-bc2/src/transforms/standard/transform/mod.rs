@@ -1,25 +1,17 @@
 pub mod portable32;
-pub use portable32::*;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod sse2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use sse2::*;
-
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx2;
-
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use avx2::*;
 
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx512;
 
-#[cfg(feature = "nightly")]
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use avx512::*;
+#[cfg(feature = "bench")]
+pub mod bench;
 
 /// Transform BC2 data from standard interleaved format to separated alpha/color/index format
 /// using the best known implementation for the current CPU.
@@ -41,7 +33,7 @@ pub unsafe fn split_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        u32(input_ptr, output_ptr, len)
+        portable32::u32(input_ptr, output_ptr, len)
     }
 }
 
@@ -81,7 +73,7 @@ pub unsafe fn split_blocks_with_separate_pointers(
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        u32_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len)
+        portable32::u32_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len)
     }
 }
 
@@ -144,7 +136,7 @@ unsafe fn split_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len: u
     }
 
     // Fallback to portable implementation
-    u32(input_ptr, output_ptr, len)
+    portable32::u32(input_ptr, output_ptr, len)
 }
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -260,5 +252,5 @@ unsafe fn split_blocks_with_separate_pointers_x86(
     }
 
     // Fallback to portable implementation
-    u32_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len)
+    portable32::u32_with_separate_pointers(input_ptr, alphas_ptr, colors_ptr, indices_ptr, len)
 }

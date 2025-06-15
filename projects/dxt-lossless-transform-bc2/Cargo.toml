@@ -17,6 +17,8 @@ pgo = []
 no-runtime-cpu-detection = []
 # Use nightly compiler features (AVX512)
 nightly = ["dxt-lossless-transform-common/nightly"]
+# Code only required for benchmarks.
+bench = []
 
 [dependencies]
 dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }
@@ -40,11 +42,13 @@ bench = false
 name = "transform_standard"
 path = "benches/transform_standard/main.rs"
 harness = false
+required-features = ["bench"]
 
 [[bench]]
 name = "untransform_standard"
 path = "benches/untransform_standard/main.rs"
 harness = false
+required-features = ["bench"]
 
 [[bench]]
 name = "block_decode"
@@ -55,3 +59,6 @@ harness = false
 name = "normalize_blocks"
 path = "benches/normalize_blocks/main.rs"
 harness = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }

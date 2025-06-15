@@ -1,5 +1,7 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc2::transforms::standard::transform::*;
+use dxt_lossless_transform_bc2::transforms::standard::transform::bench::{
+    shuffle_v1, shuffle_v1_unroll_2, sse2_shuffle_v2, sse2_shuffle_v3,
+};
 use safe_allocator_api::RawAlloc;
 
 fn bench_shuffle_v1(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
@@ -24,7 +26,7 @@ fn bench_shuffle_v1_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, outpu
 
 fn bench_shuffle_v2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        shuffle_v2(
+        sse2_shuffle_v2(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -35,7 +37,7 @@ fn bench_shuffle_v2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut R
 #[cfg(target_arch = "x86_64")]
 fn bench_shuffle_v3(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        shuffle_v3(
+        sse2_shuffle_v3(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),

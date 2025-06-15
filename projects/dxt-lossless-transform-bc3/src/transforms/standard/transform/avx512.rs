@@ -13,7 +13,7 @@ use super::portable32::u32_with_separate_endpoints;
 #[target_feature(enable = "avx512vbmi")]
 #[allow(clippy::identity_op)]
 #[allow(clippy::erasing_op)]
-pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
     // Setup pointers for alpha components
@@ -45,7 +45,7 @@ pub unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 #[target_feature(enable = "avx512vbmi")]
 #[allow(clippy::identity_op)]
 #[allow(clippy::erasing_op)]
-pub unsafe fn avx512_vbmi_with_separate_pointers(
+pub(crate) unsafe fn avx512_vbmi_with_separate_pointers(
     input_ptr: *const u8,
     mut alpha_byte_out_ptr: *mut u8,
     mut alpha_bit_out_ptr: *mut u8,

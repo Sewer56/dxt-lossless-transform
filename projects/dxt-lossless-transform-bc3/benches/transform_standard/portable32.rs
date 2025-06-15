@@ -1,10 +1,12 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc3::transforms::standard::transform::*;
+use dxt_lossless_transform_bc3::transforms::standard::transform::bench::{
+    portable32::u32_unroll_2, *,
+};
 use safe_allocator_api::RawAlloc;
 
 fn bench_portable32(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u32(
+        u32_transform(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),

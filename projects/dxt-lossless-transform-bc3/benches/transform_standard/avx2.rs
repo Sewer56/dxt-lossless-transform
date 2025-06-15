@@ -1,10 +1,10 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc3::transforms::standard::transform::u32_avx2;
+use dxt_lossless_transform_bc3::transforms::standard::transform::bench::u32_avx2_transform;
 use safe_allocator_api::RawAlloc;
 
 fn bench_avx2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u32_avx2(
+        u32_avx2_transform(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),

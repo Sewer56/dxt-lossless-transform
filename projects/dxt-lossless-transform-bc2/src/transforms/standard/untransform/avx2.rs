@@ -1,4 +1,4 @@
-use crate::split_blocks::unsplit::portable32::u32_detransform_with_separate_pointers;
+use crate::transforms::standard::untransform::portable32::u32_detransform_with_separate_pointers;
 use core::arch::asm;
 
 #[allow(clippy::unusual_byte_groupings)]

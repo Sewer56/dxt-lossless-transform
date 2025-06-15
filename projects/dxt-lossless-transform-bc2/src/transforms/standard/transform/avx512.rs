@@ -1,4 +1,4 @@
-use crate::split_blocks::split::portable32::u32_with_separate_pointers;
+use crate::transforms::standard::transform::portable32::u32_with_separate_pointers;
 use core::arch::asm;
 
 #[cfg(target_arch = "x86_64")]

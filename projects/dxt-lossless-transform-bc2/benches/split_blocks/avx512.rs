@@ -1,5 +1,5 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc2::split_blocks::split::{permute_512, permute_512_v2};
+use dxt_lossless_transform_bc2::transforms::standard::transform::{permute_512, permute_512_v2};
 use safe_allocator_api::RawAlloc;
 
 fn bench_permute(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {

@@ -1,5 +1,5 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc2::split_blocks::unsplit::sse2::shuffle;
+use dxt_lossless_transform_bc2::transforms::standard::untransform::sse2::shuffle;
 use safe_allocator_api::RawAlloc;
 
 fn bench_shuffle_v2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {

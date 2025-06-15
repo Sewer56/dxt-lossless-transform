@@ -5,7 +5,9 @@
 
 use core::ptr::copy_nonoverlapping;
 use dxt_lossless_transform_bc2::{
-    normalize_blocks::{normalize_split_blocks_in_place, ColorNormalizationMode},
+    experimental::normalize_blocks::normalize::{
+        normalize_split_blocks_in_place, ColorNormalizationMode,
+    },
     util::decode_bc2_block,
 };
 use dxt_lossless_transform_common::color_565::Color565;

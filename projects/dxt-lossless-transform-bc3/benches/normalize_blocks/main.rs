@@ -1,8 +1,6 @@
 use core::{alloc::Layout, ptr::copy_nonoverlapping};
 use criterion::{criterion_group, criterion_main, Criterion};
-use dxt_lossless_transform_bc3::normalize_blocks::{
-    normalize_blocks, normalize_blocks_all_modes, AlphaNormalizationMode, ColorNormalizationMode,
-};
+use dxt_lossless_transform_bc3::experimental::normalize_blocks::normalize::*;
 use safe_allocator_api::RawAlloc;
 use std::fs;
 

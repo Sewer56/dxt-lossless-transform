@@ -4,7 +4,9 @@
 // to the same pixels as the original blocks.
 
 use dxt_lossless_transform_bc3::{
-    normalize_blocks::{normalize_blocks, AlphaNormalizationMode, ColorNormalizationMode},
+    experimental::normalize_blocks::normalize::{
+        normalize_blocks, AlphaNormalizationMode, ColorNormalizationMode,
+    },
     util::decode_bc3_block,
 };
 use dxt_lossless_transform_common::color_565::Color565;

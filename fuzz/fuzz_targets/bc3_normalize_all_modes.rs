@@ -6,7 +6,7 @@
 use core::ptr;
 
 use dxt_lossless_transform_bc3::{
-    normalize_blocks::{
+    experimental::normalize_blocks::normalize::{
         normalize_blocks_all_modes, AlphaNormalizationMode, ColorNormalizationMode,
     },
     util::decode_bc3_block,

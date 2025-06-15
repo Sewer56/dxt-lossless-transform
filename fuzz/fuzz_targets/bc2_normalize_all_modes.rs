@@ -6,7 +6,9 @@
 use core::ptr;
 
 use dxt_lossless_transform_bc2::{
-    normalize_blocks::{normalize_blocks_all_modes, ColorNormalizationMode},
+    experimental::normalize_blocks::normalize::{
+        normalize_blocks_all_modes, ColorNormalizationMode,
+    },
     util::decode_bc2_block,
 };
 use dxt_lossless_transform_common::color_565::Color565;

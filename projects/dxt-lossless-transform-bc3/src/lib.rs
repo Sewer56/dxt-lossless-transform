@@ -7,7 +7,7 @@
     feature(stdarch_x86_avx512)
 )]
 
-pub mod normalize_blocks;
+pub mod experimental;
 pub mod transforms;
 pub mod util;
 

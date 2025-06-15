@@ -148,7 +148,7 @@ pub(crate) fn run_standard_transform_unaligned_test(
             );
 
             // Step 2: Untransform using standard function with unaligned pointers
-            crate::split_blocks::unsplit_blocks(
+            crate::transforms::standard::unsplit_blocks(
                 transformed.as_ptr().add(1),
                 reconstructed.as_mut_ptr().add(1),
                 original.len(),
@@ -189,7 +189,7 @@ pub(crate) fn run_standard_untransform_unaligned_test(
 
         unsafe {
             // First, transform using standard split_blocks
-            crate::split_blocks::split_blocks(
+            crate::transforms::standard::split_blocks(
                 original.as_ptr(),
                 unaligned_transformed.as_mut_ptr().add(1),
                 original.len(),

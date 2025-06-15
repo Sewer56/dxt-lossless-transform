@@ -8,7 +8,7 @@
 )]
 
 pub mod normalize_blocks;
-pub mod split_blocks;
+pub mod transforms;
 pub mod util;
 
 /// The information about the BC3 transform that was just performed.
@@ -47,7 +47,7 @@ pub unsafe fn transform_bc3(
     len: usize,
 ) -> BC3TransformDetails {
     debug_assert!(len % 16 == 0);
-    split_blocks::split_blocks(input_ptr, output_ptr, len);
+    crate::transforms::standard::split_blocks(input_ptr, output_ptr, len);
     BC3TransformDetails {}
 }
 
@@ -81,7 +81,7 @@ pub unsafe fn untransform_bc3(
     _details: BC3TransformDetails,
 ) {
     debug_assert!(len % 16 == 0);
-    split_blocks::unsplit_blocks(input_ptr, output_ptr, len);
+    crate::transforms::standard::unsplit_blocks(input_ptr, output_ptr, len);
 }
 
 #[cfg(test)]

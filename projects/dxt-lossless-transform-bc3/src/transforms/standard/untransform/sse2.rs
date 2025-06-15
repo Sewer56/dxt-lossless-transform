@@ -4,7 +4,7 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 use core::arch::*;
 
-use crate::split_blocks::unsplit::portable::u32_detransform_with_separate_pointers;
+use crate::transforms::standard::untransform::portable::u32_detransform_with_separate_pointers;
 
 /// # Safety
 ///

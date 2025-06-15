@@ -63,8 +63,8 @@
 //! This is possible to do with either allocating half of a buffer, and then copying the other half back,
 //! or outputting it all to a single buffer. Outputting all to single buffer is faster.
 
-pub mod split;
-pub mod unsplit;
+pub mod transform;
+pub mod untransform;
 
 /// Transform bc3 data from standard interleaved format to separated alpha/color/index format
 /// using the best known implementation for the current CPU.
@@ -78,7 +78,7 @@ pub mod unsplit;
 #[inline]
 pub unsafe fn split_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
-    split::split_blocks(input_ptr, output_ptr, len);
+    transform::split_blocks(input_ptr, output_ptr, len);
 }
 
 /// Transform BC3 data from standard interleaved format to separated component format
@@ -112,7 +112,7 @@ pub unsafe fn split_blocks_with_separate_pointers(
     index_ptr: *mut u32,
     len: usize,
 ) {
-    split::split_blocks_with_separate_pointers(
+    transform::split_blocks_with_separate_pointers(
         input_ptr,
         alpha_byte_ptr,
         alpha_bit_ptr,
@@ -134,5 +134,5 @@ pub unsafe fn split_blocks_with_separate_pointers(
 #[inline]
 pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
-    unsplit::unsplit_blocks(input_ptr, output_ptr, len);
+    untransform::unsplit_blocks(input_ptr, output_ptr, len);
 }

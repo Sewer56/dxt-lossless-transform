@@ -8,7 +8,7 @@
 )]
 
 pub mod normalize_blocks;
-pub mod split_blocks;
+pub mod transforms;
 pub mod util;
 
 #[cfg(test)]
@@ -50,7 +50,7 @@ pub unsafe fn transform_bc2(
     len: usize,
 ) -> BC2TransformDetails {
     debug_assert!(len % 16 == 0);
-    split_blocks::split_blocks(input_ptr, output_ptr, len);
+    transforms::standard::split_blocks(input_ptr, output_ptr, len);
     BC2TransformDetails {}
 }
 
@@ -84,5 +84,5 @@ pub unsafe fn untransform_bc2(
     _details: BC2TransformDetails,
 ) {
     debug_assert!(len % 16 == 0);
-    split_blocks::unsplit_blocks(input_ptr, output_ptr, len);
+    transforms::standard::unsplit_blocks(input_ptr, output_ptr, len);
 }

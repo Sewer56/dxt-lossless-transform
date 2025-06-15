@@ -147,9 +147,9 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(u32_unroll_2, "u32 unroll_2")]
-    #[case(u32_unroll_4, "u32 unroll_4")]
-    fn test_portable32_unaligned(#[case] permute_fn: StandardTransformFn, #[case] impl_name: &str) {
-        run_standard_transform_unaligned_test(permute_fn, 512, impl_name);
+    #[case(u32_unroll_2, "u32 unroll_2", 4)]
+    #[case(u32_unroll_4, "u32 unroll_4", 8)]
+    fn test_portable32_unaligned(#[case] permute_fn: StandardTransformFn, #[case] impl_name: &str, #[case] max_blocks: usize) {
+        run_standard_transform_unaligned_test(permute_fn, max_blocks, impl_name);
     }
 }

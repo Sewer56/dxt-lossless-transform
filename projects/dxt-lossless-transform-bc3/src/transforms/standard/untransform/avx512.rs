@@ -11,7 +11,7 @@ use crate::transforms::standard::untransform::portable::u32_detransform_with_sep
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512vbmi")]
-pub unsafe fn avx512_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn avx512_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     // Non-64bit has an optimized path, and vl + non-vl variant,
     // however it turns out it's negigible in speed difference with 64-bit path, and sometimes slower even.
     // Somehow L1 cache reads are way faster than expected.
@@ -44,7 +44,7 @@ pub unsafe fn avx512_detransform(input_ptr: *const u8, output_ptr: *mut u8, len:
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512vbmi")]
-pub unsafe fn avx512_detransform_32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn avx512_detransform_32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(target_feature = "avx512vl")]
     let is_vl_supported = true;
 
@@ -65,7 +65,11 @@ pub unsafe fn avx512_detransform_32(input_ptr: *const u8, output_ptr: *mut u8, l
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512vbmi")]
 #[target_feature(enable = "avx512vl")]
-pub unsafe fn avx512_detransform_32_vl(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn avx512_detransform_32_vl(
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+) {
     debug_assert!(len % 16 == 0);
 
     // Process as many 64-byte blocks as possible
@@ -93,7 +97,11 @@ pub unsafe fn avx512_detransform_32_vl(input_ptr: *const u8, output_ptr: *mut u8
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512vbmi")]
-pub unsafe fn avx512_detransform_32_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn avx512_detransform_32_vbmi(
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+) {
     debug_assert!(len % 16 == 0);
 
     // Process as many 64-byte blocks as possible
@@ -139,7 +147,7 @@ pub unsafe fn avx512_detransform_32_vbmi(input_ptr: *const u8, output_ptr: *mut 
 #[allow(clippy::erasing_op)]
 #[allow(clippy::identity_op)]
 #[target_feature(enable = "avx512vbmi")]
-pub unsafe fn avx512_detransform_separate_components(
+pub(crate) unsafe fn avx512_detransform_separate_components(
     mut alpha_byte_in_ptr: *const u8,
     mut alpha_bit_in_ptr: *const u8,
     mut color_byte_in_ptr: *const u8,
@@ -541,7 +549,7 @@ pub unsafe fn avx512_detransform_separate_components(
 #[allow(clippy::erasing_op)]
 #[allow(clippy::identity_op)]
 #[target_feature(enable = "avx512vbmi")]
-pub unsafe fn avx512_detransform_separate_components_32(
+pub(crate) unsafe fn avx512_detransform_separate_components_32(
     mut alpha_byte_in_ptr: *const u8,
     mut alpha_bit_in_ptr: *const u8,
     mut color_byte_in_ptr: *const u8,
@@ -686,7 +694,7 @@ pub unsafe fn avx512_detransform_separate_components_32(
 #[allow(clippy::identity_op)]
 #[target_feature(enable = "avx512vbmi")]
 #[target_feature(enable = "avx512vl")]
-pub unsafe fn avx512_detransform_separate_components_32_vl(
+pub(crate) unsafe fn avx512_detransform_separate_components_32_vl(
     mut alpha_byte_in_ptr: *const u8,
     mut alpha_bit_in_ptr: *const u8,
     mut color_byte_in_ptr: *const u8,

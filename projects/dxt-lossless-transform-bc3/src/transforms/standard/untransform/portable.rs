@@ -3,7 +3,7 @@
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
-pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
     // Set up input pointers for each section
@@ -27,7 +27,7 @@ pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-pub unsafe fn u32_detransform_with_separate_pointers(
+pub(crate) unsafe fn u32_detransform_with_separate_pointers(
     mut alpha_byte_in_ptr: *const u16,
     mut alpha_bit_in_ptr: *const u16,
     mut color_byte_in_ptr: *const u32,
@@ -64,7 +64,7 @@ pub unsafe fn u32_detransform_with_separate_pointers(
 /// - input_ptr must be valid for reads based on the transformed layout derived from len bytes of output.
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
-pub unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
     const BYTES_PER_ITERATION: usize = 32;
     let aligned_len = len - (len % BYTES_PER_ITERATION);
@@ -141,7 +141,7 @@ pub unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len:
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
-pub unsafe fn u64_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn u64_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
     const BYTES_PER_ITERATION: usize = 32;
     let aligned_len = len - (len % BYTES_PER_ITERATION);

@@ -3,7 +3,7 @@
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
-pub unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
     let alpha_byte_out_ptr = output_ptr as *mut u16;
@@ -31,7 +31,7 @@ pub unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 /// - alpha_byte_end_ptr must equal alpha_byte_out_ptr + (len/16) when cast to u16 pointers
 /// - All output buffers must not overlap with each other or the input buffer
 /// - len must be divisible by 16 (BC3 block size)
-pub unsafe fn u32_with_separate_endpoints(
+pub(crate) unsafe fn u32_with_separate_endpoints(
     input_ptr: *const u8,
     mut alpha_byte_out_ptr: *mut u16,
     mut alpha_bit_out_ptr: *mut u16,
@@ -71,7 +71,7 @@ pub unsafe fn u32_with_separate_endpoints(
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
-pub unsafe fn u32_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn u32_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
     let mut alpha_byte_out_ptr = output_ptr as *mut u16;

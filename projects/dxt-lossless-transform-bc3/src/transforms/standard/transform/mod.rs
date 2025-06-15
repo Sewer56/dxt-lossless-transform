@@ -1,19 +1,11 @@
 pub mod portable32;
-pub use portable32::*;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx2;
 
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use avx2::*;
-
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx512;
-
-#[cfg(feature = "nightly")]
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use avx512::*;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
@@ -48,7 +40,7 @@ unsafe fn split_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize
     }
 
     // Fallback to portable implementation
-    u32(input_ptr, output_ptr, len)
+    portable32::u32(input_ptr, output_ptr, len)
 }
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -120,7 +112,7 @@ unsafe fn split_blocks_with_separate_pointers_x86(
     }
 
     // Fallback to portable implementation
-    u32_with_separate_endpoints(
+    portable32::u32_with_separate_endpoints(
         input_ptr,
         alpha_byte_ptr,
         alpha_bit_ptr,
@@ -150,7 +142,7 @@ pub unsafe fn split_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        u32(input_ptr, output_ptr, len)
+        portable32::u32(input_ptr, output_ptr, len)
     }
 }
 
@@ -202,7 +194,7 @@ pub unsafe fn split_blocks_with_separate_pointers(
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
         let alpha_byte_end_ptr = alpha_byte_ptr.add(len / 16);
-        u32_with_separate_endpoints(
+        portable32::u32_with_separate_endpoints(
             input_ptr,
             alpha_byte_ptr,
             alpha_bit_ptr,
@@ -210,5 +202,29 @@ pub unsafe fn split_blocks_with_separate_pointers(
             index_ptr,
             alpha_byte_end_ptr,
         )
+    }
+}
+
+// Re-export functions for benchmarking when the 'bench' feature is enabled
+#[cfg(feature = "bench")]
+#[allow(clippy::missing_safety_doc)]
+pub mod bench_exports {
+    pub unsafe fn u32_transform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+        super::portable32::u32(input_ptr, output_ptr, len)
+    }
+
+    pub unsafe fn u32_transform_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+        super::portable32::u32_unroll_2(input_ptr, output_ptr, len)
+    }
+
+    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+    pub unsafe fn u32_avx2_transform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+        super::avx2::u32_avx2(input_ptr, output_ptr, len)
+    }
+
+    #[cfg(feature = "nightly")]
+    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+    pub unsafe fn avx512_vbmi_transform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+        super::avx512::avx512_vbmi(input_ptr, output_ptr, len)
     }
 }

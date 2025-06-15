@@ -7,7 +7,11 @@ use core::arch::asm;
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn unpck_detransform(
+    mut input_ptr: *const u8,
+    mut output_ptr: *mut u8,
+    len: usize,
+) {
     debug_assert!(len % 8 == 0);
     // Process as many 32-byte blocks as possible
     let aligned_len = len - (len % 32);
@@ -70,7 +74,7 @@ pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
 #[cfg(target_arch = "x86_64")]
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn unpck_detransform_unroll_4(
+pub(crate) unsafe fn unpck_detransform_unroll_4(
     mut input_ptr: *const u8,
     mut output_ptr: *mut u8,
     len: usize,

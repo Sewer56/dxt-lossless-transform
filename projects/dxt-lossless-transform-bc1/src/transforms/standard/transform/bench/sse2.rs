@@ -7,7 +7,7 @@ use core::arch::asm;
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn punpckhqdq_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn punpckhqdq_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
     // Process as many 64-byte blocks as possible
     let aligned_len = len - (len % 64);
@@ -89,7 +89,7 @@ pub unsafe fn punpckhqdq_unroll_4(mut input_ptr: *const u8, mut output_ptr: *mut
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn punpckhqdq_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn punpckhqdq_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
     // Process as many 32-byte blocks as possible
     let aligned_len = len - (len % 32);
@@ -159,7 +159,7 @@ pub unsafe fn punpckhqdq_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn shufps_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
     // Process as many 32-byte blocks as possible
     let aligned_len = len - (len % 32);

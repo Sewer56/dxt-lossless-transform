@@ -7,7 +7,11 @@ use core::arch::asm;
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
-pub unsafe fn permd_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn permd_detransform(
+    mut input_ptr: *const u8,
+    mut output_ptr: *mut u8,
+    len: usize,
+) {
     debug_assert!(len % 8 == 0);
     // Process as many 64-byte blocks as possible
     let aligned_len = len - (len % 64);
@@ -137,7 +141,11 @@ pub unsafe fn permd_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
-pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn unpck_detransform(
+    mut input_ptr: *const u8,
+    mut output_ptr: *mut u8,
+    len: usize,
+) {
     debug_assert!(len % 8 == 0);
     // Process as many 64-byte blocks as possible
     let aligned_len = len - (len % 64);
@@ -202,7 +210,7 @@ pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
-pub unsafe fn unpck_detransform_unroll_2(
+pub(crate) unsafe fn unpck_detransform_unroll_2(
     mut input_ptr: *const u8,
     mut output_ptr: *mut u8,
     len: usize,

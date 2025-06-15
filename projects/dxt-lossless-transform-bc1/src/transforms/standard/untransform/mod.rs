@@ -68,7 +68,7 @@ unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 /// - len must be divisible by 8
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -174,7 +174,7 @@ unsafe fn untransform_with_separate_pointers_x86(
 /// - len must be divisible by 8
 /// - It is recommended that colors_ptr and indices_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn untransform_with_separate_pointers(
+pub(crate) unsafe fn untransform_with_separate_pointers(
     colors_ptr: *const u32,
     indices_ptr: *const u32,
     output_ptr: *mut u8,

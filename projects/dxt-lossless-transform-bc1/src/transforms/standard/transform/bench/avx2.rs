@@ -7,7 +7,7 @@ use core::arch::asm;
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
-pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
     // Process as many 64-byte blocks as possible
     let aligned_len = len - (len % 64);
@@ -90,7 +90,7 @@ pub unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: us
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
-pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
     // Process as many 128-byte blocks as possible
     let aligned_len = len - (len % 128);
@@ -177,7 +177,7 @@ pub unsafe fn permute_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
-pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
     // Process as many 128-byte blocks as possible
     let aligned_len = len - (len % 128);
@@ -251,7 +251,7 @@ pub unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usi
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
-pub unsafe fn shuffle_permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn shuffle_permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
     // Process as many 64-byte blocks as possible
     let aligned_len = len - (len % 64);

@@ -13,7 +13,7 @@ use core::arch::x86::*;
 #[allow(unused_assignments)]
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
-pub unsafe fn permute_512_detransform_unroll_2_intrinsics(
+pub(crate) unsafe fn permute_512_detransform_unroll_2_intrinsics(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
@@ -39,7 +39,7 @@ pub unsafe fn permute_512_detransform_unroll_2_intrinsics(
 #[allow(unused_assignments)]
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
-pub unsafe fn permute_512_detransform_unroll_2_with_components_intrinsics(
+pub(crate) unsafe fn permute_512_detransform_unroll_2_with_components_intrinsics(
     mut output_ptr: *mut u8,
     len: usize,
     mut indices_ptr: *const u8,

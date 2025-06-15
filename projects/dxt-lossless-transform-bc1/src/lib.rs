@@ -7,9 +7,12 @@
     feature(stdarch_x86_avx512)
 )]
 
+pub(crate) mod transforms;
+
+#[cfg(feature = "bench")]
+pub mod bench;
 pub mod determine_optimal_transform;
 pub mod experimental;
-pub mod transforms;
 pub mod util;
 
 use crate::transforms::{

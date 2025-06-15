@@ -38,8 +38,8 @@
 //!   4      | 4    | indices (2 bits per pixel, little-endian)
 //!   ```
 
-pub mod transform;
-pub mod untransform;
+pub(crate) mod transform;
+pub(crate) mod untransform;
 
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 

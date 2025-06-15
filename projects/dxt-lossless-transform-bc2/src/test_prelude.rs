@@ -125,9 +125,6 @@ pub(crate) fn run_standard_transform_unaligned_test(
         let mut transformed = allocate_align_64(original.len() + 1);
         let mut reconstructed = allocate_align_64(original.len() + 1);
 
-        transformed.as_mut_slice().fill(0);
-        reconstructed.as_mut_slice().fill(0);
-
         unsafe {
             // Step 1: Transform using the test function with unaligned pointers
             transform_fn(

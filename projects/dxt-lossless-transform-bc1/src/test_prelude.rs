@@ -332,8 +332,6 @@ pub(crate) fn run_with_recorrelate_untransform_unaligned_test(
         let mut reconstructed = allocate_align_64(original.len() + 1);
 
         unsafe {
-            // Reconstruct using the implementation being tested with unaligned pointers
-            reconstructed.as_mut_slice().fill(0);
             untransform_fn(
                 transformed_unaligned.as_ptr().add(1) as *const u32,
                 transformed_unaligned.as_ptr().add(1 + num_blocks * 4) as *const u32,
@@ -379,8 +377,6 @@ pub(crate) fn run_standard_untransform_unaligned_test(
             transformed_unaligned.as_mut_slice()[1..].copy_from_slice(transformed.as_slice());
 
             let mut reconstructed = allocate_align_64(original.len() + 1);
-
-            reconstructed.as_mut_slice().fill(0);
             detransform_fn(
                 transformed_unaligned.as_ptr().add(1),
                 reconstructed.as_mut_ptr().add(1),
@@ -433,7 +429,6 @@ pub(crate) fn run_with_split_colour_untransform_unaligned_test(
 
         unsafe {
             // Reconstruct using the implementation being tested with unaligned pointers
-            reconstructed.as_mut_slice().fill(0);
             untransform_fn(
                 transformed_unaligned.as_ptr().add(1) as *const u16,
                 transformed_unaligned.as_ptr().add(1 + num_blocks * 2) as *const u16,
@@ -489,7 +484,6 @@ pub(crate) fn run_with_split_colour_and_recorr_untransform_unaligned_test(
 
         unsafe {
             // Reconstruct using the implementation being tested with unaligned pointers
-            reconstructed.as_mut_slice().fill(0);
             untransform_fn(
                 transformed_unaligned.as_ptr().add(1) as *const u16,
                 transformed_unaligned.as_ptr().add(1 + num_blocks * 2) as *const u16,

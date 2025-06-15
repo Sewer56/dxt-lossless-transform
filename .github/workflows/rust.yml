@@ -169,12 +169,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Generate C++ bindings
-        uses: Reloaded-Project/devops-rust-cbindgen@v1
-        with:
-          rust-project-path: 'projects/dxt-lossless-transform-api/'
-          config-file: cbindgen_cpp.toml
-          output-header-file: bindings_cpp.hpp
       - name: Generate C bindings
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
@@ -182,11 +176,24 @@ jobs:
           config-file: cbindgen_c.toml
           output-header-file: bindings_c.h
 
+  build-cpp-headers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Generate C++ bindings
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'projects/dxt-lossless-transform-api/'
+          config-file: cbindgen_cpp.toml
+          output-header-file: bindings_cpp.hpp
+
   publish-crate:
     permissions:
       contents: write
 
-    needs: [test, build-cli, build-c-api]
+    needs: [test, build-cli, build-c-api, build-c-headers, build-cpp-headers]
     # Publish only on tags
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest

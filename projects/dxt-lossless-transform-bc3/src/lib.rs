@@ -85,12 +85,4 @@ pub unsafe fn untransform_bc3(
 }
 
 #[cfg(test)]
-mod testutils {
-    use core::alloc::Layout;
-    use safe_allocator_api::RawAlloc;
-
-    pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
-        let layout = Layout::from_size_align(num_bytes, 64).unwrap();
-        RawAlloc::new(layout).unwrap()
-    }
-}
+pub mod test_prelude;

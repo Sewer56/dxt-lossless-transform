@@ -53,13 +53,11 @@ required-features = ["bench"]
 name = "block_decode"
 path = "benches/block_decode/main.rs"
 harness = false
-required-features = ["bench"]
 
 [[bench]]
 name = "normalize_blocks"
 path = "benches/normalize_blocks/main.rs"
 harness = false
-required-features = ["bench"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }

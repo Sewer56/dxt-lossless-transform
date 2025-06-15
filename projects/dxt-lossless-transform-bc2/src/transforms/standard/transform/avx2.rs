@@ -19,7 +19,7 @@ const PERMUTE_MASK: [u32; 8] = [0, 4, 1, 5, 2, 6, 3, 7];
 /// - len must be divisible by 16
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
-pub unsafe fn shuffle_with_separate_pointers(
+pub(crate) unsafe fn shuffle_with_separate_pointers(
     mut input_ptr: *const u8,
     mut alphas_ptr: *mut u64,
     mut colors_ptr: *mut u32,
@@ -167,7 +167,7 @@ pub unsafe fn shuffle_with_separate_pointers(
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
-pub unsafe fn shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     let alphas_ptr = output_ptr as *mut u64;
     let colors_ptr = output_ptr.add(len / 2) as *mut u32;
     let indices_ptr = output_ptr.add(len / 2 + len / 4) as *mut u32;

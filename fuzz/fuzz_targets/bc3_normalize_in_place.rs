@@ -5,7 +5,7 @@
 
 use core::ptr::copy_nonoverlapping;
 use dxt_lossless_transform_bc3::{
-    normalize_blocks::{
+    experimental::normalize_blocks::normalize::{
         normalize_split_blocks_in_place, AlphaNormalizationMode, ColorNormalizationMode,
     },
     util::decode_bc3_block,

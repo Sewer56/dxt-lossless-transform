@@ -3,14 +3,14 @@
 //! For the inverse of `untransform_with_split_colour`, see the corresponding untransform module.
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-pub mod avx2;
+mod avx2;
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-pub mod avx512;
+mod avx512;
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-pub mod sse2;
+mod sse2;
 
-pub mod generic;
+mod generic;
 
 /// Split standard interleaved BC1 blocks into separate color0, color1, and index buffers.
 ///

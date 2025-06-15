@@ -2,6 +2,7 @@
 //!
 //! This module provides a common prelude for test modules to avoid
 //! duplicate imports across the codebase.
+#![allow(unused_imports)]
 
 // External crates commonly used in tests
 pub use rstest::rstest;
@@ -15,7 +16,6 @@ pub use crate::experimental::normalize_blocks::*;
 // Common types from dxt_lossless_transform_common
 pub use dxt_lossless_transform_common::color_565::YCoCgVariant;
 pub use dxt_lossless_transform_common::color_8888::Color8888;
-#[allow(unused_imports)] // Might be unused in some CPU architectures, and that's ok.
 pub use dxt_lossless_transform_common::cpu_detect::*;
 pub use dxt_lossless_transform_common::decoded_4x4_block::Decoded4x4Block;
 

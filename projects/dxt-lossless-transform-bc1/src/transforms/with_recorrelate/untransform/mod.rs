@@ -1,16 +1,16 @@
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
-pub mod generic;
+mod generic;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod sse2;
+mod sse2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod avx2;
+mod avx2;
 
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod avx512;
+mod avx512;
 
 #[inline(always)]
 pub(crate) unsafe fn untransform_with_recorrelate(

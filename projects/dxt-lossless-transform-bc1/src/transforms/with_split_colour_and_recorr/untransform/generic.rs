@@ -1,4 +1,4 @@
-use crate::transforms::standard::untransform::unsplit_block_with_separate_pointers;
+use crate::transforms::standard::untransform::untransform_with_separate_pointers;
 use core::hint::unreachable_unchecked;
 use dxt_lossless_transform_common::{
     allocate::allocate_align_64,
@@ -41,7 +41,7 @@ pub(crate) unsafe fn untransform_with_split_colour_and_recorr_generic(
         );
 
         // Now unsplit the colours, placing them into the final buffer
-        unsplit_block_with_separate_pointers(
+        untransform_with_separate_pointers(
             work_ptr as *const u32,
             indices_in,
             output_ptr,

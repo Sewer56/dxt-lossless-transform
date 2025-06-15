@@ -1,21 +1,21 @@
-pub mod portable32;
+mod portable32;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod sse2;
+mod sse2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod avx2;
+mod avx2;
 
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod avx512;
+mod avx512;
 
 #[cfg(feature = "bench")]
 pub mod bench;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
-unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         #[cfg(feature = "nightly")]
@@ -73,7 +73,7 @@ pub unsafe fn untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
-        unsplit_blocks_x86(input_ptr, output_ptr, len)
+        untransform_x86(input_ptr, output_ptr, len)
     }
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
@@ -84,7 +84,7 @@ pub unsafe fn untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
-unsafe fn unsplit_block_with_separate_pointers_x86(
+unsafe fn untransform_with_separate_pointers_x86(
     colors_ptr: *const u32,
     indices_ptr: *const u32,
     output_ptr: *mut u8,
@@ -174,7 +174,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
 /// - len must be divisible by 8
 /// - It is recommended that colors_ptr and indices_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn unsplit_block_with_separate_pointers(
+pub unsafe fn untransform_with_separate_pointers(
     colors_ptr: *const u32,
     indices_ptr: *const u32,
     output_ptr: *mut u8,
@@ -184,7 +184,7 @@ pub unsafe fn unsplit_block_with_separate_pointers(
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
-        unsplit_block_with_separate_pointers_x86(colors_ptr, indices_ptr, output_ptr, len)
+        untransform_with_separate_pointers_x86(colors_ptr, indices_ptr, output_ptr, len)
     }
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]

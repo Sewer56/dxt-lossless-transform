@@ -23,13 +23,13 @@ pub(crate) unsafe fn transform_with_decorrelate_generic(
 ) {
     match decorrelation_mode {
         YCoCgVariant::Variant1 => {
-            transform_decorr::<1>(input_ptr, colours_out, indices_out, num_blocks)
+            transform_decorr_var1(input_ptr, colours_out, indices_out, num_blocks)
         }
         YCoCgVariant::Variant2 => {
-            transform_decorr::<2>(input_ptr, colours_out, indices_out, num_blocks)
+            transform_decorr_var2(input_ptr, colours_out, indices_out, num_blocks)
         }
         YCoCgVariant::Variant3 => {
-            transform_decorr::<3>(input_ptr, colours_out, indices_out, num_blocks)
+            transform_decorr_var3(input_ptr, colours_out, indices_out, num_blocks)
         }
         YCoCgVariant::None => unreachable_unchecked(),
     }
@@ -81,24 +81,48 @@ unsafe fn transform_decorr<const VARIANT: u8>(
     }
 }
 
+// Wrapper functions for testing with specific variants
+pub(crate) unsafe fn transform_decorr_var1(
+    input_ptr: *const u8,
+    colours_out: *mut u32,
+    indices_out: *mut u32,
+    num_blocks: usize,
+) {
+    transform_decorr::<1>(input_ptr, colours_out, indices_out, num_blocks)
+}
+
+pub(crate) unsafe fn transform_decorr_var2(
+    input_ptr: *const u8,
+    colours_out: *mut u32,
+    indices_out: *mut u32,
+    num_blocks: usize,
+) {
+    transform_decorr::<2>(input_ptr, colours_out, indices_out, num_blocks)
+}
+
+pub(crate) unsafe fn transform_decorr_var3(
+    input_ptr: *const u8,
+    colours_out: *mut u32,
+    indices_out: *mut u32,
+    num_blocks: usize,
+) {
+    transform_decorr::<3>(input_ptr, colours_out, indices_out, num_blocks)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(YCoCgVariant::Variant1, 2)]
-    #[case(YCoCgVariant::Variant2, 2)]
-    #[case(YCoCgVariant::Variant3, 2)]
+    #[case(transform_decorr_var1, YCoCgVariant::Variant1, 2)]
+    #[case(transform_decorr_var2, YCoCgVariant::Variant2, 2)]
+    #[case(transform_decorr_var3, YCoCgVariant::Variant3, 2)]
     fn roundtrip_transform_with_decorrelate(
+        #[case] func: unsafe fn(*const u8, *mut u32, *mut u32, usize),
         #[case] variant: YCoCgVariant,
         #[case] max_blocks: usize,
     ) {
-        run_decorrelate_transform_roundtrip_test_with_variant(
-            transform_with_decorrelate_generic,
-            variant,
-            max_blocks,
-            "generic",
-        );
+        run_with_decorrelate_transform_roundtrip_test(func, variant, max_blocks, "generic");
     }
 }

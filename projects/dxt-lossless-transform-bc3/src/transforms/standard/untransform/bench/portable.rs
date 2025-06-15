@@ -1,46 +1,36 @@
+use crate::transforms::standard::untransform::portable::u32_detransform_with_separate_pointers;
+
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-pub(crate) unsafe fn u32_detransform_with_separate_pointers(
-    mut alpha_byte_in_ptr: *const u16,
-    mut alpha_bit_in_ptr: *const u16,
-    mut color_byte_in_ptr: *const u32,
-    mut index_byte_in_ptr: *const u32,
-    mut current_output_ptr: *mut u8,
-    len: usize,
-) {
-    let alpha_byte_end_ptr = alpha_byte_in_ptr.add(len / 16);
-    while alpha_byte_in_ptr < alpha_byte_end_ptr {
-        // Alpha bytes (2 bytes)
-        (current_output_ptr as *mut u16).write_unaligned(alpha_byte_in_ptr.read_unaligned());
-        alpha_byte_in_ptr = alpha_byte_in_ptr.add(1);
+/// - len must be divisible by 16
+pub(crate) unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    debug_assert!(len % 16 == 0);
 
-        // Alpha bits (6 bytes)
-        (current_output_ptr.add(2) as *mut u16).write_unaligned(alpha_bit_in_ptr.read_unaligned());
-        (current_output_ptr.add(4) as *mut u32)
-            .write_unaligned((alpha_bit_in_ptr.add(1) as *const u32).read_unaligned());
-        alpha_bit_in_ptr = alpha_bit_in_ptr.add(3);
+    // Set up input pointers for each section
+    let alpha_byte_in_ptr = input_ptr as *const u16;
+    let alpha_bit_in_ptr = input_ptr.add(len / 16 * 2) as *const u16;
+    let color_byte_in_ptr = input_ptr.add(len / 16 * 8) as *const u32;
+    let index_byte_in_ptr = input_ptr.add(len / 16 * 12) as *const u32;
+    let current_output_ptr = output_ptr;
 
-        // Color bytes (4 bytes)
-        (current_output_ptr.add(8) as *mut u32).write_unaligned(color_byte_in_ptr.read_unaligned());
-        color_byte_in_ptr = color_byte_in_ptr.add(1);
-
-        // Index bytes (4 bytes)
-        (current_output_ptr.add(12) as *mut u32)
-            .write_unaligned(index_byte_in_ptr.read_unaligned());
-        index_byte_in_ptr = index_byte_in_ptr.add(1);
-        current_output_ptr = current_output_ptr.add(16);
-    }
+    u32_detransform_with_separate_pointers(
+        alpha_byte_in_ptr,
+        alpha_bit_in_ptr,
+        color_byte_in_ptr,
+        index_byte_in_ptr,
+        current_output_ptr,
+        len,
+    );
 }
 
 /// # Safety
 ///
-/// - input_ptr must be valid for reads based on the transformed layout derived from len bytes of output.
+/// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
-#[cfg_attr(target_arch = "x86_64", allow(dead_code))] // x86_64 does not use this path.
-pub(crate) unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn u64_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
     const BYTES_PER_ITERATION: usize = 32;
     let aligned_len = len - (len % BYTES_PER_ITERATION);
@@ -49,15 +39,20 @@ pub(crate) unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u
     // Pointers are doubly sized for unroll.
     let mut alpha_byte_in_ptr = input_ptr as *const u32;
     let mut alpha_bit_in_ptr = input_ptr.add(len / 16 * 2) as *const u16;
-    let mut color_byte_in_ptr = input_ptr.add(len / 16 * 8) as *const u32;
-    let mut index_byte_in_ptr = input_ptr.add(len / 16 * 12) as *const u32;
+    let mut color_byte_in_ptr = input_ptr.add(len / 16 * 8) as *const u64;
+    let mut index_byte_in_ptr = input_ptr.add(len / 16 * 12) as *const u64;
+
     let mut current_output_ptr = output_ptr;
 
     if aligned_len > 0 {
         let alpha_byte_aligned_end_ptr = input_ptr.add(aligned_len / 16 * 2) as *const u32;
         while alpha_byte_in_ptr < alpha_byte_aligned_end_ptr {
             let alpha_bytes = alpha_byte_in_ptr.read_unaligned();
+            let color_bytes = color_byte_in_ptr.read_unaligned();
+            let index_bytes = index_byte_in_ptr.read_unaligned();
             alpha_byte_in_ptr = alpha_byte_in_ptr.add(1);
+            color_byte_in_ptr = color_byte_in_ptr.add(1);
+            index_byte_in_ptr = index_byte_in_ptr.add(1);
 
             // Alpha bytes (2 bytes). Write in 2 blocks in 1 shot.
             #[cfg(target_endian = "little")]
@@ -84,19 +79,24 @@ pub(crate) unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u
             alpha_bit_in_ptr = alpha_bit_in_ptr.add(6);
 
             // Color bytes (4 bytes)
-            (current_output_ptr.add(8) as *mut u32)
-                .write_unaligned(color_byte_in_ptr.read_unaligned());
-            (current_output_ptr.add(8 + 16) as *mut u32)
-                .write_unaligned(color_byte_in_ptr.add(1).read_unaligned());
-            color_byte_in_ptr = color_byte_in_ptr.add(2);
+            #[cfg(target_endian = "little")]
+            {
+                let color_index_bytes_0 =
+                    (color_bytes & 0xFFFFFFFF) | ((index_bytes & 0xFFFFFFFF) << 32);
+                let color_index_bytes_1 = (color_bytes >> 32) | ((index_bytes >> 32) << 32);
+                (current_output_ptr.add(8) as *mut u64).write_unaligned(color_index_bytes_0);
+                (current_output_ptr.add(8 + 16) as *mut u64).write_unaligned(color_index_bytes_1);
+            }
+            #[cfg(target_endian = "big")]
+            {
+                let color_index_bytes_0 = (index_bytes >> 32) | ((color_bytes >> 32) << 32);
+                let color_index_bytes_1 =
+                    (index_bytes & 0xFFFFFFFF) | ((color_bytes & 0xFFFFFFFF) << 32);
+                (current_output_ptr.add(8) as *mut u64).write_unaligned(color_index_bytes_0);
+                (current_output_ptr.add(8 + 16) as *mut u64).write_unaligned(color_index_bytes_1);
+            }
 
             // Index bytes (4 bytes)
-            (current_output_ptr.add(12) as *mut u32)
-                .write_unaligned(index_byte_in_ptr.read_unaligned());
-            (current_output_ptr.add(12 + 16) as *mut u32)
-                .write_unaligned(index_byte_in_ptr.add(1).read_unaligned());
-            index_byte_in_ptr = index_byte_in_ptr.add(2);
-
             current_output_ptr = current_output_ptr.add(32);
         }
     }
@@ -105,8 +105,8 @@ pub(crate) unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u
     u32_detransform_with_separate_pointers(
         alpha_byte_in_ptr as *const u16,
         alpha_bit_in_ptr,
-        color_byte_in_ptr,
-        index_byte_in_ptr,
+        color_byte_in_ptr as *const u32,
+        index_byte_in_ptr as *const u32,
         current_output_ptr,
         len - aligned_len,
     );
@@ -118,7 +118,8 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(u32_detransform_v2, "u32_v2", 2)]
+    #[case(u32_detransform, "u32", 2)]
+    #[case(u64_detransform, "u64", 2)]
     fn test_portable_unaligned(
         #[case] detransform_fn: StandardTransformFn,
         #[case] impl_name: &str,

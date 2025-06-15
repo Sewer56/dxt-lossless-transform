@@ -1,5 +1,5 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc3::transforms::standard::untransform::bench_exports::{
+use dxt_lossless_transform_bc3::transforms::standard::untransform::bench::{
     u32_detransform_sse2, u64_detransform_sse2,
 };
 use safe_allocator_api::RawAlloc;

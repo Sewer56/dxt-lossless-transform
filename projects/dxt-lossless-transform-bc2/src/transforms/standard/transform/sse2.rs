@@ -7,6 +7,7 @@ use core::arch::asm;
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
+#[cfg_attr(target_arch = "x86_64", allow(dead_code))]
 pub(crate) unsafe fn shuffle_v2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
@@ -153,6 +154,7 @@ pub(crate) unsafe fn shuffle_v3_with_separate_pointers(
 /// - indices_ptr must be valid for writes of len / 4 bytes
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
+#[cfg_attr(target_arch = "x86_64", allow(dead_code))]
 pub(crate) unsafe fn shuffle_v2_with_separate_pointers(
     mut input_ptr: *const u8,
     mut alphas_ptr: *mut u64,

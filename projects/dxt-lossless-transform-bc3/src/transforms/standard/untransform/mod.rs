@@ -7,6 +7,9 @@ pub mod sse2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx512;
 
+#[cfg(feature = "bench")]
+pub mod bench;
+
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
 unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
@@ -37,9 +40,9 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
         sse2::u64_detransform_sse2(input_ptr, output_ptr, len);
     }
 
-    #[cfg(target_arch = "x86")]
+    #[cfg(not(target_arch = "x86_64"))]
     {
-        u32_detransform_v2(input_ptr, output_ptr, len);
+        portable::u32_detransform_v2(input_ptr, output_ptr, len);
     }
 }
 
@@ -63,7 +66,7 @@ pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        u32_detransform_v2(input_ptr, output_ptr, len)
+        portable::u32_detransform_v2(input_ptr, output_ptr, len)
     }
 }
 
@@ -184,54 +187,5 @@ pub unsafe fn unsplit_block_with_separate_pointers(
             output_ptr,
             len,
         )
-    }
-}
-
-// Public wrapper functions available through bench_exports module when 'bench' feature is enabled
-#[cfg(feature = "bench")]
-#[allow(clippy::missing_safety_doc)]
-pub mod bench_exports {
-    pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-        super::portable::u32_detransform(input_ptr, output_ptr, len)
-    }
-
-    pub unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-        super::portable::u32_detransform_v2(input_ptr, output_ptr, len)
-    }
-
-    pub unsafe fn u64_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-        super::portable::u64_detransform(input_ptr, output_ptr, len)
-    }
-
-    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-    pub unsafe fn u32_detransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-        super::sse2::u32_detransform_sse2(input_ptr, output_ptr, len)
-    }
-
-    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-    pub unsafe fn u64_detransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-        super::sse2::u64_detransform_sse2(input_ptr, output_ptr, len)
-    }
-
-    #[cfg(feature = "nightly")]
-    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-    pub unsafe fn avx512_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-        super::avx512::avx512_detransform(input_ptr, output_ptr, len)
-    }
-
-    #[cfg(feature = "nightly")]
-    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-    pub unsafe fn avx512_detransform_32_vbmi(
-        input_ptr: *const u8,
-        output_ptr: *mut u8,
-        len: usize,
-    ) {
-        super::avx512::avx512_detransform_32_vbmi(input_ptr, output_ptr, len)
-    }
-
-    #[cfg(feature = "nightly")]
-    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-    pub unsafe fn avx512_detransform_32_vl(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-        super::avx512::avx512_detransform_32_vl(input_ptr, output_ptr, len)
     }
 }

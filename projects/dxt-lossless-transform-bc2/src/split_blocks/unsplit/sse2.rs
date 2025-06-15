@@ -137,82 +137,15 @@ pub unsafe fn shuffle_with_components(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::split_blocks::split::tests::generate_bc2_test_data;
-    use crate::split_blocks::split::u32;
-    use crate::split_blocks::unsplit::tests::assert_implementation_matches_reference;
-    use rstest::rstest;
-
-    type DetransformFn = unsafe fn(*const u8, *mut u8, usize);
+    use crate::test_prelude::*;
 
     #[rstest]
     #[case::shuffle(shuffle, "shuffle")]
-    fn test_sse2_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
-        // Test with different block counts to ensure they all work correctly
-
-        use dxt_lossless_transform_common::allocate::allocate_align_64;
-        for block_count in 1..=512 {
-            // Generate test data
-            let original = generate_bc2_test_data(block_count);
-            let mut transformed = allocate_align_64(original.len()).unwrap();
-            let mut reconstructed = allocate_align_64(original.len()).unwrap();
-
-            unsafe {
-                // Transform the original test data
-                u32(original.as_ptr(), transformed.as_mut_ptr(), original.len());
-
-                // Re-transform it back using the implementation under test
-                (detransform_fn)(
-                    transformed.as_ptr(),
-                    reconstructed.as_mut_ptr(),
-                    transformed.len(),
-                );
-            }
-
-            // Verify the results match
-            assert_implementation_matches_reference(
-                original.as_slice(),
-                reconstructed.as_slice(),
-                impl_name,
-                block_count,
-            );
+    fn test_sse2_unaligned(#[case] detransform_fn: StandardTransformFn, #[case] impl_name: &str) {
+        if !has_sse2() {
+            return;
         }
-    }
-
-    #[rstest]
-    #[case::shuffle(shuffle, "shuffle")]
-    fn test_sse2_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
-        // Test with different block counts to ensure they all work correctly
-        for block_count in 1..=512 {
-            // Generate test data
-            let original = generate_bc2_test_data(block_count);
-
-            // Create unaligned buffers (allocate an extra byte and offset by 1)
-            let mut unaligned_transformed = vec![0u8; original.len() + 1];
-            let mut unaligned_reconstructed = vec![0u8; original.len() + 1];
-
-            unsafe {
-                // Transform the original test data
-                u32(
-                    original.as_ptr(),
-                    unaligned_transformed.as_mut_ptr().add(1),
-                    original.len(),
-                );
-
-                // Re-transform it back using the implementation under test
-                (detransform_fn)(
-                    unaligned_transformed.as_mut_ptr().add(1),
-                    unaligned_reconstructed.as_mut_ptr().add(1),
-                    unaligned_transformed.len() - 1,
-                );
-            }
-
-            // Verify the results match
-            assert_implementation_matches_reference(
-                original.as_slice(),
-                &unaligned_reconstructed[1..],
-                impl_name,
-                block_count,
-            );
-        }
+        // SSE2 implementation processes 64 bytes per iteration, so max_blocks = 64 * 2 / 16 = 8
+        run_standard_untransform_unaligned_test(detransform_fn, 8, impl_name);
     }
 }

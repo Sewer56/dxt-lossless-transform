@@ -11,6 +11,9 @@ pub mod normalize_blocks;
 pub mod split_blocks;
 pub mod util;
 
+#[cfg(test)]
+pub mod test_prelude;
+
 /// The information about the BC2 transform that was just performed.
 /// Each item transformed via [`transform_bc2`] will produce an instance of this struct.
 /// To undo the transform, you'll need to pass the same instance to [`untransform_bc2`].

@@ -178,147 +178,16 @@ pub unsafe fn shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::split_blocks::split::tests::{
-        assert_implementation_matches_reference, generate_bc2_test_data,
-        transform_with_reference_implementation,
-    };
-    use core::ptr::copy_nonoverlapping;
-    use dxt_lossless_transform_common::allocate::allocate_align_64;
-    use rstest::rstest;
-
-    type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
+    use crate::test_prelude::*;
 
     #[rstest]
     #[case(shuffle, "avx2_shuffle")]
-    fn test_avx2_aligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
-        if !dxt_lossless_transform_common::cpu_detect::has_avx2() {
+    fn test_avx2_unaligned(#[case] transform_fn: StandardTransformFn, #[case] impl_name: &str) {
+        if !has_avx2() {
             return;
         }
 
-        for num_blocks in 1..=512 {
-            let mut input = allocate_align_64(num_blocks * 16).unwrap();
-            let mut output_expected = allocate_align_64(input.len()).unwrap();
-            let mut output_test = allocate_align_64(input.len()).unwrap();
-
-            // Fill the input with test data
-            unsafe {
-                copy_nonoverlapping(
-                    generate_bc2_test_data(num_blocks).as_ptr(),
-                    input.as_mut_ptr(),
-                    input.len(),
-                );
-            }
-
-            transform_with_reference_implementation(
-                input.as_slice(),
-                output_expected.as_mut_slice(),
-            );
-
-            output_test.as_mut_slice().fill(0);
-            unsafe {
-                permute_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());
-            }
-
-            assert_implementation_matches_reference(
-                output_expected.as_slice(),
-                output_test.as_slice(),
-                &format!("{impl_name} (aligned)"),
-                num_blocks,
-            );
-        }
-    }
-
-    #[rstest]
-    #[case(shuffle, "avx2_shuffle")]
-    fn test_avx2_unaligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
-        if !dxt_lossless_transform_common::cpu_detect::has_avx2() {
-            return;
-        }
-
-        for num_blocks in 1..=512 {
-            let input = generate_bc2_test_data(num_blocks);
-
-            // Add 1 extra byte at the beginning to create misaligned buffers
-            let mut input_unaligned = vec![0u8; input.len() + 1];
-            input_unaligned[1..].copy_from_slice(input.as_slice());
-
-            let mut output_expected = vec![0u8; input.len()];
-            let mut output_test = vec![0u8; input.len() + 1];
-
-            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
-
-            output_test.as_mut_slice().fill(0);
-            unsafe {
-                // Use pointers offset by 1 byte to create unaligned access
-                permute_fn(
-                    input_unaligned.as_ptr().add(1),
-                    output_test.as_mut_ptr().add(1),
-                    input.len(),
-                );
-            }
-
-            assert_implementation_matches_reference(
-                output_expected.as_slice(),
-                &output_test[1..],
-                &format!("{impl_name} (unaligned)"),
-                num_blocks,
-            );
-        }
-    }
-
-    #[test]
-    fn avx2_shuffle_with_separate_pointers_matches_shuffle() {
-        if !dxt_lossless_transform_common::cpu_detect::has_avx2() {
-            return;
-        }
-
-        for num_blocks in 1..=512 {
-            let input = generate_bc2_test_data(num_blocks);
-            let len = input.len();
-
-            // Allocate aligned memory for outputs
-            let mut output_contiguous = allocate_align_64(len).unwrap();
-            let mut alphas = allocate_align_64(len / 2).unwrap();
-            let mut colors = allocate_align_64(len / 4).unwrap();
-            let mut indices = allocate_align_64(len / 4).unwrap();
-
-            // Test with contiguous output using shuffle()
-            unsafe {
-                shuffle(input.as_ptr(), output_contiguous.as_mut_ptr(), len);
-            }
-
-            // Test with separate pointers using shuffle_with_separate_pointers()
-            unsafe {
-                shuffle_with_separate_pointers(
-                    input.as_ptr(),
-                    alphas.as_mut_ptr() as *mut u64,
-                    colors.as_mut_ptr() as *mut u32,
-                    indices.as_mut_ptr() as *mut u32,
-                    len,
-                );
-            }
-
-            // Compare the results - the separate pointer outputs should match the corresponding sections
-            // of the contiguous output
-            let expected_alphas = &output_contiguous.as_slice()[0..len / 2];
-            let expected_colors = &output_contiguous.as_slice()[len / 2..len / 2 + len / 4];
-            let expected_indices = &output_contiguous.as_slice()[len / 2 + len / 4..];
-
-            assert_eq!(
-                alphas.as_slice(),
-                expected_alphas,
-                "Alpha sections don't match for {num_blocks} blocks"
-            );
-            assert_eq!(
-                colors.as_slice(),
-                expected_colors,
-                "Color sections don't match for {num_blocks} blocks"
-            );
-            assert_eq!(
-                indices.as_slice(),
-                expected_indices,
-                "Index sections don't match for {num_blocks} blocks"
-            );
-        }
+        // AVX2 implementation processes 128 bytes per iteration, so max_blocks = 128 * 2 / 16 = 16
+        run_standard_transform_unaligned_test(transform_fn, 16, impl_name);
     }
 }

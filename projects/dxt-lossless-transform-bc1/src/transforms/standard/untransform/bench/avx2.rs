@@ -294,10 +294,14 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(unpck_detransform, "avx_unpack")]
-    #[case(permd_detransform, "avx_permd")]
-    #[case(unpck_detransform_unroll_2, "avx_unpack_unroll_2")]
-    fn test_avx2_unaligned(#[case] detransform_fn: StandardTransformFn, #[case] impl_name: &str) {
-        run_standard_untransform_unaligned_test(detransform_fn, 512, impl_name);
+    #[case(unpck_detransform, "avx_unpack", 16)] // processes 64 bytes per iteration, so max_blocks = 64 × 2 ÷ 8 = 16
+    #[case(permd_detransform, "avx_permd", 16)] // processes 64 bytes per iteration, so max_blocks = 64 × 2 ÷ 8 = 16
+    #[case(unpck_detransform_unroll_2, "avx_unpack_unroll_2", 32)] // processes 128 bytes per iteration, so max_blocks = 128 × 2 ÷ 8 = 32
+    fn test_avx2_unaligned(
+        #[case] detransform_fn: StandardTransformFn,
+        #[case] impl_name: &str,
+        #[case] max_blocks: usize,
+    ) {
+        run_standard_untransform_unaligned_test(detransform_fn, max_blocks, impl_name);
     }
 }

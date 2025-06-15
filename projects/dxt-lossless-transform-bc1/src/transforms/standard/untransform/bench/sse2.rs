@@ -174,12 +174,16 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(unpck_detransform, "unpck")]
+    #[case(unpck_detransform, "unpck", 8)] // processes 32 bytes per iteration, so max_blocks = 32 × 2 ÷ 8 = 8
     #[cfg_attr(
         target_arch = "x86_64",
-        case(unpck_detransform_unroll_4, "unpck_unroll_4")
+        case(unpck_detransform_unroll_4, "unpck_unroll_4", 32) // processes 128 bytes per iteration, so max_blocks = 128 × 2 ÷ 8 = 32
     )]
-    fn test_sse2_unaligned(#[case] detransform_fn: StandardTransformFn, #[case] impl_name: &str) {
-        run_standard_untransform_unaligned_test(detransform_fn, 512, impl_name);
+    fn test_sse2_unaligned(
+        #[case] detransform_fn: StandardTransformFn,
+        #[case] impl_name: &str,
+        #[case] max_blocks: usize,
+    ) {
+        run_standard_untransform_unaligned_test(detransform_fn, max_blocks, impl_name);
     }
 }

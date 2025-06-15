@@ -217,13 +217,14 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(u32_detransform_unroll_2, "unroll_2")]
-    #[case(u32_detransform_unroll_4, "unroll_4")]
-    #[case(u32_detransform_unroll_8, "unroll_8")]
+    #[case(u32_detransform_unroll_2, "unroll_2", 4)] // processes 16 bytes per iteration, so max_blocks = 16 × 2 ÷ 8 = 4
+    #[case(u32_detransform_unroll_4, "unroll_4", 8)] // processes 32 bytes per iteration, so max_blocks = 32 × 2 ÷ 8 = 8
+    #[case(u32_detransform_unroll_8, "unroll_8", 16)] // processes 64 bytes per iteration, so max_blocks = 64 × 2 ÷ 8 = 16
     fn test_portable32_unaligned(
         #[case] detransform_fn: StandardTransformFn,
         #[case] impl_name: &str,
+        #[case] max_blocks: usize,
     ) {
-        run_standard_untransform_unaligned_test(detransform_fn, 512, impl_name);
+        run_standard_untransform_unaligned_test(detransform_fn, max_blocks, impl_name);
     }
 }

@@ -13,7 +13,6 @@ pub use crate::{transform_bc2, untransform_bc2, BC2TransformDetails};
 // but not re-exported due to visibility constraints
 
 // Common types from dxt_lossless_transform_common
-pub use dxt_lossless_transform_common::allocate::allocate_align_64;
 pub use dxt_lossless_transform_common::color_8888::Color8888;
 #[allow(unused_imports)] // Might be unused in some CPU architectures, and that's ok.
 pub use dxt_lossless_transform_common::cpu_detect::*;
@@ -28,7 +27,7 @@ pub use super::*;
 
 /// Helper to generate test data of specified size (in blocks)
 pub(crate) fn generate_bc2_test_data(num_blocks: usize) -> RawAlloc {
-    let mut data = allocate_align_64(num_blocks * 16).unwrap();
+    let mut data = allocate_align_64(num_blocks * 16);
     let mut data_ptr = data.as_mut_ptr();
 
     // Reference byte ranges to make testing easy:
@@ -85,6 +84,19 @@ pub(crate) fn assert_implementation_matches_reference(
     );
 }
 
+/// Allocates data with an alignment of 64 bytes.
+///
+/// # Parameters
+///
+/// - `num_bytes`: The number of bytes to allocate
+///
+/// # Returns
+///
+/// A [`RawAlloc`] containing the allocated data
+fn allocate_align_64(num_bytes: usize) -> RawAlloc {
+    dxt_lossless_transform_common::allocate::allocate_align_64(num_bytes).unwrap()
+}
+
 // ---------------------------------------
 // Shared test helpers for transform tests
 // ---------------------------------------
@@ -107,14 +119,11 @@ pub(crate) fn run_standard_transform_unaligned_test(
         let original = generate_bc2_test_data(num_blocks);
 
         // Add 1 extra byte at the beginning to create misaligned buffers
-        let mut original_unaligned = vec![0u8; original.len() + 1];
-        original_unaligned[1..].copy_from_slice(original.as_slice());
+        let mut original_unaligned = allocate_align_64(original.len() + 1);
+        original_unaligned.as_mut_slice()[1..].copy_from_slice(original.as_slice());
 
-        let mut transformed = vec![0u8; original.len() + 1];
-        let mut reconstructed = vec![0u8; original.len() + 1];
-
-        transformed.as_mut_slice().fill(0);
-        reconstructed.as_mut_slice().fill(0);
+        let mut transformed = allocate_align_64(original.len() + 1);
+        let mut reconstructed = allocate_align_64(original.len() + 1);
 
         unsafe {
             // Step 1: Transform using the test function with unaligned pointers
@@ -135,7 +144,7 @@ pub(crate) fn run_standard_transform_unaligned_test(
         // Step 3: Compare reconstructed data against original input
         assert_eq!(
             original.as_slice(),
-            &reconstructed[1..],
+            &reconstructed.as_slice()[1..],
             "Mismatch {impl_name} roundtrip (unaligned) for {num_blocks} blocks",
         );
     }
@@ -161,8 +170,8 @@ pub(crate) fn run_standard_untransform_unaligned_test(
         let original = generate_bc2_test_data(block_count);
 
         // Create unaligned buffers (allocate an extra byte and offset by 1)
-        let mut unaligned_transformed = vec![0u8; original.len() + 1];
-        let mut unaligned_reconstructed = vec![0u8; original.len() + 1];
+        let mut unaligned_transformed = allocate_align_64(original.len() + 1);
+        let mut unaligned_reconstructed = allocate_align_64(original.len() + 1);
 
         unsafe {
             // First, transform using standard split_blocks
@@ -183,7 +192,7 @@ pub(crate) fn run_standard_untransform_unaligned_test(
         // Verify the results match
         assert_implementation_matches_reference(
             original.as_slice(),
-            &unaligned_reconstructed[1..],
+            &unaligned_reconstructed.as_slice()[1..],
             impl_name,
             block_count,
         );

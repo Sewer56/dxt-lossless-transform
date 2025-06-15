@@ -130,14 +130,17 @@ pub(crate) fn run_standard_transform_unaligned_test(
         let original = generate_bc3_test_data(num_blocks);
 
         // Add 1 extra byte at the beginning to create misaligned buffers
-        let mut original_unaligned = vec![0u8; original.len() + 1];
-        original_unaligned[1..].copy_from_slice(original.as_slice());
+        let mut original_unaligned = allocate_align_64(original.len() + 1);
+        unsafe {
+            copy_nonoverlapping(
+                original.as_ptr(),
+                original_unaligned.as_mut_ptr().add(1),
+                original.len(),
+            );
+        }
 
-        let mut transformed = vec![0u8; original.len() + 1];
-        let mut reconstructed = vec![0u8; original.len() + 1];
-
-        transformed.as_mut_slice().fill(0);
-        reconstructed.as_mut_slice().fill(0);
+        let mut transformed = allocate_align_64(original.len() + 1);
+        let mut reconstructed = allocate_align_64(original.len() + 1);
 
         unsafe {
             // Step 1: Transform using the test function with unaligned pointers
@@ -158,7 +161,7 @@ pub(crate) fn run_standard_transform_unaligned_test(
         // Step 3: Compare reconstructed data against original input
         assert_eq!(
             original.as_slice(),
-            &reconstructed[1..],
+            &reconstructed.as_slice()[1..original.len() + 1],
             "Mismatch {impl_name} roundtrip (unaligned) for {num_blocks} blocks",
         );
     }
@@ -184,8 +187,8 @@ pub(crate) fn run_standard_untransform_unaligned_test(
         let original = generate_bc3_test_data(block_count);
 
         // Create unaligned buffers (allocate an extra byte and offset by 1)
-        let mut unaligned_transformed = vec![0u8; original.len() + 1];
-        let mut unaligned_reconstructed = vec![0u8; original.len() + 1];
+        let mut unaligned_transformed = allocate_align_64(original.len() + 1);
+        let mut unaligned_reconstructed = allocate_align_64(original.len() + 1);
 
         unsafe {
             // First, transform using standard split_blocks
@@ -206,7 +209,7 @@ pub(crate) fn run_standard_untransform_unaligned_test(
         // Verify the results match
         assert_implementation_matches_reference(
             original.as_slice(),
-            &unaligned_reconstructed[1..],
+            &unaligned_reconstructed.as_slice()[1..original.len() + 1],
             impl_name,
             block_count,
         );

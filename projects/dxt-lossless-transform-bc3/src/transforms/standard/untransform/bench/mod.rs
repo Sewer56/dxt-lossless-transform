@@ -1,4 +1,5 @@
 #![allow(clippy::missing_safety_doc)]
+#![cfg(not(tarpaulin_include))]
 
 pub mod portable;
 

@@ -274,16 +274,15 @@ pub(crate) fn run_split_colour_with_decorr_transform_roundtrip_test(
 // --------------------------------------
 
 /// Common type alias for with_recorrelate untransform functions used across BC1 tests.
-pub(crate) type WithRecorrelateUntransformFn =
-    unsafe fn(*const u32, *const u32, *mut u8, usize) -> ();
+pub(crate) type WithRecorrelateUntransformFn = unsafe fn(*const u32, *const u32, *mut u8, usize);
 
 /// Common type alias for with_split_colour untransform functions used across BC1 tests.
 pub(crate) type WithSplitColourUntransformFn =
-    unsafe fn(*const u16, *const u16, *const u32, *mut u8, usize) -> ();
+    unsafe fn(*const u16, *const u16, *const u32, *mut u8, usize);
 
 /// Common type alias for with_split_colour_and_recorr generic untransform functions used across BC1 tests.
 pub(crate) type WithSplitColourAndRecorrUntransformFn =
-    unsafe fn(*const u16, *const u16, *const u32, *mut u8, usize, YCoCgVariant) -> ();
+    unsafe fn(*const u16, *const u16, *const u32, *mut u8, usize, YCoCgVariant);
 
 /// Executes a with_recorrelate untransform test on 1‥=max_blocks BC1 blocks using unaligned buffers.
 /// This helper eliminates code duplication across AVX2, AVX512, SSE2, and generic untransform tests.

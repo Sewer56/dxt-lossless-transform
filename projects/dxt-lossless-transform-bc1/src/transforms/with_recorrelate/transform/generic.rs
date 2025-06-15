@@ -82,6 +82,7 @@ unsafe fn transform_decorr<const VARIANT: u8>(
 }
 
 // Wrapper functions for testing with specific variants
+#[inline]
 pub(crate) unsafe fn transform_decorr_var1(
     input_ptr: *const u8,
     colours_out: *mut u32,
@@ -91,6 +92,7 @@ pub(crate) unsafe fn transform_decorr_var1(
     transform_decorr::<1>(input_ptr, colours_out, indices_out, num_blocks)
 }
 
+#[inline]
 pub(crate) unsafe fn transform_decorr_var2(
     input_ptr: *const u8,
     colours_out: *mut u32,
@@ -100,6 +102,7 @@ pub(crate) unsafe fn transform_decorr_var2(
     transform_decorr::<2>(input_ptr, colours_out, indices_out, num_blocks)
 }
 
+#[inline]
 pub(crate) unsafe fn transform_decorr_var3(
     input_ptr: *const u8,
     colours_out: *mut u32,
@@ -119,7 +122,7 @@ mod tests {
     #[case(transform_decorr_var2, YCoCgVariant::Variant2, 2)]
     #[case(transform_decorr_var3, YCoCgVariant::Variant3, 2)]
     fn roundtrip_transform_with_decorrelate(
-        #[case] func: unsafe fn(*const u8, *mut u32, *mut u32, usize),
+        #[case] func: WithDecorrelateTransformFn,
         #[case] variant: YCoCgVariant,
         #[case] max_blocks: usize,
     ) {

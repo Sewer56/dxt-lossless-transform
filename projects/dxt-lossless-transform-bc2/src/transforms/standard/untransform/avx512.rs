@@ -15,7 +15,7 @@ use core::arch::*;
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512f")]
 #[allow(unused_assignments)]
-pub unsafe fn avx512_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn avx512_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
     let alpha_ptr = input_ptr;
     let colors_ptr = alpha_ptr.add(len / 2);
@@ -34,7 +34,11 @@ pub unsafe fn avx512_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512f")]
 #[allow(unused_assignments)]
-pub unsafe fn avx512_shuffle_intrinsics(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn avx512_shuffle_intrinsics(
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+) {
     debug_assert!(len % 16 == 0);
     let alpha_ptr = input_ptr;
     let colors_ptr = alpha_ptr.add(len / 2);
@@ -53,7 +57,7 @@ pub unsafe fn avx512_shuffle_intrinsics(input_ptr: *const u8, output_ptr: *mut u
 #[allow(unused_assignments)]
 #[allow(clippy::zero_prefixed_literal)]
 #[allow(clippy::identity_op)]
-pub unsafe fn avx512_shuffle_with_components_intrinsics(
+pub(crate) unsafe fn avx512_shuffle_with_components_intrinsics(
     mut output_ptr: *mut u8,
     len: usize,
     mut alpha_ptr: *const u8,
@@ -188,7 +192,7 @@ pub unsafe fn avx512_shuffle_with_components_intrinsics(
 #[allow(clippy::zero_prefixed_literal)]
 #[allow(clippy::identity_op)]
 #[cfg(target_arch = "x86_64")]
-pub unsafe fn avx512_shuffle_with_components(
+pub(crate) unsafe fn avx512_shuffle_with_components(
     mut output_ptr: *mut u8,
     len: usize,
     mut alpha_ptr: *const u8,

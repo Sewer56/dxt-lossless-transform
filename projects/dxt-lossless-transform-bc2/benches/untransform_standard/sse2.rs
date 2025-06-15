@@ -1,10 +1,10 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc2::transforms::standard::untransform::sse2::shuffle;
+use dxt_lossless_transform_bc2::transforms::standard::untransform::bench_exports::sse2_shuffle;
 use safe_allocator_api::RawAlloc;
 
 fn bench_shuffle_v2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        shuffle(
+        sse2_shuffle(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),

@@ -14,7 +14,7 @@ static INDCOL_PERMUTE_MASK: [u32; 8] = [0, 4, 2, 6, 1, 5, 3, 7u32];
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86_64")]
-pub unsafe fn avx2_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn avx2_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
     let alpha_ptr = input_ptr;
     let colors_ptr = alpha_ptr.add(len / 2);
@@ -32,7 +32,7 @@ pub unsafe fn avx2_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86_64")]
-pub unsafe fn avx2_shuffle_with_components(
+pub(crate) unsafe fn avx2_shuffle_with_components(
     mut output_ptr: *mut u8,
     len: usize,
     mut alpha_ptr: *const u8,
@@ -209,7 +209,7 @@ pub unsafe fn avx2_shuffle_with_components(
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86")]
-pub unsafe fn avx2_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn avx2_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     let alpha_ptr = input_ptr;
     let colors_ptr = alpha_ptr.add(len / 2);
     let indices_ptr = colors_ptr.add(len / 4);
@@ -226,7 +226,7 @@ pub unsafe fn avx2_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86")]
-pub unsafe fn avx2_shuffle_with_components(
+pub(crate) unsafe fn avx2_shuffle_with_components(
     mut output_ptr: *mut u8,
     len: usize,
     mut alpha_ptr: *const u8,

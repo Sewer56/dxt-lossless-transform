@@ -211,7 +211,7 @@ mod tests {
 
     #[rstest]
     #[case(permute_512_intrinsics, "avx512_permute_intrinsics")]
-    #[case(permute_512_intrinsics, "avx512_permute_asm")]
+    #[case(permute_512, "avx512_permute_asm")]
     fn test_avx512_unaligned(#[case] permute_fn: StandardTransformFn, #[case] impl_name: &str) {
         if !has_avx512f() {
             return;

@@ -271,7 +271,7 @@ mod tests {
 
     #[rstest]
     fn test_avx512_unaligned() {
-        if !has_avx512vbmi() && !has_avx512f() {
+        if !has_avx512vbmi() || !has_avx512f() {
             return;
         }
 

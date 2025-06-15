@@ -133,66 +133,18 @@ pub unsafe fn u32_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::split_blocks::split::tests::{
-        assert_implementation_matches_reference, generate_bc3_test_data,
-        transform_with_reference_implementation,
-    };
-    use crate::testutils::allocate_align_64;
-    use rstest::rstest;
-
-    type TransformFn = unsafe fn(*const u8, *mut u8, usize);
-
-    struct TestCase {
-        func: TransformFn,
-        name: &'static str,
-    }
+    use super::{u32, u32_unroll_2};
+    use crate::test_prelude::*;
 
     #[rstest]
-    #[case(TestCase { func: u32, name: "portable32" })]
-    #[case(TestCase { func: u32_unroll_2, name: "portable32_unroll_2" })]
-    fn test_portable32_aligned(#[case] test_case: TestCase) {
-        for num_blocks in 1..=512 {
-            let input = generate_bc3_test_data(num_blocks);
-            let mut output_expected = vec![0u8; input.len()];
-            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
-
-            let mut output_test = allocate_align_64(input.len());
-            output_test.as_mut_slice().fill(0);
-            unsafe {
-                (test_case.func)(input.as_ptr(), output_test.as_mut_ptr(), input.len());
-            }
-
-            assert_implementation_matches_reference(
-                output_expected.as_slice(),
-                output_test.as_slice(),
-                test_case.name,
-                num_blocks,
-            );
-        }
-    }
-
-    #[rstest]
-    #[case(TestCase { func: u32, name: "portable32" })]
-    #[case(TestCase { func: u32_unroll_2, name: "portable32_unroll_2" })]
-    fn test_portable32_unaligned(#[case] test_case: TestCase) {
-        for num_blocks in 1..=512 {
-            let input = generate_bc3_test_data(num_blocks);
-            let mut output_expected = vec![0u8; input.len() + 1];
-            transform_with_reference_implementation(input.as_slice(), &mut output_expected[1..]);
-
-            let mut output_test = vec![0u8; input.len() + 1];
-            output_test.as_mut_slice().fill(0);
-            unsafe {
-                (test_case.func)(input.as_ptr(), output_test.as_mut_ptr().add(1), input.len());
-            }
-
-            assert_implementation_matches_reference(
-                &output_expected[1..],
-                &output_test[1..],
-                test_case.name,
-                num_blocks,
-            );
-        }
+    #[case(u32, "portable32", 2)]
+    #[case(u32_unroll_2, "portable32_unroll_2", 2)]
+    fn test_portable32_unaligned(
+        #[case] transform_fn: StandardTransformFn,
+        #[case] impl_name: &str,
+        #[case] max_blocks: usize,
+    ) {
+        // For portable32: processes 16 bytes (1 block) per iteration, so max_blocks = 16 bytes × 2 ÷ 16 = 2
+        run_standard_transform_unaligned_test(transform_fn, max_blocks, impl_name);
     }
 }

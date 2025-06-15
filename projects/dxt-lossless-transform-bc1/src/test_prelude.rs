@@ -89,26 +89,22 @@ fn validate_bc1_test_data_generator() {
 // -------------------------------------------------------------------------------------------------
 
 /// Common type alias for transform/permute functions used across BC1 tests.
-#[allow(clippy::type_complexity)]
-pub type StandardTransformFn = unsafe fn(*const u8, *mut u8, usize);
+pub(crate) type StandardTransformFn = unsafe fn(*const u8, *mut u8, usize);
 
 /// Common type alias for decorrelate transform functions used across BC1 with_recorrelate tests.
-#[allow(clippy::type_complexity)]
-pub type WithDecorrelateTransformFn = unsafe fn(*const u8, *mut u32, *mut u32, usize);
+pub(crate) type WithDecorrelateTransformFn = unsafe fn(*const u8, *mut u32, *mut u32, usize);
 
 /// Common type alias for split-colour transform functions used across BC1 tests.
-#[allow(clippy::type_complexity)]
-pub type SplitColourTransformFn = unsafe fn(*const u8, *mut u16, *mut u16, *mut u32, usize);
+pub(crate) type SplitColourTransformFn = unsafe fn(*const u8, *mut u16, *mut u16, *mut u32, usize);
 
 /// Common type alias for split-colour with decorrelation transform functions used across BC1 tests.
-#[allow(clippy::type_complexity)]
-pub type SplitColourWithDecorrTransformFn =
+pub(crate) type SplitColourWithDecorrTransformFn =
     unsafe fn(*const u8, *mut u16, *mut u16, *mut u32, usize, YCoCgVariant);
 
 /// Executes a transform → untransform round-trip on 1‥=max_blocks BC1 blocks and
 /// asserts that the final data matches the original input.
 #[inline]
-pub fn run_standard_transform_roundtrip_test(
+pub(crate) fn run_standard_transform_roundtrip_test(
     transform_fn: StandardTransformFn,
     max_blocks: usize,
     impl_name: &str,
@@ -140,7 +136,7 @@ pub fn run_standard_transform_roundtrip_test(
 /// using the specified transform function and YCoCg variant, asserting that the final data
 /// matches the original input.
 #[inline]
-pub fn run_with_decorrelate_transform_roundtrip_test(
+pub(crate) fn run_with_decorrelate_transform_roundtrip_test(
     transform_fn: WithDecorrelateTransformFn,
     variant: YCoCgVariant,
     max_blocks: usize,
@@ -177,56 +173,13 @@ pub fn run_with_decorrelate_transform_roundtrip_test(
     }
 }
 
-/// Executes a decorrelate transform → untransform round-trip on 1‥=max_blocks BC1 blocks
-/// using the specified generic transform function and YCoCg variant, asserting that the final
-/// data matches the original input. This variant takes an additional [`YCoCgVariant`] parameter
-/// for the transform function.
-#[inline]
-pub fn run_decorrelate_transform_roundtrip_test_with_variant(
-    transform_fn: unsafe fn(*const u8, *mut u32, *mut u32, usize, YCoCgVariant),
-    variant: YCoCgVariant,
-    max_blocks: usize,
-    impl_name: &str,
-) {
-    use crate::transforms::with_recorrelate::untransform::untransform_with_recorrelate;
-
-    for num_blocks in 1..=max_blocks {
-        let input = generate_bc1_test_data(num_blocks);
-        let len = input.len();
-        let mut transformed = vec![0u8; len];
-        let mut reconstructed = vec![0u8; len];
-
-        unsafe {
-            transform_fn(
-                input.as_ptr(),
-                transformed.as_mut_ptr() as *mut u32,
-                transformed.as_mut_ptr().add(len / 2) as *mut u32,
-                num_blocks,
-                variant,
-            );
-            untransform_with_recorrelate(
-                transformed.as_ptr(),
-                reconstructed.as_mut_ptr(),
-                num_blocks * 8,
-                variant,
-            );
-        }
-
-        assert_eq!(
-            reconstructed.as_slice(),
-            input.as_slice(),
-            "Mismatch {impl_name} roundtrip variant {variant:?} for {num_blocks} blocks",
-        );
-    }
-}
-
 /// Executes a split-colour transform → untransform round-trip on 1‥=max_blocks BC1 blocks and
 /// asserts that the final data matches the original input.
 ///
 /// The `max_blocks` parameter should equal twice the number of blocks processed in one main loop
 /// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 8).
 #[inline]
-pub fn run_split_colour_transform_roundtrip_test(
+pub(crate) fn run_split_colour_transform_roundtrip_test(
     transform_fn: SplitColourTransformFn,
     max_blocks: usize,
     impl_name: &str,
@@ -273,7 +226,7 @@ pub fn run_split_colour_transform_roundtrip_test(
 /// The `max_blocks` parameter should equal twice the number of blocks processed in one main loop
 /// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 8).
 #[inline]
-pub fn run_split_colour_with_decorr_transform_roundtrip_test(
+pub(crate) fn run_split_colour_with_decorr_transform_roundtrip_test(
     transform_fn: SplitColourWithDecorrTransformFn,
     variant: YCoCgVariant,
     max_blocks: usize,
@@ -321,18 +274,15 @@ pub fn run_split_colour_with_decorr_transform_roundtrip_test(
 // --------------------------------------
 
 /// Common type alias for with_recorrelate untransform functions used across BC1 tests.
-#[allow(clippy::type_complexity)]
-pub type WithRecorrelateUntransformFn = unsafe fn(*const u32, *const u32, *mut u8, usize) -> ();
+pub(crate) type WithRecorrelateUntransformFn = unsafe fn(*const u32, *const u32, *mut u8, usize);
 
 /// Common type alias for with_split_colour untransform functions used across BC1 tests.
-#[allow(clippy::type_complexity)]
-pub type WithSplitColourUntransformFn =
-    unsafe fn(*const u16, *const u16, *const u32, *mut u8, usize) -> ();
+pub(crate) type WithSplitColourUntransformFn =
+    unsafe fn(*const u16, *const u16, *const u32, *mut u8, usize);
 
 /// Common type alias for with_split_colour_and_recorr generic untransform functions used across BC1 tests.
-#[allow(clippy::type_complexity)]
-pub type WithSplitColourAndRecorrUntransformFn =
-    unsafe fn(*const u16, *const u16, *const u32, *mut u8, usize, YCoCgVariant) -> ();
+pub(crate) type WithSplitColourAndRecorrUntransformFn =
+    unsafe fn(*const u16, *const u16, *const u32, *mut u8, usize, YCoCgVariant);
 
 /// Executes a with_recorrelate untransform test on 1‥=max_blocks BC1 blocks using unaligned buffers.
 /// This helper eliminates code duplication across AVX2, AVX512, SSE2, and generic untransform tests.
@@ -340,7 +290,7 @@ pub type WithSplitColourAndRecorrUntransformFn =
 /// The `max_blocks` parameter should equal twice the number of blocks processed in one main loop
 /// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 8).
 #[inline]
-pub fn run_with_recorrelate_untransform_unaligned_test(
+pub(crate) fn run_with_recorrelate_untransform_unaligned_test(
     untransform_fn: WithRecorrelateUntransformFn,
     decorr_variant: YCoCgVariant,
     impl_name: &str,
@@ -395,7 +345,7 @@ pub fn run_with_recorrelate_untransform_unaligned_test(
 /// The `max_blocks` parameter should equal twice the number of blocks processed in one main loop
 /// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 8).
 #[inline]
-pub fn run_standard_untransform_unaligned_test(
+pub(crate) fn run_standard_untransform_unaligned_test(
     detransform_fn: StandardTransformFn,
     max_blocks: usize,
     impl_name: &str,
@@ -441,7 +391,7 @@ pub fn run_standard_untransform_unaligned_test(
 /// The `max_blocks` parameter should equal twice the number of blocks processed in one main loop
 /// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 8).
 #[inline]
-pub fn run_with_split_colour_untransform_unaligned_test(
+pub(crate) fn run_with_split_colour_untransform_unaligned_test(
     untransform_fn: WithSplitColourUntransformFn,
     max_blocks: usize,
     impl_name: &str,
@@ -496,7 +446,7 @@ pub fn run_with_split_colour_untransform_unaligned_test(
 /// The `max_blocks` parameter should equal twice the number of blocks processed in one main loop
 /// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 8).
 #[inline]
-pub fn run_with_split_colour_and_recorr_untransform_unaligned_test(
+pub(crate) fn run_with_split_colour_and_recorr_untransform_unaligned_test(
     untransform_fn: WithSplitColourAndRecorrUntransformFn,
     decorr_variant: YCoCgVariant,
     max_blocks: usize,
@@ -550,7 +500,7 @@ pub fn run_with_split_colour_and_recorr_untransform_unaligned_test(
 /// Alias for [`run_with_split_colour_and_recorr_untransform_unaligned_test`] for backward compatibility.
 /// All implementations now use functions that take a [`YCoCgVariant`] parameter.
 #[inline]
-pub fn run_with_split_colour_and_recorr_generic_untransform_unaligned_test(
+pub(crate) fn run_with_split_colour_and_recorr_generic_untransform_unaligned_test(
     untransform_fn: WithSplitColourAndRecorrUntransformFn,
     decorr_variant: YCoCgVariant,
     max_blocks: usize,

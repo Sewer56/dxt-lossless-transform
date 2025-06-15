@@ -184,6 +184,7 @@ unsafe fn transform_impl<const VARIANT: u8>(
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
+#[inline]
 pub(crate) unsafe fn transform_decorr_var1(
     input_ptr: *const u8,
     color0_out: *mut u16,
@@ -198,6 +199,7 @@ pub(crate) unsafe fn transform_decorr_var1(
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
+#[inline]
 pub(crate) unsafe fn transform_decorr_var2(
     input_ptr: *const u8,
     color0_out: *mut u16,
@@ -212,6 +214,7 @@ pub(crate) unsafe fn transform_decorr_var2(
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
+#[inline]
 pub(crate) unsafe fn transform_decorr_var3(
     input_ptr: *const u8,
     color0_out: *mut u16,

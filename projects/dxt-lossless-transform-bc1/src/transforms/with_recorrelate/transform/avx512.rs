@@ -85,6 +85,7 @@ unsafe fn transform_decorr<const VARIANT: u8>(
 // Wrappers for asm inspection
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
+#[inline]
 pub(crate) unsafe fn transform_decorr_var1(
     input_ptr: *const u8,
     colours_out: *mut u32,
@@ -96,6 +97,7 @@ pub(crate) unsafe fn transform_decorr_var1(
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
+#[inline]
 pub(crate) unsafe fn transform_decorr_var2(
     input_ptr: *const u8,
     colours_out: *mut u32,
@@ -107,6 +109,7 @@ pub(crate) unsafe fn transform_decorr_var2(
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
+#[inline]
 pub(crate) unsafe fn transform_decorr_var3(
     input_ptr: *const u8,
     colours_out: *mut u32,
@@ -145,19 +148,18 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(YCoCgVariant::Variant1, 64)]
-    #[case(YCoCgVariant::Variant2, 64)]
-    #[case(YCoCgVariant::Variant3, 64)]
-    fn avx512_transform_roundtrip(#[case] variant: YCoCgVariant, #[case] max_blocks: usize) {
+    #[case(transform_decorr_var1, YCoCgVariant::Variant1, 64)]
+    #[case(transform_decorr_var2, YCoCgVariant::Variant2, 64)]
+    #[case(transform_decorr_var3, YCoCgVariant::Variant3, 64)]
+    fn avx512_transform_roundtrip(
+        #[case] func: WithDecorrelateTransformFn,
+        #[case] variant: YCoCgVariant,
+        #[case] max_blocks: usize,
+    ) {
         if !has_avx512f() {
             return;
         }
 
-        run_decorrelate_transform_roundtrip_test_with_variant(
-            transform_with_decorrelate,
-            variant,
-            max_blocks,
-            "AVX512",
-        );
+        run_with_decorrelate_transform_roundtrip_test(func, variant, max_blocks, "AVX512");
     }
 }

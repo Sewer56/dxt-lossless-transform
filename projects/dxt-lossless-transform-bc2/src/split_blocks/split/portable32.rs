@@ -201,87 +201,13 @@ pub unsafe fn u32_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::split_blocks::split::tests::{
-        assert_implementation_matches_reference, generate_bc2_test_data,
-        transform_with_reference_implementation,
-    };
-    use core::ptr::copy_nonoverlapping;
-    use dxt_lossless_transform_common::allocate::allocate_align_64;
-    use rstest::rstest;
-
-    type PermuteFn = unsafe fn(*const u8, *mut u8, usize);
+    use crate::test_prelude::*;
 
     #[rstest]
     #[case(u32, "u32 no-unroll")]
     #[case(u32_unroll_2, "u32 unroll_2")]
     #[case(u32_unroll_4, "u32 unroll_4")]
-    fn test_portable32_aligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
-        for num_blocks in 1..=512 {
-            let mut input = allocate_align_64(num_blocks * 16).unwrap();
-            let mut output_expected = allocate_align_64(input.len()).unwrap();
-            let mut output_test = allocate_align_64(input.len()).unwrap();
-
-            // Fill the input with test data
-            unsafe {
-                copy_nonoverlapping(
-                    generate_bc2_test_data(num_blocks).as_ptr(),
-                    input.as_mut_ptr(),
-                    input.len(),
-                );
-            }
-
-            transform_with_reference_implementation(
-                input.as_slice(),
-                output_expected.as_mut_slice(),
-            );
-
-            output_test.as_mut_slice().fill(0);
-            unsafe {
-                permute_fn(input.as_ptr(), output_test.as_mut_ptr(), input.len());
-            }
-
-            assert_implementation_matches_reference(
-                output_expected.as_slice(),
-                output_test.as_slice(),
-                &format!("{impl_name} (aligned)"),
-                num_blocks,
-            );
-        }
-    }
-
-    #[rstest]
-    #[case(u32, "u32 no-unroll")]
-    #[case(u32_unroll_2, "u32 unroll_2")]
-    #[case(u32_unroll_4, "u32 unroll_4")]
-    fn test_portable32_unaligned(#[case] permute_fn: PermuteFn, #[case] impl_name: &str) {
-        for num_blocks in 1..=512 {
-            let input = generate_bc2_test_data(num_blocks);
-
-            // Add 1 extra byte at the beginning to create misaligned buffers
-            let mut input_unaligned = vec![0u8; input.len() + 1];
-            input_unaligned[1..].copy_from_slice(input.as_slice());
-
-            let mut output_expected = vec![0u8; input.len()];
-            let mut output_test = vec![0u8; input.len() + 1];
-
-            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
-
-            output_test.as_mut_slice().fill(0);
-            unsafe {
-                // Use pointers offset by 1 byte to create unaligned access
-                permute_fn(
-                    input_unaligned.as_ptr().add(1),
-                    output_test.as_mut_ptr().add(1),
-                    input.len(),
-                );
-            }
-
-            assert_implementation_matches_reference(
-                output_expected.as_slice(),
-                &output_test[1..],
-                &format!("{impl_name} (unaligned)"),
-                num_blocks,
-            );
-        }
+    fn test_portable32_unaligned(#[case] permute_fn: StandardTransformFn, #[case] impl_name: &str) {
+        run_standard_transform_unaligned_test(permute_fn, 512, impl_name);
     }
 }

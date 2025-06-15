@@ -267,125 +267,15 @@ pub unsafe fn avx512_vbmi_with_separate_pointers(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::split_blocks::split::tests::{
-        assert_implementation_matches_reference, generate_bc3_test_data,
-        transform_with_reference_implementation,
-    };
-    use crate::testutils::allocate_align_64;
-    use rstest::rstest;
-
-    #[rstest]
-    fn test_avx512_aligned() {
-        if !dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
-            return;
-        }
-
-        for num_blocks in 1..=512 {
-            let input = generate_bc3_test_data(num_blocks);
-            let mut output_expected = vec![0u8; input.len()];
-            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
-
-            let mut output_test = allocate_align_64(input.len());
-            output_test.as_mut_slice().fill(0);
-            unsafe {
-                avx512_vbmi(input.as_ptr(), output_test.as_mut_ptr(), input.len());
-            }
-
-            assert_implementation_matches_reference(
-                output_expected.as_slice(),
-                output_test.as_slice(),
-                "avx512",
-                num_blocks,
-            );
-        }
-    }
+    use crate::test_prelude::*;
 
     #[rstest]
     fn test_avx512_unaligned() {
-        if !dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
+        if !has_avx512vbmi() || !has_avx512f() {
             return;
         }
 
-        for num_blocks in 1..=512 {
-            let input = generate_bc3_test_data(num_blocks);
-            let mut output_expected = vec![0u8; input.len() + 1];
-            transform_with_reference_implementation(input.as_slice(), &mut output_expected[1..]);
-
-            let mut output_test = vec![0u8; input.len() + 1];
-            output_test.as_mut_slice().fill(0);
-            unsafe {
-                avx512_vbmi(input.as_ptr(), output_test.as_mut_ptr().add(1), input.len());
-            }
-
-            assert_implementation_matches_reference(
-                &output_expected[1..],
-                &output_test[1..],
-                "avx512",
-                num_blocks,
-            );
-        }
-    }
-
-    #[rstest]
-    fn avx512_vbmi_with_separate_pointers_matches_avx512_vbmi() {
-        if !dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
-            return;
-        }
-
-        for num_blocks in 1..=256 {
-            let input = generate_bc3_test_data(num_blocks);
-            let len = input.len();
-
-            // Test with the contiguous buffer method
-            let mut output_contiguous = allocate_align_64(len);
-
-            // Test with separate pointers
-            let mut alpha_bytes = allocate_align_64(len / 8); // 2 bytes per block
-            let mut alpha_bits = allocate_align_64(len * 3 / 8); // 6 bytes per block
-            let mut colors = allocate_align_64(len / 4); // 4 bytes per block
-            let mut indices = allocate_align_64(len / 4); // 4 bytes per block
-
-            unsafe {
-                // Reference: contiguous buffer using AVX512
-                avx512_vbmi(input.as_ptr(), output_contiguous.as_mut_ptr(), len);
-
-                // Test: separate pointers using AVX512
-                avx512_vbmi_with_separate_pointers(
-                    input.as_ptr(),
-                    alpha_bytes.as_mut_ptr(),
-                    alpha_bits.as_mut_ptr(),
-                    colors.as_mut_ptr(),
-                    indices.as_mut_ptr(),
-                    len,
-                );
-            }
-
-            // Verify that separate pointer results match contiguous buffer layout
-            let expected_alpha_bytes = &output_contiguous.as_slice()[0..len / 8];
-            let expected_alpha_bits = &output_contiguous.as_slice()[len / 8..len / 2];
-            let expected_colors = &output_contiguous.as_slice()[len / 2..len * 3 / 4];
-            let expected_indices = &output_contiguous.as_slice()[len * 3 / 4..];
-
-            assert_eq!(
-                alpha_bytes.as_slice(),
-                expected_alpha_bytes,
-                "AVX512 Alpha bytes section mismatch for {num_blocks} blocks"
-            );
-            assert_eq!(
-                alpha_bits.as_slice(),
-                expected_alpha_bits,
-                "AVX512 Alpha bits section mismatch for {num_blocks} blocks"
-            );
-            assert_eq!(
-                colors.as_slice(),
-                expected_colors,
-                "AVX512 Color section mismatch for {num_blocks} blocks"
-            );
-            assert_eq!(
-                indices.as_slice(),
-                expected_indices,
-                "AVX512 Index section mismatch for {num_blocks} blocks"
-            );
-        }
+        // For AVX512: processes 128 bytes (8 blocks) per iteration, so max_blocks = 128 bytes × 2 ÷ 16 = 16
+        run_standard_transform_unaligned_test(avx512_vbmi, 16, "avx512");
     }
 }

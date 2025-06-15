@@ -226,82 +226,18 @@ pub unsafe fn u64_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::split_blocks::split::tests::generate_bc3_test_data;
-    use crate::split_blocks::split::u32;
-    use crate::split_blocks::unsplit::tests::assert_implementation_matches_reference;
-    use crate::testutils::allocate_align_64;
-    use rstest::rstest;
-
-    type DetransformFn = unsafe fn(*const u8, *mut u8, usize);
+    use crate::test_prelude::*;
 
     #[rstest]
-    #[case(u32_detransform, "u32")]
-    #[case(u32_detransform_v2, "u32_v2")]
-    #[case(u64_detransform, "u64")]
-    fn test_portable_aligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
-        for num_blocks in 1..=512 {
-            let original = generate_bc3_test_data(num_blocks);
-            let mut transformed = allocate_align_64(original.len());
-            let mut reconstructed = allocate_align_64(original.len());
-
-            unsafe {
-                // Transform using standard implementation
-                u32(original.as_ptr(), transformed.as_mut_ptr(), original.len());
-
-                // Reconstruct using the implementation being tested
-                reconstructed.as_mut_slice().fill(0);
-                detransform_fn(
-                    transformed.as_ptr(),
-                    reconstructed.as_mut_ptr(),
-                    transformed.len(),
-                );
-            }
-
-            assert_implementation_matches_reference(
-                original.as_slice(),
-                reconstructed.as_slice(),
-                &format!("{impl_name} (aligned)"),
-                num_blocks,
-            );
-        }
-    }
-
-    #[rstest]
-    #[case(u32_detransform, "u32")]
-    #[case(u32_detransform_v2, "u32_v2")]
-    #[case(u64_detransform, "u64")]
-    fn test_portable_unaligned(#[case] detransform_fn: DetransformFn, #[case] impl_name: &str) {
-        for num_blocks in 1..=512 {
-            let original = generate_bc3_test_data(num_blocks);
-
-            // Transform using standard implementation
-            let mut transformed = vec![0u8; original.len()];
-            unsafe {
-                u32(original.as_ptr(), transformed.as_mut_ptr(), original.len());
-            }
-
-            // Add 1 extra byte at the beginning to create misaligned buffers
-            let mut transformed_unaligned = vec![0u8; transformed.len() + 1];
-            transformed_unaligned[1..].copy_from_slice(&transformed);
-
-            let mut reconstructed = vec![0u8; original.len() + 1];
-
-            unsafe {
-                // Reconstruct using the implementation being tested with unaligned pointers
-                reconstructed.as_mut_slice().fill(0);
-                detransform_fn(
-                    transformed_unaligned.as_ptr().add(1),
-                    reconstructed.as_mut_ptr().add(1),
-                    transformed.len(),
-                );
-            }
-
-            assert_implementation_matches_reference(
-                original.as_slice(),
-                &reconstructed[1..],
-                &format!("{impl_name} (unaligned)"),
-                num_blocks,
-            );
-        }
+    #[case(u32_detransform, "u32", 2)]
+    #[case(u32_detransform_v2, "u32_v2", 2)]
+    #[case(u64_detransform, "u64", 2)]
+    fn test_portable_unaligned(
+        #[case] detransform_fn: StandardTransformFn,
+        #[case] impl_name: &str,
+        #[case] max_blocks: usize,
+    ) {
+        // For portable: processes 16 bytes (1 block) per iteration, so max_blocks = 16 bytes × 2 ÷ 16 = 2
+        run_standard_untransform_unaligned_test(detransform_fn, max_blocks, impl_name);
     }
 }

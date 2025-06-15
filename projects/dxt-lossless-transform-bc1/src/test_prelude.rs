@@ -13,7 +13,6 @@ pub use crate::{transform_bc1, Bc1TransformDetails};
 pub use crate::experimental::normalize_blocks::*;
 
 // Common types from dxt_lossless_transform_common
-pub use dxt_lossless_transform_common::allocate::allocate_align_64;
 pub use dxt_lossless_transform_common::color_565::YCoCgVariant;
 pub use dxt_lossless_transform_common::color_8888::Color8888;
 #[allow(unused_imports)] // Might be unused in some CPU architectures, and that's ok.
@@ -45,7 +44,7 @@ pub(crate) fn assert_implementation_matches_reference(
 
 // Helper to generate test data of specified size (in blocks)
 pub(crate) fn generate_bc1_test_data(num_blocks: usize) -> RawAlloc {
-    let mut data = allocate_align_64(num_blocks * 8).unwrap();
+    let mut data = allocate_align_64(num_blocks * 8);
     let mut data_ptr = data.as_mut_ptr();
 
     let mut color_byte = 0_u8;
@@ -84,6 +83,19 @@ fn validate_bc1_test_data_generator() {
     assert_eq!(output.as_slice(), expected.as_slice());
 }
 
+/// Allocates data with an alignment of 64 bytes.
+///
+/// # Parameters
+///
+/// - `num_bytes`: The number of bytes to allocate
+///
+/// # Returns
+///
+/// A [`RawAlloc`] containing the allocated data
+fn allocate_align_64(num_bytes: usize) -> RawAlloc {
+    dxt_lossless_transform_common::allocate::allocate_align_64(num_bytes).unwrap()
+}
+
 // -------------------------------------------------------------------------------------------------
 // Shared test helpers lifted from individual transform tests
 // -------------------------------------------------------------------------------------------------
@@ -112,8 +124,8 @@ pub(crate) fn run_standard_transform_roundtrip_test(
     for num_blocks in 1..=max_blocks {
         let input = generate_bc1_test_data(num_blocks);
         let len = input.len();
-        let mut transformed = vec![0u8; len];
-        let mut reconstructed = vec![0u8; len];
+        let mut transformed = allocate_align_64(len);
+        let mut reconstructed = allocate_align_64(len);
 
         unsafe {
             transform_fn(input.as_ptr(), transformed.as_mut_ptr(), len);
@@ -147,8 +159,8 @@ pub(crate) fn run_with_decorrelate_transform_roundtrip_test(
     for num_blocks in 1..=max_blocks {
         let input = generate_bc1_test_data(num_blocks);
         let len = input.len();
-        let mut transformed = vec![0u8; len];
-        let mut reconstructed = vec![0u8; len];
+        let mut transformed = allocate_align_64(len);
+        let mut reconstructed = allocate_align_64(len);
 
         unsafe {
             transform_fn(
@@ -189,23 +201,23 @@ pub(crate) fn run_split_colour_transform_roundtrip_test(
     for num_blocks in 1..=max_blocks {
         let input = generate_bc1_test_data(num_blocks);
         let len = input.len();
-        let mut colour0 = vec![0u16; num_blocks];
-        let mut colour1 = vec![0u16; num_blocks];
-        let mut indices = vec![0u32; num_blocks];
-        let mut reconstructed = vec![0u8; len];
+        let mut colour0 = allocate_align_64(num_blocks * 2); // u16 = 2 bytes
+        let mut colour1 = allocate_align_64(num_blocks * 2); // u16 = 2 bytes
+        let mut indices = allocate_align_64(num_blocks * 4); // u32 = 4 bytes
+        let mut reconstructed = allocate_align_64(len);
 
         unsafe {
             transform_fn(
                 input.as_ptr(),
-                colour0.as_mut_ptr(),
-                colour1.as_mut_ptr(),
-                indices.as_mut_ptr(),
+                colour0.as_mut_ptr() as *mut u16,
+                colour1.as_mut_ptr() as *mut u16,
+                indices.as_mut_ptr() as *mut u32,
                 num_blocks,
             );
             untransform_with_split_colour(
-                colour0.as_ptr(),
-                colour1.as_ptr(),
-                indices.as_ptr(),
+                colour0.as_ptr() as *const u16,
+                colour1.as_ptr() as *const u16,
+                indices.as_ptr() as *const u32,
                 reconstructed.as_mut_ptr(),
                 num_blocks,
             );
@@ -237,24 +249,24 @@ pub(crate) fn run_split_colour_with_decorr_transform_roundtrip_test(
     for num_blocks in 1..=max_blocks {
         let input = generate_bc1_test_data(num_blocks);
         let len = input.len();
-        let mut colour0 = vec![0u16; num_blocks];
-        let mut colour1 = vec![0u16; num_blocks];
-        let mut indices = vec![0u32; num_blocks];
-        let mut reconstructed = vec![0u8; len];
+        let mut colour0 = allocate_align_64(num_blocks * 2); // u16 = 2 bytes
+        let mut colour1 = allocate_align_64(num_blocks * 2); // u16 = 2 bytes
+        let mut indices = allocate_align_64(num_blocks * 4); // u32 = 4 bytes
+        let mut reconstructed = allocate_align_64(len);
 
         unsafe {
             transform_fn(
                 input.as_ptr(),
-                colour0.as_mut_ptr(),
-                colour1.as_mut_ptr(),
-                indices.as_mut_ptr(),
+                colour0.as_mut_ptr() as *mut u16,
+                colour1.as_mut_ptr() as *mut u16,
+                indices.as_mut_ptr() as *mut u32,
                 num_blocks,
                 variant,
             );
             untransform_with_split_colour_and_recorr(
-                colour0.as_ptr(),
-                colour1.as_ptr(),
-                indices.as_ptr(),
+                colour0.as_ptr() as *const u16,
+                colour1.as_ptr() as *const u16,
+                indices.as_ptr() as *const u32,
                 reconstructed.as_mut_ptr(),
                 num_blocks,
                 variant,
@@ -300,7 +312,7 @@ pub(crate) fn run_with_recorrelate_untransform_unaligned_test(
         let original = generate_bc1_test_data(num_blocks);
 
         // Transform using standard implementation
-        let mut transformed = vec![0u8; original.len()];
+        let mut transformed = allocate_align_64(original.len());
         unsafe {
             transform_bc1(
                 original.as_ptr(),
@@ -315,9 +327,9 @@ pub(crate) fn run_with_recorrelate_untransform_unaligned_test(
         }
 
         // Add 1 extra byte at the beginning to create misaligned buffers
-        let mut transformed_unaligned = vec![0u8; transformed.len() + 1];
-        transformed_unaligned[1..].copy_from_slice(&transformed);
-        let mut reconstructed = vec![0u8; original.len() + 1];
+        let mut transformed_unaligned = allocate_align_64(transformed.len() + 1);
+        transformed_unaligned.as_mut_slice()[1..].copy_from_slice(transformed.as_slice());
+        let mut reconstructed = allocate_align_64(original.len() + 1);
 
         unsafe {
             // Reconstruct using the implementation being tested with unaligned pointers
@@ -332,7 +344,7 @@ pub(crate) fn run_with_recorrelate_untransform_unaligned_test(
 
         assert_implementation_matches_reference(
             original.as_slice(),
-            &reconstructed[1..],
+            &reconstructed.as_slice()[1..],
             impl_name,
             num_blocks,
         );
@@ -354,7 +366,7 @@ pub(crate) fn run_standard_untransform_unaligned_test(
         let original = generate_bc1_test_data(num_blocks);
 
         // Transform using the reference path
-        let mut transformed = vec![0u8; original.len()];
+        let mut transformed = allocate_align_64(original.len());
         unsafe {
             crate::transforms::standard::transform(
                 original.as_ptr(),
@@ -363,10 +375,10 @@ pub(crate) fn run_standard_untransform_unaligned_test(
             );
 
             // Shift by one byte to mis-align the buffers
-            let mut transformed_unaligned = vec![0u8; transformed.len() + 1];
-            transformed_unaligned[1..].copy_from_slice(&transformed);
+            let mut transformed_unaligned = allocate_align_64(transformed.len() + 1);
+            transformed_unaligned.as_mut_slice()[1..].copy_from_slice(transformed.as_slice());
 
-            let mut reconstructed = vec![0u8; original.len() + 1];
+            let mut reconstructed = allocate_align_64(original.len() + 1);
 
             reconstructed.as_mut_slice().fill(0);
             detransform_fn(
@@ -377,7 +389,7 @@ pub(crate) fn run_standard_untransform_unaligned_test(
 
             assert_implementation_matches_reference(
                 original.as_slice(),
-                &reconstructed[1..],
+                &reconstructed.as_slice()[1..],
                 &format!("{impl_name} (unaligned)"),
                 num_blocks,
             );
@@ -400,7 +412,7 @@ pub(crate) fn run_with_split_colour_untransform_unaligned_test(
         let original = generate_bc1_test_data(num_blocks);
 
         // Transform using standard implementation
-        let mut transformed = vec![0u8; original.len()];
+        let mut transformed = allocate_align_64(original.len());
         unsafe {
             transform_bc1(
                 original.as_ptr(),
@@ -415,9 +427,9 @@ pub(crate) fn run_with_split_colour_untransform_unaligned_test(
         }
 
         // Add 1 extra byte at the beginning to create misaligned buffers
-        let mut transformed_unaligned = vec![0u8; transformed.len() + 1];
-        transformed_unaligned[1..].copy_from_slice(&transformed);
-        let mut reconstructed = vec![0u8; original.len() + 1];
+        let mut transformed_unaligned = allocate_align_64(transformed.len() + 1);
+        transformed_unaligned.as_mut_slice()[1..].copy_from_slice(transformed.as_slice());
+        let mut reconstructed = allocate_align_64(original.len() + 1);
 
         unsafe {
             // Reconstruct using the implementation being tested with unaligned pointers
@@ -433,7 +445,7 @@ pub(crate) fn run_with_split_colour_untransform_unaligned_test(
 
         assert_implementation_matches_reference(
             original.as_slice(),
-            &reconstructed[1..],
+            &reconstructed.as_slice()[1..],
             impl_name,
             num_blocks,
         );
@@ -456,7 +468,7 @@ pub(crate) fn run_with_split_colour_and_recorr_untransform_unaligned_test(
         let original = generate_bc1_test_data(num_blocks);
 
         // Transform using standard implementation
-        let mut transformed = vec![0u8; original.len()];
+        let mut transformed = allocate_align_64(original.len());
         unsafe {
             transform_bc1(
                 original.as_ptr(),
@@ -471,9 +483,9 @@ pub(crate) fn run_with_split_colour_and_recorr_untransform_unaligned_test(
         }
 
         // Add 1 extra byte at the beginning to create misaligned buffers
-        let mut transformed_unaligned = vec![0u8; transformed.len() + 1];
-        transformed_unaligned[1..].copy_from_slice(&transformed);
-        let mut reconstructed = vec![0u8; original.len() + 1];
+        let mut transformed_unaligned = allocate_align_64(transformed.len() + 1);
+        transformed_unaligned.as_mut_slice()[1..].copy_from_slice(transformed.as_slice());
+        let mut reconstructed = allocate_align_64(original.len() + 1);
 
         unsafe {
             // Reconstruct using the implementation being tested with unaligned pointers
@@ -490,7 +502,7 @@ pub(crate) fn run_with_split_colour_and_recorr_untransform_unaligned_test(
 
         assert_implementation_matches_reference(
             original.as_slice(),
-            &reconstructed[1..],
+            &reconstructed.as_slice()[1..],
             impl_name,
             num_blocks,
         );

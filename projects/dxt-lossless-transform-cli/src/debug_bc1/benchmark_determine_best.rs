@@ -1,4 +1,4 @@
-use super::BenchmarkDetermineBestCmd;
+use super::{determine_best_transform_details_with_estimator, BenchmarkDetermineBestCmd};
 use crate::{
     debug::{
         benchmark_common::{
@@ -13,10 +13,7 @@ use crate::{
 };
 use core::time::Duration;
 use dxt_lossless_transform_api::DdsFormat;
-use dxt_lossless_transform_bc1::{
-    determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions},
-    Bc1TransformDetails,
-};
+use dxt_lossless_transform_bc1::Bc1TransformDetails;
 use std::fs;
 
 /// Configuration for benchmark execution
@@ -199,15 +196,12 @@ unsafe fn run_determine_best_once(
         }
     };
 
-    // Create transform options
-    let transform_options = Bc1EstimateOptions {
-        file_size_estimator: estimator,
-        test_normalize_options: experimental_normalize,
-    };
-
-    // Determine the best transform details using the API
-    determine_best_transform_details(data_ptr, len_bytes, transform_options)
-        .map_err(|e| TransformError::Debug(format!("determine_best_transform_details failed: {e}")))
+    determine_best_transform_details_with_estimator(
+        data_ptr,
+        len_bytes,
+        estimator,
+        experimental_normalize,
+    )
 }
 
 /// Print file result with throughput measured in MiB/s for determine_best_transform_details benchmark

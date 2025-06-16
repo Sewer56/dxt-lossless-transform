@@ -1,6 +1,4 @@
-#[cfg(feature = "experimental")]
-use crate::experimental::determine_best_transform_details_with_normalization;
-use crate::{ColorNormalizationMode, transforms::standard::transform, Bc1TransformDetails};
+use crate::{transforms::standard::transform, Bc1TransformDetails};
 use core::mem::size_of;
 use core::slice;
 use dxt_lossless_transform_common::{
@@ -37,16 +35,6 @@ where
     /// by reducing the size of the sliding window (so more data in cache) and increasing minimum
     /// match length.
     pub file_size_estimator: F,
-
-    /// Whether to test all normalization options or skip them for faster processing.
-    ///
-    /// When `true`, all [`ColorNormalizationMode`] variants will be tested.
-    /// When `false`, only [`ColorNormalizationMode::None`] will be used, significantly
-    /// improving performance at the cost of potentially less optimal compression.
-    ///
-    /// This is off by default for the time being. In the future, we'll have a better 'normalize'
-    /// function, where brute forcing will not be necessary.
-    pub test_normalize_options: bool,
 }
 
 /// Determine the best transform details for the given BC1 blocks.
@@ -55,6 +43,7 @@ where
 ///
 /// - `input_ptr`: A pointer to the input data (input BC1 blocks)
 /// - `len`: The length of the input data in bytes
+/// - `transform_options`: Options for the estimation including the file size estimator
 ///
 /// # Returns
 ///
@@ -62,15 +51,11 @@ where
 ///
 /// # Remarks
 ///
-/// This function is a brute force, the characteristics of this function are:
-///
-/// If `test_normalize_options` is `true`:
-/// - 1/24th of the compression speed ([`ColorNormalizationMode`] * [`YCoCgVariant`] * 2 (split_colours))
-/// - Uses 6x the memory of input size
-///
-/// If `test_normalize_options` is `false`:
+/// This function is a brute force approach that tests all standard transform options:
 /// - 1/8th of the compression speed ([`YCoCgVariant`] * 2 (split_colours))
 /// - Uses 2x the memory of input size
+///
+/// For experimental normalization support, use the functions in the experimental module instead.
 ///
 /// # Safety
 ///
@@ -83,13 +68,6 @@ pub unsafe fn determine_best_transform_details<F>(
 where
     F: Fn(*const u8, usize) -> usize,
 {
-    #[cfg(feature = "experimental")]
-    {
-        if transform_options.test_normalize_options {
-            return determine_best_transform_details_with_normalization(input_ptr, len, transform_options);
-        }
-    }
-    
     determine_best_transform_details_fast(input_ptr, len, transform_options)
 }
 
@@ -133,7 +111,6 @@ where
         for split_colours in [true, false] {
             // Get the current mode we're testing.
             let current_mode = Bc1TransformDetails {
-                color_normalization_mode: ColorNormalizationMode::None, // Skip normalization step
                 decorrelation_mode: *decorrelation_mode,
                 split_colour_endpoints: split_colours,
             };
@@ -241,11 +218,7 @@ mod tests {
 
     /// Test that determine_best_transform_details doesn't crash with minimal BC1 data
     #[rstest]
-    #[case(true)]
-    #[case(false)]
-    fn determine_best_transform_details_does_not_crash_and_burn(
-        #[case] experimental_normalize: bool,
-    ) {
+    fn determine_best_transform_details_does_not_crash_and_burn() {
         // Create minimal BC1 block data (8 bytes per block)
         // This is a simple red block
         let bc1_data = [
@@ -256,7 +229,6 @@ mod tests {
 
         let transform_options = Bc1EstimateOptions {
             file_size_estimator: dummy_file_size_estimator,
-            test_normalize_options: experimental_normalize,
         };
 
         // This should not crash

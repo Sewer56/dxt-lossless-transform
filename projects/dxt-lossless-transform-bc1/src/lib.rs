@@ -22,35 +22,12 @@ use crate::transforms::{
 };
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
-#[cfg(feature = "experimental")]
-use experimental::normalize_blocks::ColorNormalizationMode;
-
-/// Color normalization mode for BC1 blocks.
-/// This is the fallback definition when the experimental feature is disabled.
-#[cfg(not(feature = "experimental"))]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum ColorNormalizationMode {
-    /// No color normalization, preserves original color data
-    None,
-}
-
-#[cfg(not(feature = "experimental"))]
-impl ColorNormalizationMode {
-    /// Returns all possible values of the enum.
-    pub fn all_values() -> &'static [ColorNormalizationMode] {
-        &[ColorNormalizationMode::None]
-    }
-}
-
 /// The information about the BC1 transform that was just performed.
 /// Each item transformed via [`transform_bc1`] will produce an instance of this struct.
 /// To undo the transform, you'll need to pass [`Bc1DetransformDetails`] to [`untransform_bc1`],
 /// which can be obtained from this struct using the `into` method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Bc1TransformDetails {
-    /// The color normalization mode that was used to normalize the data.
-    pub color_normalization_mode: ColorNormalizationMode,
-
     /// The decorrelation mode that was used to decorrelate the colors.
     pub decorrelation_mode: YCoCgVariant,
 
@@ -93,7 +70,6 @@ impl Default for Bc1TransformDetails {
     fn default() -> Self {
         // Best (on average) results, but of course not perfect, as is with brute-force method.
         Self {
-            color_normalization_mode: ColorNormalizationMode::None,
             decorrelation_mode: YCoCgVariant::Variant1,
             split_colour_endpoints: true,
         }
@@ -104,12 +80,11 @@ impl Bc1TransformDetails {
     /// Returns an iterator over all possible combinations of [`Bc1TransformDetails`] values.
     ///
     /// This function generates all possible combinations by iterating through:
-    /// - All [`ColorNormalizationMode`] variants
     /// - All [`YCoCgVariant`] variants  
     /// - Both `true` and `false` values for `split_colour_endpoints`
     ///
     /// The total number of combinations is:
-    /// [`ColorNormalizationMode`] variants × [`YCoCgVariant`] variants × 2 bool values
+    /// [`YCoCgVariant`] variants × 2 bool values
     ///
     /// # Examples
     ///
@@ -125,21 +100,14 @@ impl Bc1TransformDetails {
     /// ```
     #[cfg(not(tarpaulin_include))]
     pub fn all_combinations() -> impl Iterator<Item = Bc1TransformDetails> {
-        ColorNormalizationMode::all_values()
-            .iter()
-            .flat_map(|color_mode| {
-                YCoCgVariant::all_values()
-                    .iter()
-                    .flat_map(move |decorr_mode| {
-                        [true, false]
-                            .into_iter()
-                            .map(move |split_endpoints| Bc1TransformDetails {
-                                color_normalization_mode: *color_mode,
-                                decorrelation_mode: *decorr_mode,
-                                split_colour_endpoints: split_endpoints,
-                            })
-                    })
-            })
+        YCoCgVariant::all_values().iter().flat_map(|decorr_mode| {
+            [true, false]
+                .into_iter()
+                .map(move |split_endpoints| Bc1TransformDetails {
+                    decorrelation_mode: *decorr_mode,
+                    split_colour_endpoints: split_endpoints,
+                })
+        })
     }
 }
 

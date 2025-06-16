@@ -3,8 +3,8 @@
 //! This module re-exposes internal benchmark functions that were changed to `pub(crate)` visibility
 //! so that external benchmarks can still access them when the `bench` feature is enabled.
 #![allow(clippy::missing_safety_doc)]
+#![cfg(not(tarpaulin_include))]
 
-#[cfg(feature = "bench")]
 pub mod transform {
     //! Transform benchmark functions
 
@@ -196,7 +196,6 @@ pub mod transform {
     }
 }
 
-#[cfg(feature = "bench")]
 pub mod untransform {
     //! Untransform benchmark functions
 

@@ -227,21 +227,16 @@ where
 {
     use dxt_lossless_transform_bc1::{
         determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions},
-        experimental::normalize_blocks::determine_optimal_transform::{
-            determine_best_transform_details_with_normalization,
-            Bc1EstimateOptionsWithNormalization,
-        },
+        experimental::normalize_blocks::determine_optimal_transform::determine_best_transform_details_with_normalization,
         Bc1TransformDetails,
+    };
+    let transform_options = Bc1EstimateOptions {
+        file_size_estimator: estimator,
     };
 
     unsafe {
         if experimental_normalize {
             // Use experimental API with normalization support
-            let transform_options = Bc1EstimateOptionsWithNormalization {
-                file_size_estimator: estimator,
-                test_normalize_options: true,
-            };
-
             let experimental_details = determine_best_transform_details_with_normalization(
                 data_ptr,
                 len_bytes,
@@ -258,10 +253,6 @@ where
             })
         } else {
             // Use standard API without normalization
-            let transform_options = Bc1EstimateOptions {
-                file_size_estimator: estimator,
-            };
-
             determine_best_transform_details(data_ptr, len_bytes, transform_options)
                 .map_err(|e| TransformError::Debug(format!("API recommendation failed: {e}")))
         }

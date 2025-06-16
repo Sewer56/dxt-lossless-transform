@@ -1,5 +1,6 @@
 //! Functions for determining the best transform options with experimental normalization support.
 
+use crate::determine_optimal_transform::Bc1EstimateOptions;
 use crate::{
     determine_optimal_transform::DetermineBestTransformError, transforms::standard::transform,
     YCoCgVariant,
@@ -14,45 +15,6 @@ use dxt_lossless_transform_common::{
 use super::{
     normalize_blocks_all_modes, Bc1TransformDetailsWithNormalization, ColorNormalizationMode,
 };
-
-/// The options for [`determine_best_transform_details_with_normalization`], regarding how the estimation is done,
-/// and other related factors.
-pub struct Bc1EstimateOptionsWithNormalization<F>
-where
-    F: Fn(*const u8, usize) -> usize,
-{
-    /// A function that returns an estimated file size for the given passed in data+len tuple.
-    ///
-    /// # Parameters
-    ///
-    /// - `input_ptr`: A pointer to the input data
-    /// - `len`: The length of the input data in bytes
-    ///
-    /// # Returns
-    ///
-    /// The estimated file size in bytes
-    ///
-    /// # Remarks
-    ///
-    /// For minimizing file size, use the exact same compression function as the final file will
-    /// be compressed.
-    ///
-    /// Otherwise consider using a slightly lower level of the same compression function, both to
-    /// maximize speed of [`determine_best_transform_details_with_normalization`], and to improve decompression speed
-    /// by reducing the size of the sliding window (so more data in cache) and increasing minimum
-    /// match length.
-    pub file_size_estimator: F,
-
-    /// Whether to test all normalization options or skip them for faster processing.
-    ///
-    /// When `true`, all [`ColorNormalizationMode`] variants will be tested.
-    /// When `false`, only [`ColorNormalizationMode::None`] will be used, significantly
-    /// improving performance at the cost of potentially less optimal compression.
-    ///
-    /// This is off by default for the time being. In the future, we'll have a better 'normalize'
-    /// function, where brute forcing will not be necessary.
-    pub test_normalize_options: bool,
-}
 
 /// Determine the best transform details with full normalization testing.
 ///
@@ -79,7 +41,7 @@ where
 pub unsafe fn determine_best_transform_details_with_normalization<F>(
     input_ptr: *const u8,
     len: usize,
-    transform_options: Bc1EstimateOptionsWithNormalization<F>,
+    transform_options: Bc1EstimateOptions<F>,
 ) -> Result<Bc1TransformDetailsWithNormalization, DetermineBestTransformError>
 where
     F: Fn(*const u8, usize) -> usize,
@@ -176,7 +138,7 @@ unsafe fn test_normalize_variant_with_normalization<F>(
     input: *mut u8,
     output: *mut u8,
     len: usize,
-    transform_options: &Bc1EstimateOptionsWithNormalization<F>,
+    transform_options: &Bc1EstimateOptions<F>,
     best_transform_details: &mut Bc1TransformDetailsWithNormalization,
     best_size: &mut usize,
     current_mode: Bc1TransformDetailsWithNormalization,
@@ -238,7 +200,6 @@ unsafe fn test_normalize_variant_with_normalization<F>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_prelude::*;
 
     /// Simple dummy file size estimator that just returns the input length
     fn dummy_file_size_estimator(_data: *const u8, len: usize) -> usize {
@@ -246,12 +207,8 @@ mod tests {
     }
 
     /// Test that determine_best_transform_details_with_normalization doesn't crash with minimal BC1 data
-    #[rstest]
-    #[case(true)]
-    #[case(false)]
-    fn determine_best_transform_details_with_normalization_does_not_crash(
-        #[case] test_normalize_options: bool,
-    ) {
+    #[test]
+    fn determine_best_transform_details_with_normalization_does_not_crash() {
         // Create minimal BC1 block data (8 bytes per block)
         // This is a simple red block
         let bc1_data = [
@@ -260,9 +217,8 @@ mod tests {
             0x00, 0x00, 0x00, 0x00, // Indices: all pointing to Color0
         ];
 
-        let transform_options = Bc1EstimateOptionsWithNormalization {
+        let transform_options = Bc1EstimateOptions {
             file_size_estimator: dummy_file_size_estimator,
-            test_normalize_options,
         };
 
         // This should not crash
@@ -279,75 +235,5 @@ mod tests {
             result.is_ok(),
             "Function should not crash with valid BC1 data"
         );
-    }
-
-    /// Test that the function returns different results when normalization is enabled vs disabled
-    #[test]
-    fn normalize_vs_no_normalize_can_produce_different_results() {
-        // Create a solid color block that should benefit from normalization
-        let mut bc1_blocks = [0u8; 16]; // 2 blocks
-
-        // Block 1: Solid red block (non-normalized format)
-        bc1_blocks[0] = 0x00; // Color0 low
-        bc1_blocks[1] = 0xF8; // Color0 high (0xF800 = red)
-        bc1_blocks[2] = 0x01; // Color1 low
-        bc1_blocks[3] = 0x01; // Color1 high (different from Color0)
-                              // Indices all 0 (pointing to Color0)
-        bc1_blocks[4..8].fill(0x00);
-
-        // Block 2: Another solid color block
-        bc1_blocks[8] = 0xE0; // Color0 low
-        bc1_blocks[9] = 0x07; // Color0 high (0x07E0 = green)
-        bc1_blocks[10] = 0x02; // Color1 low
-        bc1_blocks[11] = 0x02; // Color1 high
-                               // Indices all 0 (pointing to Color0)
-        bc1_blocks[12..16].fill(0x00);
-
-        let options_with_normalize = Bc1EstimateOptionsWithNormalization {
-            file_size_estimator: dummy_file_size_estimator,
-            test_normalize_options: true,
-        };
-
-        let options_without_normalize = Bc1EstimateOptionsWithNormalization {
-            file_size_estimator: dummy_file_size_estimator,
-            test_normalize_options: false,
-        };
-
-        let result_with_normalize = unsafe {
-            determine_best_transform_details_with_normalization(
-                bc1_blocks.as_ptr(),
-                bc1_blocks.len(),
-                options_with_normalize,
-            )
-        };
-
-        let result_without_normalize = unsafe {
-            determine_best_transform_details_with_normalization(
-                bc1_blocks.as_ptr(),
-                bc1_blocks.len(),
-                options_without_normalize,
-            )
-        };
-
-        // Both should succeed
-        assert!(result_with_normalize.is_ok());
-        assert!(result_without_normalize.is_ok());
-
-        let with_normalize = result_with_normalize.unwrap();
-        let without_normalize = result_without_normalize.unwrap();
-
-        // The one without normalization should always use ColorNormalizationMode::None
-        assert_eq!(
-            without_normalize.color_normalization_mode,
-            ColorNormalizationMode::None
-        );
-
-        // Use the with_normalize result to verify it's valid
-        assert!(matches!(
-            with_normalize.color_normalization_mode,
-            ColorNormalizationMode::None
-                | ColorNormalizationMode::Color0Only
-                | ColorNormalizationMode::ReplicateColor
-        ));
     }
 }

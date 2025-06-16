@@ -61,7 +61,7 @@ profiles, you should get one for debugging benchmarks.
 Execute the following:
 
 ```
-cargo bench --bench my_benchmark --profile profile -- --profile-time 10
+cargo bench --features bench --bench my_benchmark --profile profile -- --profile-time 10
 ```
 
 This should give you a flamegraph in `target/criterion/<method_name>/profile`. You can open that flamegraph in a web browser.
@@ -71,7 +71,7 @@ This should give you a flamegraph in `target/criterion/<method_name>/profile`. Y
 Execute the following:
 
 ```
-cargo bench --bench my_benchmark --no-run --profile profile
+cargo bench --features bench --bench my_benchmark --no-run --profile profile
 ```
 
 Navigate to the executable listed in the commandline:
@@ -172,19 +172,19 @@ rustup component add llvm-tools-preview
 Then run an 'instrumented' benchmark, this will run your code in `pgo_benchmark` and collect some data:
 
 ```
-cargo +nightly pgo instrument bench
+cargo +nightly pgo instrument bench --features bench
 ```
 
 After that run a regular benchmark to create a 'baseline' number:
 
 ```
-cargo +nightly bench
+cargo +nightly bench --features bench
 ```
 
 And run the PGO optimized build:
 
 ```
-cargo +nightly pgo optimize bench
+cargo +nightly pgo optimize bench --features bench
 ```
 
 If most of the results are equal or show an improvement, PGO has helped.

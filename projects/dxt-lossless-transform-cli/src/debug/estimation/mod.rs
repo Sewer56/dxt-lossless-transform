@@ -2,8 +2,10 @@
 
 use crate::debug::compression::CompressionAlgorithm;
 use crate::error::TransformError;
+use lossless_transform_utils::LosslessTransformUtilsSizeEstimation;
 use zstd::ZStandardSizeEstimation;
 
+pub mod lossless_transform_utils;
 pub mod zstd;
 
 /// Trait for size estimation operations (can be fast approximations or actual compression).
@@ -49,6 +51,7 @@ pub fn estimate_compressed_size_with_algorithm(
         CompressionAlgorithm::ZStandard => {
             ZStandardSizeEstimation.estimate_compressed_size(data_ptr, len_bytes, compression_level)
         }
-        CompressionAlgorithm::LosslessTransformUtils => todo!(),
+        CompressionAlgorithm::LosslessTransformUtils => LosslessTransformUtilsSizeEstimation
+            .estimate_compressed_size(data_ptr, len_bytes, compression_level),
     }
 }

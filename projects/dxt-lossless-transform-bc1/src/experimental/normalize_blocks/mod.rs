@@ -79,11 +79,11 @@
 //! 3. Apply one of the three normalization cases based on the block properties
 //! 4. Write the normalized block to the output
 
-pub mod determine_best_transform;
+pub mod determine_optimal_transform;
 pub mod normalize;
 pub mod transform;
 
-pub use determine_best_transform::*;
+pub use determine_optimal_transform::*;
 pub use normalize::*;
 pub use transform::*;
 

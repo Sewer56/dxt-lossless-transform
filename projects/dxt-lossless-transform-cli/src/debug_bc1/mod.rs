@@ -202,3 +202,68 @@ pub fn handle_debug_command(cmd: DebugCmd) -> Result<(), TransformError> {
         }
     }
 }
+
+/// Determines the best transform details using either the standard or experimental API
+/// based on the experimental_normalize flag.
+///
+/// # Parameters
+///
+/// - `data_ptr`: Pointer to the BC1 data
+/// - `len_bytes`: Length of the data in bytes
+/// - `estimator`: File size estimation function
+/// - `experimental_normalize`: Whether to use experimental normalization
+///
+/// # Returns
+///
+/// The best transform details for the given data
+fn determine_best_transform_details_with_estimator<F>(
+    data_ptr: *const u8,
+    len_bytes: usize,
+    estimator: F,
+    experimental_normalize: bool,
+) -> Result<dxt_lossless_transform_bc1::Bc1TransformDetails, TransformError>
+where
+    F: Fn(*const u8, usize) -> usize,
+{
+    use dxt_lossless_transform_bc1::{
+        determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions},
+        experimental::normalize_blocks::determine_optimal_transform::{
+            determine_best_transform_details_with_normalization,
+            Bc1EstimateOptionsWithNormalization,
+        },
+        Bc1TransformDetails,
+    };
+
+    unsafe {
+        if experimental_normalize {
+            // Use experimental API with normalization support
+            let transform_options = Bc1EstimateOptionsWithNormalization {
+                file_size_estimator: estimator,
+                test_normalize_options: true,
+            };
+
+            let experimental_details = determine_best_transform_details_with_normalization(
+                data_ptr,
+                len_bytes,
+                transform_options,
+            )
+            .map_err(|e| {
+                TransformError::Debug(format!("Experimental API recommendation failed: {e}"))
+            })?;
+
+            // Convert to standard struct for compatibility
+            Ok(Bc1TransformDetails {
+                decorrelation_mode: experimental_details.decorrelation_mode,
+                split_colour_endpoints: experimental_details.split_colour_endpoints,
+            })
+        } else {
+            // Use standard API without normalization
+            let transform_options = Bc1EstimateOptions {
+                file_size_estimator: estimator,
+            };
+
+            determine_best_transform_details(data_ptr, len_bytes, transform_options)
+                .map_err(|e| TransformError::Debug(format!("API recommendation failed: {e}")))
+        }
+    }
+}

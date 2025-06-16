@@ -19,6 +19,8 @@ no-runtime-cpu-detection = []
 nightly = ["dxt-lossless-transform-common/nightly"]
 # Code only required for benchmarks.
 bench = []
+# Experimental features, not ready for prime time. Use at your own risk!
+experimental = []
 
 [dependencies]
 dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }

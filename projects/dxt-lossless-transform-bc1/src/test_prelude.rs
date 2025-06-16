@@ -11,6 +11,7 @@ pub use rstest::rstest;
 pub use crate::{transform_bc1, Bc1TransformDetails};
 
 // Experimental features commonly tested
+#[cfg(feature = "experimental")]
 pub use crate::experimental::normalize_blocks::*;
 
 // Common types from dxt_lossless_transform_common

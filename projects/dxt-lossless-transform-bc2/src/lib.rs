@@ -7,6 +7,7 @@
     feature(stdarch_x86_avx512)
 )]
 
+#[cfg(feature = "experimental")]
 pub mod experimental;
 pub mod transforms;
 pub mod util;

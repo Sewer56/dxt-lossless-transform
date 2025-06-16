@@ -19,6 +19,8 @@ no-runtime-cpu-detection = []
 nightly = ["dxt-lossless-transform-common/nightly"]
 # Benchmarking feature to expose internal APIs
 bench = []
+# Experimental features, not ready for prime time. Use at your own risk!
+experimental = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]

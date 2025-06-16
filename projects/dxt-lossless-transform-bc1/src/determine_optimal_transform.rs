@@ -1,8 +1,6 @@
+#[cfg(feature = "experimental")]
 use crate::experimental::determine_best_transform_details_with_normalization;
-use crate::{
-    experimental::normalize_blocks::ColorNormalizationMode, transforms::standard::transform,
-    Bc1TransformDetails,
-};
+use crate::{ColorNormalizationMode, transforms::standard::transform, Bc1TransformDetails};
 use core::mem::size_of;
 use core::slice;
 use dxt_lossless_transform_common::{
@@ -85,11 +83,14 @@ pub unsafe fn determine_best_transform_details<F>(
 where
     F: Fn(*const u8, usize) -> usize,
 {
-    if transform_options.test_normalize_options {
-        determine_best_transform_details_with_normalization(input_ptr, len, transform_options)
-    } else {
-        determine_best_transform_details_fast(input_ptr, len, transform_options)
+    #[cfg(feature = "experimental")]
+    {
+        if transform_options.test_normalize_options {
+            return determine_best_transform_details_with_normalization(input_ptr, len, transform_options);
+        }
     }
+    
+    determine_best_transform_details_fast(input_ptr, len, transform_options)
 }
 
 /// Determine the best transform details without normalization testing (fast variant).

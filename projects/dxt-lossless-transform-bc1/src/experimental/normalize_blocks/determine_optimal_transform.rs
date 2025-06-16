@@ -1,6 +1,6 @@
 //! Functions for determining the best transform options with experimental normalization support.
 
-use crate::determine_optimal_transform::Bc1EstimateOptions;
+use crate::determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions};
 use crate::{
     determine_optimal_transform::DetermineBestTransformError, transforms::standard::transform,
     YCoCgVariant,
@@ -33,7 +33,7 @@ use super::{
 /// This function tests all normalization options, the characteristics of this function are:
 ///
 /// - 1/24th of the compression speed ([`ColorNormalizationMode`] * [`YCoCgVariant`] * 2 (split_colours))
-/// - Uses 6x the memory of input size
+/// - Uses 3x the memory of input size when no normalization is needed, 6x when normalization is required
 ///
 /// # Safety
 ///
@@ -48,9 +48,7 @@ where
 {
     const NUM_NORMALIZE: usize = ColorNormalizationMode::all_values().len();
     let mut normalize_buffers = FixedRawAllocArray::<NUM_NORMALIZE>::new(len)?;
-    let mut split_blocks_buffers = FixedRawAllocArray::<NUM_NORMALIZE>::new(len)?;
     let normalize_buffers_ptrs = normalize_buffers.get_pointer_slice();
-    let split_blocks_buffers_ptrs = split_blocks_buffers.get_pointer_slice();
 
     // Normalize blocks into all possible modes.
     let any_normalized = normalize_blocks_all_modes(input_ptr, &normalize_buffers_ptrs, len);
@@ -60,11 +58,16 @@ where
     let mut best_transform_details = Bc1TransformDetailsWithNormalization::default();
     let mut best_size = usize::MAX;
 
-    // split_blocks_buffers_ptrs: buffer_a
-    // result_pointers: buffer_b (output)
-    let result_pointers = normalize_buffers.get_pointer_slice();
     if any_normalized {
         // At least 1 block was normalized, so we have to test all options.
+        // Allocate split blocks buffers only when needed
+        let mut split_blocks_buffers = FixedRawAllocArray::<NUM_NORMALIZE>::new(len)?;
+        let split_blocks_buffers_ptrs = split_blocks_buffers.get_pointer_slice();
+
+        // split_blocks_buffers_ptrs: buffer_a
+        // result_pointers: buffer_b (output)
+        let result_pointers = normalize_buffers.get_pointer_slice();
+
         // Now split all blocks.
         for x in 0..NUM_NORMALIZE {
             transform(normalize_buffers_ptrs[x], split_blocks_buffers_ptrs[x], len);
@@ -100,35 +103,14 @@ where
         Ok(best_transform_details)
     } else {
         // No blocks were normalized, we can skip testing normalize steps
-        // Since no normalization occurred, we can use the original input directly after splitting
-        transform(input_ptr, split_blocks_buffers_ptrs[0], len);
+        // Drop buffers first for memory usage
+        drop(normalize_buffers);
 
-        for decorrelation_mode in YCoCgVariant::all_values() {
-            for split_colours in [true, false] {
-                // Get the current mode we're testing.
-                let current_mode = Bc1TransformDetailsWithNormalization {
-                    color_normalization_mode: ColorNormalizationMode::None, // Skip normalization step
-                    decorrelation_mode: *decorrelation_mode,
-                    split_colour_endpoints: split_colours,
-                };
+        // Call the regular function since no normalization is needed
+        let regular_result = determine_best_transform_details(input_ptr, len, transform_options)?;
 
-                // Get input/output buffers.
-                let input = split_blocks_buffers_ptrs[0]; // Use first buffer since no normalization variants
-                let output = result_pointers[0];
-
-                test_normalize_variant_with_normalization(
-                    input,
-                    output,
-                    len,
-                    &transform_options,
-                    &mut best_transform_details,
-                    &mut best_size,
-                    current_mode,
-                );
-            }
-        }
-
-        Ok(best_transform_details)
+        // Convert regular result to normalization result using From trait
+        Ok(regular_result.into())
     }
 }
 

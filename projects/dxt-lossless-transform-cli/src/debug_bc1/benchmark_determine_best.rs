@@ -23,6 +23,7 @@ struct BenchmarkConfig {
     compression_level: i32,
     compression_algorithm: CompressionAlgorithm,
     experimental_normalize: bool,
+    use_all_decorrelation_modes: bool,
 }
 
 pub(crate) fn handle_benchmark_determine_best_command(
@@ -64,6 +65,7 @@ pub(crate) fn handle_benchmark_determine_best_command(
                 compression_level: cmd.get_estimate_compression_level(),
                 compression_algorithm: cmd.estimate_compression_algorithm,
                 experimental_normalize: cmd.experimental_normalize,
+                use_all_decorrelation_modes: cmd.use_all_decorrelation_modes,
             },
         ) {
             Ok(Some(file_result)) => {
@@ -142,6 +144,7 @@ unsafe fn process_determine_best_scenario(
             config.compression_level,
             config.compression_algorithm,
             config.experimental_normalize,
+            config.use_all_decorrelation_modes,
         )?;
     }
 
@@ -155,6 +158,7 @@ unsafe fn process_determine_best_scenario(
                     config.compression_level,
                     config.compression_algorithm,
                     config.experimental_normalize,
+                    config.use_all_decorrelation_modes,
                 )?;
             }
             Ok(())
@@ -179,6 +183,7 @@ unsafe fn run_determine_best_once(
     estimate_compression_level: i32,
     compression_algorithm: CompressionAlgorithm,
     experimental_normalize: bool,
+    use_all_decorrelation_modes: bool,
 ) -> Result<Bc1TransformDetails, TransformError> {
     // Create a compression file size estimator that compresses data without caching
     let estimator = move |data_ptr: *const u8, len: usize| -> usize {
@@ -201,6 +206,7 @@ unsafe fn run_determine_best_once(
         len_bytes,
         estimator,
         experimental_normalize,
+        use_all_decorrelation_modes,
     )
 }
 

@@ -37,6 +37,7 @@ struct BenchmarkConfig {
     estimate_compression_algorithm: CompressionAlgorithm,
     dry_run: bool,
     experimental_normalize: bool,
+    use_all_decorrelation_modes: bool,
 }
 
 pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), TransformError> {
@@ -105,6 +106,7 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
                     estimate_compression_algorithm: cmd.get_estimate_compression_algorithm(),
                     dry_run: true, // This is a dry run
                     experimental_normalize: cmd.experimental_normalize,
+                    use_all_decorrelation_modes: cmd.use_all_decorrelation_modes,
                 },
                 &CacheRefs {
                     compressed_size_cache: &cache,
@@ -129,6 +131,7 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
                 estimate_compression_algorithm: cmd.get_estimate_compression_algorithm(),
                 dry_run: false, // This is not a dry run
                 experimental_normalize: cmd.experimental_normalize,
+                use_all_decorrelation_modes: cmd.use_all_decorrelation_modes,
             },
             &CacheRefs {
                 compressed_size_cache: &cache,
@@ -200,6 +203,7 @@ fn process_file(
                             config.estimate_compression_algorithm,
                             caches.compressed_size_cache,
                             config.experimental_normalize,
+                            config.use_all_decorrelation_modes,
                         )?,
                     ),
                     (
@@ -276,6 +280,7 @@ unsafe fn get_api_recommended_details(
     estimate_compression_algorithm: CompressionAlgorithm,
     cache: &Mutex<CompressionSizeCache>,
     experimental_normalize: bool,
+    use_all_decorrelation_modes: bool,
 ) -> Result<Bc1TransformDetails, TransformError> {
     let estimator = move |data_ptr: *const u8, len: usize| -> usize {
         match calc_size_with_cache_and_estimation_algorithm(
@@ -298,6 +303,7 @@ unsafe fn get_api_recommended_details(
         len_bytes,
         estimator,
         experimental_normalize,
+        use_all_decorrelation_modes,
     )
 }
 

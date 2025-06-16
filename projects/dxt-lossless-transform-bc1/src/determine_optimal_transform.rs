@@ -32,6 +32,16 @@ where
     /// by reducing the size of the sliding window (so more data in cache) and increasing minimum
     /// match length.
     pub file_size_estimator: F,
+
+    /// Controls which decorrelation modes are tested during optimization.
+    ///
+    /// When `false` (default), only tests [`YCoCgVariant::Variant1`] and [`YCoCgVariant::None`]
+    /// for faster optimization with good results.
+    ///
+    /// When `true`, tests all available decorrelation modes ([`YCoCgVariant::Variant1`],
+    /// [`YCoCgVariant::Variant2`], [`YCoCgVariant::Variant3`], and [`YCoCgVariant::None`])
+    /// for potentially better compression at the cost of longer optimization time.
+    pub use_all_decorrelation_modes: bool,
 }
 
 /// Determine the best transform details for the given BC1 blocks.
@@ -70,7 +80,16 @@ where
     let mut best_transform_details = Bc1TransformDetails::default();
     let mut best_size = usize::MAX;
 
-    for decorrelation_mode in YCoCgVariant::all_values() {
+    // Choose decorrelation modes to test based on the flag
+    let decorrelation_modes = if transform_options.use_all_decorrelation_modes {
+        // Test all available decorrelation modes
+        YCoCgVariant::all_values()
+    } else {
+        // Test only Variant1 and None for faster optimization
+        &[YCoCgVariant::Variant1, YCoCgVariant::None]
+    };
+
+    for decorrelation_mode in decorrelation_modes {
         for split_colours in [true, false] {
             // Get the current mode we're testing.
             let current_mode = Bc1TransformDetails {
@@ -128,6 +147,7 @@ mod tests {
 
         let transform_options = Bc1EstimateOptions {
             file_size_estimator: dummy_file_size_estimator,
+            use_all_decorrelation_modes: false,
         };
 
         // This should not crash

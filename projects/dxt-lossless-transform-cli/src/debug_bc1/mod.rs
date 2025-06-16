@@ -64,6 +64,10 @@ pub struct CompressionStatsCmd {
     /// enable experimental color normalization feature which saves extra space at expense of compression time
     #[argh(switch)]
     pub experimental_normalize: bool,
+
+    /// test all decorrelation modes instead of just Variant1 and None (slower but more thorough)
+    #[argh(switch)]
+    pub use_all_decorrelation_modes: bool,
 }
 
 #[derive(FromArgs, Debug)]
@@ -101,6 +105,10 @@ pub struct BenchmarkCmd {
     /// enable experimental color normalization feature which saves extra space at expense of compression time
     #[argh(switch)]
     pub experimental_normalize: bool,
+
+    /// test all decorrelation modes instead of just Variant1 and None (slower but more thorough)
+    #[argh(switch)]
+    pub use_all_decorrelation_modes: bool,
 }
 
 #[derive(FromArgs, Debug)]
@@ -130,6 +138,10 @@ pub struct BenchmarkDetermineBestCmd {
     /// enable experimental color normalization feature which saves extra space at expense of compression time
     #[argh(switch)]
     pub experimental_normalize: bool,
+
+    /// test all decorrelation modes instead of just Variant1 and None (slower but more thorough)
+    #[argh(switch)]
+    pub use_all_decorrelation_modes: bool,
 }
 
 // Helper functions for resolving default compression levels and algorithms
@@ -212,6 +224,7 @@ pub fn handle_debug_command(cmd: DebugCmd) -> Result<(), TransformError> {
 /// - `len_bytes`: Length of the data in bytes
 /// - `estimator`: File size estimation function
 /// - `experimental_normalize`: Whether to use experimental normalization
+/// - `use_all_decorrelation_modes`: Whether to test all decorrelation modes
 ///
 /// # Returns
 ///
@@ -221,6 +234,7 @@ fn determine_best_transform_details_with_estimator<F>(
     len_bytes: usize,
     estimator: F,
     experimental_normalize: bool,
+    use_all_decorrelation_modes: bool,
 ) -> Result<dxt_lossless_transform_bc1::Bc1TransformDetails, TransformError>
 where
     F: Fn(*const u8, usize) -> usize,
@@ -232,6 +246,7 @@ where
     };
     let transform_options = Bc1EstimateOptions {
         file_size_estimator: estimator,
+        use_all_decorrelation_modes,
     };
 
     unsafe {

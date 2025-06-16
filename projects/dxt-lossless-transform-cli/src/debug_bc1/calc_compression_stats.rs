@@ -79,6 +79,7 @@ pub(crate) fn handle_compression_stats_command(
                 cmd.compression_algorithm,
                 cmd.get_estimate_compression_algorithm(),
                 cmd.experimental_normalize,
+                cmd.use_all_decorrelation_modes,
                 &cache,
             ) {
                 Ok(file_result) => {
@@ -109,6 +110,7 @@ pub(crate) fn handle_compression_stats_command(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn analyze_bc1_compression_file(
     entry: &fs::DirEntry,
     compression_level: i32,
@@ -116,6 +118,7 @@ fn analyze_bc1_compression_file(
     compression_algorithm: CompressionAlgorithm,
     estimate_compression_algorithm: CompressionAlgorithm,
     experimental_normalize: bool,
+    use_all_decorrelation_modes: bool,
     cache: &Mutex<CompressionCache>,
 ) -> Result<Bc1CompressionStatsResult, TransformError> {
     let mut file_result: Bc1CompressionStatsResult = Bc1CompressionStatsResult::default();
@@ -158,6 +161,7 @@ fn analyze_bc1_compression_file(
                         compression_level,
                         compression_algorithm,
                         experimental_normalize,
+                        use_all_decorrelation_modes,
                         cache,
                     )?,
                 };
@@ -217,6 +221,7 @@ unsafe fn analyze_bc1_api_recommendation(
     final_compression_level: i32,
     compression_algorithm: CompressionAlgorithm,
     experimental_normalize: bool,
+    use_all_decorrelation_modes: bool,
     cache: &Mutex<CompressionCache>,
 ) -> Result<Bc1TransformResult, TransformError> {
     // Create the file size estimator with cache clone for static lifetime
@@ -241,6 +246,7 @@ unsafe fn analyze_bc1_api_recommendation(
         len_bytes,
         estimator,
         experimental_normalize,
+        use_all_decorrelation_modes,
     )?;
 
     // Transform the data using the recommended details and measure the size

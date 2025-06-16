@@ -24,7 +24,9 @@ use core::time::Duration;
 use dxt_lossless_transform_api::DdsFormat;
 use dxt_lossless_transform_bc1::{
     determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions},
-    experimental::normalize_blocks::ColorNormalizationMode,
+    experimental::normalize_blocks::determine_best_transform::{
+        determine_best_transform_details_with_normalization, Bc1EstimateOptionsWithNormalization,
+    },
     transform_bc1, untransform_bc1, Bc1TransformDetails,
 };
 use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};
@@ -209,7 +211,6 @@ fn process_file(
                     (
                         "NoSplit/None",
                         Bc1TransformDetails {
-                            color_normalization_mode: ColorNormalizationMode::None,
                             decorrelation_mode: YCoCgVariant::None,
                             split_colour_endpoints: false,
                         },
@@ -217,7 +218,6 @@ fn process_file(
                     (
                         "NoSplit/YCoCg1",
                         Bc1TransformDetails {
-                            color_normalization_mode: ColorNormalizationMode::None,
                             decorrelation_mode: YCoCgVariant::Variant1,
                             split_colour_endpoints: false,
                         },
@@ -225,7 +225,6 @@ fn process_file(
                     (
                         "Split/None",
                         Bc1TransformDetails {
-                            color_normalization_mode: ColorNormalizationMode::None,
                             decorrelation_mode: YCoCgVariant::None,
                             split_colour_endpoints: true,
                         },
@@ -233,7 +232,6 @@ fn process_file(
                     (
                         "Split/YCoCg1",
                         Bc1TransformDetails {
-                            color_normalization_mode: ColorNormalizationMode::None,
                             decorrelation_mode: YCoCgVariant::Variant1,
                             split_colour_endpoints: true,
                         },
@@ -301,15 +299,39 @@ unsafe fn get_api_recommended_details(
         }
     };
 
-    // Create transform options
-    let transform_options = Bc1EstimateOptions {
-        file_size_estimator: estimator,
-        test_normalize_options: experimental_normalize,
+    // Determine the best transform details using the appropriate API
+    let result = if experimental_normalize {
+        // Use experimental API with normalization support
+        let transform_options = Bc1EstimateOptionsWithNormalization {
+            file_size_estimator: estimator,
+            test_normalize_options: true,
+        };
+
+        let experimental_details = determine_best_transform_details_with_normalization(
+            data_ptr,
+            len_bytes,
+            transform_options,
+        )
+        .map_err(|e| {
+            TransformError::Debug(format!("Experimental API recommendation failed: {e}"))
+        })?;
+
+        // Convert to standard struct for compatibility
+        Bc1TransformDetails {
+            decorrelation_mode: experimental_details.decorrelation_mode,
+            split_colour_endpoints: experimental_details.split_colour_endpoints,
+        }
+    } else {
+        // Use standard API without normalization
+        let transform_options = Bc1EstimateOptions {
+            file_size_estimator: estimator,
+        };
+
+        determine_best_transform_details(data_ptr, len_bytes, transform_options)
+            .map_err(|e| TransformError::Debug(format!("API recommendation failed: {e}")))?
     };
 
-    // Determine the best transform details using the API
-    determine_best_transform_details(data_ptr, len_bytes, transform_options)
-        .map_err(|e| TransformError::Debug(format!("API recommendation failed: {e}")))
+    Ok(result)
 }
 
 unsafe fn process_scenario(

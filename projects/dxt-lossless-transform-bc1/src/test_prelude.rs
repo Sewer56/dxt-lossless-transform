@@ -320,7 +320,6 @@ pub(crate) fn run_with_recorrelate_untransform_unaligned_test(
                 transformed.as_mut_ptr(),
                 original.len(),
                 Bc1TransformDetails {
-                    color_normalization_mode: ColorNormalizationMode::None,
                     decorrelation_mode: decorr_variant,
                     split_colour_endpoints: false,
                 },
@@ -416,7 +415,6 @@ pub(crate) fn run_with_split_colour_untransform_unaligned_test(
                 transformed.as_mut_ptr(),
                 original.len(),
                 Bc1TransformDetails {
-                    color_normalization_mode: ColorNormalizationMode::None,
                     decorrelation_mode: YCoCgVariant::None,
                     split_colour_endpoints: true,
                 },
@@ -471,7 +469,6 @@ pub(crate) fn run_with_split_colour_and_recorr_untransform_unaligned_test(
                 transformed.as_mut_ptr(),
                 original.len(),
                 Bc1TransformDetails {
-                    color_normalization_mode: ColorNormalizationMode::None,
                     decorrelation_mode: decorr_variant,
                     split_colour_endpoints: true,
                 },

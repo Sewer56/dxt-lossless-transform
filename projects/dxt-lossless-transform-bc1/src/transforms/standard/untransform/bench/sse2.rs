@@ -7,7 +7,11 @@ use core::arch::asm;
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn unpck_detransform(
+    mut input_ptr: *const u8,
+    mut output_ptr: *mut u8,
+    len: usize,
+) {
     debug_assert!(len % 8 == 0);
     // Process as many 32-byte blocks as possible
     let aligned_len = len - (len % 32);
@@ -70,7 +74,7 @@ pub unsafe fn unpck_detransform(mut input_ptr: *const u8, mut output_ptr: *mut u
 #[cfg(target_arch = "x86_64")]
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn unpck_detransform_unroll_4(
+pub(crate) unsafe fn unpck_detransform_unroll_4(
     mut input_ptr: *const u8,
     mut output_ptr: *mut u8,
     len: usize,
@@ -170,12 +174,16 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(unpck_detransform, "unpck")]
+    #[case(unpck_detransform, "unpck", 8)] // processes 32 bytes per iteration, so max_blocks = 32 × 2 ÷ 8 = 8
     #[cfg_attr(
         target_arch = "x86_64",
-        case(unpck_detransform_unroll_4, "unpck_unroll_4")
+        case(unpck_detransform_unroll_4, "unpck_unroll_4", 32) // processes 128 bytes per iteration, so max_blocks = 128 × 2 ÷ 8 = 32
     )]
-    fn test_sse2_unaligned(#[case] detransform_fn: StandardTransformFn, #[case] impl_name: &str) {
-        run_standard_untransform_unaligned_test(detransform_fn, 512, impl_name);
+    fn test_sse2_unaligned(
+        #[case] detransform_fn: StandardTransformFn,
+        #[case] impl_name: &str,
+        #[case] max_blocks: usize,
+    ) {
+        run_standard_untransform_unaligned_test(detransform_fn, max_blocks, impl_name);
     }
 }

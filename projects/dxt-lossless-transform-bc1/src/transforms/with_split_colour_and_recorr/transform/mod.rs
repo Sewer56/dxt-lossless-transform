@@ -6,6 +6,8 @@
 //!
 //! This module selects the best available implementation for the current CPU at
 //! runtime (unless `no-runtime-cpu-detection` feature is enabled).
+//!
+//! [`Color565`]: dxt_lossless_transform_common::color_565::Color565
 
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 mod generic;
@@ -29,7 +31,7 @@ mod sse2;
 /// - `color1_out` must be valid for `block_count*2` bytes of writes.
 /// - `indices_out` must be valid for `block_count*4` bytes of writes.
 #[inline]
-pub unsafe fn transform_with_split_colour_and_recorr(
+pub(crate) unsafe fn transform_with_split_colour_and_recorr(
     input_ptr: *const u8,
     color0_out: *mut u16,
     color1_out: *mut u16,

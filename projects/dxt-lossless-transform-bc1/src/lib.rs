@@ -7,9 +7,13 @@
     feature(stdarch_x86_avx512)
 )]
 
+pub(crate) mod transforms;
+
+#[cfg(feature = "bench")]
+pub mod bench;
 pub mod determine_optimal_transform;
+#[cfg(feature = "experimental")]
 pub mod experimental;
-pub mod transforms;
 pub mod util;
 
 use crate::transforms::{
@@ -17,7 +21,26 @@ use crate::transforms::{
     with_recorrelate, with_split_colour, with_split_colour_and_recorr,
 };
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
+
+#[cfg(feature = "experimental")]
 use experimental::normalize_blocks::ColorNormalizationMode;
+
+/// Color normalization mode for BC1 blocks.
+/// This is the fallback definition when the experimental feature is disabled.
+#[cfg(not(feature = "experimental"))]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ColorNormalizationMode {
+    /// No color normalization, preserves original color data
+    None,
+}
+
+#[cfg(not(feature = "experimental"))]
+impl ColorNormalizationMode {
+    /// Returns all possible values of the enum.
+    pub fn all_values() -> &'static [ColorNormalizationMode] {
+        &[ColorNormalizationMode::None]
+    }
+}
 
 /// The information about the BC1 transform that was just performed.
 /// Each item transformed via [`transform_bc1`] will produce an instance of this struct.
@@ -246,4 +269,4 @@ pub unsafe fn untransform_bc1(
 
 /// Common test prelude for avoiding duplicate imports in test modules
 #[cfg(test)]
-pub mod test_prelude;
+pub(crate) mod test_prelude;

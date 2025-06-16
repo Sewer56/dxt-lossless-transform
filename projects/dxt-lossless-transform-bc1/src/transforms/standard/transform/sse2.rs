@@ -7,7 +7,7 @@ use core::arch::asm;
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn shufps_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn shufps_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     let colors_ptr = output_ptr;
     let indices_ptr = output_ptr.add(len / 2);
     shufps_unroll_4_with_separate_pointers(
@@ -25,7 +25,7 @@ pub unsafe fn shufps_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: us
 /// - indices_ptr must be valid for writes of len/2 bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub unsafe fn shufps_unroll_4_with_separate_pointers(
+pub(crate) unsafe fn shufps_unroll_4_with_separate_pointers(
     mut input_ptr: *const u8,
     mut colors_out: *mut u32,
     mut indices_out: *mut u32,

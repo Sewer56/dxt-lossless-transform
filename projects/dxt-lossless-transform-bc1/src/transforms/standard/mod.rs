@@ -37,8 +37,8 @@
 //! In addition, decompression speed increases (as much as 50%!), as LZ matches are more likely
 //! to be in the lower levels (L1, L2) of CPU cache. The match length is often longer, too.
 
-pub mod transform;
-pub mod untransform;
+pub(crate) mod transform;
+pub(crate) mod untransform;
 
 /// Transform BC1 data from standard interleaved format to separated color/index format
 /// using the best known implementation for the current CPU.
@@ -50,7 +50,7 @@ pub mod untransform;
 /// - len must be divisible by 8
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn transform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn transform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     transform::transform(input_ptr, output_ptr, len);
 }
 

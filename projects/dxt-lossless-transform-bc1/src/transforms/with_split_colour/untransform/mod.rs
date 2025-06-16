@@ -1,5 +1,3 @@
-//!   ```
-
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 mod avx512;

@@ -18,7 +18,7 @@ const PERM_INDICES_BYTES: [i8; 16] = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23,
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512f")]
-pub unsafe fn permute_512_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn permute_512_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 8 == 0);
 
     let colors_ptr = output_ptr as *mut u32;
@@ -38,7 +38,7 @@ pub unsafe fn permute_512_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, le
 /// - The color and index buffers must not overlap with each other or the input buffer
 #[allow(unused_assignments)] // no feature for 512
 #[target_feature(enable = "avx512f")]
-pub unsafe fn permute_512_unroll_2_with_separate_pointers(
+pub(crate) unsafe fn permute_512_unroll_2_with_separate_pointers(
     mut input_ptr: *const u8,
     mut colors_ptr: *mut u32,
     mut indices_ptr: *mut u32,

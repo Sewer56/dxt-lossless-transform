@@ -1,13 +1,13 @@
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod avx2;
+mod avx2;
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod avx512;
-pub mod generic;
+mod avx512;
+mod generic;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod sse2;
+mod sse2;
 
 /// Split BC1 blocks from standard interleaved format to separate color/index format,
 /// applying YCoCg-R decorrelation to color endpoints.

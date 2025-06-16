@@ -84,7 +84,7 @@ Untransform BC1 (`unsplit_blocks`):
 You can run the benchmarks like this (example):
 
 ```bash,ignore
-cargo bench -p dxt-lossless-transform-bc1 --bench unsplit_blocks -- "avx2 shuffle_permute"
+cargo bench -p dxt-lossless-transform-bc1 --bench untransform_standard --features bench -- "avx2 shuffle_permute"
 ```
 
 Measured on Linux with `performance` governor. 8MiB file (see: `projects/dxt-lossless-transform-bc1/benches`).

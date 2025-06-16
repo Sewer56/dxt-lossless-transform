@@ -13,7 +13,7 @@ use core::arch::x86::*;
 #[allow(unused_assignments)]
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
-pub unsafe fn permute_512_detransform_unroll_2_intrinsics(
+pub(crate) unsafe fn permute_512_detransform_unroll_2_intrinsics(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
@@ -39,7 +39,7 @@ pub unsafe fn permute_512_detransform_unroll_2_intrinsics(
 #[allow(unused_assignments)]
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
-pub unsafe fn permute_512_detransform_unroll_2_with_components_intrinsics(
+pub(crate) unsafe fn permute_512_detransform_unroll_2_with_components_intrinsics(
     mut output_ptr: *mut u8,
     len: usize,
     mut indices_ptr: *const u8,
@@ -108,13 +108,18 @@ mod tests {
     #[rstest]
     #[case(
         permute_512_detransform_unroll_2_intrinsics,
-        "avx512_permute_unroll_2_intrinsics"
+        "avx512_permute_unroll_2_intrinsics",
+        64 // processes 256 bytes per iteration, so max_blocks = 256 × 2 ÷ 8 = 64
     )]
-    fn test_avx512_unaligned(#[case] detransform_fn: StandardTransformFn, #[case] impl_name: &str) {
+    fn test_avx512_unaligned(
+        #[case] detransform_fn: StandardTransformFn,
+        #[case] impl_name: &str,
+        #[case] max_blocks: usize,
+    ) {
         if !has_avx512f() {
             return;
         }
 
-        run_standard_untransform_unaligned_test(detransform_fn, 512, impl_name);
+        run_standard_untransform_unaligned_test(detransform_fn, max_blocks, impl_name);
     }
 }

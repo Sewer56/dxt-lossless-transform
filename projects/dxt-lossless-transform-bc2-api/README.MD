@@ -79,7 +79,7 @@ Untransform bc2 (`unsplit_blocks`):
 You can run the benchmarks like this (example):
 
 ```bash,ignore
-cargo bench -p dxt-lossless-transform-bc2 --bench unsplit_blocks -- "avx2 permd unroll 2"
+cargo bench -p dxt-lossless-transform-bc2 --bench untransform_standard --features bench -- "avx2 permd unroll 2"
 ```
 
 Measured on Linux with `performance` governor. 8MiB file (see: `projects/dxt-lossless-transform-bc2/benches`).

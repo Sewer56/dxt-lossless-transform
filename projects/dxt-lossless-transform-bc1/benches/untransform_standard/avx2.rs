@@ -1,12 +1,10 @@
 use criterion::*;
-use dxt_lossless_transform_bc1::transforms::standard::untransform::bench::{
-    avx2::unpck_detransform, *,
-};
+use dxt_lossless_transform_bc1::bench::untransform::standard::*;
 use safe_allocator_api::RawAlloc;
 
 fn bench_unpck(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        unpck_detransform(
+        avx2_unpck_detransform(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -16,7 +14,7 @@ fn bench_unpck(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAll
 
 fn bench_unpck_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        unpck_detransform_unroll_2(
+        avx2_unpck_detransform_unroll_2(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),

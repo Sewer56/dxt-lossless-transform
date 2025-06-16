@@ -87,7 +87,7 @@ Portable 64-bit implementation did not yield performance benefits for transform/
 You can run the benchmarks like this (example):
 
 ```bash,ignore
-cargo bench -p dxt-lossless-transform-bc3 --bench unsplit_blocks -- "u64 sse2"
+cargo bench -p dxt-lossless-transform-bc3 --bench untransform_standard --features bench -- "u64 sse2"
 ```
 
 Measured on Linux with `performance` governor. 8MiB file (see: `projects/dxt-lossless-transform-bc3/benches`).

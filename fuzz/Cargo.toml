@@ -11,9 +11,9 @@ cargo-fuzz = true
 libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
 rgbcx-sys = "1.1.3"
 bcdec_rs = "0.2.0"
-dxt-lossless-transform-bc1 = { path = "../projects/dxt-lossless-transform-bc1" }
-dxt-lossless-transform-bc2 = { path = "../projects/dxt-lossless-transform-bc2" }
-dxt-lossless-transform-bc3 = { path = "../projects/dxt-lossless-transform-bc3" }
+dxt-lossless-transform-bc1 = { path = "../projects/dxt-lossless-transform-bc1", features = ["experimental"] }
+dxt-lossless-transform-bc2 = { path = "../projects/dxt-lossless-transform-bc2", features = ["experimental"] }
+dxt-lossless-transform-bc3 = { path = "../projects/dxt-lossless-transform-bc3", features = ["experimental"] }
 dxt-lossless-transform-common = { path = "../projects/dxt-lossless-transform-common" }
 
 [[bin]]
@@ -50,6 +50,7 @@ path = "fuzz_targets/bc1_normalize.rs"
 test = false
 doc = false
 bench = false
+required-features = ["dxt-lossless-transform-bc1/experimental"]
 
 [[bin]]
 name = "bc1_normalize_all_modes"
@@ -57,6 +58,7 @@ path = "fuzz_targets/bc1_normalize_all_modes.rs"
 test = false
 doc = false
 bench = false
+required-features = ["dxt-lossless-transform-bc1/experimental"]
 
 [[bin]]
 name = "bc2_normalize"
@@ -64,6 +66,7 @@ path = "fuzz_targets/bc2_normalize.rs"
 test = false
 doc = false
 bench = false
+required-features = ["dxt-lossless-transform-bc2/experimental"]
 
 [[bin]]
 name = "bc2_normalize_all_modes"
@@ -71,6 +74,7 @@ path = "fuzz_targets/bc2_normalize_all_modes.rs"
 test = false
 doc = false
 bench = false
+required-features = ["dxt-lossless-transform-bc2/experimental"]
 
 [[bin]]
 name = "bc3_normalize"
@@ -78,6 +82,7 @@ path = "fuzz_targets/bc3_normalize.rs"
 test = false
 doc = false
 bench = false
+required-features = ["dxt-lossless-transform-bc3/experimental"]
 
 [[bin]]
 name = "bc3_normalize_all_modes"
@@ -85,6 +90,7 @@ path = "fuzz_targets/bc3_normalize_all_modes.rs"
 test = false
 doc = false
 bench = false
+required-features = ["dxt-lossless-transform-bc3/experimental"]
 
 [[bin]]
 name = "bc1_normalize_in_place"
@@ -92,6 +98,7 @@ path = "fuzz_targets/bc1_normalize_in_place.rs"
 test = false
 doc = false
 bench = false
+required-features = ["dxt-lossless-transform-bc1/experimental"]
 
 [[bin]]
 name = "bc2_normalize_in_place"
@@ -99,6 +106,7 @@ path = "fuzz_targets/bc2_normalize_in_place.rs"
 test = false
 doc = false
 bench = false
+required-features = ["dxt-lossless-transform-bc2/experimental"]
 
 [[bin]]
 name = "bc3_normalize_in_place"
@@ -106,3 +114,4 @@ path = "fuzz_targets/bc3_normalize_in_place.rs"
 test = false
 doc = false
 bench = false
+required-features = ["dxt-lossless-transform-bc3/experimental"]

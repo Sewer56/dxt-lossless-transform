@@ -6,7 +6,7 @@ use core::arch::x86::*;
 
 #[target_feature(enable = "sse2")]
 #[allow(clippy::identity_op)]
-pub unsafe fn untransform_with_split_colour(
+pub(crate) unsafe fn untransform_with_split_colour(
     mut color0_in: *const u16,
     mut color1_in: *const u16,
     mut indices_in: *const u32,

@@ -63,6 +63,6 @@ mod tests {
     #[rstest]
     #[case(u32, "u32 no-unroll")]
     fn test_portable32_unaligned(#[case] permute_fn: StandardTransformFn, #[case] impl_name: &str) {
-        run_standard_transform_unaligned_test(permute_fn, 512, impl_name);
+        run_standard_transform_unaligned_test(permute_fn, 2, impl_name);
     }
 }

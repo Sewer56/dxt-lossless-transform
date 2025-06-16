@@ -36,8 +36,8 @@
 //!   2      | 2    | color1 (RGB565, little-endian)  
 //!   4      | 4    | indices (2 bits per pixel, little-endian)
 
-pub mod transform;
-pub mod untransform;
+pub(crate) mod transform;
+pub(crate) mod untransform;
 
 /// Transform BC1 data from standard interleaved format to three separate arrays
 /// (color0, color1, indices) using best known implementation for current CPU.

@@ -6,7 +6,8 @@ use crate::error::TransformError;
 use core::slice;
 
 /// ZStandard implementation of [`SizeEstimationOperations`].
-/// This implementation does actual compression to estimate size.
+/// This implementation uses optimized streaming compression with a null sink
+/// to estimate size without allocating a full output buffer.
 pub struct ZStandardSizeEstimation;
 
 impl SizeEstimationOperations for ZStandardSizeEstimation {
@@ -16,15 +17,10 @@ impl SizeEstimationOperations for ZStandardSizeEstimation {
         len_bytes: usize,
         compression_level: i32,
     ) -> Result<usize, TransformError> {
-        // For now, we compress and return the size
-        // This could be optimized with size-only compression in the future
-        let max_compressed_size = zstd_raw::max_alloc_for_compress_size(len_bytes);
-        let mut compressed_buffer =
-            unsafe { Box::<[u8]>::new_uninit_slice(max_compressed_size).assume_init() };
-
+        // Use optimized size-only estimation that doesn't allocate a full buffer
         unsafe {
             let original_slice = slice::from_raw_parts(data_ptr, len_bytes);
-            match zstd_raw::compress(compression_level, original_slice, &mut compressed_buffer) {
+            match zstd_raw::estimate_compressed_size(compression_level, original_slice) {
                 Ok(size) => Ok(size),
                 Err(_) => Err(TransformError::Debug(
                     "ZStandard compression size estimation failed".to_owned(),

@@ -1,6 +1,9 @@
 //! Copied from sewer56.archives.nx crate and stripped down.
 
+use core::cmp::min;
 use core::ffi::c_void;
+use derive_more::derive::{Deref, DerefMut};
+use dxt_lossless_transform_common::allocate::allocate_align_64;
 use thiserror_no_std::Error;
 use zstd_sys::ZSTD_cParameter::*;
 use zstd_sys::ZSTD_dParameter::*;
@@ -103,6 +106,103 @@ pub fn compress(level: i32, source: &[u8], destination: &mut [u8]) -> Compressio
     }))
 }
 
+/// Estimates the compressed size of data using ZStandard without allocating a full output buffer.
+/// This function uses streaming compression with optimal buffer sizes to get accurate size estimates
+/// while minimizing memory allocation.
+///
+/// # Parameters
+///
+/// * `level`: Compression level to use.
+/// * `source`: Source data to compress.
+///
+/// # Returns
+///
+/// * `Ok(usize)`: The estimated compressed size in bytes.
+/// * `Err(NxCompressionError)`: If size estimation fails.
+pub fn estimate_compressed_size(level: i32, source: &[u8]) -> CompressionResult {
+    unsafe {
+        // Create compression stream
+        let cstream = SafeCStream::new(ZSTD_createCStream());
+        if cstream.is_null() {
+            return Err(NxCompressionError::ZStandard(
+                ZSTD_ErrorCode::ZSTD_error_memory_allocation,
+            ));
+        }
+
+        // Set compression parameters (magicless format, no extra headers)
+        zstd_setcommoncompressparams(*cstream, Some(level));
+
+        // Initialize the stream
+        let init_result = ZSTD_initCStream(*cstream, level);
+        if ZSTD_isError(init_result) != 0 {
+            return Err(NxCompressionError::ZStandard(ZSTD_getErrorCode(
+                init_result,
+            )));
+        }
+
+        // Use optimal buffer sizes for streaming compression
+        let in_buffer_size = ZSTD_CStreamInSize();
+        let out_buffer_size = ZSTD_CStreamOutSize();
+        let mut temp_buffer = allocate_align_64(out_buffer_size).unwrap();
+        let mut total_read: usize = 0;
+        let mut total_compressed: usize = 0;
+        let source_len = source.len();
+
+        while total_read < source_len {
+            let to_read = min(in_buffer_size, source_len - total_read);
+            let last_chunk = to_read < in_buffer_size;
+            let mode = if last_chunk {
+                ZSTD_EndDirective::ZSTD_e_end
+            } else {
+                ZSTD_EndDirective::ZSTD_e_continue
+            };
+
+            let mut input = ZSTD_inBuffer {
+                // SAFETY: total_read is guaranteed under < source_len by while condition above.
+                src: source.as_ptr().add(total_read) as *const c_void,
+                size: to_read,
+                pos: 0,
+            };
+
+            let mut finished = false;
+            while !finished {
+                let mut output = ZSTD_outBuffer {
+                    dst: temp_buffer.as_mut_ptr() as *mut c_void,
+                    size: temp_buffer.len(),
+                    pos: 0,
+                };
+
+                let result = ZSTD_compressStream2(*cstream, &mut output, &mut input, mode);
+
+                // Check if zstd returned an error
+                if ZSTD_isError(result) != 0 {
+                    return Err(NxCompressionError::ZStandard(ZSTD_getErrorCode(result)));
+                }
+
+                // Add the compressed bytes to our total
+                total_compressed += output.pos;
+
+                // If we're on the last chunk we're finished when zstd returns 0,
+                // which means its consumed all the input AND finished the frame.
+                // Otherwise, we're finished when we've consumed all the input.
+                finished = if last_chunk {
+                    result == 0
+                } else {
+                    input.pos == input.size
+                };
+            }
+
+            total_read += input.pos;
+
+            if last_chunk {
+                break;
+            }
+        }
+
+        Ok(total_compressed)
+    }
+}
+
 #[inline(always)]
 fn zstd_setcommoncompressparams(cctx: *mut ZSTD_CCtx_s, level: Option<i32>) {
     unsafe {
@@ -150,4 +250,21 @@ pub type CompressionResult = Result<usize, NxCompressionError>;
 pub enum NxCompressionError {
     #[error("ZStandard Error: {0:?}")]
     ZStandard(#[from] ZSTD_ErrorCode),
+}
+
+#[derive(Deref, DerefMut)]
+pub struct SafeCStream(*mut ZSTD_CStream);
+
+impl SafeCStream {
+    pub fn new(stream: *mut ZSTD_CStream) -> Self {
+        Self(stream)
+    }
+}
+
+impl Drop for SafeCStream {
+    fn drop(&mut self) {
+        if !self.0.is_null() {
+            unsafe { ZSTD_freeCStream(self.0) };
+        }
+    }
 }

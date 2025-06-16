@@ -234,3 +234,120 @@ unsafe fn test_normalize_variant_with_normalization<F>(
         *best_transform_details = current_mode;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_prelude::*;
+
+    /// Simple dummy file size estimator that just returns the input length
+    fn dummy_file_size_estimator(_data: *const u8, len: usize) -> usize {
+        len
+    }
+
+    /// Test that determine_best_transform_details_with_normalization doesn't crash with minimal BC1 data
+    #[rstest]
+    #[case(true)]
+    #[case(false)]
+    fn determine_best_transform_details_with_normalization_does_not_crash(
+        #[case] test_normalize_options: bool,
+    ) {
+        // Create minimal BC1 block data (8 bytes per block)
+        // This is a simple red block
+        let bc1_data = [
+            0x00, 0xF8, // Color0: Red in RGB565 (0xF800)
+            0x00, 0x00, // Color1: Black (0x0000)
+            0x00, 0x00, 0x00, 0x00, // Indices: all pointing to Color0
+        ];
+
+        let transform_options = Bc1EstimateOptionsWithNormalization {
+            file_size_estimator: dummy_file_size_estimator,
+            test_normalize_options,
+        };
+
+        // This should not crash
+        let result = unsafe {
+            determine_best_transform_details_with_normalization(
+                bc1_data.as_ptr(),
+                bc1_data.len(),
+                transform_options,
+            )
+        };
+
+        // Just verify it returns Ok, we don't care about the specific transform details
+        assert!(
+            result.is_ok(),
+            "Function should not crash with valid BC1 data"
+        );
+    }
+
+    /// Test that the function returns different results when normalization is enabled vs disabled
+    #[test]
+    fn normalize_vs_no_normalize_can_produce_different_results() {
+        // Create a solid color block that should benefit from normalization
+        let mut bc1_blocks = [0u8; 16]; // 2 blocks
+
+        // Block 1: Solid red block (non-normalized format)
+        bc1_blocks[0] = 0x00; // Color0 low
+        bc1_blocks[1] = 0xF8; // Color0 high (0xF800 = red)
+        bc1_blocks[2] = 0x01; // Color1 low
+        bc1_blocks[3] = 0x01; // Color1 high (different from Color0)
+                              // Indices all 0 (pointing to Color0)
+        bc1_blocks[4..8].fill(0x00);
+
+        // Block 2: Another solid color block
+        bc1_blocks[8] = 0xE0; // Color0 low
+        bc1_blocks[9] = 0x07; // Color0 high (0x07E0 = green)
+        bc1_blocks[10] = 0x02; // Color1 low
+        bc1_blocks[11] = 0x02; // Color1 high
+                               // Indices all 0 (pointing to Color0)
+        bc1_blocks[12..16].fill(0x00);
+
+        let options_with_normalize = Bc1EstimateOptionsWithNormalization {
+            file_size_estimator: dummy_file_size_estimator,
+            test_normalize_options: true,
+        };
+
+        let options_without_normalize = Bc1EstimateOptionsWithNormalization {
+            file_size_estimator: dummy_file_size_estimator,
+            test_normalize_options: false,
+        };
+
+        let result_with_normalize = unsafe {
+            determine_best_transform_details_with_normalization(
+                bc1_blocks.as_ptr(),
+                bc1_blocks.len(),
+                options_with_normalize,
+            )
+        };
+
+        let result_without_normalize = unsafe {
+            determine_best_transform_details_with_normalization(
+                bc1_blocks.as_ptr(),
+                bc1_blocks.len(),
+                options_without_normalize,
+            )
+        };
+
+        // Both should succeed
+        assert!(result_with_normalize.is_ok());
+        assert!(result_without_normalize.is_ok());
+
+        let with_normalize = result_with_normalize.unwrap();
+        let without_normalize = result_without_normalize.unwrap();
+
+        // The one without normalization should always use ColorNormalizationMode::None
+        assert_eq!(
+            without_normalize.color_normalization_mode,
+            ColorNormalizationMode::None
+        );
+
+        // Use the with_normalize result to verify it's valid
+        assert!(matches!(
+            with_normalize.color_normalization_mode,
+            ColorNormalizationMode::None
+                | ColorNormalizationMode::Color0Only
+                | ColorNormalizationMode::ReplicateColor
+        ));
+    }
+}

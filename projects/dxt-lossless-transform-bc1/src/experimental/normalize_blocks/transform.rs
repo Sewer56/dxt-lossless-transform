@@ -145,3 +145,56 @@ pub unsafe fn transform_bc1_with_normalize_blocks(
         );
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_prelude::*;
+    use dxt_lossless_transform_common::allocate::allocate_align_64;
+
+    /// Test roundtrip transform→untransform for all combinations of Bc1TransformDetailsWithNormalization
+    #[test]
+    fn roundtrip_test_all_combinations() {
+        use crate::{untransform_bc1, Bc1DetransformDetails};
+
+        const MAX_BLOCKS: usize = 64;
+
+        for num_blocks in 1..=MAX_BLOCKS {
+            let input = generate_bc1_test_data(num_blocks);
+            let len = input.len();
+
+            // Test all combinations of Bc1TransformDetailsWithNormalization
+            for details in Bc1TransformDetailsWithNormalization::all_combinations() {
+                let mut transformed = allocate_align_64(len).unwrap();
+                let mut work_buffer = allocate_align_64(len / 2).unwrap();
+                let mut reconstructed = allocate_align_64(len).unwrap();
+
+                unsafe {
+                    // Transform using experimental function
+                    transform_bc1_with_normalize_blocks(
+                        input.as_ptr(),
+                        transformed.as_mut_ptr(),
+                        work_buffer.as_mut_ptr(),
+                        len,
+                        details,
+                    );
+
+                    // Untransform using standard function (normalization doesn't need to be reversed)
+                    let detransform_details: Bc1DetransformDetails = details.into();
+                    untransform_bc1(
+                        transformed.as_ptr(),
+                        reconstructed.as_mut_ptr(),
+                        len,
+                        detransform_details,
+                    );
+                }
+
+                assert_eq!(
+                    reconstructed.as_slice(),
+                    input.as_slice(),
+                    "Roundtrip failed for {num_blocks} blocks with details: {details:?}",
+                );
+            }
+        }
+    }
+}

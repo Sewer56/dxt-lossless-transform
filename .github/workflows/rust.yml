@@ -210,7 +210,7 @@ jobs:
           artifact-prefix: ""
           use-cache: false
 
-      - name: C++ bindings - API Common
+      - name: C++ bindings - DDS
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
           rust-project-path: 'projects/dxt-lossless-transform-dds/'

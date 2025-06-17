@@ -175,7 +175,7 @@ jobs:
           features: "c-exports"
           additional-rustc-args: ${{ matrix.additional-rustc-args }}
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
-          use-cache: true
+          use-cache: false
 
   build-c-cpp-headers:
     runs-on: ubuntu-latest

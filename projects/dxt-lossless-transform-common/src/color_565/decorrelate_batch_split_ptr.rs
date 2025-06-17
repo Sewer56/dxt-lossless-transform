@@ -1,5 +1,6 @@
 use super::*;
 
+#[cfg(not(tarpaulin_include))] // These are just innocent wrapper functions that are tested elsewhere indirectly.
 impl Color565 {
     /// Raw pointer implementation of the YCoCg-R variant 1 recorrelation with split inputs for maximum performance.
     ///
@@ -38,7 +39,6 @@ impl Color565 {
     /// - All source pointers point to initialized data
     /// - `num_items` is even (function processes pairs of elements)
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub unsafe fn recorrelate_ycocg_r_var1_ptr_split(
         src_ptr_0: *const Self,
         src_ptr_1: *const Self,
@@ -132,7 +132,6 @@ impl Color565 {
     /// - All source pointers point to initialized data
     /// - `num_items` is even (function processes pairs of elements)
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub unsafe fn recorrelate_ycocg_r_var2_ptr_split(
         src_ptr_0: *const Self,
         src_ptr_1: *const Self,
@@ -226,7 +225,6 @@ impl Color565 {
     /// - All source pointers point to initialized data
     /// - `num_items` is even (function processes pairs of elements)
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub unsafe fn recorrelate_ycocg_r_var3_ptr_split(
         src_ptr_0: *const Self,
         src_ptr_1: *const Self,
@@ -308,7 +306,6 @@ impl Color565 {
     /// - All source pointers point to initialized data
     /// - `num_items` is even (function processes pairs of elements)
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub unsafe fn recorrelate_ycocg_r_ptr_split(
         src_ptr_0: *const Self,
         src_ptr_1: *const Self,

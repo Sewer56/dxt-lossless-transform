@@ -1,5 +1,6 @@
 use super::*;
 
+#[cfg(not(tarpaulin_include))] // These are just innocent wrapper functions not worth testing.
 impl Color565 {
     /// Convenience function that applies [`Self::decorrelate_ycocg_r_var1`] to each element in a slice.
     ///
@@ -22,7 +23,6 @@ impl Color565 {
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub fn decorrelate_ycocg_r_var1_slice(src: &[Self], dst: &mut [Self]) {
         debug_assert!(
             dst.len() >= src.len(),
@@ -42,7 +42,6 @@ impl Color565 {
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_var1_slice(src: &[Self], dst: &mut [Self]) {
         debug_assert!(
             dst.len() >= src.len(),
@@ -62,7 +61,6 @@ impl Color565 {
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub fn decorrelate_ycocg_r_var2_slice(src: &[Self], dst: &mut [Self]) {
         debug_assert!(
             dst.len() >= src.len(),
@@ -82,7 +80,6 @@ impl Color565 {
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_var2_slice(src: &[Self], dst: &mut [Self]) {
         debug_assert!(
             dst.len() >= src.len(),
@@ -102,7 +99,6 @@ impl Color565 {
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub fn decorrelate_ycocg_r_var3_slice(src: &[Self], dst: &mut [Self]) {
         debug_assert!(
             dst.len() >= src.len(),
@@ -122,7 +118,6 @@ impl Color565 {
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_var3_slice(src: &[Self], dst: &mut [Self]) {
         debug_assert!(
             dst.len() >= src.len(),
@@ -155,7 +150,6 @@ impl Color565 {
     /// Color565::decorrelate_ycocg_r_slice(&colors, &mut transformed, YCoCgVariant::Variant1);
     /// ```
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub fn decorrelate_ycocg_r_slice(src: &[Self], dst: &mut [Self], variant: YCoCgVariant) {
         debug_assert!(
             dst.len() >= src.len(),
@@ -193,7 +187,6 @@ impl Color565 {
     /// Color565::recorrelate_ycocg_r_slice(&transformed, &mut recorrelated, YCoCgVariant::Variant1);
     /// ```
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_slice(src: &[Self], dst: &mut [Self], variant: YCoCgVariant) {
         debug_assert!(
             dst.len() >= src.len(),

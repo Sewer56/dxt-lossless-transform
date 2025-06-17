@@ -1,5 +1,6 @@
 use super::*;
 
+#[cfg(not(tarpaulin_include))] // These are just innocent wrapper functions that are tested elsewhere indirectly.
 impl Color565 {
     /// Convenience function that applies [`Self::recorrelate_ycocg_r_var1`] to elements from two input slices,
     /// interleaving the recorrelated results into a single output slice.
@@ -29,7 +30,6 @@ impl Color565 {
     /// - The input slices have different lengths
     /// - The destination slice is smaller than the combined length of both input slices
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_var1_slice_split(src_0: &[Self], src_1: &[Self], dst: &mut [Self]) {
         assert_eq!(
             src_0.len(),
@@ -80,7 +80,6 @@ impl Color565 {
     /// - The input slices have different lengths
     /// - The destination slice is smaller than the combined length of both input slices
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_var2_slice_split(src_0: &[Self], src_1: &[Self], dst: &mut [Self]) {
         assert_eq!(
             src_0.len(),
@@ -131,7 +130,6 @@ impl Color565 {
     /// - The input slices have different lengths
     /// - The destination slice is smaller than the combined length of both input slices
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_var3_slice_split(src_0: &[Self], src_1: &[Self], dst: &mut [Self]) {
         assert_eq!(
             src_0.len(),
@@ -184,7 +182,6 @@ impl Color565 {
     /// Color565::recorrelate_ycocg_r_slice_split(&transformed_0, &transformed_1, &mut recorrelated, YCoCgVariant::Variant1);
     /// ```
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub fn recorrelate_ycocg_r_slice_split(
         src_0: &[Self],
         src_1: &[Self],

@@ -2,6 +2,7 @@ use super::*;
 use core::ptr::copy_nonoverlapping;
 use multiversion::multiversion;
 
+#[cfg(not(tarpaulin_include))] // These are just innocent wrapper functions not worth testing.
 impl Color565 {
     /// Raw pointer implementation of the YCoCg-R variant 1 decorrelation for maximum performance.
     ///
@@ -24,7 +25,6 @@ impl Color565 {
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub unsafe fn decorrelate_ycocg_r_var1_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
@@ -85,7 +85,6 @@ impl Color565 {
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub unsafe fn recorrelate_ycocg_r_var1_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
@@ -146,7 +145,6 @@ impl Color565 {
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub unsafe fn decorrelate_ycocg_r_var2_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
@@ -207,7 +205,6 @@ impl Color565 {
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub unsafe fn recorrelate_ycocg_r_var2_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
@@ -268,7 +265,6 @@ impl Color565 {
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub unsafe fn decorrelate_ycocg_r_var3_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
@@ -329,7 +325,6 @@ impl Color565 {
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub unsafe fn recorrelate_ycocg_r_var3_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
@@ -386,7 +381,6 @@ impl Color565 {
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub unsafe fn decorrelate_ycocg_r_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,
@@ -429,7 +423,6 @@ impl Color565 {
     /// - The memory regions don't overlap
     /// - `src_ptr` points to initialized data
     #[inline]
-    #[cfg(not(tarpaulin_include))]
     pub unsafe fn recorrelate_ycocg_r_ptr(
         src_ptr: *const Self,
         dst_ptr: *mut Self,

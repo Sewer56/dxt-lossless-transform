@@ -1,11 +1,5 @@
 #![cfg(not(tarpaulin_include))]
 
-use dxt_lossless_transform_dds::dds::{parse_dds, DdsFormat};
-
-use crate::{error::TransformError, util::*, DdsFilter};
-use core::{ops::Sub, slice};
-use std::fs;
-
 pub mod benchmark_common;
 pub mod calc_compression_stats_common;
 pub mod compressed_data_cache;
@@ -13,6 +7,11 @@ pub mod compression;
 pub mod compression_size_cache;
 pub mod estimation;
 pub mod throughput;
+
+use crate::{error::TransformError, util::*, DdsFilter};
+use core::{ops::Sub, slice};
+use dxt_lossless_transform_dds::dds::{parse_dds, DdsFormat};
+use std::fs;
 
 /// Extracts BC1-BC7 blocks from a DDS file in memory.
 /// Raw block data from found DDS files is passed to the `test_fn` parameter for processing.

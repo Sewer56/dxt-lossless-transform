@@ -188,7 +188,7 @@ jobs:
         with:
           rust-project-path: 'projects/dxt-lossless-transform-api-common/'
           config-file: ../../cbindgen_c.toml
-          output-header-file: dxt_lossless_transform_api.h
+          output-header-file: dxt-lossless-transform-api-common.h
           artifact-prefix: ""
           use-cache: true
 
@@ -197,7 +197,7 @@ jobs:
         with:
           rust-project-path: 'projects/dxt-lossless-transform-api-common/'
           config-file: ../../cbindgen_cpp.toml
-          output-header-file: dxt_lossless_transform_api.hpp
+          output-header-file: dxt-lossless-transform-api-common.hpp
           artifact-prefix: ""
           use-cache: false
 
@@ -206,7 +206,7 @@ jobs:
         with:
           rust-project-path: 'projects/dxt-lossless-transform-dds/'
           config-file: ../../cbindgen_c.toml
-          output-header-file: dxt_lossless_transform_dds.h
+          output-header-file: dxt-lossless-transform-dds.h
           artifact-prefix: ""
           use-cache: false
 
@@ -215,7 +215,7 @@ jobs:
         with:
           rust-project-path: 'projects/dxt-lossless-transform-dds/'
           config-file: ../../cbindgen_cpp.toml
-          output-header-file: dxt_lossless_transform_dds.hpp
+          output-header-file: dxt-lossless-transform-dds.hpp
           artifact-prefix: ""
           use-cache: false
 

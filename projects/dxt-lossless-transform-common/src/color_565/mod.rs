@@ -70,11 +70,11 @@
 //!   Comprehensive explanation of GPU texture compression and the D3D11 specification
 //!   approach to color expansion that this module implements
 
-mod decorrelate;
-mod decorrelate_batch_ptr;
-mod decorrelate_batch_slice;
-mod decorrelate_batch_split_ptr;
-mod decorrelate_batch_split_slice;
+pub mod decorrelate;
+pub mod decorrelate_batch_ptr;
+pub mod decorrelate_batch_slice;
+pub mod decorrelate_batch_split_ptr;
+pub mod decorrelate_batch_split_slice;
 
 // File split to multiple chunks to group functionality together.
 pub use decorrelate::*;

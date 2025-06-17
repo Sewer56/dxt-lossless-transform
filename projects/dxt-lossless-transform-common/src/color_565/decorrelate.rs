@@ -1,14 +1,81 @@
+//! # YCoCg-R Color Space Decorrelation for Color565
+//!
+//! This module provides YCoCg-R (reversible YCoCg) color space transformations for [`Color565`] values.
+//! YCoCg-R is a lifting-based variation of the YCoCg color space that offers perfect reversibility,
+//! making it ideal for lossless compression scenarios.
+//!
+//! ## Overview
+//!
+//! The YCoCg-R transformation is designed to decorrelate RGB color components to improve compression
+//! efficiency. Unlike standard YCoCg transformations, YCoCg-R maintains perfect reversibility through
+//! careful bit manipulation and lifting operations.
+//!
+//! ## Transformation Process
+//!
+//! The forward YCoCg-R transformation follows these steps:
+//! 1. `Co = R - B` (Chroma Orange component)
+//! 2. `t = B + (Co >> 1)` (Temporary value)
+//! 3. `Cg = G - t` (Chroma Green component)
+//! 4. `Y = t + (Cg >> 1)` (Luma component)
+//!
+//! The inverse transformation reverses these steps:
+//! 1. `t = Y - (Cg >> 1)`
+//! 2. `G = Cg + t`
+//! 3. `B = t - (Co >> 1)`
+//! 4. `R = B + Co`
+//!
+//! ## Variants
+//!
+//! This module provides three different variants of the YCoCg-R transformation. The variants differ
+//! only in how the transformed bits are arranged within the [`Color565`] format.
+//!
+//! On real files, the compression differences are negligible. These variants exist primarily for
+//! brute-forcing the absolute best possible compression results for people who want to squeeze every
+//! last bit of space:
+//!
+//! - **[`YCoCgVariant::Variant1`]**: Standard arrangement  
+//!   `Y(11-15) | Co(6-10) | g_low(5) | Cg(0-4)`
+//!
+//! - **[`YCoCgVariant::Variant2`]**: Low bit at top  
+//!   `g_low(15) | Y(10-14) | Co(5-9) | Cg(0-4)`
+//!
+//! - **[`YCoCgVariant::Variant3`]**: Low bit at bottom  
+//!   `Y(11-15) | Co(6-10) | Cg(1-5) | g_low(0)`
+//!
+//! - **[`YCoCgVariant::None`]**: No transformation (pass-through)
+//!
+//! ## Usage
+//!
+//! ```rust
+//! use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
+//!
+//! let original = Color565::from_rgb(255, 128, 64);
+//!
+//! // Transform to YCoCg-R space
+//! let decorrelated = original.decorrelate_ycocg_r(YCoCgVariant::Variant1);
+//!
+//! // Transform back to RGB space
+//! let recorrelated = decorrelated.recorrelate_ycocg_r(YCoCgVariant::Variant1);
+//!
+//! // Verify perfect reversibility
+//! assert_eq!(original.raw_value(), recorrelated.raw_value());
+//! ```
+
 use super::Color565;
 use derive_enum_all_values::AllValues;
 
-/// Represents a function variant for decoration/recorrelation operations
+/// Represents a function variant for decorrelation/recorrelation operations.
+///
+/// The variants differ only in how the transformed bits are arranged within the [`Color565`] format.
+/// On real files, the compression differences are negligible. These variants exist primarily for
+/// brute-forcing the absolute best possible compression result in specific scenarios.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, AllValues, Hash)]
 pub enum YCoCgVariant {
-    /// Variant 1: Usually compresses best
+    /// Variant 1: Standard bit arrangement
     Variant1,
-    /// Variant 2: Faster recorrelate (marginally) for compression speed
+    /// Variant 2: Alternative bit arrangement with low bit placed at top
     Variant2,
-    /// Variant 3: Sometimes better than variant 2
+    /// Variant 3: Alternative bit arrangement with low bit at bottom
     Variant3,
     /// None: No transformation (original RGB values preserved)
     None,
@@ -17,14 +84,7 @@ pub enum YCoCgVariant {
 impl Color565 {
     /// Transforms RGB color to YCoCg-R (reversible YCoCg) color space.
     ///
-    /// YCoCg-R is a lifting-based variation of YCoCg that offers perfect reversibility.
-    /// This implementation treats all channels as 5-bit values for consistency.
-    ///
-    /// The YCoCg-R transformation follows these steps:
-    /// 1. Co = R - B
-    /// 2. t = B + (Co >> 1)
-    /// 3. Cg = G - t
-    /// 4. Y = t + (Cg >> 1)
+    /// See the [module documentation](self) for details on the YCoCg-R transformation process.
     ///
     /// # Examples
     ///
@@ -64,14 +124,10 @@ impl Color565 {
         Color565::from_raw(((y as u16) << 11) | ((co as u16) << 6) | (g_low << 5) | (cg as u16))
     }
 
-    /// [Variant 1: Usually compresses best]
     /// Transforms color from YCoCg-R back to RGB color space.
     ///
-    /// This is the inverse of the decorrelation operation, following these steps:
-    /// 1. t = Y - (Cg >> 1)
-    /// 2. G = Cg + t
-    /// 3. B = t - (Co >> 1)
-    /// 4. R = B + Co
+    /// This is the inverse of [`decorrelate_ycocg_r_var1`](Self::decorrelate_ycocg_r_var1).
+    /// See the [module documentation](self) for details on the transformation process.
     ///
     /// # Examples
     ///
@@ -112,17 +168,9 @@ impl Color565 {
         Color565::from_raw(((r as u16) << 11) | ((g as u16) << 6) | (g_low << 5) | (b as u16))
     }
 
-    /// [Variant 2: Faster recorrelate (marginally) for compression speed.]
     /// Transforms RGB color to YCoCg-R (reversible YCoCg) color space.
     ///
-    /// YCoCg-R is a lifting-based variation of YCoCg that offers perfect reversibility.
-    /// This implementation treats all channels as 5-bit values for consistency.
-    ///
-    /// The YCoCg-R transformation follows these steps:
-    /// 1. Co = R - B
-    /// 2. t = B + (Co >> 1)
-    /// 3. Cg = G - t
-    /// 4. Y = t + (Cg >> 1)
+    /// See the [module documentation](self) for details on the YCoCg-R transformation process.
     ///
     /// # Examples
     ///
@@ -163,14 +211,10 @@ impl Color565 {
         // Note: Marginal speed improvement on recorrelate by placing low bit in the top.
     }
 
-    /// [Variant 3: Sometimes better than variant 2.]
     /// Transforms color from YCoCg-R back to RGB color space.
     ///
-    /// This is the inverse of the decorrelation operation, following these steps:
-    /// 1. t = Y - (Cg >> 1)
-    /// 2. G = Cg + t
-    /// 3. B = t - (Co >> 1)
-    /// 4. R = B + Co
+    /// This is the inverse of [`decorrelate_ycocg_r_var2`](Self::decorrelate_ycocg_r_var2).
+    /// See the [module documentation](self) for details on the transformation process.
     ///
     /// # Examples
     ///
@@ -213,14 +257,7 @@ impl Color565 {
 
     /// Transforms RGB color to YCoCg-R (reversible YCoCg) color space.
     ///
-    /// YCoCg-R is a lifting-based variation of YCoCg that offers perfect reversibility.
-    /// This implementation treats all channels as 5-bit values for consistency.
-    ///
-    /// The YCoCg-R transformation follows these steps:
-    /// 1. Co = R - B
-    /// 2. t = B + (Co >> 1)
-    /// 3. Cg = G - t
-    /// 4. Y = t + (Cg >> 1)
+    /// See the [module documentation](self) for details on the YCoCg-R transformation process.
     ///
     /// # Examples
     ///
@@ -262,13 +299,8 @@ impl Color565 {
 
     /// Transforms color from YCoCg-R back to RGB color space.
     ///
-    /// This is the inverse of the decorrelation operation, following these steps:
-    /// 1. t = Y - (Cg >> 1)
-    /// 2. G = Cg + t
-    /// 3. B = t - (Co >> 1)
-    /// 4. R = B + Co
-    ///
-    /// This variation has the g_low bit placed as the lowermost bit.
+    /// This is the inverse of [`decorrelate_ycocg_r_var3`](Self::decorrelate_ycocg_r_var3).
+    /// See the [module documentation](self) for details on the transformation process.
     ///
     /// # Examples
     ///

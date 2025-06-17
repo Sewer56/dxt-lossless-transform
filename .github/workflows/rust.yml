@@ -189,6 +189,7 @@ jobs:
           rust-project-path: 'projects/dxt-lossless-transform-api-common/'
           config-file: ../../cbindgen_c.toml
           output-header-file: dxt_lossless_transform_api.h
+          artifact-prefix: ""
           use-cache: true
 
       - name: C++ bindings - API Common
@@ -197,6 +198,7 @@ jobs:
           rust-project-path: 'projects/dxt-lossless-transform-api-common/'
           config-file: ../../cbindgen_cpp.toml
           output-header-file: dxt_lossless_transform_api.hpp
+          artifact-prefix: ""
           use-cache: false
 
       - name: C bindings - DDS
@@ -205,6 +207,7 @@ jobs:
           rust-project-path: 'projects/dxt-lossless-transform-dds/'
           config-file: ../../cbindgen_c.toml
           output-header-file: dxt_lossless_transform_dds.h
+          artifact-prefix: ""
           use-cache: false
 
       - name: C++ bindings - API Common
@@ -213,6 +216,7 @@ jobs:
           rust-project-path: 'projects/dxt-lossless-transform-dds/'
           config-file: ../../cbindgen_cpp.toml
           output-header-file: dxt_lossless_transform_dds.hpp
+          artifact-prefix: ""
           use-cache: false
 
   publish-crate:

@@ -363,3 +363,51 @@ impl Color565 {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    /// Tests that colors can be properly decorrelated and recorrelated
+    /// back to their original values for all three variants.
+    #[rstest]
+    #[case(YCoCgVariant::Variant1)]
+    #[case(YCoCgVariant::Variant2)]
+    #[case(YCoCgVariant::Variant3)]
+    #[case(YCoCgVariant::None)]
+    fn can_decorrelate_recorrelate(#[case] variant: YCoCgVariant) {
+        // Create a variety of test colors to ensure coverage across the color space
+        let test_colors = [
+            Color565::from_rgb(255, 0, 0),     // Red
+            Color565::from_rgb(0, 255, 0),     // Green
+            Color565::from_rgb(0, 0, 255),     // Blue
+            Color565::from_rgb(255, 255, 0),   // Yellow
+            Color565::from_rgb(0, 255, 255),   // Cyan
+            Color565::from_rgb(255, 0, 255),   // Magenta
+            Color565::from_rgb(128, 128, 128), // Gray
+            Color565::from_rgb(255, 255, 255), // White
+            Color565::from_rgb(0, 0, 0),       // Black
+            Color565::from_rgb(255, 128, 64),  // Orange
+            Color565::from_rgb(128, 0, 255),   // Purple
+            Color565::from_rgb(0, 128, 64),    // Teal
+            Color565::from_rgb(31, 79, 83),    // Prime Numbers
+        ];
+
+        // Test each color individually in a loop for easier debugging
+        for (x, original_color) in test_colors.iter().enumerate() {
+            // Step 1: Decorrelate
+            let decorr = original_color.decorrelate_ycocg_r(variant);
+
+            // Step 2: Recorrelate
+            let recorr = decorr.recorrelate_ycocg_r(variant);
+
+            // Verify the color is restored to its original value
+            assert_eq!(
+                recorr.raw_value(),
+                original_color.raw_value(),
+                "{variant:?} - Color at index {x} failed to restore."
+            );
+        }
+    }
+}

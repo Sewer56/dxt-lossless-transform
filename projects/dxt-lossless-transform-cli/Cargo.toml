@@ -10,7 +10,7 @@ debug-bc7 = ["debug"]
 # Debugging BC1 behaviour
 debug-bc1 = ["debug", "dxt-lossless-transform-bc1/experimental"]
 # Common debugging utilities
-debug = ["zstd-sys", "derive_more", "derive-new", "thiserror-no-std", "bytesize", "xxhash-rust", "bincode", "serde", "dirs", "derive-enum-all-values"]
+debug = ["zstd-sys", "derive_more", "derive-new", "thiserror-no-std", "bytesize", "xxhash-rust", "bincode", "serde", "dirs", "derive-enum-all-values", "lossless-transform-utils"]
 
 nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/nightly", 
            "safe-allocator-api/nightly"]
@@ -36,3 +36,4 @@ bincode = { optional = true, version = "2.0.1" }
 serde = { optional = true, version = "1.0.215", features = ["derive"] }
 dirs = { optional = true, version = "6.0.0" }
 derive-enum-all-values = { optional = true, version = "0.2.0" }
+lossless-transform-utils = { optional = true, version = "0.1.0" }

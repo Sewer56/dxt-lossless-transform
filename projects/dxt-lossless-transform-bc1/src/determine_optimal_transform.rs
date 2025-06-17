@@ -1,10 +1,7 @@
-use crate::{transforms::standard::transform, Bc1TransformDetails};
-use core::mem::size_of;
-use core::slice;
+use crate::Bc1TransformDetails;
 use dxt_lossless_transform_common::{
     allocate::{allocate_align_64, AllocateError},
-    color_565::{Color565, YCoCgVariant},
-    transforms::split_565_color_endpoints::split_color_endpoints,
+    color_565::YCoCgVariant,
 };
 use thiserror::Error;
 
@@ -35,6 +32,16 @@ where
     /// by reducing the size of the sliding window (so more data in cache) and increasing minimum
     /// match length.
     pub file_size_estimator: F,
+
+    /// Controls which decorrelation modes are tested during optimization.
+    ///
+    /// When `false` (default), only tests [`YCoCgVariant::Variant1`] and [`YCoCgVariant::None`]
+    /// for faster optimization with good results.
+    ///
+    /// When `true`, tests all available decorrelation modes ([`YCoCgVariant::Variant1`],
+    /// [`YCoCgVariant::Variant2`], [`YCoCgVariant::Variant3`], and [`YCoCgVariant::None`])
+    /// for potentially better compression at the cost of longer optimization time.
+    pub use_all_decorrelation_modes: bool,
 }
 
 /// Determine the best transform details for the given BC1 blocks.
@@ -53,7 +60,7 @@ where
 ///
 /// This function is a brute force approach that tests all standard transform options:
 /// - 1/8th of the compression speed ([`YCoCgVariant`] * 2 (split_colours))
-/// - Uses 2x the memory of input size
+/// - Uses 1x the memory of input size (for temporary copy of the input data)
 ///
 /// For experimental normalization support, use the functions in the experimental module instead.
 ///
@@ -68,46 +75,21 @@ pub unsafe fn determine_best_transform_details<F>(
 where
     F: Fn(*const u8, usize) -> usize,
 {
-    determine_best_transform_details_fast(input_ptr, len, transform_options)
-}
-
-/// Determine the best transform details without normalization testing (fast variant).
-///
-/// # Parameters
-///
-/// - `input_ptr`: A pointer to the input data (input BC1 blocks)
-/// - `len`: The length of the input data in bytes
-///
-/// # Returns
-///
-/// The best (smallest size) format for the given data.
-///
-/// # Remarks
-///
-/// This function skips normalization testing and only tests [`YCoCgVariant`] * 2 (split_colours) options.
-/// Uses 2x the memory of input size.
-///
-/// # Safety
-///
-/// Function is unsafe because it deals with raw pointers which must be correct.
-unsafe fn determine_best_transform_details_fast<F>(
-    input_ptr: *const u8,
-    len: usize,
-    transform_options: Bc1EstimateOptions<F>,
-) -> Result<Bc1TransformDetails, DetermineBestTransformError>
-where
-    F: Fn(*const u8, usize) -> usize,
-{
-    let mut split_blocks_buffer = allocate_align_64(len)?;
     let mut result_buffer = allocate_align_64(len)?;
-
-    // Split blocks directly from input without normalization
-    transform(input_ptr, split_blocks_buffer.as_mut_ptr(), len);
 
     let mut best_transform_details = Bc1TransformDetails::default();
     let mut best_size = usize::MAX;
 
-    for decorrelation_mode in YCoCgVariant::all_values() {
+    // Choose decorrelation modes to test based on the flag
+    let decorrelation_modes = if transform_options.use_all_decorrelation_modes {
+        // Test all available decorrelation modes
+        YCoCgVariant::all_values()
+    } else {
+        // Test only Variant1 and None for faster optimization
+        &[YCoCgVariant::Variant1, YCoCgVariant::None]
+    };
+
+    for decorrelation_mode in decorrelation_modes {
         for split_colours in [true, false] {
             // Get the current mode we're testing.
             let current_mode = Bc1TransformDetails {
@@ -115,88 +97,24 @@ where
                 split_colour_endpoints: split_colours,
             };
 
-            // Get input/output buffers.
-            let input = split_blocks_buffer.as_mut_ptr();
-            let output = result_buffer.as_mut_ptr();
+            // Apply a full transformation (~24GB/s on 1 thread, Ryzen 9950X3D)
+            crate::transform_bc1(input_ptr, result_buffer.as_mut_ptr(), len, current_mode);
 
-            test_normalize_variant(
-                input,
-                output,
-                len,
-                &transform_options,
-                &mut best_transform_details,
-                &mut best_size,
-                current_mode,
-            );
+            // Note(sewer): The indices are very poorly compressible (entropy == ~7.0 , no lz matches).
+            // Excluding them from the estimation has negligible effect on results, with a doubling of
+            // speed.
+
+            // Test the current mode by measuring the compressed size
+            let result_size =
+                (transform_options.file_size_estimator)(result_buffer.as_ptr(), len / 2);
+            if result_size < best_size {
+                best_size = result_size;
+                best_transform_details = current_mode;
+            }
         }
     }
 
     Ok(best_transform_details)
-}
-
-#[allow(clippy::too_many_arguments)]
-#[inline]
-pub(crate) unsafe fn test_normalize_variant<F>(
-    input: *mut u8,
-    output: *mut u8,
-    len: usize,
-    transform_options: &Bc1EstimateOptions<F>,
-    best_transform_details: &mut Bc1TransformDetails,
-    best_size: &mut usize,
-    current_mode: Bc1TransformDetails,
-) where
-    F: Fn(*const u8, usize) -> usize,
-{
-    // So this is the fun part.
-    if current_mode.split_colour_endpoints {
-        // Split colour endpoints, then decorrelate in-place.
-        // ..
-        // Colours represent first half of the data, before indices.
-        split_color_endpoints(
-            input as *const Color565,
-            output as *mut Color565,
-            len / 2, // (len / 2): Length of colour endpoints in bytes
-        );
-        let colors_in_arr = slice::from_raw_parts(
-            output as *const Color565, // Using output as both source and destination as data was already copied there
-            (len / 2) / size_of::<Color565>(),
-        );
-        let colors_out_arr =
-            slice::from_raw_parts_mut(output as *mut Color565, (len / 2) / size_of::<Color565>());
-        Color565::decorrelate_ycocg_r_slice(
-            colors_in_arr,
-            colors_out_arr,
-            current_mode.decorrelation_mode,
-        );
-    } else {
-        // Decorrelate directly into the target buffer.
-        let colors_in_arr =
-            slice::from_raw_parts(input as *const Color565, len / 2 / size_of::<Color565>());
-        let colors_out_arr =
-            slice::from_raw_parts_mut(output as *mut Color565, len / 2 / size_of::<Color565>());
-        Color565::decorrelate_ycocg_r_slice(
-            colors_in_arr,
-            colors_out_arr,
-            current_mode.decorrelation_mode,
-        );
-    }
-
-    // Note(sewer): The indices are very poorly compressible (entropy == ~7.0 , no lz matches).
-    // Excluding them from the estimation has negligible effect on results, with a doubling of
-    // speed. If you want to include them, uncomment the code below, and change len / 2 to len in the
-    // `result_size` calculation.
-
-    // Now copy the indices verbatim.
-    // let indices_in_arr = slice::from_raw_parts(input.add(len / 2), len / 2);
-    // let indices_out_arr = slice::from_raw_parts_mut(output.add(len / 2), len / 2);
-    // indices_out_arr.copy_from_slice(indices_in_arr);
-
-    // Test the current mode.
-    let result_size = (transform_options.file_size_estimator)(output, len / 2);
-    if result_size < *best_size {
-        *best_size = result_size;
-        *best_transform_details = current_mode;
-    }
 }
 
 /// An error that happened in memory allocation within the library.
@@ -229,6 +147,7 @@ mod tests {
 
         let transform_options = Bc1EstimateOptions {
             file_size_estimator: dummy_file_size_estimator,
+            use_all_decorrelation_modes: false,
         };
 
         // This should not crash

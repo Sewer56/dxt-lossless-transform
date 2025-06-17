@@ -201,6 +201,7 @@ mod tests {
 
         let transform_options = Bc1EstimateOptions {
             file_size_estimator: dummy_file_size_estimator,
+            use_all_decorrelation_modes: false,
         };
 
         // This should not crash

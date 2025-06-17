@@ -16,7 +16,7 @@
 //! let red_pixel = Color8888::new(255, 0, 0, 255);
 //!
 //! // Convert to RGB565 format
-//! let rgb565 = red_pixel.to_color_565();
+//! let rgb565 = red_pixel.to_565_lossy();
 //!
 //! // Create a transparent version
 //! let transparent = red_pixel.without_alpha();
@@ -69,12 +69,12 @@ impl Color8888 {
     /// use dxt_lossless_transform_common::color_8888::Color8888;
     ///
     /// let pixel = Color8888::new(255, 0, 0, 255);
-    /// let rgb565 = pixel.to_color_565();
+    /// let rgb565 = pixel.to_565_lossy();
     /// assert_eq!(rgb565.red(), 255);
     /// assert_eq!(rgb565.green(), 0);
     /// assert_eq!(rgb565.blue(), 0);
     /// ```
-    pub fn to_color_565(&self) -> Color565 {
+    pub fn to_565_lossy(&self) -> Color565 {
         Color565::from_rgb(self.r, self.g, self.b)
     }
 

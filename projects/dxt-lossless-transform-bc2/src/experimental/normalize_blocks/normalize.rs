@@ -130,10 +130,10 @@ where
             let pixel = decoded_block.pixels[0];
 
             // Convert the color to RGB565
-            let color565 = pixel.to_color_565();
+            let color565 = pixel.to_565_lossy();
 
             // Check if color can be round-tripped cleanly through RGB565
-            let color8888 = color565.to_color_8888();
+            let color8888 = color565.to_8888_lossy();
             let pixel_ignore_alpha = Color8888::new(pixel.r, pixel.g, pixel.b, 255);
             let color8888_ignore_alpha = Color8888::new(color8888.r, color8888.g, color8888.b, 255);
 
@@ -410,10 +410,10 @@ pub unsafe fn normalize_split_blocks_in_place(
             let pixel = decoded_block.pixels[0];
 
             // Convert the color to RGB565
-            let color565 = pixel.to_color_565();
+            let color565 = pixel.to_565_lossy();
 
             // Check if color can be round-tripped cleanly through RGB565
-            let color8888 = color565.to_color_8888();
+            let color8888 = color565.to_8888_lossy();
             let pixel_ignore_alpha = Color8888::new(pixel.r, pixel.g, pixel.b, 255);
             let color8888_ignore_alpha = Color8888::new(color8888.r, color8888.g, color8888.b, 255);
 

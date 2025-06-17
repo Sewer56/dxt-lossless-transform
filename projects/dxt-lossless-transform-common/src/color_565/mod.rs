@@ -47,7 +47,7 @@
 //! let raw = color.raw_value();
 //!
 //! // Convert to RGBA8888
-//! let rgba = color.to_color_8888();
+//! let rgba = color.to_8888_lossy();
 //! ```
 //!
 //! ### Working with Raw Values
@@ -215,13 +215,13 @@ impl Color565 {
     /// use dxt_lossless_transform_common::color_565::Color565;
     ///
     /// let rgb565 = Color565::from_rgb(255, 0, 0);
-    /// let rgba8888 = rgb565.to_color_8888();
+    /// let rgba8888 = rgb565.to_8888_lossy();
     /// assert_eq!(rgba8888.r, 255);
     /// assert_eq!(rgba8888.g, 0);
     /// assert_eq!(rgba8888.b, 0);
     /// assert_eq!(rgba8888.a, 255);
     /// ```
-    pub fn to_color_8888(&self) -> Color8888 {
+    pub fn to_8888_lossy(&self) -> Color8888 {
         Color8888::new(self.red(), self.green(), self.blue(), 255)
     }
 
@@ -241,13 +241,13 @@ impl Color565 {
     /// use dxt_lossless_transform_common::color_565::Color565;
     ///
     /// let rgb565 = Color565::from_rgb(255, 0, 0);
-    /// let rgba8888 = rgb565.to_color_8888_with_alpha(128);
+    /// let rgba8888 = rgb565.to_8888_with_alpha_lossy(128);
     /// assert_eq!(rgba8888.r, 255);
     /// assert_eq!(rgba8888.g, 0);
     /// assert_eq!(rgba8888.b, 0);
     /// assert_eq!(rgba8888.a, 128);
     /// ```
-    pub fn to_color_8888_with_alpha(&self, alpha: u8) -> Color8888 {
+    pub fn to_8888_with_alpha_lossy(&self, alpha: u8) -> Color8888 {
         Color8888::new(self.red(), self.green(), self.blue(), alpha)
     }
 }

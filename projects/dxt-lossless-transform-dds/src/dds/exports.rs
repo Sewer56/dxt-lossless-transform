@@ -17,7 +17,7 @@ pub unsafe extern "C" fn is_dds(ptr: *const u8, len: usize) -> bool {
 /// # Safety
 ///
 /// Any input which passes [`is_dds`] check should be a valid input;
-/// but you do not need to explicitly call [`is_dds`], this function will return null
+/// but you do not need to explicitly call [`is_dds`], this function will return [`DdsFormat::NotADds`]
 /// if the file is not a DDS.
 ///
 /// - `ptr` must be valid for reads of `len` bytes

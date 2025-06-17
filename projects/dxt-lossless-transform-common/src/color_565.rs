@@ -603,10 +603,12 @@ impl Color565 {
     ///
     /// i.e. it is
     ///
+    /// ```ignore
     /// dst[0] = recorrelate(src_ptr_0[0]),
     /// dst[1] = recorrelate(src_ptr_1[0]),
     /// dst[2] = recorrelate(src_ptr_0[1]),
     /// etc.
+    /// ```
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
     ///
@@ -688,11 +690,13 @@ impl Color565 {
     /// Convenience function that applies [`Self::recorrelate_ycocg_r_var1`] to elements from two input slices,
     /// interleaving the recorrelated results into a single output slice.
     ///
+    /// ```ignore
     /// dst[0] = recorrelate(src_0[0]),
     /// dst[1] = recorrelate(src_1[0]),
     /// dst[2] = recorrelate(src_0[1]),
     /// dst[3] = recorrelate(src_1[1])
     /// etc.
+    /// ```
     ///
     /// The output slice must be at least as large as the combined length of both input slices.
     /// Both input slices must have the same length.
@@ -906,10 +910,12 @@ impl Color565 {
     ///
     /// i.e. it is
     ///
+    /// ```ignore
     /// dst[0] = recorrelate(src_ptr_0[0]),
     /// dst[1] = recorrelate(src_ptr_1[0]),
     /// dst[2] = recorrelate(src_ptr_0[1]),
     /// etc.
+    /// ```
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
     ///
@@ -991,11 +997,13 @@ impl Color565 {
     /// Convenience function that applies [`Self::recorrelate_ycocg_r_var2`] to elements from two input slices,
     /// interleaving the recorrelated results into a single output slice.
     ///
+    /// ``` ignore
     /// dst[0] = recorrelate(src_0[0]),
     /// dst[1] = recorrelate(src_1[0]),
     /// dst[2] = recorrelate(src_0[1]),
     /// dst[3] = recorrelate(src_1[1])
     /// etc.
+    /// ```
     ///
     /// The output slice must be at least as large as the combined length of both input slices.
     /// Both input slices must have the same length.
@@ -1209,10 +1217,12 @@ impl Color565 {
     ///
     /// i.e. it is
     ///
+    /// ```ignore
     /// dst[0] = recorrelate(src_ptr_0[0]),
     /// dst[1] = recorrelate(src_ptr_1[0]),
     /// dst[2] = recorrelate(src_ptr_0[1]),
     /// etc.
+    /// ```
     ///
     /// May introduce unrolling optimizations. Refer to the original function for details.
     ///
@@ -1294,11 +1304,13 @@ impl Color565 {
     /// Convenience function that applies [`Self::recorrelate_ycocg_r_var3`] to elements from two input slices,
     /// interleaving the recorrelated results into a single output slice.
     ///
+    /// ```ignore
     /// dst[0] = recorrelate(src_0[0]),
     /// dst[1] = recorrelate(src_1[0]),
     /// dst[2] = recorrelate(src_0[1]),
     /// dst[3] = recorrelate(src_1[1])
     /// etc.
+    /// ```
     ///
     /// The output slice must be at least as large as the combined length of both input slices.
     /// Both input slices must have the same length.

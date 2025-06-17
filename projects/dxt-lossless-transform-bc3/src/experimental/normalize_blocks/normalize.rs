@@ -395,7 +395,7 @@ where
 /// # Parameters
 ///
 /// - `input_ptr`: A pointer to the input data (input BC3 blocks)
-/// - `output_ptrs`: A 2D array of output pointers, indexed by [alpha_mode][color_mode]
+/// - `output_ptrs`: A 2D array of output pointers, indexed by `[alpha_mode][color_mode]`
 /// - `len`: The length of the input data in bytes
 ///
 /// # Safety

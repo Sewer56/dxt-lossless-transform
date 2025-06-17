@@ -12,7 +12,8 @@ mod error;
 mod util;
 use argh::FromArgs;
 use core::{error::Error, ops::Sub, ptr::copy_nonoverlapping};
-use dxt_lossless_transform_api::*;
+use dxt_lossless_transform_bc1::{Bc1DetransformDetails, Bc1TransformDetails};
+use dxt_lossless_transform_dds::dds::{parse_dds, DdsFormat};
 use error::TransformError;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{
@@ -187,7 +188,17 @@ pub unsafe fn transform_format(
     len: usize,
     format: DdsFormat,
 ) {
-    dxt_lossless_transform_api::transform_format(input_ptr, output_ptr, len, format)
+    // DDS Integration
+    if format == DdsFormat::BC1 {
+        dxt_lossless_transform_bc1::transform_bc1(
+            input_ptr,
+            output_ptr,
+            len,
+            Bc1TransformDetails::default(),
+        );
+    } else {
+        todo!()
+    }
 }
 
 /// # Safety
@@ -202,7 +213,16 @@ pub unsafe fn untransform_format(
     len: usize,
     format: DdsFormat,
 ) {
-    dxt_lossless_transform_api::untransform_format(input_ptr, output_ptr, len, format)
+    if format == DdsFormat::BC1 {
+        dxt_lossless_transform_bc1::untransform_bc1(
+            input_ptr,
+            output_ptr,
+            len,
+            Bc1DetransformDetails::default(),
+        );
+    } else {
+        todo!()
+    }
 }
 
 fn handle_process_entry_error(result: Result<(), TransformError>) {

@@ -7,6 +7,7 @@
 ## About
 
 This crate provides shared components between various implementations of [dxt-lossless-transform].
+This contains shared private implementation detail. This crate is not intended to provide a stable API for external use.
 
 ## Core Types
 

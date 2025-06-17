@@ -19,7 +19,7 @@ nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/
 argh = "0.1.13"
 rayon = "1.10.0"
 lightweight-mmap = "0.6.0"
-dxt-lossless-transform-api = { path = "../dxt-lossless-transform-api" }
+dxt-lossless-transform-dds = { path = "../dxt-lossless-transform-dds" }
 dxt-lossless-transform-bc1 = { path = "../dxt-lossless-transform-bc1" }
 dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }
 safe-allocator-api = { version = "0.4.0" }

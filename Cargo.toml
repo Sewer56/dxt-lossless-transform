@@ -17,7 +17,7 @@ panic = "abort"
 [workspace]
 members = [
     # High Level Crates
-    "projects/dxt-lossless-transform-api", # High level cross-crate 'stable' API 
+    "projects/dxt-lossless-transform-api-common", # High level cross-crate 'stable' API 
     "projects/dxt-lossless-transform-bc1-api", # High level cross-crate 'stable' API
     "projects/dxt-lossless-transform-bc2-api", # High level cross-crate 'stable' API
     "projects/dxt-lossless-transform-bc3-api", # High level cross-crate 'stable' API

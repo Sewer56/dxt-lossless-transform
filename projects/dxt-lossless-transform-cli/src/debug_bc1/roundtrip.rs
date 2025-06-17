@@ -5,11 +5,11 @@ use super::RoundtripCmd;
 use crate::{
     debug::extract_blocks_from_dds, error::TransformError, util::find_all_files, DdsFilter,
 };
-use dxt_lossless_transform_api::DdsFormat;
 use dxt_lossless_transform_bc1::{
     transform_bc1, untransform_bc1, util::decode_bc1_block, Bc1TransformDetails,
 };
 use dxt_lossless_transform_common::allocate::allocate_align_64;
+use dxt_lossless_transform_dds::dds::DdsFormat;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 pub(crate) fn handle_roundtrip_command(cmd: RoundtripCmd) -> Result<(), TransformError> {

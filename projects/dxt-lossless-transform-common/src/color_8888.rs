@@ -1,3 +1,28 @@
+//! RGBA8888 Color Representation
+//!
+//! This module provides the [`Color8888`] type for representing 32-bit RGBA pixels
+//! with 8 bits per color channel. This is commonly used as an intermediate format
+//! when working with decompressed DXT/BC texture data.
+//!
+//! The [`Color8888`] type supports lossy conversion to the more compact [`Color565`] format
+//! and various utility operations for texture processing workflows.
+//!
+//! # Examples
+//!
+//! ```
+//! use dxt_lossless_transform_common::color_8888::Color8888;
+//!
+//! // Create a red pixel with full opacity
+//! let red_pixel = Color8888::new(255, 0, 0, 255);
+//!
+//! // Convert to RGB565 format
+//! let rgb565 = red_pixel.to_color_565();
+//!
+//! // Create a transparent version
+//! let transparent = red_pixel.without_alpha();
+//! assert_eq!(transparent.a, 0);
+//! ```
+
 use crate::color_565::Color565;
 
 /// Represents a single RGBA8888 pixel color from a decoded BC1 block
@@ -33,7 +58,10 @@ impl Color8888 {
         Self { r, g, b, a }
     }
 
-    /// Converts this [`Color8888`] to a [`Color565`]
+    /// Converts this [`Color8888`] to a [`Color565`] with lossy precision reduction.
+    ///
+    /// Note that this conversion is lossy as it reduces the color precision from 8 bits
+    /// per channel (RGB) to 5-6-5 bits respectively. The alpha channel is discarded.
     ///
     /// # Examples
     ///

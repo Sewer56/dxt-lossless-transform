@@ -12,8 +12,8 @@ use crate::{
     DdsFilter,
 };
 use core::time::Duration;
-use dxt_lossless_transform_api::DdsFormat;
 use dxt_lossless_transform_bc1::Bc1TransformDetails;
+use dxt_lossless_transform_dds::dds::DdsFormat;
 use std::fs;
 
 /// Configuration for benchmark execution

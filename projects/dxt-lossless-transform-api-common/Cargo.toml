@@ -1,0 +1,12 @@
+[package]
+name = "dxt-lossless-transform-api-common"
+version = "0.1.0"
+edition = "2021"
+readme = "README.MD"
+
+[features]
+default = ["std"]
+# Enable use of standard library, currently a no-op.
+std = []
+# Compiles the public C API for the crate.
+c-exports = []

@@ -4,6 +4,10 @@ use super::{constants::*, is_dds};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub enum DdsFormat {
+    /// Indicates the data is not a DDS file.
+    /// This is mostly reserved for the C API, where a native 'Option' type is not available.
+    NotADds,
+    /// This is a DDS file, but not in a format we know.
     Unknown,
     /// a.k.a. DXT1
     BC1,
@@ -16,6 +20,7 @@ pub enum DdsFormat {
 
 /// The information of the DDS file supplied to the reader.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
 pub struct DdsInfo {
     pub format: DdsFormat,
     pub data_offset: u8,

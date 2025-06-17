@@ -14,6 +14,8 @@ bench = false
 [features]
 default = ["std"]
 std = []
+# Compiles the public C API for the crate.
+c-exports = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dev-dependencies]

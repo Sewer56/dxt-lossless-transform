@@ -21,9 +21,9 @@ use crate::{
     DdsFilter,
 };
 use core::time::Duration;
-use dxt_lossless_transform_api::DdsFormat;
 use dxt_lossless_transform_bc1::{transform_bc1, untransform_bc1, Bc1TransformDetails};
 use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};
+use dxt_lossless_transform_dds::dds::DdsFormat;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::{fs, sync::Mutex};
 

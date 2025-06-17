@@ -125,7 +125,7 @@ jobs:
           additional-rustc-args: ${{ matrix.additional-rustc-args }}
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
 
-  build-c-api:
+  build-c-libraries:
     strategy:
       matrix:
         include:
@@ -151,49 +151,75 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build C API
+      - name: Build C API (DDS)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
-          crate-name: "dxt-lossless-transform-api"
-          rust-project-path: "projects/dxt-lossless-transform-api"
+          crate-name: "dxt-lossless-transform-dds"
+          rust-project-path: "projects/dxt-lossless-transform-dds"
           workspace-path: "."
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
           features: "c-exports"
           additional-rustc-args: ${{ matrix.additional-rustc-args }}
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
+          use-cache: true
+    
+      - name: Build C API (Common)
+        uses: Reloaded-Project/devops-rust-lightweight-binary@v1
+        with:
+          crate-name: "dxt-lossless-transform-api-common"
+          rust-project-path: "projects/dxt-lossless-transform-api-common"
+          workspace-path: "."
+          target: ${{ matrix.target }}
+          use-cross: ${{ matrix.use-cross }}
+          features: "c-exports"
+          additional-rustc-args: ${{ matrix.additional-rustc-args }}
+          codecov-token: ${{ secrets.CODECOV_TOKEN }}
+          use-cache: true
 
-  build-c-headers:
+  build-c-cpp-headers:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Generate C bindings
+      - name: C bindings - API Common
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: 'projects/dxt-lossless-transform-api/'
-          config-file: cbindgen_c.toml
-          output-header-file: bindings_c.h
+          rust-project-path: 'projects/dxt-lossless-transform-api-common/'
+          config-file: ../../cbindgen_c.toml
+          output-header-file: dxt_lossless_transform_api.h
+          use-cache: true
 
-  build-cpp-headers:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - name: Generate C++ bindings
+      - name: C++ bindings - API Common
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: 'projects/dxt-lossless-transform-api/'
-          config-file: cbindgen_cpp.toml
-          output-header-file: bindings_cpp.hpp
+          rust-project-path: 'projects/dxt-lossless-transform-api-common/'
+          config-file: ../../cbindgen_cpp.toml
+          output-header-file: dxt_lossless_transform_api.hpp
+          use-cache: false
+
+      - name: C bindings - DDS
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'projects/dxt-lossless-transform-dds/'
+          config-file: ../../cbindgen_c.toml
+          output-header-file: dxt_lossless_transform_dds.h
+          use-cache: false
+
+      - name: C++ bindings - API Common
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'projects/dxt-lossless-transform-dds/'
+          config-file: ../../cbindgen_cpp.toml
+          output-header-file: dxt_lossless_transform_dds.hpp
+          use-cache: false
 
   publish-crate:
     permissions:
       contents: write
 
-    needs: [test, build-cli, build-c-api, build-c-headers, build-cpp-headers]
+    needs: [test, build-cli, build-c-libraries, build-c-cpp-headers]
     # Publish only on tags
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest

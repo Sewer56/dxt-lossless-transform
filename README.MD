@@ -21,11 +21,11 @@ Click on a project to navigate to its description.
 
 ### High Level API
 
-- [dxt-lossless-transform-api]: A 'master' crate that adds a stable API
 - [dxt-lossless-transform-bc1-api]: A stable API for [dxt-lossless-transform-bc1].
 - [dxt-lossless-transform-bc2-api]: A stable API for [dxt-lossless-transform-bc2].
 - [dxt-lossless-transform-bc3-api]: A stable API for [dxt-lossless-transform-bc3].
 - [dxt-lossless-transform-bc7-api]: A stable API for [dxt-lossless-transform-bc7].
+- [dxt-lossless-transform-api-common]: A stable API for 'add-ons' shared between the other 'api' crates.
 
 ### Utility Libraries
 
@@ -73,7 +73,9 @@ This project contains a CLI tool that can be used to test the transforms.
 ./dxt-lossless-transform-cli transform --input textures --output textures-transformed
 ```
 
-Build like a regular rust project, i.e. `cargo build --release`, and find it at `./target/release/dxt-lossless-transform-cli`. 
+Build like a regular rust project, i.e. `cargo build --release`, and find it at `./target/release/dxt-lossless-transform-cli`.
+
+Or just use `cargo run --release --bin dxt-lossless-transform-cli` to run it directly.
 
 ## Development
 
@@ -94,7 +96,7 @@ Licensed under [GPL v3 (with Reloaded FAQ)](./LICENSE).
 [dxt-lossless-transform-bc2]: projects/dxt-lossless-transform-bc2/README.MD
 [dxt-lossless-transform-bc3]: projects/dxt-lossless-transform-bc3/README.MD
 [dxt-lossless-transform-bc7]: projects/dxt-lossless-transform-bc7/README.MD
-[dxt-lossless-transform-api]: projects/dxt-lossless-transform-api/README.MD
+[dxt-lossless-transform-api-common]: projects/dxt-lossless-transform-api-common/README.MD
 [dxt-lossless-transform-bc1-api]: projects/dxt-lossless-transform-bc1-api/README.MD
 [dxt-lossless-transform-bc2-api]: projects/dxt-lossless-transform-bc2-api/README.MD
 [dxt-lossless-transform-bc3-api]: projects/dxt-lossless-transform-bc3-api/README.MD

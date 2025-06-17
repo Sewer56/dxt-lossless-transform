@@ -2,7 +2,7 @@
 
 use crate::error::TransformError;
 use crate::DdsFilter;
-use dxt_lossless_transform_api::*;
+use dxt_lossless_transform_dds::dds::*;
 use lightweight_mmap::handles::*;
 use lightweight_mmap::mmap::*;
 use std::fs;

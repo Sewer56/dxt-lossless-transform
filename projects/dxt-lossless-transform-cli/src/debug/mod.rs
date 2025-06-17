@@ -1,8 +1,9 @@
 #![cfg(not(tarpaulin_include))]
 
+use dxt_lossless_transform_dds::dds::{parse_dds, DdsFormat};
+
 use crate::{error::TransformError, util::*, DdsFilter};
 use core::{ops::Sub, slice};
-use dxt_lossless_transform_api::*;
 use std::fs;
 
 pub mod benchmark_common;

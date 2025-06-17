@@ -73,9 +73,18 @@ This project contains a CLI tool that can be used to test the transforms.
 ./dxt-lossless-transform-cli transform --input textures --output textures-transformed
 ```
 
-Build like a regular rust project, i.e. `cargo build --release`, and find it at `./target/release/dxt-lossless-transform-cli`.
+You can either:
 
-Or just use `cargo run --release --bin dxt-lossless-transform-cli` to run it directly.
+1. Build and run the CLI:
+   ```bash
+   cargo build --release --features "debug-bc1"
+   ./target/release/dxt-lossless-transform-cli transform --input textures --output textures-transformed
+   ```
+
+2. Run directly via Cargo:
+   ```bash
+   cargo run --release --bin dxt-lossless-transform-cli --features "debug-bc1" transform --input textures --output textures-transformed
+   ```
 
 ## Development
 

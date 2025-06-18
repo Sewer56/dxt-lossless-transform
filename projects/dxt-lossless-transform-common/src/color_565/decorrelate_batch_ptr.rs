@@ -1,7 +1,10 @@
-//! Module for applying YCoCg-R color (de/re)correlation on arrays of `Color565`.
+//! Module for applying YCoCg-R color (de/re)correlation on arrays of [`Color565`].
 //!
 //! These functions include SIMD optimizations by generating multiple versions of the code
 //! through the [`multiversion`] crate.
+//!
+//! For a more ergonomic interface that accepts slices instead of raw pointers,
+//! see the slice-based wrappers in [`decorrelate_batch_slice`].
 //!
 //! ## Safety
 //!
@@ -13,14 +16,6 @@
 //! - The source pointer points to initialized data
 //! - Buffer sizes are sufficient for the number of items being processed
 //!
-//! ## YCoCg-R Variants
-//!
-//! The module supports three variants of the YCoCg-R transform:
-//! - **[`YCoCgVariant::Variant1`]**: Standard YCoCg-R decorrelation
-//! - **[`YCoCgVariant::Variant2`]**: Alternative YCoCg-R decorrelation formula
-//! - **[`YCoCgVariant::Variant3`]**: Third YCoCg-R decorrelation variant
-//! - **[`YCoCgVariant::None`]**: No transformation (simple copy operation)
-//!
 //! ## Performance
 //!
 //! Functions utilize the multiversion crate to provide optimized implementations
@@ -30,6 +25,8 @@
 //!
 //! For now, only x86 CPUs have been marked with [`multiversion`], as I don't have access to
 //! high end hardware of other architectures.
+//!
+//! [`decorrelate_batch_slice`]: super::decorrelate_batch_slice
 
 use super::*;
 use core::ptr::copy_nonoverlapping;

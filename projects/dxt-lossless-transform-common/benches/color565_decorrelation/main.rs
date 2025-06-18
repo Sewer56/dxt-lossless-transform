@@ -49,10 +49,12 @@ impl Color565Buffer {
     // Create a buffer, copy data, and apply a transformation function
     fn from_slice_with_transform(
         source: &[Color565],
-        transform_fn: fn(&[Color565], &mut [Color565]),
+        transform_fn: unsafe fn(&[Color565], &mut [Color565]),
     ) -> Self {
         let mut buffer = Self::from_slice(source);
-        transform_fn(source, buffer.as_mut_slice());
+        unsafe {
+            transform_fn(source, buffer.as_mut_slice());
+        }
         buffer
     }
 

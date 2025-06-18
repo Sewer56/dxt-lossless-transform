@@ -5,7 +5,7 @@
 //! flexible memory layout optimization in certain use cases.
 //!
 //! These functions include SIMD optimizations by generating multiple versions of the code
-//! through the [`multiversion`] crate.
+//! through the [`mod@multiversion`] crate.
 //!
 //! For a more ergonomic interface that accepts slices instead of raw pointers,
 //! see the slice-based wrappers in [`decorrelate_batch_split_slice`].
@@ -44,7 +44,7 @@
 //! where available. The implementations automatically select the best variant
 //! based on the target CPU capabilities.
 //!
-//! For now, only x86 CPUs have been marked with [`multiversion`], as I don't have access to
+//! For now, only x86 CPUs have been marked with [`mod@multiversion`], as I don't have access to
 //! high end hardware of other architectures.
 //!
 //! [`decorrelate_batch_ptr`]: super::decorrelate_batch_ptr

@@ -30,7 +30,7 @@
 //! ## Performance
 //!
 //! These wrapper functions maintain the same performance characteristics as their
-//! raw pointer counterparts, including SIMD optimizations through the [`multiversion`]
+//! raw pointer counterparts, including SIMD optimizations through the [`mod@multiversion`]
 //! crate. The overhead of the wrapper layer is minimal and typically optimized away
 //! by the compiler.
 //!
@@ -74,7 +74,11 @@ impl Color565 {
     ///
     /// Debug assertions check slice sizes, but these are not present in release builds.
     #[inline]
-    pub unsafe fn recorrelate_ycocg_r_var1_slice_split(src_0: &[Self], src_1: &[Self], dst: &mut [Self]) {
+    pub unsafe fn recorrelate_ycocg_r_var1_slice_split(
+        src_0: &[Self],
+        src_1: &[Self],
+        dst: &mut [Self],
+    ) {
         debug_assert_eq!(
             src_0.len(),
             src_1.len(),
@@ -124,7 +128,11 @@ impl Color565 {
     ///
     /// Debug assertions check slice sizes, but these are not present in release builds.
     #[inline]
-    pub unsafe fn recorrelate_ycocg_r_var2_slice_split(src_0: &[Self], src_1: &[Self], dst: &mut [Self]) {
+    pub unsafe fn recorrelate_ycocg_r_var2_slice_split(
+        src_0: &[Self],
+        src_1: &[Self],
+        dst: &mut [Self],
+    ) {
         debug_assert_eq!(
             src_0.len(),
             src_1.len(),
@@ -174,7 +182,11 @@ impl Color565 {
     ///
     /// Debug assertions check slice sizes, but these are not present in release builds.
     #[inline]
-    pub unsafe fn recorrelate_ycocg_r_var3_slice_split(src_0: &[Self], src_1: &[Self], dst: &mut [Self]) {
+    pub unsafe fn recorrelate_ycocg_r_var3_slice_split(
+        src_0: &[Self],
+        src_1: &[Self],
+        dst: &mut [Self],
+    ) {
         debug_assert_eq!(
             src_0.len(),
             src_1.len(),

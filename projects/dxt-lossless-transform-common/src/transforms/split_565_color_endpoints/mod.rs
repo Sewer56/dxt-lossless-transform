@@ -35,6 +35,9 @@ mod avx2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx512;
 
+#[cfg(feature = "bench")]
+pub mod bench;
+
 use crate::color_565::Color565;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]

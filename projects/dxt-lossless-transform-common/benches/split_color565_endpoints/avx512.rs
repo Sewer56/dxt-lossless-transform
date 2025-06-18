@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_common::transforms::split_565_color_endpoints::{
+use dxt_lossless_transform_common::transforms::split_565_color_endpoints::bench::split_565_color_endpoints::{
     avx512_impl, avx512_impl_unroll2,
 };
 use safe_allocator_api::RawAlloc;

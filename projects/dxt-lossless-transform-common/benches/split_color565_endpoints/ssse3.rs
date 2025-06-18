@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_common::transforms::split_565_color_endpoints::ssse3::{
+use dxt_lossless_transform_common::transforms::split_565_color_endpoints::bench::split_565_color_endpoints::{
     ssse3_pshufb_unroll2_impl, ssse3_pshufb_unroll4_impl,
 };
 use safe_allocator_api::RawAlloc;

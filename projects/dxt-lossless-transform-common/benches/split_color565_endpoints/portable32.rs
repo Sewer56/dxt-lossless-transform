@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_common::transforms::split_565_color_endpoints::portable32::u32;
+use dxt_lossless_transform_common::transforms::split_565_color_endpoints::bench::split_565_color_endpoints::u32;
 use safe_allocator_api::RawAlloc;
 
 fn bench_portable32(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {

@@ -1,3 +1,48 @@
+//! Module for applying YCoCg-R color (de/re)correlation on slices of [`Color565`] with split input sources.
+//!
+//! This module provides slice-based wrapper functions for the raw pointer implementations
+//! in [`decorrelate_batch_split_ptr`]. These functions offer a more ergonomic and safe
+//! interface by accepting Rust slices instead of raw pointers.
+//!
+//! ## Split Slice Design
+//!
+//! Unlike regular slice functions that process data from a single source slice,
+//! these functions take two separate input slices and interleave their processed
+//! results into a single output slice. This pattern is useful when color endpoint
+//! data is stored in separate memory regions or when you need to combine results
+//! from two different sources.
+//!
+//! The interleaving pattern is:
+//! ```ignore
+//! dst[0] = transform(src_0[0]),
+//! dst[1] = transform(src_1[0]),
+//! dst[2] = transform(src_0[1]),
+//! dst[3] = transform(src_1[1]),
+//! // etc.
+//! ```
+//!
+//! ## Safety and Convenience
+//!
+//! All functions in this module are safe wrappers around the unsafe raw pointer
+//! implementations. They perform bounds checking and ensure memory safety by:
+//!
+//! - Verifying that both input slices have the same length
+//! - Checking that the destination slice is large enough to hold all results
+//! - Using safe slice APIs that prevent buffer overruns
+//!
+//! ## Performance
+//!
+//! These wrapper functions maintain the same performance characteristics as their
+//! raw pointer counterparts, including SIMD optimizations through the [`multiversion`]
+//! crate. The overhead of the wrapper layer is minimal and typically optimized away
+//! by the compiler.
+//!
+//! Functions may introduce unrolling optimizations. For detailed performance
+//! characteristics, refer to the underlying raw pointer implementations in
+//! [`decorrelate_batch_split_ptr`].
+//!
+//! [`decorrelate_batch_split_ptr`]: super::decorrelate_batch_split_ptr
+
 use super::*;
 
 #[cfg(not(tarpaulin_include))] // These are just innocent wrapper functions that are tested elsewhere indirectly.

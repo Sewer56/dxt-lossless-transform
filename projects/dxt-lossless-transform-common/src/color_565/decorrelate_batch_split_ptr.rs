@@ -1,3 +1,55 @@
+//! Module for applying YCoCg-R color (de/re)correlation on arrays of [`Color565`] with split input pointers.
+//!
+//! This module contains functions identical to those in [`decorrelate_batch_ptr`], but these functions
+//! have separate `src_ptr_0` and `src_ptr_1` parameters for the colour endpoints, allowing for more
+//! flexible memory layout optimization in certain use cases.
+//!
+//! These functions include SIMD optimizations by generating multiple versions of the code
+//! through the [`multiversion`] crate.
+//!
+//! For a more ergonomic interface that accepts slices instead of raw pointers,
+//! see the slice-based wrappers in [`decorrelate_batch_split_slice`].
+//!
+//! ## Split Pointer Design
+//!
+//! Unlike the regular pointer functions that take data from a single source, these functions
+//! read from two separate source arrays and interleave the results. This pattern is useful
+//! when color endpoint data is stored in separate memory regions.
+//!
+//! The interleaving pattern is:
+//! ```ignore
+//! dst[0] = transform(src_ptr_0[0]),
+//! dst[1] = transform(src_ptr_1[0]),
+//! dst[2] = transform(src_ptr_0[1]),
+//! dst[3] = transform(src_ptr_1[1]),
+//! // etc.
+//! ```
+//!
+//! ## Safety
+//!
+//! All functions in this module are unsafe as they work with raw pointers and don't
+//! perform bounds checking. Callers must ensure:
+//!
+//! - All pointers are valid and properly aligned
+//! - Source and destination memory regions don't overlap
+//! - Both source pointers point to initialized data
+//! - `src_ptr_0` and `src_ptr_1` point to arrays with at least `num_items / 2` elements each
+//! - `dst_ptr` points to an array with at least `num_items` elements
+//! - `num_items` is even (functions process pairs of elements)
+//!
+//! ## Performance
+//!
+//! Functions utilize the multiversion crate to provide optimized implementations
+//! for different CPU feature sets, including AVX2, AVX-512, and other SIMD instructions
+//! where available. The implementations automatically select the best variant
+//! based on the target CPU capabilities.
+//!
+//! For now, only x86 CPUs have been marked with [`multiversion`], as I don't have access to
+//! high end hardware of other architectures.
+//!
+//! [`decorrelate_batch_ptr`]: super::decorrelate_batch_ptr
+//! [`decorrelate_batch_split_slice`]: super::decorrelate_batch_split_slice
+
 use super::*;
 
 #[cfg(not(tarpaulin_include))] // These are just innocent wrapper functions that are tested elsewhere indirectly.
@@ -286,6 +338,8 @@ impl Color565 {
     ///
     /// Takes two separate input raw pointers, applies the transformation to colors from both sources,
     /// and interleaves the results into a single output array.
+    ///
+    /// It is the raw pointer equivalent of [`Self::recorrelate_ycocg_r_slice_split`].
     ///
     /// # Parameters
     ///

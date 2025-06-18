@@ -1,3 +1,36 @@
+//! Module for applying YCoCg-R color (de/re)correlation on arrays of `Color565`.
+//!
+//! These functions include SIMD optimizations by generating multiple versions of the code
+//! through the [`multiversion`] crate.
+//!
+//! ## Safety
+//!
+//! All functions in this module are unsafe as they work with raw pointers and don't
+//! perform bounds checking. Callers must ensure:
+//!
+//! - Pointers are valid and properly aligned
+//! - Source and destination memory regions don't overlap
+//! - The source pointer points to initialized data
+//! - Buffer sizes are sufficient for the number of items being processed
+//!
+//! ## YCoCg-R Variants
+//!
+//! The module supports three variants of the YCoCg-R transform:
+//! - **[`YCoCgVariant::Variant1`]**: Standard YCoCg-R decorrelation
+//! - **[`YCoCgVariant::Variant2`]**: Alternative YCoCg-R decorrelation formula
+//! - **[`YCoCgVariant::Variant3`]**: Third YCoCg-R decorrelation variant
+//! - **[`YCoCgVariant::None`]**: No transformation (simple copy operation)
+//!
+//! ## Performance
+//!
+//! Functions utilize the multiversion crate to provide optimized implementations
+//! for different CPU feature sets, including AVX2, AVX-512, and other SIMD instructions
+//! where available. The implementations automatically select the best variant
+//! based on the target CPU capabilities.
+//!
+//! For now, only x86 CPUs have been marked with [`multiversion`], as I don't have access to
+//! high end hardware of other architectures.
+
 use super::*;
 use core::ptr::copy_nonoverlapping;
 use multiversion::multiversion;

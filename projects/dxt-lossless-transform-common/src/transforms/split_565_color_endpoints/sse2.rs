@@ -1,9 +1,8 @@
+use crate::transforms::split_565_color_endpoints::portable32::u32_with_separate_endpoints;
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
-
-use crate::transforms::split_565_color_endpoints::u32_with_separate_endpoints;
 
 /// Splits the colour endpoints using SSE2 instructions
 ///
@@ -21,7 +20,11 @@ use crate::transforms::split_565_color_endpoints::u32_with_separate_endpoints;
 /// - Pointers should be 16-byte aligned for best performance
 /// - CPU must support SSE2 instructions
 #[target_feature(enable = "sse2")]
-pub unsafe fn sse2_shift_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
+pub(crate) unsafe fn sse2_shift_impl(
+    colors: *const u8,
+    colors_out: *mut u8,
+    colors_len_bytes: usize,
+) {
     debug_assert!(
         colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
         "colors_len_bytes must be at least 4 and a multiple of 4"
@@ -96,7 +99,11 @@ pub unsafe fn sse2_shift_impl(colors: *const u8, colors_out: *mut u8, colors_len
 /// - Pointers should be 16-byte aligned for best performance
 /// - CPU must support SSE2 instructions
 #[target_feature(enable = "sse2")]
-pub unsafe fn sse2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
+pub(crate) unsafe fn sse2_shuf_impl(
+    colors: *const u8,
+    colors_out: *mut u8,
+    colors_len_bytes: usize,
+) {
     debug_assert!(
         colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
         "colors_len_bytes must be at least 4 and a multiple of 4"
@@ -176,7 +183,7 @@ pub unsafe fn sse2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_
 /// - CPU must support SSE2 instructions
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
-pub unsafe fn sse2_shuf_unroll2_impl_asm(
+pub(crate) unsafe fn sse2_shuf_unroll2_impl_asm(
     colors: *const u8,
     colors_out: *mut u8,
     colors_len_bytes: usize,
@@ -293,7 +300,7 @@ pub unsafe fn sse2_shuf_unroll2_impl_asm(
 /// - Pointers should be 16-byte aligned for best performance
 /// - CPU must support SSE2 instructions
 #[target_feature(enable = "sse2")]
-pub unsafe fn sse2_shuf_unroll2_impl(
+pub(crate) unsafe fn sse2_shuf_unroll2_impl(
     colors: *const u8,
     colors_out: *mut u8,
     colors_len_bytes: usize,

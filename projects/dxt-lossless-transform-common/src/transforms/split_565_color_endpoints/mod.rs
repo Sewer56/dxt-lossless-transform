@@ -19,37 +19,21 @@
 //! +-------+-------+ +-------+-------+
 //! ```
 
-pub mod portable32;
-pub use portable32::*;
-
-pub mod portable64;
-pub use portable64::*;
+pub(crate) mod portable32;
+mod portable64;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod sse2;
+mod sse2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use sse2::*;
+mod ssse3;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod ssse3;
-
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use ssse3::*;
-
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod avx2;
-
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use avx2::*;
+mod avx2;
 
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod avx512;
-
-#[cfg(feature = "nightly")]
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub use avx512::*;
+mod avx512;
 
 use crate::color_565::Color565;
 
@@ -65,17 +49,17 @@ unsafe fn split_color_endpoints_x86(
         // Runtime feature detection
         #[cfg(feature = "nightly")]
         if crate::cpu_detect::has_avx512vbmi() {
-            avx512_impl(colors, colors_out, colors_len_bytes);
+            avx512::avx512_impl(colors, colors_out, colors_len_bytes);
             return;
         }
 
         if crate::cpu_detect::has_avx2() {
-            avx2_shuf_impl_asm(colors, colors_out, colors_len_bytes);
+            avx2::avx2_shuf_impl_asm(colors, colors_out, colors_len_bytes);
             return;
         }
 
         if crate::cpu_detect::has_sse2() {
-            sse2_shuf_unroll2_impl_asm(colors, colors_out, colors_len_bytes);
+            sse2::sse2_shuf_unroll2_impl_asm(colors, colors_out, colors_len_bytes);
             return;
         }
     }
@@ -84,23 +68,23 @@ unsafe fn split_color_endpoints_x86(
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512vbmi") {
-            avx512_impl(colors, colors_out, colors_len_bytes);
+            avx512::avx512_impl(colors, colors_out, colors_len_bytes);
             return;
         }
 
         if cfg!(target_feature = "avx2") {
-            avx2_shuf_impl_asm(colors, colors_out, colors_len_bytes);
+            avx2::avx2_shuf_impl_asm(colors, colors_out, colors_len_bytes);
             return;
         }
 
         if cfg!(target_feature = "sse2") {
-            sse2_shuf_unroll2_impl_asm(colors, colors_out, colors_len_bytes);
+            sse2::sse2_shuf_unroll2_impl_asm(colors, colors_out, colors_len_bytes);
             return;
         }
     }
 
     // Fallback to portable implementation
-    u32(colors, colors_out, colors_len_bytes)
+    portable32::u32(colors, colors_out, colors_len_bytes)
 }
 
 /// Splits the colour endpoints using the best known implementation for the current CPU.
@@ -140,7 +124,7 @@ pub unsafe fn split_color_endpoints(
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        u32(colors as *const u8, colors_out as *mut u8, colors_len_bytes)
+        portable32::u32(colors as *const u8, colors_out as *mut u8, colors_len_bytes)
     }
 }
 
@@ -151,7 +135,7 @@ mod tests {
     /// Transforms the input data using a known reference implementation.
     pub(crate) fn transform_with_reference_implementation(input: &[u8], output: &mut [u8]) {
         unsafe {
-            u32(input.as_ptr(), output.as_mut_ptr(), input.len());
+            portable32::u32(input.as_ptr(), output.as_mut_ptr(), input.len());
         }
     }
 

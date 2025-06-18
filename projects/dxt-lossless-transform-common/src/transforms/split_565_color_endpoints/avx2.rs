@@ -1,9 +1,8 @@
+use crate::transforms::split_565_color_endpoints::portable32::u32_with_separate_endpoints;
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
-
-use crate::transforms::split_565_color_endpoints::u32_with_separate_endpoints;
 
 /// Splits the colour endpoints using AVX2 instructions
 ///
@@ -22,7 +21,11 @@ use crate::transforms::split_565_color_endpoints::u32_with_separate_endpoints;
 /// - CPU must support AVX2 instructions
 #[target_feature(enable = "avx2")]
 #[allow(unused_assignments)]
-pub unsafe fn avx2_shuf_impl_asm(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
+pub(crate) unsafe fn avx2_shuf_impl_asm(
+    colors: *const u8,
+    colors_out: *mut u8,
+    colors_len_bytes: usize,
+) {
     debug_assert!(
         colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
         "colors_len_bytes must be at least 4 and a multiple of 4"
@@ -134,7 +137,11 @@ pub unsafe fn avx2_shuf_impl_asm(colors: *const u8, colors_out: *mut u8, colors_
 ///
 /// See the [`avx2_shuf_impl_asm`] for inline assembly implementation, which should be preferred.
 #[target_feature(enable = "avx2")]
-pub unsafe fn avx2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
+pub(crate) unsafe fn avx2_shuf_impl(
+    colors: *const u8,
+    colors_out: *mut u8,
+    colors_len_bytes: usize,
+) {
     debug_assert!(
         colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
         "colors_len_bytes must be at least 4 and a multiple of 4"
@@ -225,7 +232,7 @@ pub unsafe fn avx2_shuf_impl(colors: *const u8, colors_out: *mut u8, colors_len_
 /// - Pointers should be 32-byte aligned for best performance
 /// - CPU must support AVX2 instructions
 #[target_feature(enable = "avx2")]
-pub unsafe fn avx2_shuf_impl_unroll_2(
+pub(crate) unsafe fn avx2_shuf_impl_unroll_2(
     colors: *const u8,
     colors_out: *mut u8,
     colors_len_bytes: usize,

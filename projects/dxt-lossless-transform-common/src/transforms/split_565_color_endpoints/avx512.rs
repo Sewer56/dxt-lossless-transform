@@ -1,9 +1,8 @@
+use crate::transforms::split_565_color_endpoints::portable32::u32_with_separate_endpoints;
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
-
-use crate::transforms::split_565_color_endpoints::u32_with_separate_endpoints;
 
 /// Splits the colour endpoints using AVX512VBMI instructions
 ///
@@ -22,7 +21,11 @@ use crate::transforms::split_565_color_endpoints::u32_with_separate_endpoints;
 /// - CPU must support AVX512VBMI instructions
 #[target_feature(enable = "avx512vbmi")]
 #[allow(clippy::identity_op)]
-pub unsafe fn avx512_impl_unroll2(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
+pub(crate) unsafe fn avx512_impl_unroll2(
+    colors: *const u8,
+    colors_out: *mut u8,
+    colors_len_bytes: usize,
+) {
     debug_assert!(
         colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
         "colors_len_bytes must be at least 4 and a multiple of 4"
@@ -125,7 +128,7 @@ pub unsafe fn avx512_impl_unroll2(colors: *const u8, colors_out: *mut u8, colors
 /// - CPU must support AVX512VBMI instructions
 #[target_feature(enable = "avx512vbmi")]
 #[allow(clippy::identity_op)]
-pub unsafe fn avx512_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
+pub(crate) unsafe fn avx512_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
         colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
         "colors_len_bytes must be at least 4 and a multiple of 4"

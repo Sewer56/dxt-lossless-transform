@@ -15,7 +15,7 @@ use core::mem::size_of;
 /// - `colors_out` must be valid for writes of `colors_len_bytes` bytes
 /// - `colors_len_bytes` must be a multiple of 4
 #[inline(always)]
-pub unsafe fn u32(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
+pub(crate) unsafe fn u32(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
         colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
         "colors_len_bytes must be at least 4 and a multiple of 4"
@@ -46,7 +46,7 @@ pub unsafe fn u32(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usiz
 /// * `output0` and `output1` must both be valid pointers to arrays of u16 endpoints
 /// * All arrays must have sufficient capacity for the operation to complete
 #[inline(always)]
-pub unsafe fn u32_with_separate_endpoints(
+pub(crate) unsafe fn u32_with_separate_endpoints(
     max_input_ptr: *const u32,
     mut input: *const u32,
     mut output0: *mut u16,

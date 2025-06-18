@@ -1,9 +1,8 @@
+use crate::transforms::split_565_color_endpoints::portable32::u32_with_separate_endpoints;
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
-
-use crate::transforms::split_565_color_endpoints::u32_with_separate_endpoints;
 
 /// Alternative implementation using pshufb and SSE shuffling,
 /// processing 32 bytes at once (unroll factor of 2)

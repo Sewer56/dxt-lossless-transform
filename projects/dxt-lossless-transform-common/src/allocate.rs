@@ -1,10 +1,18 @@
-//! Helper methods around memory allocation.
+//! Memory allocation utilities for DXT lossless transform operations.
 //!
-//! Provides features like:
-//! - Aligned allocations
-//! - Allocations of arrays of pointers
+//! This crate provides memory allocation features that Rust does not have out of the box,
+//! which are useful for my purposes.
 //!
-//! etc.
+//! ## Useful APIs
+//!
+//! [`allocate_align_64`]: Allocates uninitialized memory aligned to 64-bytes.
+//! [`FixedRawAllocArray::new`]: Creates a new array of aligned allocations.
+//!
+//! ## Safety
+//!
+//! All allocation operations are wrapped in safe APIs that handle proper initialization,
+//! cleanup, and error handling. Memory is automatically deallocated when the allocation
+//! wrappers are dropped.
 
 use core::alloc::{Layout, LayoutError};
 use core::mem::MaybeUninit;

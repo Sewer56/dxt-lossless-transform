@@ -8,6 +8,7 @@ use crate::error::TransformError;
 use argh::FromArgs;
 use benchmark::handle_benchmark_command;
 use calc_compression_stats::handle_compression_stats_command;
+use core::ptr::null_mut;
 use roundtrip::handle_roundtrip_command;
 use std::path::PathBuf;
 
@@ -268,7 +269,7 @@ where
             })
         } else {
             // Use standard API without normalization
-            determine_best_transform_details(data_ptr, len_bytes, transform_options)
+            determine_best_transform_details(data_ptr, len_bytes, null_mut(), transform_options)
                 .map_err(|e| TransformError::Debug(format!("API recommendation failed: {e}")))
         }
     }

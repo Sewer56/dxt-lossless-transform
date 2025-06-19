@@ -6,6 +6,7 @@ use crate::{
     YCoCgVariant,
 };
 use core::mem::size_of;
+use core::ptr::null_mut;
 use core::slice;
 use dxt_lossless_transform_common::allocate::FixedRawAllocArray;
 use dxt_lossless_transform_common::{
@@ -107,7 +108,8 @@ where
         drop(normalize_buffers);
 
         // Call the regular function since no normalization is needed
-        let regular_result = determine_best_transform_details(input_ptr, len, transform_options)?;
+        let regular_result =
+            determine_best_transform_details(input_ptr, len, null_mut(), transform_options)?;
 
         // Convert regular result to normalization result using From trait
         Ok(regular_result.into())

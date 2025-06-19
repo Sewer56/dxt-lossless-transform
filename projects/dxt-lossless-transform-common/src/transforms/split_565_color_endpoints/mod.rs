@@ -20,13 +20,9 @@
 //! ```
 
 pub(crate) mod portable32;
-mod portable64;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod sse2;
-
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-mod ssse3;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;

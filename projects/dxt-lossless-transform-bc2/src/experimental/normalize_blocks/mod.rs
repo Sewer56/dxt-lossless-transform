@@ -65,4 +65,5 @@
 //! 4. Leave the alpha values unchanged
 //! 5. Write the normalized block to the output
 
+/// See [`super`] for the exact details.
 pub mod normalize;

@@ -6,10 +6,14 @@
     all(feature = "nightly", any(target_arch = "x86_64", target_arch = "x86")),
     feature(stdarch_x86_avx512)
 )]
+#![warn(missing_docs)]
 
 #[cfg(feature = "experimental")]
 pub mod experimental;
+
+/// Provides optimized routines to transform/detransform into various forms of the lossless trasform.
 pub mod transforms;
+
 pub mod util;
 
 #[cfg(test)]

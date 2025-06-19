@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes

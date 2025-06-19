@@ -1,3 +1,53 @@
+//! # Decoded 4x4 Block
+//!
+//! This module provides the [`Decoded4x4Block`] structure for representing decompressed
+//! 4x4 pixel blocks used in DXT/BC texture compression formats.
+//!
+//! ## Overview
+//!
+//! DXT (DirectX Texture Compression) and BC (Block Compression) formats compress textures
+//! by dividing them into 4x4 pixel blocks. This module provides a convenient representation
+//! for working with these blocks after they have been decompressed to RGBA format.
+//!
+//! ## Features
+//!
+//! - Storage of 16 pixels in row-major order using [`Color8888`] format
+//! - Fast pixel access methods with bounds checking options
+//! - Utility methods for analyzing block properties:
+//!   - Checking for identical pixels (with or without alpha)
+//!   - Checking for identical alpha values
+//! - Optimized implementations using unsafe methods for performance-critical code
+//!
+//! ## Usage
+//!
+//! ```
+//! use dxt_lossless_transform_common::color_8888::Color8888;
+//! use dxt_lossless_transform_common::decoded_4x4_block::Decoded4x4Block;
+//!
+//! // Create a block filled with red pixels
+//! let red_pixel = Color8888::new(255, 0, 0, 255);
+//! let block = Decoded4x4Block::new(red_pixel);
+//!
+//! // Check if all pixels are identical
+//! assert!(block.has_identical_pixels());
+//! ```
+//!
+//! ## Memory Layout
+//!
+//! The pixels are stored in row-major order:
+//! ```text
+//! [ 0] [ 1] [ 2] [ 3]
+//! [ 4] [ 5] [ 6] [ 7]
+//! [ 8] [ 9] [10] [11]
+//! [12] [13] [14] [15]
+//! ```
+//!
+//! ## Safety
+//!
+//! This module provides both safe and unsafe methods for pixel access. The unsafe methods
+//! (`get_pixel_unchecked`, `set_pixel_unchecked`) bypass bounds checking for performance
+//! in hot code paths, but require the caller to ensure coordinates are within bounds (0-3).
+
 use crate::color_8888::Color8888;
 use core::mem::transmute;
 
@@ -5,6 +55,7 @@ use core::mem::transmute;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Decoded4x4Block {
     /// The 16 pixels in the block (row-major order)
+    /// (i.e. `pixels[0]` is top-left, `pixels[3]` is top-right, etc.)
     pub pixels: [Color8888; 16],
 }
 

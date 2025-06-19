@@ -357,12 +357,12 @@ where
 
         // Get the first pixel (will be used if solid color)
         let pixel = decoded_block.pixels[0];
-        let color565 = pixel.to_color_565();
+        let color565 = pixel.to_565_lossy();
 
         // Determine color case
         let color_case = if has_solid_color {
             // Check if color can be round-tripped cleanly through RGB565
-            let color8888 = color565.to_color_8888();
+            let color8888 = color565.to_8888_lossy();
             let pixel_ignore_alpha = Color8888::new(pixel.r, pixel.g, pixel.b, 255);
             let color8888_ignore_alpha = Color8888::new(color8888.r, color8888.g, color8888.b, 255);
 
@@ -395,7 +395,7 @@ where
 /// # Parameters
 ///
 /// - `input_ptr`: A pointer to the input data (input BC3 blocks)
-/// - `output_ptrs`: A 2D array of output pointers, indexed by [alpha_mode][color_mode]
+/// - `output_ptrs`: A 2D array of output pointers, indexed by `[alpha_mode][color_mode]`
 /// - `len`: The length of the input data in bytes
 ///
 /// # Safety
@@ -590,8 +590,8 @@ pub unsafe fn normalize_split_blocks_in_place(
             let pixel_ignore_alpha = Color8888::new(pixel.r, pixel.g, pixel.b, 255);
 
             // Solid color - check if it can be normalized
-            let color565 = pixel_ignore_alpha.to_color_565();
-            let color8888_roundtrip = color565.to_color_8888();
+            let color565 = pixel_ignore_alpha.to_565_lossy();
+            let color8888_roundtrip = color565.to_8888_lossy();
 
             if unlikely(color8888_roundtrip == pixel_ignore_alpha) {
                 // Can be normalized, write the standard pattern

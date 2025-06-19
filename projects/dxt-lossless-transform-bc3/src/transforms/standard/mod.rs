@@ -63,7 +63,10 @@
 //! This is possible to do with either allocating half of a buffer, and then copying the other half back,
 //! or outputting it all to a single buffer. Outputting all to single buffer is faster.
 
+/// See [`super`] for the exact details.
 pub mod transform;
+
+/// See [`super`] for the exact details.
 pub mod untransform;
 
 /// Transform bc3 data from standard interleaved format to separated alpha/color/index format

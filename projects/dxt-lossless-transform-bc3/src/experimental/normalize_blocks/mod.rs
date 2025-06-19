@@ -57,4 +57,5 @@
 //! 3. Applies appropriate normalization based on the selected modes
 //! 4. Writes the normalized block to the output
 
+/// See [`super::normalize_blocks`] for the exact details.
 pub mod normalize;

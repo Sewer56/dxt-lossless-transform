@@ -1,17 +1,17 @@
 //! Helpers for CPU feature detection without using std.
 //!
 //! This module provides CPU feature detection for SIMD instruction sets using the
-//! `cpufeatures` crate. These functions are used to determine at runtime which optimized code paths
+//! [`cpufeatures`] crate. These functions are used to determine at runtime which optimized code paths
 //! can be safely executed on the current CPU.
 //!
-//! The functions are minimal overhead, they have an init that's called once, and every subsequent
+//! The functions have minimal overhead; they have an init that's called once, and every subsequent
 //! call simply loads and compares a bool.
 
 /// Checks if the CPU supports AVX512F (AVX-512 Foundation) instructions.
 ///
 /// This function is only available when compiling with the `nightly` feature enabled.
 /// AVX-512F provides 512-bit wide vectors and operations which can significantly
-/// accelerate DXT compression transformations when available.
+/// accelerate compression transforms when available.
 ///
 /// # Returns
 /// `true` if the CPU supports AVX512F instructions, `false` otherwise.
@@ -55,13 +55,13 @@ pub fn has_avx512vl() -> bool {
     cpuid_avx512vl::get()
 }
 
-/// Checks if the CPU supports AVX512BW (AVX-512 Byte and Word) instructions.  
-///  
-/// This function is only available when compiling with the `nightly` feature enabled.  
-/// AVX512BW extends AVX-512 with byte and word operations, enabling more efficient  
-/// processing of 8-bit and 16-bit data types. This can be beneficial for color processing.  
-///  
-/// # Returns  
+/// Checks if the CPU supports AVX512BW (AVX-512 Byte and Word) instructions.
+///
+/// This function is only available when compiling with the `nightly` feature enabled.
+/// AVX512BW extends AVX-512 with byte and word operations, enabling more efficient
+/// processing of 8-bit and 16-bit data types. This can be beneficial for color processing.
+///
+/// # Returns
 /// `true` if the CPU supports AVX512BW instructions, `false` otherwise.
 #[inline]
 #[cfg(feature = "nightly")]
@@ -73,8 +73,8 @@ pub fn has_avx512bw() -> bool {
 
 /// Checks if the CPU supports SSSE3 (Supplemental SSE3) instructions.
 ///
-/// SSSE3 isn't really used anywhere currently; just in some unused routines which ended up
-/// being obsoleted.
+/// SSSE3 instructions are currently not utilized in the main optimization paths,
+/// as they have been superseded by more modern instruction sets.
 ///
 /// # Returns
 /// `true` if the CPU supports SSSE3 instructions, `false` otherwise.
@@ -88,7 +88,7 @@ pub fn has_ssse3() -> bool {
 /// Checks if the CPU supports AVX2 (Advanced Vector Extensions 2) instructions.
 ///
 /// AVX2 extends AVX by providing 256-bit integer SIMD instructions.
-/// Performance of certain transforms are improved due to more flexibility with output registers
+/// Performance of certain transforms is improved due to more flexibility with output registers
 /// and larger register size.
 ///
 /// # Returns
@@ -103,7 +103,7 @@ pub fn has_avx2() -> bool {
 /// Checks if the CPU supports SSE2 (Streaming SIMD Extensions 2) instructions.
 ///
 /// SSE2 is widely available on virtually all x86-64 processors and provides basic
-/// SIMD operations that form the baseline implementation for DXT compression transformations.
+/// SIMD operations that form the baseline implementation for compression transforms.
 ///
 /// # Returns
 /// `true` if the CPU supports SSE2 instructions, `false` otherwise.

@@ -1,5 +1,6 @@
 #![doc = include_str!(concat!("../", core::env!("CARGO_PKG_README")))]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![warn(missing_docs)]
 
 /// Used by BC7, since that has unusual non-standard bit order.
 #[allow(dead_code)]

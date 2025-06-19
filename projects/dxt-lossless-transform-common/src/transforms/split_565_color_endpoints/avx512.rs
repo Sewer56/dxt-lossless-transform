@@ -1,9 +1,8 @@
+use crate::transforms::split_565_color_endpoints::portable32::u32_with_separate_endpoints;
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
-
-use crate::transforms::split_565_color_endpoints::u32_with_separate_endpoints;
 
 /// Splits the colour endpoints using AVX512VBMI instructions
 ///
@@ -22,7 +21,11 @@ use crate::transforms::split_565_color_endpoints::u32_with_separate_endpoints;
 /// - CPU must support AVX512VBMI instructions
 #[target_feature(enable = "avx512vbmi")]
 #[allow(clippy::identity_op)]
-pub unsafe fn avx512_impl_unroll2(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
+pub(crate) unsafe fn avx512_impl_unroll2(
+    colors: *const u8,
+    colors_out: *mut u8,
+    colors_len_bytes: usize,
+) {
     debug_assert!(
         colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
         "colors_len_bytes must be at least 4 and a multiple of 4"
@@ -125,7 +128,7 @@ pub unsafe fn avx512_impl_unroll2(colors: *const u8, colors_out: *mut u8, colors
 /// - CPU must support AVX512VBMI instructions
 #[target_feature(enable = "avx512vbmi")]
 #[allow(clippy::identity_op)]
-pub unsafe fn avx512_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
+pub(crate) unsafe fn avx512_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
         colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
         "colors_len_bytes must be at least 4 and a multiple of 4"
@@ -207,14 +210,8 @@ pub unsafe fn avx512_impl(colors: *const u8, colors_out: *mut u8, colors_len_byt
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transforms::split_565_color_endpoints::tests::{
-        assert_implementation_matches_reference, generate_test_data,
-        transform_with_reference_implementation,
-    };
+    use crate::transforms::split_565_color_endpoints::tests::*;
     use rstest::rstest;
-
-    // Define the function pointer type
-    type TransformFn = unsafe fn(*const u8, *mut u8, usize);
 
     #[rstest]
     #[case(avx512_impl, "avx512_impl")]
@@ -223,31 +220,7 @@ mod tests {
         if !is_x86_feature_detected!("avx512vbmi") {
             return;
         }
-
-        for num_pairs in 1..=512 {
-            let input = generate_test_data(num_pairs);
-            let mut output_expected = vec![0u8; input.len()];
-            let mut output_test = vec![0u8; input.len()];
-
-            // Generate reference output
-            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
-
-            // Clear the output buffer
-            output_test.fill(0);
-
-            // Run the implementation
-            unsafe {
-                implementation(input.as_ptr(), output_test.as_mut_ptr(), input.len());
-            }
-
-            // Compare results
-            assert_implementation_matches_reference(
-                &output_expected,
-                &output_test,
-                &format!("{impl_name} (aligned)"),
-                num_pairs,
-            );
-        }
+        test_implementation_aligned(implementation, impl_name);
     }
 
     #[rstest]
@@ -257,40 +230,6 @@ mod tests {
         if !is_x86_feature_detected!("avx512vbmi") {
             return;
         }
-
-        for num_pairs in 1..=512 {
-            let input = generate_test_data(num_pairs);
-
-            // Add 1 extra byte at the beginning to create misaligned buffers
-            let mut input_unaligned = vec![0u8; input.len() + 1];
-            input_unaligned[1..].copy_from_slice(input.as_slice());
-
-            let mut output_expected = vec![0u8; input.len()];
-            let mut output_test = vec![0u8; input.len() + 1];
-
-            // Generate reference output
-            transform_with_reference_implementation(input.as_slice(), &mut output_expected);
-
-            // Clear the output buffer
-            output_test.fill(0);
-
-            // Run the implementation
-            unsafe {
-                // Use pointers offset by 1 byte to create unaligned access
-                implementation(
-                    input_unaligned.as_ptr().add(1),
-                    output_test.as_mut_ptr().add(1),
-                    input.len(),
-                );
-            }
-
-            // Compare results
-            assert_implementation_matches_reference(
-                &output_expected,
-                &output_test[1..],
-                &format!("{impl_name} (unaligned)"),
-                num_pairs,
-            );
-        }
+        test_implementation_unaligned(implementation, impl_name);
     }
 }

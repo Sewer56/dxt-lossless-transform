@@ -80,6 +80,7 @@
 //! 4. Write the normalized block to the output
 
 pub mod determine_optimal_transform;
+/// See [`super`] for the exact details.
 pub mod normalize;
 pub mod transform;
 

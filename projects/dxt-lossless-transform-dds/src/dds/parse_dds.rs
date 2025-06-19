@@ -2,20 +2,20 @@ use super::{constants::*, is_dds};
 
 /// Defines a known data format within a DDS file; suitable for lossless transform.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(C)]
+#[repr(u8)]
 pub enum DdsFormat {
     /// Indicates the data is not a DDS file.
     /// This is mostly reserved for the C API, where a native 'Option' type is not available.
-    NotADds,
+    NotADds = 0,
     /// This is a DDS file, but not in a format we know.
-    Unknown,
+    Unknown = 1,
     /// a.k.a. DXT1
-    BC1,
+    BC1 = 2,
     /// a.k.a. DXT2/3
-    BC2,
+    BC2 = 3,
     /// a.k.a. DXT4/5
-    BC3,
-    BC7,
+    BC3 = 4,
+    BC7 = 5,
 }
 
 /// The information of the DDS file supplied to the reader.
@@ -42,11 +42,11 @@ pub struct DdsInfo {
 /// `None` if the file is not a valid DDS file with a known format, or if
 /// the length is insufficient to read the headers.
 ///
-/// Otherwise, a `DdsInfo` with the format and data offset.
+/// Otherwise, a [`DdsInfo`] with the format and data offset.
 ///
 /// # Notes
 ///
-/// The function will return `None` if the format is not known.
+/// The function will return [`None`] if the format is not known.
 /// For DX10 headers, it will check the `DXGI_FORMAT` field to determine
 /// the format.
 ///

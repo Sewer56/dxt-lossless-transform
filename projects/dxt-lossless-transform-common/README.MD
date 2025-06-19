@@ -13,6 +13,11 @@ This contains shared private implementation detail. This crate is not intended t
 
 - [Color565](./src/color_565.rs): A color type representing a 5-bit red, 6-bit green, and 5-bit blue component.
 - [Color8888](./src/color_8888.rs): A color type representing an 8-bit red, 8-bit green, 8-bit blue, and 8-bit alpha component.
+- [Decoded4x4Block](./src/decoded_4x4_block.rs): A structure representing a decompressed 4x4 pixel block used in DXT/BC texture compression formats.
+
+## CPU Feature Detection
+
+- [cpu_detect](./src/cpu_detect.rs): Runtime CPU feature detection for SIMD instruction sets (SSE2, AVX2, AVX-512) to enable optimal code paths based on available hardware capabilities.
 
 ## Development
 

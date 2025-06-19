@@ -1,14 +1,14 @@
-pub mod portable32;
+mod portable32;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod sse2;
+mod sse2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod avx2;
+mod avx2;
 
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod avx512;
+mod avx512;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
@@ -227,6 +227,7 @@ pub unsafe fn unsplit_block_with_separate_pointers(
 // Re-export functions for benchmarking when the 'bench' feature is enabled
 #[cfg(feature = "bench")]
 #[allow(clippy::missing_safety_doc)]
+#[allow(missing_docs)]
 pub mod bench_exports {
     pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
         super::portable32::u32_detransform(input_ptr, output_ptr, len)

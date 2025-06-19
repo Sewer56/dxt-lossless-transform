@@ -144,10 +144,10 @@ where
             } else {
                 // Case 1: Solid color block
                 // Convert the color to RGB565
-                let color565 = pixel.to_color_565();
+                let color565 = pixel.to_565_lossy();
 
                 // Check if color can be round-tripped cleanly through RGB565
-                let color8888 = color565.to_color_8888();
+                let color8888 = color565.to_8888_lossy();
 
                 if unlikely(color8888 == pixel) {
                     // Can be normalized
@@ -317,10 +317,10 @@ pub unsafe fn normalize_split_blocks_in_place(
             } else {
                 // Case 1: Solid color block
                 // Convert the color to RGB565
-                let color565 = pixel.to_color_565();
+                let color565 = pixel.to_565_lossy();
 
                 // Check if color can be round-tripped cleanly through RGB565
-                let color8888 = color565.to_color_8888();
+                let color8888 = color565.to_8888_lossy();
 
                 if unlikely(color8888 == pixel) {
                     // Can be normalized, write the standard pattern. 

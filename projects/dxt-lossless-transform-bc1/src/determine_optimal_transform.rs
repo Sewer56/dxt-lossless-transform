@@ -1,3 +1,71 @@
+//! Optimal BC1 Transform Determination
+//!
+//! This module provides functionality to determine the best transformation parameters for BC1
+//! (DXT1) compressed texture data to achieve optimal compression ratios.
+//!
+//! ## Overview
+//!
+//! BC1 compression can be further optimized by applying various transformations before
+//! final compression. This module analyzes different transformation options and [`Bc1TransformDetails`]
+//! and selects the combination that results in the smallest compressed file size.
+//!
+//! ## Performance Characteristics
+//!
+//! The functions in this module perform brute force testing of different transformations
+//! as follows:
+//!
+//! 1. Transform the data into a specific format.
+//! 2. Estimate the compressed size using a provided file size estimator function.
+//! 3. Compare the estimated sizes to find the best transformation.
+//!
+//! The typical throughput for the transformation is ~24GB/s transformation speed on single thread (Ryzen 9950X3D),
+//! so in practice the speed depends on how fast the estimator function can run. When ran with `zstandard -1`,
+//! the speed is ~265MiB/s for the estimator function. With `lossless-transform-utils` it is 641.30MiB/s
+//!
+//! For memory, the usage is the same as the size of the input data, we need a buffer for the transformed
+//! output.
+//!
+//! ## Usage Example
+//!
+//! ```rust,no_run
+//! # use dxt_lossless_transform_bc1::determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions};
+//!
+//! // Define a compression estimator function
+//! fn my_compression_estimator(data: *const u8, len: usize) -> usize {
+//!     // Your compression size estimation logic here
+//!     len // Placeholder
+//! }
+//!
+//! let bc1_data = vec![0u8; 8]; // Example BC1 block data
+//! let options = Bc1EstimateOptions {
+//!     file_size_estimator: my_compression_estimator,
+//!     use_all_decorrelation_modes: false, // Fast mode
+//! };
+//!
+//! // Determine optimal transform (unsafe due to raw pointers)
+//! let transform_details = unsafe {
+//!     determine_best_transform_details(bc1_data.as_ptr(), bc1_data.len(), options)
+//! }.expect("Transform determination failed");
+//! ```
+//!
+//! Your 'estimator' function needs to use the same 'concepts' as the actual final compression function.
+//! For example, an LZ compressor will work well for another LZ compressor, but not for something
+//! based on the Burrows-Wheeler Transform (BWT).
+//!
+//! [See my blog post](https://sewer56.dev/blog/2025/03/11/a-program-for-helping-create-lossless-transforms.html#estimator-accuracy-vs-bzip3) for reference.
+//!
+//! ## Optimization Strategy
+//!
+//! Determines the best [`Bc1TransformDetails`] by brute force testing of different transformation
+//! combinations and selecting the one that produces the smallest estimated compressed size.
+//!
+//! ## Implementation Notes
+//!
+//! - Index data is excluded from size estimation as it has poor compressibility
+//!   (entropy ≈ 7.0, minimal LZ matches) with negligible impact on results
+//! - The brute force approach ensures finding the global optimum within tested parameters
+//! - Memory allocation uses 64-byte alignment for optimal SIMD performance
+
 use crate::Bc1TransformDetails;
 use dxt_lossless_transform_common::{
     allocate::{allocate_align_64, AllocateError},
@@ -59,7 +127,8 @@ where
 /// # Remarks
 ///
 /// This function is a brute force approach that tests all standard transform options:
-/// - 1/8th of the compression speed ([`YCoCgVariant`] * 2 (split_colours))
+/// - 1/4th of the compression speed in fast mode (2 [`YCoCgVariant`] * 2 (split_colours))
+/// - 1/8th of the compression speed in comprehensive mode (4 [`YCoCgVariant`] * 2 (split_colours))
 /// - Uses 1x the memory of input size (for temporary copy of the input data)
 ///
 /// For experimental normalization support, use the functions in the experimental module instead.
@@ -120,6 +189,7 @@ where
 /// An error that happened in memory allocation within the library.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum DetermineBestTransformError {
+    /// An error that happened in memory allocation within the library
     #[error(transparent)]
     AllocateError(#[from] AllocateError),
 }

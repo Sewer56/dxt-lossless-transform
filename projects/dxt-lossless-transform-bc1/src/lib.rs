@@ -6,6 +6,7 @@
     all(feature = "nightly", any(target_arch = "x86_64", target_arch = "x86")),
     feature(stdarch_x86_avx512)
 )]
+#![warn(missing_docs)]
 
 pub(crate) mod transforms;
 

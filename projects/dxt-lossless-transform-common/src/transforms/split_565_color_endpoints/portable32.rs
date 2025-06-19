@@ -86,3 +86,22 @@ fn get_second2bytes(value: u32) -> u16 {
 fn get_first2bytes(value: u32) -> u16 {
     (value) as u16
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::transforms::split_565_color_endpoints::tests::*;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(u32, "u32")]
+    fn test_portable32_aligned(#[case] implementation: TransformFn, #[case] impl_name: &str) {
+        test_implementation_aligned(implementation, impl_name);
+    }
+
+    #[rstest]
+    #[case(u32, "u32")]
+    fn test_portable32_unaligned(#[case] implementation: TransformFn, #[case] impl_name: &str) {
+        test_implementation_unaligned(implementation, impl_name);
+    }
+}

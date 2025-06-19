@@ -7,10 +7,13 @@
     feature(stdarch_x86_avx512)
 )]
 #![cfg_attr(feature = "nightly", feature(allocator_api))]
+#![warn(missing_docs)]
 
 pub mod color_565;
 pub mod color_8888;
 pub mod decoded_4x4_block;
+
+/// This module contains various 'transforms' which may be helpful for making data more compressible.
 pub mod transforms {
     pub mod split_565_color_endpoints;
 }

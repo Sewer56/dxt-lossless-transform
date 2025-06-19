@@ -6,16 +6,16 @@ use super::{constants::*, is_dds};
 pub enum DdsFormat {
     /// Indicates the data is not a DDS file.
     /// This is mostly reserved for the C API, where a native 'Option' type is not available.
-    NotADds,
+    NotADds = 0,
     /// This is a DDS file, but not in a format we know.
-    Unknown,
+    Unknown = 1,
     /// a.k.a. DXT1
-    BC1,
+    BC1 = 2,
     /// a.k.a. DXT2/3
-    BC2,
+    BC2 = 3,
     /// a.k.a. DXT4/5
-    BC3,
-    BC7,
+    BC3 = 4,
+    BC7 = 5,
 }
 
 /// The information of the DDS file supplied to the reader.

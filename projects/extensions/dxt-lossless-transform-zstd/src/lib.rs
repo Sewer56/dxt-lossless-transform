@@ -5,7 +5,7 @@
 extern crate alloc;
 
 use core::{ffi::c_void, slice};
-use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
+use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
 use dxt_lossless_transform_common::allocate::allocate_align_64;
 use dxt_lossless_transform_common::allocate::AllocateError;
 use thiserror::Error;
@@ -97,6 +97,7 @@ impl SizeEstimationOperations for ZStandardSizeEstimation {
         &self,
         data_ptr: *const u8,
         len_bytes: usize,
+        _data_type: DataType,
     ) -> Result<usize, Self::Error> {
         if data_ptr.is_null() {
             return Ok(0);
@@ -196,7 +197,9 @@ mod tests {
     #[test]
     fn estimate_empty_data() {
         let estimator = ZStandardSizeEstimation::new_default();
-        let result = unsafe { estimator.estimate_compressed_size(core::ptr::null(), 0) };
+        let result = unsafe {
+            estimator.estimate_compressed_size(core::ptr::null(), 0, DataType::Bc1Colours)
+        };
         assert_eq!(result.unwrap(), 0);
     }
 
@@ -206,7 +209,9 @@ mod tests {
         let data =
             b"Hello, world! This is a test string for compression. test test test test test test!!";
 
-        let result = unsafe { estimator.estimate_compressed_size(data.as_ptr(), data.len()) };
+        let result = unsafe {
+            estimator.estimate_compressed_size(data.as_ptr(), data.len(), DataType::Bc1Colours)
+        };
 
         assert!(result.is_ok());
         let size = result.unwrap();
@@ -229,11 +234,13 @@ mod tests {
         let estimator10 = ZStandardSizeEstimation::new(10).unwrap();
         let data = b"This is a longer test string that should compress well with different levels.";
 
-        let level1_result =
-            unsafe { estimator1.estimate_compressed_size(data.as_ptr(), data.len()) };
+        let level1_result = unsafe {
+            estimator1.estimate_compressed_size(data.as_ptr(), data.len(), DataType::Bc1Colours)
+        };
 
-        let level10_result =
-            unsafe { estimator10.estimate_compressed_size(data.as_ptr(), data.len()) };
+        let level10_result = unsafe {
+            estimator10.estimate_compressed_size(data.as_ptr(), data.len(), DataType::Bc1Colours)
+        };
 
         assert!(level1_result.is_ok());
         assert!(level10_result.is_ok());

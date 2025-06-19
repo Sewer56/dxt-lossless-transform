@@ -7,7 +7,7 @@ use crate::{transforms::standard::transform, YCoCgVariant};
 use core::mem::size_of;
 use core::ptr::null_mut;
 use core::slice;
-use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
+use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
 use dxt_lossless_transform_common::allocate::FixedRawAllocArray;
 use dxt_lossless_transform_common::{
     color_565::Color565, transforms::split_565_color_endpoints::split_color_endpoints,
@@ -174,13 +174,24 @@ unsafe fn test_normalize_variant_with_normalization<T>(
     // indices_out_arr.copy_from_slice(indices_in_arr);
 
     // Test the current mode.
-    let result_size = match transform_options
-        .size_estimator
-        .estimate_compressed_size(output, len / 2)
-    {
-        Ok(size) => size,
-        Err(_) => return, // Skip this variant if estimation fails
+    let data_type = match (
+        current_mode.decorrelation_mode,
+        current_mode.split_colour_endpoints,
+    ) {
+        (YCoCgVariant::None, false) => DataType::Bc1Colours,
+        (YCoCgVariant::None, true) => DataType::Bc1SplitColours,
+        (_, true) => DataType::Bc1SplitDecorrelatedColours, // Split colours with decorrelation
+        (_, false) => DataType::Bc1DecorrelatedColours,     // Decorrelated but not split
     };
+
+    let result_size =
+        match transform_options
+            .size_estimator
+            .estimate_compressed_size(output, len / 2, data_type)
+        {
+            Ok(size) => size,
+            Err(_) => return, // Skip this variant if estimation fails
+        };
     if result_size < *best_size {
         *best_size = result_size;
         *best_transform_details = current_mode;
@@ -212,6 +223,7 @@ mod tests {
                 &self,
                 _data_ptr: *const u8,
                 len_bytes: usize,
+                _data_type: DataType,
             ) -> Result<usize, Self::Error> {
                 Ok(len_bytes) // Just return the input length
             }

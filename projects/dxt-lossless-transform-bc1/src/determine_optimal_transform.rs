@@ -29,7 +29,7 @@
 //!
 //! ```rust,no_run
 //! # use dxt_lossless_transform_bc1::determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions};
-//! # use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
+//! # use dxt_lossless_transform_api_common::estimate::{SizeEstimationOperations, DataType};
 //!
 //! // Define a compression estimator implementation
 //! struct MyCompressionEstimator;
@@ -41,6 +41,7 @@
 //!         &self,
 //!         _data_ptr: *const u8,
 //!         len_bytes: usize,
+//!         _data_type: DataType,
 //!     ) -> Result<usize, Self::Error> {
 //!         Ok(len_bytes) // Your compression size estimation logic here
 //!     }
@@ -77,7 +78,7 @@
 //! - Memory allocation uses 64-byte alignment for optimal SIMD performance
 
 use crate::Bc1TransformDetails;
-use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
+use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
 use dxt_lossless_transform_common::{
     allocate::{allocate_align_64, AllocateError},
     color_565::YCoCgVariant,
@@ -105,10 +106,6 @@ where
     /// A trait-based size estimator that provides size estimation operations.
     ///
     /// # Remarks
-    ///
-    /// This provides a flexible and reusable approach for size estimation.
-    /// The trait implementation can maintain state, provide different algorithms, and offer
-    /// better error handling compared to simple function pointers.
     ///
     /// The estimator should have its compression level and other parameters already configured.
     /// This allows for more flexible usage patterns where different estimators can have
@@ -205,9 +202,19 @@ where
             // speed.
 
             // Test the current mode by measuring the compressed size using the trait
+            let data_type = match (
+                current_mode.decorrelation_mode,
+                current_mode.split_colour_endpoints,
+            ) {
+                (YCoCgVariant::None, false) => DataType::Bc1Colours,
+                (YCoCgVariant::None, true) => DataType::Bc1SplitColours,
+                (_, true) => DataType::Bc1SplitDecorrelatedColours, // Split colours with decorrelation
+                (_, false) => DataType::Bc1DecorrelatedColours,     // Decorrelated but not split
+            };
+
             let result_size = transform_options
                 .size_estimator
-                .estimate_compressed_size(buffer_ptr, len / 2)
+                .estimate_compressed_size(buffer_ptr, len / 2, data_type)
                 .map_err(DetermineBestTransformError::SizeEstimationError)?;
             if result_size < best_size {
                 best_size = result_size;
@@ -245,6 +252,7 @@ mod tests {
                 &self,
                 _data_ptr: *const u8,
                 len_bytes: usize,
+                _data_type: DataType,
             ) -> Result<usize, Self::Error> {
                 Ok(len_bytes) // Just return the input length
             }
@@ -292,6 +300,7 @@ mod tests {
                 &self,
                 _data_ptr: *const u8,
                 _len_bytes: usize,
+                _data_type: DataType,
             ) -> Result<usize, Self::Error> {
                 Err("Estimation failed")
             }

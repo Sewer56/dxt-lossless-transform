@@ -4,6 +4,20 @@
 //! of data, which can be used for optimization algorithms that need to compare
 //! compression ratios without performing full compression.
 
+/// Enum representing the type of data being estimated for compression.
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DataType {
+    /// Standard BC1 colour data (interleaved color0/color1 pairs)
+    Bc1Colours = 0,
+    /// BC1 colour data after decorrelation transforms have been applied
+    Bc1DecorrelatedColours = 1,
+    /// BC1 colour data that has been split into separate color0 and color1 arrays
+    Bc1SplitColours = 2,
+    /// BC1 colour data that has been both split and decorrelated
+    Bc1SplitDecorrelatedColours = 3,
+}
+
 /// Trait for size estimation operations.
 ///
 /// Implementations can provide either fast approximations or perform actual
@@ -20,6 +34,7 @@ pub trait SizeEstimationOperations {
     /// # Parameters
     /// * `data_ptr` - Pointer to the data to estimate
     /// * `len_bytes` - Length of the data in bytes
+    /// * `data_type` - The type of data being compressed
     ///
     /// # Returns
     /// The estimated compressed size in bytes
@@ -30,6 +45,7 @@ pub trait SizeEstimationOperations {
         &self,
         data_ptr: *const u8,
         len_bytes: usize,
+        data_type: DataType,
     ) -> Result<usize, Self::Error>;
 }
 
@@ -57,15 +73,18 @@ impl<T: SizeEstimationOperations> FunctionSizeEstimator<T> {
 
     /// Returns a closure that can be used as a size estimation function.
     ///
-    /// The returned closure has the signature `Fn(*const u8, usize) -> usize`
+    /// The returned closure has the signature `Fn(*const u8, usize, DataType) -> usize`
     /// and returns 0 if estimation fails.
-    pub fn as_function(&self) -> impl Fn(*const u8, usize) -> usize + '_
+    pub fn as_function(&self) -> impl Fn(*const u8, usize, DataType) -> usize + '_
     where
         T::Error: core::fmt::Debug,
     {
-        move |data_ptr: *const u8, len_bytes: usize| -> usize {
+        move |data_ptr: *const u8, len_bytes: usize, data_type: DataType| -> usize {
             unsafe {
-                match self.inner.estimate_compressed_size(data_ptr, len_bytes) {
+                match self
+                    .inner
+                    .estimate_compressed_size(data_ptr, len_bytes, data_type)
+                {
                     Ok(size) => size,
                     Err(e) => {
                         #[cfg(feature = "std")]

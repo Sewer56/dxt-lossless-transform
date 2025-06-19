@@ -1,13 +1,13 @@
 //! Functions for determining the best transform options with experimental normalization support.
 
-use crate::determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions};
-use crate::{
-    determine_optimal_transform::DetermineBestTransformError, transforms::standard::transform,
-    YCoCgVariant,
+use crate::determine_optimal_transform::{
+    determine_best_transform_details, Bc1EstimateOptions, DetermineBestTransformError,
 };
+use crate::{transforms::standard::transform, YCoCgVariant};
 use core::mem::size_of;
 use core::ptr::null_mut;
 use core::slice;
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_common::allocate::FixedRawAllocArray;
 use dxt_lossless_transform_common::{
     color_565::Color565, transforms::split_565_color_endpoints::split_color_endpoints,
@@ -39,13 +39,13 @@ use super::{
 /// # Safety
 ///
 /// Function is unsafe because it deals with raw pointers which must be correct.
-pub unsafe fn determine_best_transform_details_with_normalization<F>(
+pub unsafe fn determine_best_transform_details_with_normalization<T>(
     input_ptr: *const u8,
     len: usize,
-    transform_options: Bc1EstimateOptions<F>,
-) -> Result<Bc1TransformDetailsWithNormalization, DetermineBestTransformError>
+    transform_options: Bc1EstimateOptions<T>,
+) -> Result<Bc1TransformDetailsWithNormalization, DetermineBestTransformError<T::Error>>
 where
-    F: Fn(*const u8, usize) -> usize,
+    T: SizeEstimationOperations,
 {
     const NUM_NORMALIZE: usize = ColorNormalizationMode::all_values().len();
     let mut normalize_buffers = FixedRawAllocArray::<NUM_NORMALIZE>::new(len)?;
@@ -118,16 +118,16 @@ where
 
 #[allow(clippy::too_many_arguments)]
 #[inline]
-unsafe fn test_normalize_variant_with_normalization<F>(
+unsafe fn test_normalize_variant_with_normalization<T>(
     input: *mut u8,
     output: *mut u8,
     len: usize,
-    transform_options: &Bc1EstimateOptions<F>,
+    transform_options: &Bc1EstimateOptions<T>,
     best_transform_details: &mut Bc1TransformDetailsWithNormalization,
     best_size: &mut usize,
     current_mode: Bc1TransformDetailsWithNormalization,
 ) where
-    F: Fn(*const u8, usize) -> usize,
+    T: SizeEstimationOperations,
 {
     // So this is the fun part.
     if current_mode.split_colour_endpoints {
@@ -174,7 +174,13 @@ unsafe fn test_normalize_variant_with_normalization<F>(
     // indices_out_arr.copy_from_slice(indices_in_arr);
 
     // Test the current mode.
-    let result_size = (transform_options.file_size_estimator)(output, len / 2);
+    let result_size = match transform_options
+        .size_estimator
+        .estimate_compressed_size(output, len / 2)
+    {
+        Ok(size) => size,
+        Err(_) => return, // Skip this variant if estimation fails
+    };
     if result_size < *best_size {
         *best_size = result_size;
         *best_transform_details = current_mode;
@@ -184,11 +190,6 @@ unsafe fn test_normalize_variant_with_normalization<F>(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// Simple dummy file size estimator that just returns the input length
-    fn dummy_file_size_estimator(_data: *const u8, len: usize) -> usize {
-        len
-    }
 
     /// Test that determine_best_transform_details_with_normalization doesn't crash with minimal BC1 data
     #[test]
@@ -201,8 +202,23 @@ mod tests {
             0x00, 0x00, 0x00, 0x00, // Indices: all pointing to Color0
         ];
 
+        // Create a simple dummy estimator
+        struct DummyEstimator;
+
+        impl SizeEstimationOperations for DummyEstimator {
+            type Error = &'static str;
+
+            unsafe fn estimate_compressed_size(
+                &self,
+                _data_ptr: *const u8,
+                len_bytes: usize,
+            ) -> Result<usize, Self::Error> {
+                Ok(len_bytes) // Just return the input length
+            }
+        }
+
         let transform_options = Bc1EstimateOptions {
-            file_size_estimator: dummy_file_size_estimator,
+            size_estimator: DummyEstimator,
             use_all_decorrelation_modes: false,
         };
 

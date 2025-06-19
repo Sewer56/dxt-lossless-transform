@@ -29,16 +29,26 @@
 //!
 //! ```rust,no_run
 //! # use dxt_lossless_transform_bc1::determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions};
+//! # use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 //!
-//! // Define a compression estimator function
-//! fn my_compression_estimator(data: *const u8, len: usize) -> usize {
-//!     // Your compression size estimation logic here
-//!     len // Placeholder
+//! // Define a compression estimator implementation
+//! struct MyCompressionEstimator;
+//!
+//! impl SizeEstimationOperations for MyCompressionEstimator {
+//!     type Error = &'static str;
+//!
+//!     unsafe fn estimate_compressed_size(
+//!         &self,
+//!         _data_ptr: *const u8,
+//!         len_bytes: usize,
+//!     ) -> Result<usize, Self::Error> {
+//!         Ok(len_bytes) // Your compression size estimation logic here
+//!     }
 //! }
 //!
 //! let bc1_data = vec![0u8; 8]; // Example BC1 block data
 //! let options = Bc1EstimateOptions {
-//!     file_size_estimator: my_compression_estimator,
+//!     size_estimator: MyCompressionEstimator,
 //!     use_all_decorrelation_modes: false, // Fast mode
 //! };
 //!
@@ -67,39 +77,51 @@
 //! - Memory allocation uses 64-byte alignment for optimal SIMD performance
 
 use crate::Bc1TransformDetails;
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_common::{
     allocate::{allocate_align_64, AllocateError},
     color_565::YCoCgVariant,
 };
 use thiserror::Error;
 
+/// An error that happened during transform determination.
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum DetermineBestTransformError<E> {
+    /// An error that happened in memory allocation within the library
+    #[error(transparent)]
+    AllocateError(#[from] AllocateError),
+
+    /// An error that happened during size estimation
+    #[error("Size estimation failed: {0:?}")]
+    SizeEstimationError(E),
+}
+
 /// The options for [`determine_best_transform_details`], regarding how the estimation is done,
 /// and other related factors.
-pub struct Bc1EstimateOptions<F>
+pub struct Bc1EstimateOptions<T>
 where
-    F: Fn(*const u8, usize) -> usize,
+    T: SizeEstimationOperations,
 {
-    /// A function that returns an estimated file size for the given passed in data+len tuple.
-    ///
-    /// # Parameters
-    ///
-    /// - `input_ptr`: A pointer to the input data
-    /// - `len`: The length of the input data in bytes
-    ///
-    /// # Returns
-    ///
-    /// The estimated file size in bytes
+    /// A trait-based size estimator that provides size estimation operations.
     ///
     /// # Remarks
     ///
-    /// For minimizing file size, use the exact same compression function as the final file will
-    /// be compressed.
+    /// This provides a flexible and reusable approach for size estimation.
+    /// The trait implementation can maintain state, provide different algorithms, and offer
+    /// better error handling compared to simple function pointers.
+    ///
+    /// The estimator should have its compression level and other parameters already configured.
+    /// This allows for more flexible usage patterns where different estimators can have
+    /// completely different configuration approaches.
+    ///
+    /// For minimizing file size, use the exact same compression algorithm as the final file will
+    /// be compressed with.
     ///
     /// Otherwise consider using a slightly lower level of the same compression function, both to
     /// maximize speed of [`determine_best_transform_details`], and to improve decompression speed
     /// by reducing the size of the sliding window (so more data in cache) and increasing minimum
     /// match length.
-    pub file_size_estimator: F,
+    pub size_estimator: T,
 
     /// Controls which decorrelation modes are tested during optimization.
     ///
@@ -111,7 +133,6 @@ where
     /// for potentially better compression at the cost of longer optimization time.
     pub use_all_decorrelation_modes: bool,
 }
-
 
 /// Determine the best transform details for the given BC1 blocks.
 ///
@@ -139,14 +160,14 @@ where
 ///
 /// Function is unsafe because it deals with raw pointers which must be correct.
 /// If `result_buffer_ptr` is not null, it must point to at least `len` bytes of valid memory.
-pub unsafe fn determine_best_transform_details<F>(
+pub unsafe fn determine_best_transform_details<T>(
     input_ptr: *const u8,
     len: usize,
     result_buffer_ptr: *mut u8,
-    transform_options: Bc1EstimateOptions<F>,
-) -> Result<Bc1TransformDetails, DetermineBestTransformError>
+    transform_options: Bc1EstimateOptions<T>,
+) -> Result<Bc1TransformDetails, DetermineBestTransformError<T::Error>>
 where
-    F: Fn(*const u8, usize) -> usize,
+    T: SizeEstimationOperations,
 {
     // Check if we need to allocate memory or use the provided buffer
     let (buffer_ptr, _allocated_buffer) = if result_buffer_ptr.is_null() {
@@ -183,8 +204,11 @@ where
             // Excluding them from the estimation has negligible effect on results, with a doubling of
             // speed.
 
-            // Test the current mode by measuring the compressed size
-            let result_size = (transform_options.file_size_estimator)(buffer_ptr, len / 2);
+            // Test the current mode by measuring the compressed size using the trait
+            let result_size = transform_options
+                .size_estimator
+                .estimate_compressed_size(buffer_ptr, len / 2)
+                .map_err(DetermineBestTransformError::SizeEstimationError)?;
             if result_size < best_size {
                 best_size = result_size;
                 best_transform_details = current_mode;
@@ -195,23 +219,10 @@ where
     Ok(best_transform_details)
 }
 
-/// An error that happened in memory allocation within the library.
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
-pub enum DetermineBestTransformError {
-    /// An error that happened in memory allocation within the library
-    #[error(transparent)]
-    AllocateError(#[from] AllocateError),
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-
-    /// Simple dummy file size estimator that just returns the input length
-    fn dummy_file_size_estimator(_data: *const u8, len: usize) -> usize {
-        len
-    }
 
     /// Test that determine_best_transform_details doesn't crash with minimal BC1 data
     #[rstest]
@@ -224,14 +235,34 @@ mod tests {
             0x00, 0x00, 0x00, 0x00, // Indices: all pointing to Color0
         ];
 
+        // Create a simple dummy estimator
+        struct DummyEstimator;
+
+        impl SizeEstimationOperations for DummyEstimator {
+            type Error = &'static str;
+
+            unsafe fn estimate_compressed_size(
+                &self,
+                _data_ptr: *const u8,
+                len_bytes: usize,
+            ) -> Result<usize, Self::Error> {
+                Ok(len_bytes) // Just return the input length
+            }
+        }
+
         let transform_options = Bc1EstimateOptions {
-            file_size_estimator: dummy_file_size_estimator,
+            size_estimator: DummyEstimator,
             use_all_decorrelation_modes: false,
         };
 
         // This should not crash
         let result = unsafe {
-            determine_best_transform_details(bc1_data.as_ptr(), bc1_data.len(), std::ptr::null_mut(), transform_options)
+            determine_best_transform_details(
+                bc1_data.as_ptr(),
+                bc1_data.len(),
+                std::ptr::null_mut(),
+                transform_options,
+            )
         };
 
         // Just verify it returns Ok, we don't care about the specific transform details
@@ -239,5 +270,61 @@ mod tests {
             result.is_ok(),
             "Function should not crash with valid BC1 data"
         );
+    }
+
+    /// Test that determine_best_transform_details handles estimation errors properly
+    #[rstest]
+    fn determine_best_transform_details_handles_errors() {
+        // Create minimal BC1 block data
+        let bc1_data = [
+            0x00, 0xF8, // Color0: Red in RGB565 (0xF800)
+            0x00, 0x00, // Color1: Black (0x0000)
+            0x00, 0x00, 0x00, 0x00, // Indices: all pointing to Color0
+        ];
+
+        // Create an estimator that always fails
+        struct FailingEstimator;
+
+        impl SizeEstimationOperations for FailingEstimator {
+            type Error = &'static str;
+
+            unsafe fn estimate_compressed_size(
+                &self,
+                _data_ptr: *const u8,
+                _len_bytes: usize,
+            ) -> Result<usize, Self::Error> {
+                Err("Estimation failed")
+            }
+        }
+
+        let transform_options = Bc1EstimateOptions {
+            size_estimator: FailingEstimator,
+            use_all_decorrelation_modes: false,
+        };
+
+        let result = unsafe {
+            determine_best_transform_details(
+                bc1_data.as_ptr(),
+                bc1_data.len(),
+                std::ptr::null_mut(),
+                transform_options,
+            )
+        };
+
+        // Should return an error
+        assert!(
+            result.is_err(),
+            "Function should return error when estimator fails"
+        );
+
+        // Check that it's specifically a SizeEstimationError
+        if let Err(e) = result {
+            match e {
+                DetermineBestTransformError::SizeEstimationError(_) => {
+                    // This is what we expect
+                }
+                _ => panic!("Expected SizeEstimationError, got {e:?}"),
+            }
+        }
     }
 }

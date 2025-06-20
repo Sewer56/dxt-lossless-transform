@@ -1,4 +1,4 @@
-use super::{determine_best_transform_details_with_estimator, BenchmarkCmd};
+use super::{determine_best_transform_details_with_estimator_cached, BenchmarkCmd};
 use crate::{
     debug::{
         benchmark_common::{
@@ -195,14 +195,14 @@ fn process_file(
                 let scenarios = vec![
                     (
                         "API Recommended",
-                        get_api_recommended_details(
+                        determine_best_transform_details_with_estimator_cached(
                             data_ptr,
                             len_bytes,
                             config.estimate_compression_level,
                             config.estimate_compression_algorithm,
-                            caches.compressed_size_cache,
                             config.experimental_normalize,
                             config.use_all_decorrelation_modes,
+                            caches.compressed_size_cache,
                         )?,
                     ),
                     (
@@ -270,25 +270,6 @@ fn process_file(
     }
 
     Ok(file_result)
-}
-
-unsafe fn get_api_recommended_details(
-    data_ptr: *const u8,
-    len_bytes: usize,
-    estimate_compression_level: i32,
-    estimate_compression_algorithm: CompressionAlgorithm,
-    _cache: &Mutex<CompressionSizeCache>, // Unused but kept for API compatibility
-    experimental_normalize: bool,
-    use_all_decorrelation_modes: bool,
-) -> Result<Bc1TransformDetails, TransformError> {
-    determine_best_transform_details_with_estimator(
-        data_ptr,
-        len_bytes,
-        estimate_compression_level,
-        estimate_compression_algorithm,
-        experimental_normalize,
-        use_all_decorrelation_modes,
-    )
 }
 
 unsafe fn process_scenario(

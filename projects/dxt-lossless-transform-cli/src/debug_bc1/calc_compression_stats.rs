@@ -1,4 +1,4 @@
-use super::{determine_best_transform_details_with_estimator, CompressionStatsCmd};
+use super::{determine_best_transform_details_with_estimator_cached, CompressionStatsCmd};
 use crate::{
     debug::{
         calc_compression_stats_common,
@@ -224,13 +224,14 @@ unsafe fn analyze_bc1_api_recommendation(
     use_all_decorrelation_modes: bool,
     cache: &Mutex<CompressionCache>,
 ) -> Result<Bc1TransformResult, TransformError> {
-    let best_details = determine_best_transform_details_with_estimator(
+    let best_details = determine_best_transform_details_with_estimator_cached(
         data_ptr,
         len_bytes,
         estimate_compression_level,
         estimate_compression_algorithm,
         experimental_normalize,
         use_all_decorrelation_modes,
+        cache,
     )?;
 
     // Transform the data using the recommended details and measure the size

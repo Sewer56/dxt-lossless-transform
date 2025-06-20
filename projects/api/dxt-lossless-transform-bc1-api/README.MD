@@ -4,118 +4,263 @@
 [![Docs.rs](https://docs.rs/dxt-lossless-transform-bc1-api/badge.svg)](https://docs.rs/dxt-lossless-transform-bc1-api)
 [![CI](https://github.com/Sewer56/dxt-lossless-transform/actions/workflows/rust.yml/badge.svg)](https://github.com/Sewer56/dxt-lossless-transform/actions)
 
-## About
-
 This crate provides a fast, visually lossless transform for the BC1 block format.
-This is the high level API for the crate.
+This is the high level API for the BC1 transform.
 
-## Usage
+## Quick Start
 
-This crate is not yet released.
+Add this to your `Cargo.toml`:
 
-## Reference Numbers
-
-Dataset is the following
-
-```text
-.
-├── 202x-architecture-10.01
-├── 202x-landscape-10.01
-├── 3dnpc-loose-latest
-├── book-of-silence-se-1.9.1
-├── embers-xd-3.0.8
-├── glorious-doors-of-skyrim-1.1
-├── majestic-mountains-402
-├── noble-skyrim-2k
-├── ruins-clutter-improved-se-3.2
-├── skyland-aio-4.32
-└── skyrim-flora-overhaul-with-grass
+```toml
+[dependencies]
+dxt-lossless-transform-bc1-api = "0.1"
+dxt-lossless-transform-ltu = "0.1"  # For size estimation (if needed)
 ```
 
-A bunch of Skyrim mods, from Nexus, obtained by sorting by most downloaded under the 'texture'
-category. All non .DDS files were removed.
+### Basic Usage
 
-The original data set contained 1943 files, totalling 6.84GiB.
+How to transform/untransform BC1 data:
 
-### Fast Mode (Split Transform Only)
+```rust
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+use dxt_lossless_transform_bc1_api::{transform_bc1_slice, untransform_bc1_slice};
+use dxt_lossless_transform_bc1::{Bc1TransformDetails, Bc1DetransformDetails};
 
-#### Before
+// Your BC1 texture data (must be divisible by 8 bytes)
+let bc1_data = vec![0u8; 8 * 100]; // 100 BC1 blocks
+let mut transformed = vec![0u8; bc1_data.len()];
+let mut restored = vec![0u8; bc1_data.len()];
 
-```text
-Tool       Size            Ratio 
----------------------------------
-zlib       4.77 GiB        69.77%
-zstd 22    4.23 GiB        61.91%
-bzip3 16m  3.83 GiB        56.00%
-kanzi 7    3.85 GiB        56.32%
-7z         3.83 GiB        56.05%
+// Transform with default options
+let transform_options = Bc1TransformDetails::default();
+transform_bc1_slice(&bc1_data, &mut transformed, transform_options)?;
+
+// Untransform back to original
+let detransform_options = Bc1DetransformDetails::from(transform_options);
+untransform_bc1_slice(&transformed, &mut restored, detransform_options)?;
+
+assert_eq!(bc1_data, restored);
+# Ok(())
+# }
 ```
 
-#### After
+Run the transform before passing it to your compressor.
+Run the untransform after decompressing.
 
-```text
-Tool       Size            Ratio 
----------------------------------
-zlib       4.29 GiB        62.70%
-zstd 22    3.89 GiB        56.95%
-bzip3 16m  3.51 GiB        51.39%
-kanzi 7    3.53 GiB        51.67%
-7z         3.69 GiB        54.03%
+### Automatic Optimization
+
+This finds the optimal transform parameters for your data.
+
+```rust
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+use dxt_lossless_transform_bc1_api::{determine_optimal_transform, transform_bc1_allocating};
+use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
+use dxt_lossless_transform_api_common::allocate::allocate_cache_line_aligned;
+
+// Use cache-line aligned allocation for best performance
+let mut bc1_buffer = allocate_cache_line_aligned(8 * 500)?; // 500 BC1 blocks
+// Fill with your BC1 data...
+
+// Automatically determine the best transform parameters
+let estimator = LosslessTransformUtilsSizeEstimation::new();
+let optimal_options = determine_optimal_transform(bc1_buffer.as_slice(), estimator, false)?;
+
+// Apply the optimal transform with automatic allocation
+let transformed = transform_bc1_allocating(bc1_buffer.as_slice(), optimal_options)?;
+# Ok(())
+# }
 ```
 
-#### Benchmarks
+Recommended estimators ***for ZStandard compression***:
 
-Benchmark code can be found [in the dxt-lossless-transform-bc1](https://github.com/Sewer56/dxt-lossless-transform/tree/main/projects/dxt-lossless-transform-bc1) project.
+| Estimator                                | Crate                         | Speed*     | Accuracy | Use Case                                 |
+| ---------------------------------------- | ----------------------------- | ---------- | -------- | ---------------------------------------- |
+| [`LosslessTransformUtilsSizeEstimation`] | `dxt-lossless-transform-ltu`  | ~641 MiB/s | Good     | Fast optimization, real-time use         |
+| [`ZStandardSizeEstimation`] level 1      | `dxt-lossless-transform-zstd` | ~265 MiB/s | Higher   | Optimal compression ratio/speed tradeoff |
 
-On a 5900X, with DDR4 3200, CL16 RAM the BC1 transform runs at approx:
+<sub>*Speed measured on Ryzen 9950X3D, single thread</sub>
 
-Transform BC1 (`split_blocks`):
+**Quick recommendation**: Use [`LosslessTransformUtilsSizeEstimation`] for real-time packing (zstd level < 3), else [`ZStandardSizeEstimation`] with level 1.
 
-- AVX2 (Assembly): 58.329 GiB/s `avx2 shuffle_permute unroll 2`
-- SSE2 (Assembly): 56.302 GiB/s `sse2 shufps unroll 4`
-- Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 58.163 GiB/s `portable32 no-unroll`
+Higher compression ratios are possible with [`ZStandardSizeEstimation`], but the gains beyond level 1 are minimal; 
+they should be used for final publishing only alongside other brute force options.
 
-Untransform BC1 (`unsplit_blocks`):
+[`LosslessTransformUtilsSizeEstimation`]: https://docs.rs/dxt-lossless-transform-ltu/latest/dxt_lossless_transform_ltu/struct.LosslessTransformUtilsSizeEstimation.html
+[`ZStandardSizeEstimation`]: https://docs.rs/dxt-lossless-transform-zstd/latest/dxt_lossless_transform_zstd/struct.ZStandardSizeEstimation.html
 
-- AVX2 (Assembly): 54.211 GiB/s `avx2 permd unroll 2`
-- SSE2 (Assembly): 47.392 GiB/s `sse2 unpck unroll 2`
-- Compiler v3 (AVX2, Rust + LLVM on `x86-64-v3`): 53.013 GiB/s `portable32 no-unroll`
+## API Reference
 
-You can run the benchmarks like this (example):
+### Core Transform Functions
 
-```bash,ignore
-cargo bench -p dxt-lossless-transform-bc1 --bench untransform_standard --features bench -- "avx2 shuffle_permute"
+- [`transform_bc1_slice`] - Transform BC1 data using provided buffers
+- [`transform_bc1_allocating`] - Transform BC1 data with automatic allocation
+- [`untransform_bc1_slice`] - Restore BC1 data using provided buffers  
+- [`untransform_bc1_allocating`] - Restore BC1 data with automatic allocation
+
+### Optimization Functions
+
+- [`mod@determine_optimal_transform`] - Automatically find best transform parameters
+- [`Bc1TransformOptionsBuilder`] - Builder pattern for custom configuration
+
+### Error Handling
+
+All functions return [`Result`] types with detailed [`Bc1Error`] information:
+
+- [`Bc1Error::InvalidLength`] - Input data not divisible by 8 bytes
+- [`Bc1Error::OutputBufferTooSmall`] - Output buffer insufficient for operation
+- [`Bc1Error::AllocationFailed`] - Memory allocation error
+- [`Bc1Error::DeterminationFailed`] - Transform optimization error
+
+## Performance Considerations
+
+### Memory Alignment
+
+For optimal SIMD performance, use cache-line aligned allocations:
+
+```rust
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+use dxt_lossless_transform_api_common::allocate::allocate_cache_line_aligned;
+
+# let data_size = 1024;
+// Optimal: cache-line aligned (64 bytes on x86/ARM)
+let buffer = allocate_cache_line_aligned(data_size)?;
+
+// Suboptimal: heap allocated, zeroed, may not be aligned
+let buffer = vec![0u8; data_size];
+# Ok(())
+# }
 ```
 
-Measured on Linux with `performance` governor. 8MiB file (see: `projects/dxt-lossless-transform-bc1/benches`).
-These benches are sensitive to external load and CPU temperature, therefore we instead measured steady
-state performance, i.e. 60 seconds warmup (heat up the parts) and 60 seconds measurement.
+### Transform Optimization
 
-In general, the output of LLVM is on par with manually written routines, however the manually
-written routines are smaller in code size; more friendly with cache, etc.
+Choose between speed and quality:
 
-## Testing (CLI)
+```rust
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+# use dxt_lossless_transform_bc1_api::determine_optimal_transform;
+# use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
+# let data = vec![0u8; 8 * 100];
+# let estimator = LosslessTransformUtilsSizeEstimation::new();
+// Fast mode: ~2-3x faster, tests common configurations
+let fast_options = determine_optimal_transform(&data, estimator, false)?;
 
-You can use the `dxt-lossless-transform-cli` tool to perform this transform on DDS files.
-
-```text
-./dxt-lossless-transform-cli transform --input textures --output textures-transformed
+// Thorough mode: tests all decorrelation modes for best compression
+# let estimator = LosslessTransformUtilsSizeEstimation::new();
+let thorough_options = determine_optimal_transform(&data, estimator, true)?;
+# Ok(())
+# }
 ```
 
-You can install it via `cargo install dxt-lossless-transform-cli`, or build it from source.
+### Memory Management
+
+Choose the right API for your use case:
+
+```rust
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+# use dxt_lossless_transform_bc1_api::{transform_bc1_slice, transform_bc1_allocating};
+# use dxt_lossless_transform_bc1::Bc1TransformDetails;
+# let input = vec![0u8; 8 * 10];
+# let mut output = vec![0u8; 8 * 10];
+# let options = Bc1TransformDetails::default();
+// Use slice API when you manage memory
+transform_bc1_slice(&input, &mut output, options)?;
+
+// Use allocating API for convenience
+let result = transform_bc1_allocating(&input, options)?;
+# Ok(())
+# }
+```
+
+## Integration Examples
+
+### With Compression Libraries
+
+```rust
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+use dxt_lossless_transform_bc1_api::{determine_optimal_transform, transform_bc1_allocating};
+# use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
+
+# fn compress_with_zstd(data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+#     Ok(data.to_vec()) // Simulate compression
+# }
+
+fn compress_bc1_texture(bc1_data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    // Step 1: Find optimal transform
+    let estimator = LosslessTransformUtilsSizeEstimation::new();
+    let transform_options = determine_optimal_transform(bc1_data, estimator, false)?;
+    
+    // Step 2: Apply transform
+    let transformed = transform_bc1_allocating(bc1_data, transform_options)?;
+    
+    // Step 3: Compress with your preferred library
+    let compressed = compress_with_zstd(transformed.as_slice())?;
+    
+    Ok(compressed)
+}
+
+# let bc1_data = vec![0u8; 8 * 10];
+# let result = compress_bc1_texture(&bc1_data)?;
+# Ok(())
+# }
+```
+
+### Error Handling Patterns
+
+```rust
+# fn main() {
+use dxt_lossless_transform_bc1_api::{transform_bc1_slice, Bc1Error};
+# use dxt_lossless_transform_bc1::Bc1TransformDetails;
+# let input = vec![0u8; 8 * 10];
+# let mut output = vec![0u8; 8 * 10];
+# let options = Bc1TransformDetails::default();
+
+match transform_bc1_slice(&input, &mut output, options) {
+    Ok(()) => println!("Transform successful"),
+    Err(Bc1Error::InvalidLength(len)) => {
+        eprintln!("Invalid input: {} bytes (must be divisible by 8)", len);
+    }
+    Err(Bc1Error::OutputBufferTooSmall { needed, actual }) => {
+        eprintln!("Buffer too small: need {} bytes, have {}", needed, actual);
+    }
+    Err(e) => eprintln!("Transform failed: {}", e),
+}
+# }
+```
+
+## Testing
+
+Run the test suite:
+
+```bash
+cargo test
+```
+
+Run with all features (requires nightly rust):
+
+```bash
+cargo test --all-features
+```
+
+## CLI Tool
+
+You can use the `dxt-lossless-transform-cli` tool to perform transforms on DDS files:
+
+```bash
+cargo install dxt-lossless-transform-cli
+
+# Transform textures in a directory
+dxt-lossless-transform-cli transform --input textures --output textures-transformed
+```
+
+## License
+
+Licensed under [GPL v3 (with Reloaded FAQ)](./LICENSE).
+
+For more information about licensing, see the [Reloaded project licensing guide][reloaded-license].
 
 ## Development
 
 For information on how to work with this codebase, see [README-DEV.MD][readme-dev].
 
-## License
-
-Licensed under [GPL v3 (with Reloaded FAQ)](./LICENSE).  
-[Learn more about Reloaded's general choice of licensing for projects.][reloaded-license].  
-
-[codecov]: https://about.codecov.io/
-[crates-io-key]: https://crates.io/settings/tokens
-[nuget-key]: https://www.nuget.org/account/apikeys
-[docs]: https://dxt-lossless-transform.github.io/dxt-lossless-transform
 [reloaded-license]: https://reloaded-project.github.io/Reloaded.MkDocsMaterial.Themes.R2/Pages/license.html
 [readme-dev]: https://github.com/Sewer56/dxt-lossless-transform/blob/main/README-DEV.MD

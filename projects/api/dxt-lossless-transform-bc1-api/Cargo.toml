@@ -22,3 +22,6 @@ dxt-lossless-transform-api-common = { path = "../dxt-lossless-transform-api-comm
 dxt-lossless-transform-common = { path = "../../core/dxt-lossless-transform-common" }
 safe-allocator-api = "0.4.0"
 thiserror = "2.0.12"
+
+[dev-dependencies]
+dxt-lossless-transform-ltu = { path = "../../extensions/dxt-lossless-transform-ltu" }

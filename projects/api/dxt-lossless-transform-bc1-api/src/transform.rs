@@ -24,11 +24,16 @@ use safe_allocator_api::RawAlloc;
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// # use dxt_lossless_transform_bc1_api::transform_bc1_slice;
+/// # use dxt_lossless_transform_bc1::Bc1TransformDetails;
 /// let bc1_data = vec![0u8; 8 * 100]; // 100 BC1 blocks
 /// let mut output = vec![0u8; bc1_data.len()];
 ///
 /// transform_bc1_slice(&bc1_data, &mut output, Bc1TransformDetails::default())?;
+/// # Ok(())
+/// # }
 /// ```
 pub fn transform_bc1_slice(
     input: &[u8],
@@ -82,11 +87,16 @@ pub fn transform_bc1_slice(
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// # use dxt_lossless_transform_bc1_api::transform_bc1_allocating;
+/// # use dxt_lossless_transform_bc1::Bc1TransformDetails;
 /// let bc1_data = vec![0u8; 8 * 100]; // 100 BC1 blocks
 ///
 /// let transformed = transform_bc1_allocating(&bc1_data, Bc1TransformDetails::default())?;
 /// // Use transformed.as_slice() to access the data
+/// # Ok(())
+/// # }
 /// ```
 pub fn transform_bc1_allocating(
     input: &[u8],
@@ -132,11 +142,17 @@ pub fn transform_bc1_allocating(
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// # use dxt_lossless_transform_bc1_api::untransform_bc1_slice;
+/// # use dxt_lossless_transform_bc1::Bc1DetransformDetails;
 /// let transformed_data = vec![0u8; 8 * 100]; // 100 transformed BC1 blocks
 /// let mut output = vec![0u8; transformed_data.len()];
+/// # let detransform_options = Bc1DetransformDetails::default();
 ///
 /// untransform_bc1_slice(&transformed_data, &mut output, detransform_options)?;
+/// # Ok(())
+/// # }
 /// ```
 pub fn untransform_bc1_slice(
     input: &[u8],
@@ -190,11 +206,17 @@ pub fn untransform_bc1_slice(
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// # use dxt_lossless_transform_bc1_api::untransform_bc1_allocating;
+/// # use dxt_lossless_transform_bc1::Bc1DetransformDetails;
 /// let transformed_data = vec![0u8; 8 * 100]; // 100 transformed BC1 blocks
+/// # let detransform_options = Bc1DetransformDetails::default();
 ///
 /// let restored = untransform_bc1_allocating(&transformed_data, detransform_options)?;
 /// // Use restored.as_slice() to access the data
+/// # Ok(())
+/// # }
 /// ```
 pub fn untransform_bc1_allocating(
     input: &[u8],

@@ -41,6 +41,11 @@
 //! - **[`YCoCgVariant::None`]**: No transformation (pass-through)
 //!
 //! [`Color565`]: https://docs.rs/dxt-lossless-transform-common/latest/dxt_lossless_transform_common/color_565/struct.Color565.html
+//! [`YCoCgVariant`]: crate::reexports::color_565::YCoCgVariant
+//! [`YCoCgVariant::Variant1`]: crate::reexports::color_565::YCoCgVariant::Variant1
+//! [`YCoCgVariant::Variant2`]: crate::reexports::color_565::YCoCgVariant::Variant2
+//! [`YCoCgVariant::Variant3`]: crate::reexports::color_565::YCoCgVariant::Variant3
+//! [`YCoCgVariant::None`]: crate::reexports::color_565::YCoCgVariant::None
 
 /// Represents a YCoCg-R decorrelation variant for [`Color565`] values.
 ///

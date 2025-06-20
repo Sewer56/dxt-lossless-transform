@@ -31,10 +31,11 @@ use dxt_lossless_transform_bc1::{
 /// # Examples
 ///
 /// ```ignore
-/// use dxt_lossless_transform_bc1_api::{determine_optimal_transform, MyEstimator};
+/// use dxt_lossless_transform_bc1_api::determine_optimal_transform;
+/// use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 ///
 /// let bc1_data = vec![0u8; 8 * 100]; // 100 BC1 blocks
-/// let estimator = MyEstimator::new();
+/// let estimator = LosslessTransformUtilsSizeEstimation::new();
 ///
 /// let best_options = determine_optimal_transform(&bc1_data, estimator, false)?;
 /// ```

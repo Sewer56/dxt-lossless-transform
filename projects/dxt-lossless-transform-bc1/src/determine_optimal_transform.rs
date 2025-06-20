@@ -195,7 +195,8 @@ where
         &[YCoCgVariant::Variant1, YCoCgVariant::None]
     };
 
-    // Pre-allocate compression buffer once for all iterations
+    // Pre-allocate compression buffer once for all iterations\
+    // Note: len/2 because we only compress color data, not indices
     let max_comp_size = transform_options
         .size_estimator
         .max_compressed_size(len / 2)

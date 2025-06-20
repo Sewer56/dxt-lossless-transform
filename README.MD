@@ -37,14 +37,14 @@ Click on a project to navigate to its description.
 > 
 > These libraries help you determine the best transform settings for each algorithm.
 
-Speeds are based off of a single core on a Ryzen 9950X3D CPU, and are approximate values.
+Speeds are based on a single core on a Ryzen 9950X3D CPU, and are approximate values.
 
 - **ZStandard (zstd)**: Uses ZStandard compression to determine best transform settings.
   - Package: [dxt-lossless-transform-zstd]
   - Speed (1 Thread): ~1060MiB/s (level 1)
   - Accuracy: 79.2% (level 1) (vs ZStandard)
   - Use same level as final ZStandard compression level to maximize compression ratio. (but slow!)
-  - Otherwise, Level 1 is recommended for 'balanced' profile.
+  - Otherwise, Level 1 is recommended for a 'balanced' profile.
       - Other levels deliver increasingly diminishing returns.
 
 - **Lossless Transform Utils (ltu)**: Fast estimator for generic LZ-based compression algorithms. 
@@ -52,7 +52,7 @@ Speeds are based off of a single core on a Ryzen 9950X3D CPU, and are approximat
   - Speed: ~2565MiB/s single-threaded.
   - Accuracy: ~74.4% for high compression (vs ZStandard)
   - Optimized for speed while maintaining reasonable accuracy
-  - Suited for real time compression scenarios.
+  - Suited for real-time compression scenarios.
 
 For more information, [refer to my blog post](https://sewer56.dev/blog/2025/03/11/a-program-for-helping-create-lossless-transforms.html#estimator-accuracy-high-compression-level).
 

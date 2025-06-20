@@ -20,6 +20,6 @@ default = ["std"]
 # Enable use of standard library, currently a no-op.
 std = []
 # Use nightly compiler features
-nightly = ["safe-allocator-api/nightly"]
+nightly = ["safe-allocator-api/nightly", "dxt-lossless-transform-common/nightly"]
 # Compiles the public C API for the crate.
 c-exports = []

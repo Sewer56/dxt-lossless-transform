@@ -235,7 +235,7 @@ pub fn handle_debug_command(cmd: DebugCmd) -> Result<(), TransformError> {
 /// # Returns
 ///
 /// The best transform details for the given data
-fn determine_best_transform_details_with_custom_estimator<T>(
+pub unsafe fn determine_best_transform_details_with_custom_estimator<T>(
     data_ptr: *const u8,
     len_bytes: usize,
     size_estimator: T,
@@ -297,7 +297,7 @@ where
 /// # Returns
 ///
 /// The best transform details for the given data
-fn determine_best_transform_details_with_estimator(
+pub unsafe fn determine_best_transform_details_with_estimator(
     data_ptr: *const u8,
     len_bytes: usize,
     compression_level: i32,

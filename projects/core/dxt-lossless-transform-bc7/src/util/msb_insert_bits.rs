@@ -11,7 +11,7 @@
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```no_run
 /// use dxt_lossless_transform::util::msb_insert_bits::insert_msb_bits;
 /// let mut byte = 0b00000000;
 /// assert_eq!(insert_msb_bits(byte, 0b101, 0, 2), 0b10100000); // Insert 3 bits at start

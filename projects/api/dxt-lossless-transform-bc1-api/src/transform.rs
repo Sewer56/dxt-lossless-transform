@@ -24,7 +24,7 @@ use safe_allocator_api::RawAlloc;
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```no_run
 /// let bc1_data = vec![0u8; 8 * 100]; // 100 BC1 blocks
 /// let mut output = vec![0u8; bc1_data.len()];
 ///
@@ -82,7 +82,7 @@ pub fn transform_bc1_slice(
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```no_run
 /// let bc1_data = vec![0u8; 8 * 100]; // 100 BC1 blocks
 ///
 /// let transformed = transform_bc1_allocating(&bc1_data, Bc1TransformDetails::default())?;
@@ -132,7 +132,7 @@ pub fn transform_bc1_allocating(
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```no_run
 /// let transformed_data = vec![0u8; 8 * 100]; // 100 transformed BC1 blocks
 /// let mut output = vec![0u8; transformed_data.len()];
 ///
@@ -190,7 +190,7 @@ pub fn untransform_bc1_slice(
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```no_run
 /// let transformed_data = vec![0u8; 8 * 100]; // 100 transformed BC1 blocks
 ///
 /// let restored = untransform_bc1_allocating(&transformed_data, detransform_options)?;

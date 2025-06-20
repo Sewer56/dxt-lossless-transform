@@ -14,7 +14,7 @@ std = ["dxt-lossless-transform-bc1/std", "dxt-lossless-transform-api-common/std"
 # Use CPU features selected at compile time.
 no-runtime-cpu-detection = ["dxt-lossless-transform-bc1/no-runtime-cpu-detection", "dxt-lossless-transform-common/no-runtime-cpu-detection"]
 # Use nightly compiler features (AVX512)
-nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/nightly"]
+nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/nightly", "dxt-lossless-transform-api-common/nightly", "safe-allocator-api/nightly"]
 
 [dependencies]
 dxt-lossless-transform-bc1 = { path = "../../core/dxt-lossless-transform-bc1" }

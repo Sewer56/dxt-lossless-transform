@@ -19,5 +19,7 @@ safe-allocator-api = "0.4.0"
 default = ["std"]
 # Enable use of standard library, currently a no-op.
 std = []
+# Use nightly compiler features
+nightly = ["safe-allocator-api/nightly"]
 # Compiles the public C API for the crate.
 c-exports = []

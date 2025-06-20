@@ -8,6 +8,9 @@ pub mod error;
 pub mod transform;
 pub mod transform_options_builder;
 
+#[cfg(feature = "c-exports")]
+pub mod c_api;
+
 // Re-export main functionality at crate root
 pub use determine_optimal_transform::determine_optimal_transform;
 pub use error::Bc1Error;

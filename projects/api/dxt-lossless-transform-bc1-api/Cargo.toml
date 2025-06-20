@@ -8,6 +8,9 @@ repository = "https://github.com/Sewer56/dxt-lossless-transform"
 license-file = "LICENSE"
 include = ["src/**/*"]
 
+[lib]
+crate-type = ["cdylib"]
+
 [features]
 default = ["std"]
 std = ["dxt-lossless-transform-bc1/std", "dxt-lossless-transform-api-common/std", "dxt-lossless-transform-common/std"]
@@ -15,6 +18,8 @@ std = ["dxt-lossless-transform-bc1/std", "dxt-lossless-transform-api-common/std"
 no-runtime-cpu-detection = ["dxt-lossless-transform-bc1/no-runtime-cpu-detection", "dxt-lossless-transform-common/no-runtime-cpu-detection"]
 # Use nightly compiler features (AVX512)
 nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/nightly", "dxt-lossless-transform-api-common/nightly", "safe-allocator-api/nightly"]
+# Enable C exports
+c-exports = ["dxt-lossless-transform-api-common/c-exports"]
 
 [dependencies]
 dxt-lossless-transform-bc1 = { path = "../../core/dxt-lossless-transform-bc1" }

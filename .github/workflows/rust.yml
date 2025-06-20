@@ -118,7 +118,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
           crate-name: "dxt-lossless-transform-cli"
-          rust-project-path: "projects/dxt-lossless-transform-cli"
+          rust-project-path: "projects/tools/dxt-lossless-transform-cli"
           workspace-path: "."
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
@@ -155,7 +155,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
           crate-name: "dxt-lossless-transform-dds"
-          rust-project-path: "projects/dxt-lossless-transform-dds"
+          rust-project-path: "projects/extensions/dxt-lossless-transform-dds"
           workspace-path: "."
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
@@ -168,7 +168,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
           crate-name: "dxt-lossless-transform-api-common"
-          rust-project-path: "projects/dxt-lossless-transform-api-common"
+          rust-project-path: "projects/api/dxt-lossless-transform-api-common"
           workspace-path: "."
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
@@ -186,7 +186,7 @@ jobs:
       - name: C bindings - API Common
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: 'projects/dxt-lossless-transform-api-common/'
+          rust-project-path: 'projects/api/dxt-lossless-transform-api-common/'
           config-file: ../../cbindgen_c.toml
           output-header-file: dxt-lossless-transform-api-common.h
           artifact-prefix: ""
@@ -195,7 +195,7 @@ jobs:
       - name: C++ bindings - API Common
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: 'projects/dxt-lossless-transform-api-common/'
+          rust-project-path: 'projects/api/dxt-lossless-transform-api-common/'
           config-file: ../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-api-common.hpp
           artifact-prefix: ""
@@ -204,7 +204,7 @@ jobs:
       - name: C bindings - DDS
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: 'projects/dxt-lossless-transform-dds/'
+          rust-project-path: 'projects/extensions/dxt-lossless-transform-dds/'
           config-file: ../../cbindgen_c.toml
           output-header-file: dxt-lossless-transform-dds.h
           artifact-prefix: ""
@@ -213,7 +213,7 @@ jobs:
       - name: C++ bindings - DDS
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: 'projects/dxt-lossless-transform-dds/'
+          rust-project-path: 'projects/extensions/dxt-lossless-transform-dds/'
           config-file: ../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-dds.hpp
           artifact-prefix: ""

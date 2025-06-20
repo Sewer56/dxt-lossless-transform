@@ -141,10 +141,10 @@ Choose between speed and quality:
 # use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 # let data = vec![0u8; 8 * 100];
 # let estimator = LosslessTransformUtilsSizeEstimation::new();
-// Fast mode: ~2-3x faster, tests common configurations
+// Fast mode: ~2x faster, tests common configurations
 let fast_options = determine_optimal_transform(&data, estimator, false)?;
 
-// Thorough mode: tests all decorrelation modes for best compression
+// Thorough mode: tests all decorrelation modes for best compression (gains are minimal)
 # let estimator = LosslessTransformUtilsSizeEstimation::new();
 let thorough_options = determine_optimal_transform(&data, estimator, true)?;
 # Ok(())
@@ -179,7 +179,6 @@ let result = transform_bc1_allocating(&input, options)?;
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
 use dxt_lossless_transform_bc1_api::{determine_optimal_transform, transform_bc1_allocating};
 # use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
-
 # fn compress_with_zstd(data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
 #     Ok(data.to_vec()) // Simulate compression
 # }
@@ -254,7 +253,7 @@ dxt-lossless-transform-cli transform --input textures --output textures-transfor
 
 ## License
 
-Licensed under [GPL v3 (with Reloaded FAQ)](./LICENSE).
+Licensed under [GPL v3 (with Reloaded FAQ)](../../../LICENSE).
 
 For more information about licensing, see the [Reloaded project licensing guide][reloaded-license].
 

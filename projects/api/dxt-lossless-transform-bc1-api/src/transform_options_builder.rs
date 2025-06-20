@@ -1,7 +1,7 @@
 //! Builder pattern implementation for BC1 transform options.
 
 use crate::error::Bc1Error;
-use crate::optimal::determine_optimal_transform;
+use crate::determine_optimal_transform::determine_optimal_transform;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 use dxt_lossless_transform_bc1::Bc1TransformDetails;

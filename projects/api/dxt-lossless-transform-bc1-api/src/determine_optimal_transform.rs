@@ -3,8 +3,8 @@
 use crate::error::Bc1Error;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_bc1::{
-    determine_optimal_transform::{Bc1EstimateOptions, DetermineBestTransformError},
     Bc1TransformDetails,
+    determine_optimal_transform::{Bc1EstimateOptions, DetermineBestTransformError},
 };
 
 /// Determine the optimal transform parameters for BC1 data.

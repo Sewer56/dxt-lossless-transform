@@ -26,7 +26,7 @@ use dxt_lossless_transform_bc1::{
 ///
 /// - [`Bc1Error::InvalidLength`] if input length is not divisible by 8
 /// - [`Bc1Error::AllocationFailed`] if memory allocation fails
-/// - [`Bc1Error::SizeEstimationFailed`] if the estimator fails
+/// - [`Bc1Error::SizeEstimationFailed`] if the estimator fails (contains the actual estimator error)
 ///
 /// # Examples
 ///
@@ -43,9 +43,10 @@ pub fn determine_optimal_transform<T>(
     input: &[u8],
     estimator: T,
     use_all_modes: bool,
-) -> Result<Bc1TransformDetails, Bc1Error>
+) -> Result<Bc1TransformDetails, Bc1Error<T::Error>>
 where
     T: SizeEstimationOperations,
+    T::Error: core::fmt::Debug,
 {
     // Validate input length
     if input.len() % 8 != 0 {
@@ -70,8 +71,8 @@ where
         DetermineBestTransformError::AllocateError(alloc_err) => {
             Bc1Error::AllocationFailed(alloc_err)
         }
-        DetermineBestTransformError::SizeEstimationError(_) => Bc1Error::SizeEstimationFailed(
-            "Estimator failed during transform optimization".to_string(),
-        ),
+        DetermineBestTransformError::SizeEstimationError(err) => {
+            Bc1Error::SizeEstimationFailed(err)
+        }
     })
 }

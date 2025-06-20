@@ -4,8 +4,11 @@ use dxt_lossless_transform_common::allocate::AllocateError;
 use thiserror::Error;
 
 /// Errors that can occur during BC1 transform operations.
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
-pub enum Bc1Error {
+#[derive(Debug, Error)]
+pub enum Bc1Error<E = String>
+where
+    E: core::fmt::Debug,
+{
     /// The input data length is invalid (must be divisible by 8).
     #[error("Invalid input length: {0} bytes. Length must be divisible by 8 (BC1 block size).")]
     InvalidLength(usize),
@@ -24,6 +27,6 @@ pub enum Bc1Error {
     AllocationFailed(#[from] AllocateError),
 
     /// Size estimation failed during transform optimization.
-    #[error("Size estimation failed: {0}")]
-    SizeEstimationFailed(String),
+    #[error("Size estimation failed: {0:?}")]
+    SizeEstimationFailed(E),
 }

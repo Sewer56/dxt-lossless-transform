@@ -1,5 +1,6 @@
 use super::compression::CompressionAlgorithm;
 use crate::error::TransformError;
+use dxt_lossless_transform_api_common::estimate::DataType;
 use std::{
     collections::HashMap,
     fs::{self, File, OpenOptions},
@@ -10,10 +11,10 @@ use std::{
 /// and compression algorithms.
 ///
 /// This cache is format-agnostic and can be shared across all BC format analyses, as it is based on
-/// input content hashes, compression levels, and algorithms rather than specific formats.
+/// input content hashes, compression levels, algorithms, and data types rather than specific formats.
 pub struct CompressionSizeCache {
-    /// Map from (content_hash, compression_level, algorithm) -> compressed_size
-    cache: HashMap<(u128, i32, CompressionAlgorithm), usize>,
+    /// Map from (content_hash, compression_level, algorithm, data_type) -> compressed_size
+    cache: HashMap<(u128, i32, CompressionAlgorithm, DataType), usize>,
     /// Path to the cache file
     cache_file_path: PathBuf,
 }
@@ -71,28 +72,30 @@ impl CompressionSizeCache {
         Ok(())
     }
 
-    /// Gets a cached compression size for the given content hash, compression level, and algorithm.
+    /// Gets a cached compression size for the given content hash, compression level, algorithm, and data type.
     pub fn get(
         &self,
         content_hash: u128,
         compression_level: i32,
         algorithm: CompressionAlgorithm,
+        data_type: DataType,
     ) -> Option<usize> {
         self.cache
-            .get(&(content_hash, compression_level, algorithm))
+            .get(&(content_hash, compression_level, algorithm, data_type))
             .copied()
     }
 
-    /// Inserts a compression size into the cache for the given content hash, compression level, and algorithm.
+    /// Inserts a compression size into the cache for the given content hash, compression level, algorithm, and data type.
     pub fn insert(
         &mut self,
         content_hash: u128,
         compression_level: i32,
         algorithm: CompressionAlgorithm,
+        data_type: DataType,
         compressed_size: usize,
     ) {
         self.cache.insert(
-            (content_hash, compression_level, algorithm),
+            (content_hash, compression_level, algorithm, data_type),
             compressed_size,
         );
     }

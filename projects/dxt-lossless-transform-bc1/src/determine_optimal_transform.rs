@@ -87,7 +87,7 @@
 //! - Memory allocation uses 64-byte alignment for optimal SIMD performance
 
 use crate::Bc1TransformDetails;
-use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_common::{
     allocate::{allocate_align_64, AllocateError},
     color_565::YCoCgVariant,
@@ -226,15 +226,7 @@ where
             // speed.
 
             // Test the current mode by measuring the compressed size using the trait
-            let data_type = match (
-                current_mode.decorrelation_mode,
-                current_mode.split_colour_endpoints,
-            ) {
-                (YCoCgVariant::None, false) => DataType::Bc1Colours,
-                (YCoCgVariant::None, true) => DataType::Bc1SplitColours,
-                (_, true) => DataType::Bc1SplitDecorrelatedColours, // Split colours with decorrelation
-                (_, false) => DataType::Bc1DecorrelatedColours,     // Decorrelated but not split
-            };
+            let data_type = current_mode.to_data_type();
 
             let result_size = transform_options
                 .size_estimator

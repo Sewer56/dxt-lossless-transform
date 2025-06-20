@@ -3,11 +3,11 @@
 use crate::determine_optimal_transform::{
     determine_best_transform_details, Bc1EstimateOptions, DetermineBestTransformError,
 };
-use crate::{transforms::standard::transform, YCoCgVariant};
+use crate::{transforms::standard::transform, Bc1TransformDetails, YCoCgVariant};
 use core::mem::size_of;
 use core::ptr::null_mut;
 use core::slice;
-use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_common::allocate::{allocate_align_64, FixedRawAllocArray};
 use dxt_lossless_transform_common::{
     color_565::Color565, transforms::split_565_color_endpoints::split_color_endpoints,
@@ -193,20 +193,15 @@ unsafe fn test_normalize_variant_with_normalization<T>(
     // indices_out_arr.copy_from_slice(indices_in_arr);
 
     // Test the current mode.
-    let data_type = match (
-        current_mode.decorrelation_mode,
-        current_mode.split_colour_endpoints,
-    ) {
-        (YCoCgVariant::None, false) => DataType::Bc1Colours,
-        (YCoCgVariant::None, true) => DataType::Bc1SplitColours,
-        (_, true) => DataType::Bc1SplitDecorrelatedColours, // Split colours with decorrelation
-        (_, false) => DataType::Bc1DecorrelatedColours,     // Decorrelated but not split
+    let transform_details = Bc1TransformDetails {
+        decorrelation_mode: current_mode.decorrelation_mode,
+        split_colour_endpoints: current_mode.split_colour_endpoints,
     };
 
     let result_size = match transform_options.size_estimator.estimate_compressed_size(
         output,
         len / 2,
-        data_type,
+        transform_details.to_data_type(),
         comp_buffer_ptr,
         comp_buffer_len,
     ) {
@@ -223,6 +218,7 @@ unsafe fn test_normalize_variant_with_normalization<T>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dxt_lossless_transform_api_common::estimate::DataType;
 
     /// Test that determine_best_transform_details_with_normalization doesn't crash with minimal BC1 data
     #[test]

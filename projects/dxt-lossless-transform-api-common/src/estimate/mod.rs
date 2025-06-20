@@ -4,18 +4,24 @@
 //! of data, which can be used for optimization algorithms that need to compare
 //! compression ratios without performing full compression.
 
-/// Enum representing the type of data being estimated for compression.
+/// Enum representing the type of data being estimated for compressed size.
+///
+/// # Remarks
+///
+/// In CLI modules, and similar, this is supported for estimation only, not compression.
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, bincode::Encode, bincode::Decode)]
 pub enum DataType {
+    /// Unknown data type
+    Unknown = 0,
     /// Standard BC1 colour data (interleaved color0/color1 pairs)
-    Bc1Colours = 0,
+    Bc1Colours = 1,
     /// BC1 colour data after decorrelation transforms have been applied
-    Bc1DecorrelatedColours = 1,
+    Bc1DecorrelatedColours = 2,
     /// BC1 colour data that has been split into separate color0 and color1 arrays
-    Bc1SplitColours = 2,
+    Bc1SplitColours = 3,
     /// BC1 colour data that has been both split and decorrelated
-    Bc1SplitDecorrelatedColours = 3,
+    Bc1SplitDecorrelatedColours = 4,
 }
 
 /// Trait for size estimation operations.
@@ -45,6 +51,22 @@ pub trait SizeEstimationOperations {
     /// to [`estimate_compressed_size`]. This allows callers to allocate once and reuse the
     /// buffer across different data types.
     fn max_compressed_size(&self, len_bytes: usize) -> Result<usize, Self::Error>;
+
+    /// Indicates whether this implementation produces different results for different [`DataType`] values.
+    ///
+    /// This is used by caching systems to determine whether to include the data type
+    /// in cache keys or treat all data types the same.
+    ///
+    /// # Returns
+    /// `true` if the implementation produces different results for different data types,
+    /// `false` if it treats all data types the same way.
+    ///
+    /// # Default Implementation
+    /// The default implementation returns `false`, meaning implementations that don't
+    /// differentiate between data types don't need to override this method.
+    fn supports_data_type_differentiation(&self) -> bool {
+        false
+    }
 
     /// Calculates the estimated compressed size.
     ///
@@ -81,6 +103,10 @@ impl<T: SizeEstimationOperations + ?Sized> SizeEstimationOperations for Box<T> {
 
     fn max_compressed_size(&self, len_bytes: usize) -> Result<usize, Self::Error> {
         (**self).max_compressed_size(len_bytes)
+    }
+
+    fn supports_data_type_differentiation(&self) -> bool {
+        (**self).supports_data_type_differentiation()
     }
 
     unsafe fn estimate_compressed_size(

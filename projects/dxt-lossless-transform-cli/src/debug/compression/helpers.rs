@@ -79,7 +79,13 @@ pub fn compress_data_cached(
     // Also populate the size cache when writing to data cache
     {
         let mut size_cache_guard = caches.compressed_size_cache.lock().unwrap();
-        size_cache_guard.insert(content_hash, compression_level, algorithm, compressed_size);
+        size_cache_guard.insert(
+            content_hash,
+            compression_level,
+            algorithm,
+            DataType::Unknown, // Actual compression doesn't differentiate by data type
+            compressed_size,
+        );
     }
 
     Ok((compressed_data, compressed_size))
@@ -92,6 +98,7 @@ pub unsafe fn calc_size_with_estimation_algorithm(
     len_bytes: usize,
     compression_level: i32,
     estimation_algorithm: CompressionAlgorithm,
+    data_type: DataType,
 ) -> Result<usize, TransformError> {
     let estimator = create_size_estimator(estimation_algorithm, compression_level)?;
 
@@ -106,9 +113,6 @@ pub unsafe fn calc_size_with_estimation_algorithm(
         let ptr = comp_buffer.as_mut_ptr();
         (ptr, max_comp_size, Some(comp_buffer))
     };
-
-    // For now, assume BC1 colours data type - this could be made configurable
-    let data_type = DataType::Bc1Colours;
 
     estimator.estimate_compressed_size(
         data_ptr,
@@ -128,16 +132,28 @@ pub fn calc_size_with_cache_and_estimation_algorithm(
     len_bytes: usize,
     compression_level: i32,
     estimation_algorithm: CompressionAlgorithm,
+    data_type: DataType,
     cache: &Mutex<CompressionSizeCache>,
 ) -> Result<usize, TransformError> {
     let content_hash = calculate_content_hash(data_ptr, len_bytes);
 
+    // Create an estimator to check if it supports data type differentiation
+    let estimator = create_size_estimator(estimation_algorithm, compression_level)?;
+    let cache_data_type = if estimator.supports_data_type_differentiation() {
+        data_type
+    } else {
+        DataType::Unknown
+    };
+
     // Try to get from cache
     {
         let cache_guard = cache.lock().unwrap();
-        if let Some(cached_size) =
-            cache_guard.get(content_hash, compression_level, estimation_algorithm)
-        {
+        if let Some(cached_size) = cache_guard.get(
+            content_hash,
+            compression_level,
+            estimation_algorithm,
+            cache_data_type,
+        ) {
             return Ok(cached_size);
         }
     }
@@ -149,6 +165,7 @@ pub fn calc_size_with_cache_and_estimation_algorithm(
             len_bytes,
             compression_level,
             estimation_algorithm,
+            data_type,
         )?
     };
 
@@ -159,6 +176,7 @@ pub fn calc_size_with_cache_and_estimation_algorithm(
             content_hash,
             compression_level,
             estimation_algorithm,
+            cache_data_type,
             compressed_size,
         );
     }

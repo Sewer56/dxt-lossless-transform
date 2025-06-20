@@ -117,6 +117,10 @@ impl LosslessTransformUtilsSizeEstimation {
                 lz_match_multiplier: 0.5809,
                 entropy_multiplier: 1.1670,
             },
+            DataType::Unknown => EstimationSettings {
+                lz_match_multiplier: 0.5809,
+                entropy_multiplier: 1.1670,
+            },
         }
     }
 
@@ -168,6 +172,11 @@ impl SizeEstimationOperations for LosslessTransformUtilsSizeEstimation {
         // For estimation purposes, we don't need a compression buffer
         // since we're not actually compressing data
         Ok(0)
+    }
+
+    fn supports_data_type_differentiation(&self) -> bool {
+        // LTU uses different estimation settings based on data type
+        true
     }
 
     unsafe fn estimate_compressed_size(

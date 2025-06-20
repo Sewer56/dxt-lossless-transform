@@ -53,6 +53,10 @@ impl SizeEstimationOperations for ZstdEstimatorWrapper {
         })
     }
 
+    fn supports_data_type_differentiation(&self) -> bool {
+        self.0.supports_data_type_differentiation()
+    }
+
     unsafe fn estimate_compressed_size(
         &self,
         input_ptr: *const u8,
@@ -79,6 +83,10 @@ impl SizeEstimationOperations for LtuEstimatorWrapper {
                 "LosslessTransformUtils max compressed size failed: {e}"
             ))
         })
+    }
+
+    fn supports_data_type_differentiation(&self) -> bool {
+        self.0.supports_data_type_differentiation()
     }
 
     unsafe fn estimate_compressed_size(
@@ -155,12 +163,23 @@ where
         // Calculate content hash for cache key
         let cache_hash = calculate_content_hash(input_ptr, len_bytes);
 
+        // Determine the data type to use for caching
+        // If the estimator doesn't support data type differentiation, use Unknown
+        let cache_data_type = if self.inner.supports_data_type_differentiation() {
+            data_type
+        } else {
+            DataType::Unknown
+        };
+
         // Try to get from cache first
         {
             let cache_guard = self.cache.lock().unwrap();
-            if let Some(cached_size) =
-                cache_guard.get(cache_hash, self.compression_level, self.algorithm)
-            {
+            if let Some(cached_size) = cache_guard.get(
+                cache_hash,
+                self.compression_level,
+                self.algorithm,
+                cache_data_type,
+            ) {
                 return Ok(cached_size);
             }
         }
@@ -177,6 +196,7 @@ where
                 cache_hash,
                 self.compression_level,
                 self.algorithm,
+                cache_data_type,
                 estimated_size,
             );
         }

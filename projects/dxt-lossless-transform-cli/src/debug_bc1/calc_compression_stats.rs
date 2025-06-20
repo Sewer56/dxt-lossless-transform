@@ -15,6 +15,7 @@ use crate::{
     DdsFilter,
 };
 use core::sync::atomic::{AtomicUsize, Ordering};
+use dxt_lossless_transform_api_common::estimate::DataType;
 use dxt_lossless_transform_bc1::{transform_bc1, Bc1TransformDetails};
 use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};
 use dxt_lossless_transform_dds::dds::DdsFormat;
@@ -151,6 +152,7 @@ fn analyze_bc1_compression_file(
                         len_bytes,
                         compression_level,
                         compression_algorithm,
+                        DataType::Bc1Colours,
                         cache,
                     )?,
                     api_recommended_result: analyze_bc1_api_recommendation(
@@ -203,6 +205,7 @@ fn analyze_bc1_compression_transforms(
                     len_bytes,
                     compression_level,
                     compression_algorithm,
+                    transform_options.to_data_type(),
                     cache,
                 )?,
             });
@@ -249,6 +252,7 @@ unsafe fn analyze_bc1_api_recommendation(
         len_bytes,
         final_compression_level,
         compression_algorithm,
+        best_details.to_data_type(),
         cache,
     )?;
 

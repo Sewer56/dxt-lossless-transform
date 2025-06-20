@@ -1,9 +1,5 @@
-use crate::transforms::standard::untransform::untransform_with_separate_pointers;
 use core::hint::unreachable_unchecked;
-use dxt_lossless_transform_common::{
-    allocate::allocate_align_64,
-    color_565::{Color565, YCoCgVariant},
-};
+use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
 
 pub(crate) unsafe fn untransform_with_split_colour_and_recorr_generic(
     color0_in: *const u16,
@@ -26,7 +22,11 @@ pub(crate) unsafe fn untransform_with_split_colour_and_recorr_generic(
 
     // Allocating here has some overhead, so we'll delegate to the slower solution if under 512 bytes.
     // 128 blocks is 1024 bytes
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     if block_count >= 128 {
+        use crate::transforms::standard::untransform::untransform_with_separate_pointers;
+        use dxt_lossless_transform_common::allocate::allocate_align_64;
+
         let mut work_alloc =
             allocate_align_64(block_count * 8).expect("Failed to allocate work buffer");
         let work_ptr = work_alloc.as_mut_ptr();

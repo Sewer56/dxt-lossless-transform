@@ -13,4 +13,6 @@ thiserror = { version = "2.0", default-features = false }
 
 [features]
 default = ["std"]
-std = ["dxt-lossless-transform-api-common/std", "thiserror/std"]
+std = ["dxt-lossless-transform-api-common/std", "dxt-lossless-transform-common/std", "thiserror/std"]
+# Use nightly compiler features (AVX512)
+nightly = ["dxt-lossless-transform-api-common/nightly", "dxt-lossless-transform-common/nightly"]

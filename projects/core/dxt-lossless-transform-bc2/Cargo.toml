@@ -10,11 +10,11 @@ readme = "README.MD"
 
 [features]
 default = ["std"]
-std = []
+std = ["dxt-lossless-transform-common/std"]
 # See README.md for more information on using Profile-Guided Optimization.
 pgo = []
 # Use CPU features selected at compile time.
-no-runtime-cpu-detection = []
+no-runtime-cpu-detection = ["dxt-lossless-transform-common/no-runtime-cpu-detection"]
 # Use nightly compiler features (AVX512)
 nightly = ["dxt-lossless-transform-common/nightly"]
 # Code only required for benchmarks.

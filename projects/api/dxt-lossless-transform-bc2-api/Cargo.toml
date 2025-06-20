@@ -3,5 +3,25 @@ name = "dxt-lossless-transform-bc2-api"
 version = "0.1.0"
 edition = "2024"
 readme = "README.MD"
+description = "Safe, high-level API for BC2 texture data lossless transforms with automatic validation and error handling"
+repository = "https://github.com/Sewer56/dxt-lossless-transform"
+license-file = "LICENSE"
+include = ["src/**/*"]
+
+[features]
+default = ["std"]
+std = ["dxt-lossless-transform-bc2/std", "dxt-lossless-transform-api-common/std", "dxt-lossless-transform-common/std"]
+# Use CPU features selected at compile time.
+no-runtime-cpu-detection = ["dxt-lossless-transform-bc2/no-runtime-cpu-detection", "dxt-lossless-transform-common/no-runtime-cpu-detection"]
+# Use nightly compiler features (AVX512)
+nightly = ["dxt-lossless-transform-bc2/nightly", "dxt-lossless-transform-common/nightly", "dxt-lossless-transform-api-common/nightly", "safe-allocator-api/nightly"]
 
 [dependencies]
+dxt-lossless-transform-bc2 = { path = "../../core/dxt-lossless-transform-bc2" }
+dxt-lossless-transform-api-common = { path = "../dxt-lossless-transform-api-common" }
+dxt-lossless-transform-common = { path = "../../core/dxt-lossless-transform-common" }
+safe-allocator-api = "0.4.0"
+thiserror = "2.0.12"
+
+[dev-dependencies]
+dxt-lossless-transform-ltu = { path = "../../extensions/dxt-lossless-transform-ltu" }

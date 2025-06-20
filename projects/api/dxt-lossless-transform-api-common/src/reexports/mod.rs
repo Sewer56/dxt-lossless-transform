@@ -16,6 +16,7 @@
 //! ## Design Philosophy
 //!
 //! Types are re-exported here when:
+//!
 //! 1. They are used in public APIs but defined in internal/unstable crates
 //! 2. The internal implementation is likely to change or be refactored
 //! 3. We need to provide API stability guarantees to users

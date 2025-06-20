@@ -48,7 +48,7 @@ pub trait SizeEstimationOperations {
     ///
     /// # Contract
     /// The returned size must be consistent regardless of the [`DataType`] that will be passed
-    /// to [`estimate_compressed_size`]. This allows callers to allocate once and reuse the
+    /// to [`SizeEstimationOperations::estimate_compressed_size`]. This allows callers to allocate once and reuse the
     /// buffer across different data types.
     fn max_compressed_size(&self, len_bytes: usize) -> Result<usize, Self::Error>;
 

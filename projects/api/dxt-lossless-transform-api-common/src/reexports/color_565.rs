@@ -7,7 +7,9 @@
 //!
 //! This is a **stable re-export** of types from the internal `dxt-lossless-transform-common`
 //! crate. While the internal implementation may change, this API maintains backward
-//! compatibility. The internal `YCoCgVariant` enum may be refactored, renamed, or moved,
+//! compatibility.
+//!
+//! The internal [`YCoCgVariant`] enum may be refactored, renamed, or moved,
 //! but this stable version will continue to work with conversion functions handling any
 //! internal changes transparently.
 //!
@@ -27,16 +29,16 @@
 //!
 //! ## Variants
 //!
-//! - **[`Color565YCoCgVariant::Variant1`]**: Standard arrangement  
+//! - **[`YCoCgVariant::Variant1`]**: Standard arrangement  
 //!   `Y(11-15) | Co(6-10) | g_low(5) | Cg(0-4)`
 //!
-//! - **[`Color565YCoCgVariant::Variant2`]**: Low bit at top  
+//! - **[`YCoCgVariant::Variant2`]**: Low bit at top  
 //!   `g_low(15) | Y(10-14) | Co(5-9) | Cg(0-4)`
 //!
-//! - **[`Color565YCoCgVariant::Variant3`]**: Low bit at bottom  
+//! - **[`YCoCgVariant::Variant3`]**: Low bit at bottom  
 //!   `Y(11-15) | Co(6-10) | Cg(1-5) | g_low(0)`
 //!
-//! - **[`Color565YCoCgVariant::None`]**: No transformation (pass-through)
+//! - **[`YCoCgVariant::None`]**: No transformation (pass-through)
 //!
 //! [`Color565`]: https://docs.rs/dxt-lossless-transform-common/latest/dxt_lossless_transform_common/color_565/struct.Color565.html
 

@@ -49,3 +49,7 @@ This is a high-performance Rust library for lossless DXT texture compression wit
 
 - Prefer stack allocation when possible
 - Use `allocate_align_64` for large aligned buffers
+
+## Compilation
+
+When building the `dxt-lossless-transform-cli` project, enable all features except for `nightly`, unless asked.

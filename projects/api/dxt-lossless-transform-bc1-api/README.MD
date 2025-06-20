@@ -226,6 +226,17 @@ match transform_bc1_slice(&input, &mut output, options) {
 # }
 ```
 
+## CLI Tool
+
+You can use the `dxt-lossless-transform-cli` tool to perform transforms on DDS files:
+
+```bash
+cargo install dxt-lossless-transform-cli
+
+# Transform textures in a directory
+dxt-lossless-transform-cli transform --input textures --output textures-transformed
+```
+
 ## Expected Performance Results
 
 Dataset is a bunch of textures from most popular Skyrim mods on [Nexus Mods](https://www.nexusmods.com/skyrimspecialedition/mods).
@@ -315,31 +326,6 @@ In general, over large textures, `API Recommended` wins.
 
 Over some smaller textures, the less complex `NoSplit/YCoCg1` setting may sometimes be faster; due to less
 complexity while keeping similar compression ratios.
-
-## Testing
-
-Run the test suite:
-
-```bash
-cargo test
-```
-
-Run with all features (requires nightly rust):
-
-```bash
-cargo test --all-features
-```
-
-## CLI Tool
-
-You can use the `dxt-lossless-transform-cli` tool to perform transforms on DDS files:
-
-```bash
-cargo install dxt-lossless-transform-cli
-
-# Transform textures in a directory
-dxt-lossless-transform-cli transform --input textures --output textures-transformed
-```
 
 ## License
 

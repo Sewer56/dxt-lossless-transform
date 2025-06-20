@@ -215,8 +215,9 @@ impl SizeEstimationOperations for LosslessTransformUtilsSizeEstimation {
 /// Estimated size in bytes after compression
 pub fn size_estimate(params: SizeEstimationParameters, settings: EstimationSettings) -> usize {
     // Calculate expected bytes after LZ
-    let bytes_after_lz =
-        params.data_len - (params.num_lz_matches as f64 * settings.lz_match_multiplier) as usize;
+    let bytes_after_lz = params
+        .data_len
+        .saturating_sub((params.num_lz_matches as f64 * settings.lz_match_multiplier) as usize);
 
     // Calculate expected bits and convert to bytes
     let estimated_bits = bytes_after_lz as f64 * params.entropy * settings.entropy_multiplier;

@@ -11,7 +11,7 @@
 /// # Example
 ///
 /// ```ignore
-/// use dxt_lossless_transform::util::msb_extract_bits::extract_msb_bits;
+/// use dxt_lossless_transform_bc7::util::msb_extract_bits::extract_msb_bits;
 /// let byte = 0b10110000;
 /// assert_eq!(extract_msb_bits(byte, 0, 0), 1); // Extracts leftmost bit
 /// assert_eq!(extract_msb_bits(byte, 1, 3), 0b011); // Extracts bits 1-3

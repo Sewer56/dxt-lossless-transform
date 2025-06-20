@@ -226,6 +226,96 @@ match transform_bc1_slice(&input, &mut output, options) {
 # }
 ```
 
+## Expected Performance Results
+
+Dataset is a bunch of textures from most popular Skyrim mods on [Nexus Mods](https://www.nexusmods.com/skyrimspecialedition/mods).
+
+```bash
+.
+├── 202x-architecture-10.01
+├── 202x-landscape-10.01
+├── 202x-other-10.01
+├── 3dnpc-loose-latest
+├── book-of-silence-se-1.9.1
+├── glorious-doors-of-skyrim-1.1
+├── majestic-mountains-402
+├── noble-skyrim-2k
+├── ruins-clutter-improved-se-3.2
+├── skyland-aio-4.32
+└── skyrim-flora-overhaul-with-grass
+```
+
+2130 files, of size 8.5GiB.
+
+### Compression Stats
+
+| Metric                    | LTU Estimator       | Zstd Level 1 Estimator |
+| ------------------------- | ------------------- | ---------------------- |
+| **Files analyzed**        | 2,130               | 2,130                  |
+| **Original uncompressed** | 8.489 GiB           | 8.489 GiB              |
+| **Original compressed**   | 5.695 GiB           | 5.695 GiB              |
+| **Default compressed**    | 4.857 GiB           | 4.857 GiB              |
+| **API recommended**       | 4.856 GiB           | 4.852 GiB              |
+| **Best possible**         | 4.849 GiB           | 4.849 GiB              |
+| **Space saved (default)** | 857.474 MiB (14.7%) | 857.474 MiB (14.7%)    |
+| **Space saved (API)**     | 858.490 MiB (14.7%) | 862.578 MiB (14.8%)    |
+| **Space saved (best)**    | 866.048 MiB (14.9%) | 866.048 MiB (14.9%)    |
+
+**Test Commands:**
+
+- **LTU Estimator:** `cargo run --bin dxt-lossless-transform-cli --release --features "debug-bc1 nightly" debug-bc1 compression-stats "/home/sewer/Temp/texture-stuff/bc1-raw" --compression-algorithm zstd --compression-level 16 --estimate-compression-algorithm ltu`
+- **Zstd Level 1 Estimator:** `cargo run --bin dxt-lossless-transform-cli --release --features "debug-bc1 nightly" debug-bc1 compression-stats "/home/sewer/Temp/texture-stuff/bc1-raw" --compression-algorithm zstd --compression-level 16 --estimate-compression-algorithm zstd --estimate-compression-level 1 --estimate-compression-algorithm zstd`
+
+### Load Times
+
+```
+cargo run --bin dxt-lossless-transform-cli --release --features "debug-bc1" debug-bc1 benchmark "/home/sewer/Temp/texture-stuff/bc1-raw" --compression-level 16 --estimate-compression-level 1 --warmup-iterations 1 --iterations 3 --estimate-compression-algorithm ltu
+```
+
+```
+📊 Overall Benchmark Statistics:
+═══════════════════════════════════════════════════════════════
+Files benchmarked: 2130
+Total data processed: 8692.896 MiB
+
+📈 NoSplit/YCoCg1:
+  Decompress: avg 1.93 GiB/s, total 4389.38 ms
+  Detransform: avg 30.17 GiB/s, total 281.42 ms
+  Combined: avg 1.82 GiB/s, total 4670.80 ms
+
+📈 NoSplit/None:
+  Decompress: avg 1.90 GiB/s, total 4456.52 ms
+  Detransform: avg 34.86 GiB/s, total 243.53 ms
+  Combined: avg 1.81 GiB/s, total 4700.06 ms
+
+📈 Split/None:
+  Decompress: avg 1.91 GiB/s, total 4452.17 ms
+  Detransform: avg 33.37 GiB/s, total 254.37 ms
+  Combined: avg 1.80 GiB/s, total 4706.55 ms
+
+📈 API Recommended:
+  Decompress: avg 1.92 GiB/s, total 4412.05 ms
+  Detransform: avg 28.04 GiB/s, total 302.70 ms
+  Combined: avg 1.80 GiB/s, total 4714.75 ms
+
+📈 Split/YCoCg1:
+  Decompress: avg 1.93 GiB/s, total 4409.77 ms
+  Detransform: avg 27.64 GiB/s, total 307.18 ms
+  Combined: avg 1.80 GiB/s, total 4716.95 ms
+
+📈 Untransformed:
+  Decompress: avg 1.53 GiB/s, total 5559.60 ms
+  Detransform: avg 0 B/s, total 0.00 ms
+  Combined: avg 1.53 GiB/s, total 5559.60 ms
+
+═══════════════════════════════════════════════════════════════
+```
+
+In general, over large textures, `API Recommended` wins.
+
+Over some smaller textures, the less complex `NoSplit/YCoCg1` setting may sometimes be faster; due to less
+complexity while keeping similar compression ratios.
+
 ## Testing
 
 Run the test suite:

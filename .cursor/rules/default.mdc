@@ -1,0 +1,51 @@
+---
+description: 
+globs: *.rs
+alwaysApply: false
+---
+# Cursor Rules for DXT Lossless Transform
+
+## Project Overview
+
+This is a high-performance Rust library for lossless DXT texture compression with extensive SIMD optimizations and unsafe code for maximum performance. The project follows strict coding standards and performance requirements.
+
+## Code Style & Formatting
+
+### Rust Formatting
+
+- Always use `cargo fmt` for code formatting
+- Run `cargo clippy` and fix all warnings before submitting code
+- Use proper rustdoc format with elements in brackets like [`Color565`] instead of `Color565`
+- Maintain original code order (including assembly sections) and all comments intact unless explicitly permitted
+
+### Variable Names & Structure
+
+- Preserve existing coding style: keep variable names and loop structures unchanged unless explicitly instructed otherwise
+- Use descriptive names for performance-critical code
+- Follow Rust naming conventions (snake_case for functions/variables, PascalCase for types)
+
+## Documentation Standards
+
+### Function Documentation
+
+- Use comprehensive rustdoc comments for all public functions
+- Include detailed Safety sections for unsafe functions covering:
+  - Pointer validity requirements
+  - Memory alignment recommendations (16-byte minimum, 32-byte preferred)
+  - Buffer overlap restrictions
+  - Size requirements and divisibility constraints
+- Include Parameters and Returns sections
+- Add Remarks section for complex behaviors or performance notes
+
+### Examples
+
+- Include code examples in documentation when helpful
+- Use `ignore` for examples that don't compile standalone
+- Show both basic usage and safety requirements
+
+## Performance Requirements
+
+### Memory Management
+
+- Prefer stack allocation when possible
+- Use `allocate_align_64` for large aligned buffers

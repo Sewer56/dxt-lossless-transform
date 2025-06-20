@@ -1,4 +1,3 @@
-
 # Profile Build
 [profile.profile]
 inherits = "release"
@@ -16,28 +15,27 @@ panic = "abort"
 
 [workspace]
 members = [
-    # High Level Crates
-    "projects/dxt-lossless-transform-api-common", # High level cross-crate 'stable' API 
-    "projects/dxt-lossless-transform-bc1-api", # High level cross-crate 'stable' API
-    "projects/dxt-lossless-transform-bc2-api", # High level cross-crate 'stable' API
-    "projects/dxt-lossless-transform-bc3-api", # High level cross-crate 'stable' API
-    "projects/dxt-lossless-transform-bc7-api", # High level cross-crate 'stable' API
+    # High Level Crates (API)
+    "projects/api/dxt-lossless-transform-api-common", # High level cross-crate 'stable' API 
+    "projects/api/dxt-lossless-transform-bc1-api", # High level cross-crate 'stable' API
+    "projects/api/dxt-lossless-transform-bc2-api", # High level cross-crate 'stable' API
+    "projects/api/dxt-lossless-transform-bc3-api", # High level cross-crate 'stable' API
+    "projects/api/dxt-lossless-transform-bc7-api", # High level cross-crate 'stable' API
 
-    # Low Level Crates
-    "projects/dxt-lossless-transform-bc1",
-    "projects/dxt-lossless-transform-bc2",
-    "projects/dxt-lossless-transform-bc3",
-    "projects/dxt-lossless-transform-bc7",
-
-    # Utility Libraries
-    "projects/dxt-lossless-transform-dds", # Adds DDS support
+    # Low Level Crates (Core)
+    "projects/core/dxt-lossless-transform-bc1",
+    "projects/core/dxt-lossless-transform-bc2",
+    "projects/core/dxt-lossless-transform-bc3",
+    "projects/core/dxt-lossless-transform-bc7",
+    "projects/core/dxt-lossless-transform-common",
 
     # Extensions
+    "projects/extensions/dxt-lossless-transform-dds", # Adds DDS support
     "projects/extensions/dxt-lossless-transform-zstd", # ZStandard size estimation
     "projects/extensions/dxt-lossless-transform-ltu", # Lossless Transform Utils size estimation
 
     # CLI Tool
-    "projects/dxt-lossless-transform-cli",
+    "projects/tools/dxt-lossless-transform-cli",
 
     # Fuzzing
     "fuzz",

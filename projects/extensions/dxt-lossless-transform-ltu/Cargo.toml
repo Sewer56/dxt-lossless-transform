@@ -6,8 +6,8 @@ readme = "README.MD"
 description = "Lossless Transform Utils size estimation implementation for DXT lossless transform"
 
 [dependencies]
-dxt-lossless-transform-api-common = { path = "../../dxt-lossless-transform-api-common", default-features = false }
-dxt-lossless-transform-common = { path = "../../dxt-lossless-transform-common", default-features = false }
+dxt-lossless-transform-api-common = { path = "../../api/dxt-lossless-transform-api-common", default-features = false }
+dxt-lossless-transform-common = { path = "../../core/dxt-lossless-transform-common", default-features = false }
 lossless-transform-utils = "0.1.0"
 thiserror = { version = "2.0", default-features = false }
 

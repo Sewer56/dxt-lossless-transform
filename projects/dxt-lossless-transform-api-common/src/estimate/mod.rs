@@ -74,3 +74,23 @@ pub trait SizeEstimationOperations {
         output_len: usize,
     ) -> Result<usize, Self::Error>;
 }
+
+/// Blanket implementation of [`SizeEstimationOperations`] for any boxed variant of it.
+impl<T: SizeEstimationOperations + ?Sized> SizeEstimationOperations for Box<T> {
+    type Error = T::Error;
+
+    fn max_compressed_size(&self, len_bytes: usize) -> Result<usize, Self::Error> {
+        (**self).max_compressed_size(len_bytes)
+    }
+
+    unsafe fn estimate_compressed_size(
+        &self,
+        input_ptr: *const u8,
+        len_bytes: usize,
+        data_type: DataType,
+        output_ptr: *mut u8,
+        output_len: usize,
+    ) -> Result<usize, Self::Error> {
+        (**self).estimate_compressed_size(input_ptr, len_bytes, data_type, output_ptr, output_len)
+    }
+}

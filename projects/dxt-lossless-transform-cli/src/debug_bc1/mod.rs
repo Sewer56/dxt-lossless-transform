@@ -4,6 +4,7 @@ pub(crate) mod calc_compression_stats;
 pub(crate) mod roundtrip;
 
 use crate::debug::compression::CompressionAlgorithm;
+use crate::debug::estimation::create_size_estimator;
 use crate::error::TransformError;
 use argh::FromArgs;
 use benchmark::handle_benchmark_command;
@@ -223,30 +224,31 @@ pub fn handle_debug_command(cmd: DebugCmd) -> Result<(), TransformError> {
 ///
 /// - `data_ptr`: Pointer to the BC1 data
 /// - `len_bytes`: Length of the data in bytes
-/// - `estimator`: File size estimation function
+/// - `compression_level`: Compression level for the estimator
+/// - `compression_algorithm`: Algorithm to use for size estimation
 /// - `experimental_normalize`: Whether to use experimental normalization
 /// - `use_all_decorrelation_modes`: Whether to test all decorrelation modes
 ///
 /// # Returns
 ///
 /// The best transform details for the given data
-fn determine_best_transform_details_with_estimator<F>(
+fn determine_best_transform_details_with_estimator(
     data_ptr: *const u8,
     len_bytes: usize,
-    estimator: F,
+    compression_level: i32,
+    compression_algorithm: CompressionAlgorithm,
     experimental_normalize: bool,
     use_all_decorrelation_modes: bool,
-) -> Result<dxt_lossless_transform_bc1::Bc1TransformDetails, TransformError>
-where
-    F: Fn(*const u8, usize) -> usize,
-{
+) -> Result<dxt_lossless_transform_bc1::Bc1TransformDetails, TransformError> {
     use dxt_lossless_transform_bc1::{
         determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions},
         experimental::normalize_blocks::determine_optimal_transform::determine_best_transform_details_with_normalization,
         Bc1TransformDetails,
     };
+
+    let size_estimator = create_size_estimator(compression_algorithm, compression_level)?;
     let transform_options = Bc1EstimateOptions {
-        size_estimator: estimator,
+        size_estimator,
         use_all_decorrelation_modes,
     };
 

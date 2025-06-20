@@ -8,8 +8,7 @@ use crate::{
         compressed_data_cache::CompressedDataCache,
         compression::{
             helpers::{
-                calc_size_with_cache_and_estimation_algorithm, compress_data_cached,
-                decompress_data, validate_compression_algorithm, CacheRefs,
+                compress_data_cached, decompress_data, validate_compression_algorithm, CacheRefs,
             },
             CompressionAlgorithm,
         },
@@ -278,30 +277,15 @@ unsafe fn get_api_recommended_details(
     len_bytes: usize,
     estimate_compression_level: i32,
     estimate_compression_algorithm: CompressionAlgorithm,
-    cache: &Mutex<CompressionSizeCache>,
+    _cache: &Mutex<CompressionSizeCache>, // Unused but kept for API compatibility
     experimental_normalize: bool,
     use_all_decorrelation_modes: bool,
 ) -> Result<Bc1TransformDetails, TransformError> {
-    let estimator = move |data_ptr: *const u8, len: usize| -> usize {
-        match calc_size_with_cache_and_estimation_algorithm(
-            data_ptr,
-            len,
-            estimate_compression_level,
-            estimate_compression_algorithm,
-            cache,
-        ) {
-            Ok(size) => size,
-            Err(e) => {
-                eprintln!("Warning: Compression estimation failed: {e}");
-                usize::MAX // Return max size on error to make this option less favorable
-            }
-        }
-    };
-
     determine_best_transform_details_with_estimator(
         data_ptr,
         len_bytes,
-        estimator,
+        estimate_compression_level,
+        estimate_compression_algorithm,
         experimental_normalize,
         use_all_decorrelation_modes,
     )

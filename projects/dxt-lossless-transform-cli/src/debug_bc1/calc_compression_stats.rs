@@ -224,27 +224,11 @@ unsafe fn analyze_bc1_api_recommendation(
     use_all_decorrelation_modes: bool,
     cache: &Mutex<CompressionCache>,
 ) -> Result<Bc1TransformResult, TransformError> {
-    // Create the file size estimator with cache clone for static lifetime
-    let estimator = move |data_ptr: *const u8, len: usize| -> usize {
-        match calc_size_with_cache_and_estimation_algorithm(
-            data_ptr,
-            len,
-            estimate_compression_level,
-            estimate_compression_algorithm,
-            cache,
-        ) {
-            Ok(size) => size,
-            Err(e) => {
-                eprintln!("Warning: Compression estimation failed: {e}");
-                usize::MAX // Return max size on error to make this option less favorable
-            }
-        }
-    };
-
     let best_details = determine_best_transform_details_with_estimator(
         data_ptr,
         len_bytes,
-        estimator,
+        estimate_compression_level,
+        estimate_compression_algorithm,
         experimental_normalize,
         use_all_decorrelation_modes,
     )?;

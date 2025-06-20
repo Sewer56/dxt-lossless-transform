@@ -10,7 +10,7 @@ debug-bc7 = ["debug"]
 # Debugging BC1 behaviour
 debug-bc1 = ["debug", "dxt-lossless-transform-bc1/experimental"]
 # Common debugging utilities
-debug = ["zstd-sys", "derive_more", "derive-new", "thiserror-no-std", "bytesize", "xxhash-rust", "bincode", "serde", "dirs", "derive-enum-all-values", "lossless-transform-utils"]
+debug = ["dxt-lossless-transform-api-common", "zstd-sys", "derive_more", "derive-new", "thiserror-no-std", "bytesize", "xxhash-rust", "bincode", "serde", "dirs", "derive-enum-all-values", "lossless-transform-utils", "dxt-lossless-transform-ltu", "dxt-lossless-transform-zstd"]
 
 nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/nightly", 
            "safe-allocator-api/nightly"]
@@ -26,6 +26,7 @@ safe-allocator-api = { version = "0.4.0" }
 thiserror = "2.0.12"
 
 # Debug only
+dxt-lossless-transform-api-common = { optional = true, path = "../dxt-lossless-transform-api-common" }
 zstd-sys = { optional = true, version = "2.0.15", features = ["experimental"] } # 1.5.7
 derive_more = { optional = true, version = "2.0.1", features = ["deref", "deref_mut"] }
 derive-new = { optional = true, version = "0.7.0" }
@@ -37,3 +38,5 @@ serde = { optional = true, version = "1.0.215", features = ["derive"] }
 dirs = { optional = true, version = "6.0.0" }
 derive-enum-all-values = { optional = true, version = "0.2.0" }
 lossless-transform-utils = { optional = true, version = "0.1.0" }
+dxt-lossless-transform-ltu = { optional = true, path = "../extensions/dxt-lossless-transform-ltu" }
+dxt-lossless-transform-zstd = { optional = true, path = "../extensions/dxt-lossless-transform-zstd" }

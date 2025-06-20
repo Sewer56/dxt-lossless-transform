@@ -17,6 +17,4 @@ dxt-lossless-transform-bc1 = { path = "../../dxt-lossless-transform-bc1", option
 [features]
 default = ["std"]
 std = ["dxt-lossless-transform-api-common/std", "thiserror/std"]
-# Feature for BC1 integration examples
-bc1-examples = ["dxt-lossless-transform-bc1"]
 

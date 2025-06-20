@@ -1,11 +1,5 @@
 #![doc = include_str!("../README.MD")]
 #![cfg_attr(not(feature = "std"), no_std)]
-// Not yet in stable today, but will be in 1.89.0
-#![allow(stable_features)]
-#![cfg_attr(
-    all(feature = "nightly", any(target_arch = "x86_64", target_arch = "x86")),
-    feature(stdarch_x86_avx512)
-)]
 #![warn(missing_docs)]
 
 //! Safe, high-level API for BC1 texture data lossless transforms.

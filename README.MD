@@ -48,7 +48,7 @@ Speeds are based off of a single core on a Ryzen 9950X3D CPU, and are approximat
       - Other levels deliver increasingly diminishing returns.
 
 - **Lossless Transform Utils (ltu)**: Fast estimator for generic LZ-based compression algorithms. 
-  - Package: [dxt-lossless-transform-zstd]
+  - Package: [dxt-lossless-transform-ltu]
   - Speed: ~2565MiB/s single-threaded.
   - Accuracy: ~74.4% for high compression (vs ZStandard)
   - Optimized for speed while maintaining reasonable accuracy

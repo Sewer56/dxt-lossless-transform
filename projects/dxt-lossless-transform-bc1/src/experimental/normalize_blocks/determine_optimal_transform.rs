@@ -8,7 +8,7 @@ use core::mem::size_of;
 use core::ptr::null_mut;
 use core::slice;
 use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
-use dxt_lossless_transform_common::allocate::FixedRawAllocArray;
+use dxt_lossless_transform_common::allocate::{allocate_align_64, FixedRawAllocArray};
 use dxt_lossless_transform_common::{
     color_565::Color565, transforms::split_565_color_endpoints::split_color_endpoints,
 };
@@ -50,6 +50,21 @@ where
     const NUM_NORMALIZE: usize = ColorNormalizationMode::all_values().len();
     let mut normalize_buffers = FixedRawAllocArray::<NUM_NORMALIZE>::new(len)?;
     let normalize_buffers_ptrs = normalize_buffers.get_pointer_slice();
+
+    // Pre-allocate compression buffer once for all iterations
+    let max_comp_size = transform_options
+        .size_estimator
+        .max_compressed_size(len / 2)
+        .map_err(DetermineBestTransformError::SizeEstimationError)?;
+
+    // Allocate compression buffer if needed (reused across all calls)
+    let (comp_buffer_ptr, comp_buffer_len, _comp_buffer) = if max_comp_size == 0 {
+        (core::ptr::null_mut(), 0, None)
+    } else {
+        let mut comp_buffer = allocate_align_64(max_comp_size)?;
+        let ptr = comp_buffer.as_mut_ptr();
+        (ptr, max_comp_size, Some(comp_buffer))
+    };
 
     // Normalize blocks into all possible modes.
     let any_normalized = normalize_blocks_all_modes(input_ptr, &normalize_buffers_ptrs, len);
@@ -96,6 +111,8 @@ where
                         &mut best_transform_details,
                         &mut best_size,
                         current_mode,
+                        comp_buffer_ptr,
+                        comp_buffer_len,
                     );
                 }
             }
@@ -126,6 +143,8 @@ unsafe fn test_normalize_variant_with_normalization<T>(
     best_transform_details: &mut Bc1TransformDetailsWithNormalization,
     best_size: &mut usize,
     current_mode: Bc1TransformDetailsWithNormalization,
+    comp_buffer_ptr: *mut u8,
+    comp_buffer_len: usize,
 ) where
     T: SizeEstimationOperations,
 {
@@ -184,14 +203,17 @@ unsafe fn test_normalize_variant_with_normalization<T>(
         (_, false) => DataType::Bc1DecorrelatedColours,     // Decorrelated but not split
     };
 
-    let result_size =
-        match transform_options
-            .size_estimator
-            .estimate_compressed_size(output, len / 2, data_type)
-        {
-            Ok(size) => size,
-            Err(_) => return, // Skip this variant if estimation fails
-        };
+    let result_size = match transform_options.size_estimator.estimate_compressed_size(
+        output,
+        len / 2,
+        data_type,
+        comp_buffer_ptr,
+        comp_buffer_len,
+    ) {
+        Ok(size) => size,
+        Err(_) => return, // Skip this variant if estimation fails
+    };
+
     if result_size < *best_size {
         *best_size = result_size;
         *best_transform_details = current_mode;
@@ -219,11 +241,17 @@ mod tests {
         impl SizeEstimationOperations for DummyEstimator {
             type Error = &'static str;
 
+            fn max_compressed_size(&self, _len_bytes: usize) -> Result<usize, Self::Error> {
+                Ok(0) // No buffer needed for dummy estimator
+            }
+
             unsafe fn estimate_compressed_size(
                 &self,
-                _data_ptr: *const u8,
+                _input_ptr: *const u8,
                 len_bytes: usize,
                 _data_type: DataType,
+                _output_ptr: *mut u8,
+                _output_len: usize,
             ) -> Result<usize, Self::Error> {
                 Ok(len_bytes) // Just return the input length
             }

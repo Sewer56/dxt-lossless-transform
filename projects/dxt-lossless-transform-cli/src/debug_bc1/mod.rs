@@ -246,7 +246,7 @@ where
         Bc1TransformDetails,
     };
     let transform_options = Bc1EstimateOptions {
-        file_size_estimator: estimator,
+        size_estimator: estimator,
         use_all_decorrelation_modes,
     };
 

@@ -4,6 +4,8 @@
 //! of data, which can be used for optimization algorithms that need to compare
 //! compression ratios without performing full compression.
 
+use core::ptr::null_mut;
+
 /// Enum representing the type of data being estimated for compression.
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -29,70 +31,48 @@ pub trait SizeEstimationOperations {
     /// The error type returned by estimation operations.
     type Error;
 
+    /// Returns the maximum size required for a compression buffer.
+    ///
+    /// This allows implementations that require pre-allocation to specify
+    /// the buffer size needed for compression operations.
+    ///
+    /// # Parameters
+    /// * `len_bytes` - Length of the input data in bytes
+    ///
+    /// # Returns
+    /// The maximum buffer size needed for compression, or 0 if no allocation is needed
+    ///
+    /// # Contract
+    /// The returned size must be consistent regardless of the [`DataType`] that will be passed
+    /// to [`estimate_compressed_size`]. This allows callers to allocate once and reuse the
+    /// buffer across different data types.
+    fn max_compressed_size(&self, len_bytes: usize) -> Result<usize, Self::Error>;
+
     /// Calculates the estimated compressed size.
     ///
     /// # Parameters
-    /// * `data_ptr` - Pointer to the data to estimate
-    /// * `len_bytes` - Length of the data in bytes
+    /// * `input_ptr` - Pointer to the input data to estimate
+    /// * `len_bytes` - Length of the input data in bytes
     /// * `data_type` - The type of data being compressed
+    /// * `output_ptr` - Pre-allocated output buffer for compression (guaranteed non-null)
+    /// * `output_len` - Length of the pre-allocated output buffer
     ///
     /// # Returns
     /// The estimated compressed size in bytes
     ///
+    /// # Remarks
+    /// The output buffer may be reused across multiple calls with the same input size.
+    /// All inputs in a batch will have the same `len_bytes` size.
+    ///
     /// # Safety
-    /// `data_ptr` must be valid for reads of `len_bytes` bytes.
+    /// * `input_ptr` must be valid for reads of `len_bytes` bytes
+    /// * `output_ptr` must be valid for writes of `output_len` bytes
     unsafe fn estimate_compressed_size(
         &self,
-        data_ptr: *const u8,
+        input_ptr: *const u8,
         len_bytes: usize,
         data_type: DataType,
+        output_ptr: *mut u8,
+        output_len: usize,
     ) -> Result<usize, Self::Error>;
-}
-
-/// A function-based size estimator that can be used where a simple closure is needed.
-///
-/// This wrapper allows converting [`SizeEstimationOperations`] implementations into
-/// function pointers that can be used in APIs like [`Bc1EstimateOptions`].
-///
-/// # Example
-/// ```rust,ignore
-/// use dxt_lossless_transform_api_common::estimate::FunctionSizeEstimator;
-///
-/// let estimator = FunctionSizeEstimator::new(my_size_estimation_impl);
-/// let size_fn = estimator.as_function();
-/// ```
-pub struct FunctionSizeEstimator<T: SizeEstimationOperations> {
-    inner: T,
-}
-
-impl<T: SizeEstimationOperations> FunctionSizeEstimator<T> {
-    /// Creates a new function size estimator from an implementation.
-    pub fn new(inner: T) -> Self {
-        Self { inner }
-    }
-
-    /// Returns a closure that can be used as a size estimation function.
-    ///
-    /// The returned closure has the signature `Fn(*const u8, usize, DataType) -> usize`
-    /// and returns 0 if estimation fails.
-    pub fn as_function(&self) -> impl Fn(*const u8, usize, DataType) -> usize + '_
-    where
-        T::Error: core::fmt::Debug,
-    {
-        move |data_ptr: *const u8, len_bytes: usize, data_type: DataType| -> usize {
-            unsafe {
-                match self
-                    .inner
-                    .estimate_compressed_size(data_ptr, len_bytes, data_type)
-                {
-                    Ok(size) => size,
-                    Err(e) => {
-                        #[cfg(feature = "std")]
-                        eprintln!("Size estimation failed: {e:?}");
-                        0 // Return 0 on error as a fallback
-                    }
-                }
-            }
-        }
-    }
 }

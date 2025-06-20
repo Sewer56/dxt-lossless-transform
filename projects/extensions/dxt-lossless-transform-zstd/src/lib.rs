@@ -6,7 +6,6 @@ extern crate alloc;
 
 use core::{ffi::c_void, slice};
 use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
-use dxt_lossless_transform_common::allocate::allocate_align_64;
 use dxt_lossless_transform_common::allocate::AllocateError;
 use thiserror::Error;
 use zstd_sys::ZSTD_cParameter::*;
@@ -93,13 +92,25 @@ impl Default for ZStandardSizeEstimation {
 impl SizeEstimationOperations for ZStandardSizeEstimation {
     type Error = ZStandardError;
 
+    fn max_compressed_size(&self, len_bytes: usize) -> Result<usize, Self::Error> {
+        if len_bytes == 0 {
+            return Ok(0);
+        }
+
+        // Calculate maximum compressed size using ZStandard bounds
+        let max_size = unsafe { ZSTD_compressBound(len_bytes) };
+        Ok(max_size)
+    }
+
     unsafe fn estimate_compressed_size(
         &self,
-        data_ptr: *const u8,
+        input_ptr: *const u8,
         len_bytes: usize,
         _data_type: DataType,
+        output_ptr: *mut u8,
+        output_len: usize,
     ) -> Result<usize, Self::Error> {
-        if data_ptr.is_null() {
+        if input_ptr.is_null() {
             return Ok(0);
         }
 
@@ -107,21 +118,12 @@ impl SizeEstimationOperations for ZStandardSizeEstimation {
             return Ok(0);
         }
 
-        // Calculate maximum compressed size
-        let max_compressed_size = ZSTD_compressBound(len_bytes);
+        // Output buffer is guaranteed to be non-null and sufficient size
+        let output_buffer = slice::from_raw_parts_mut(output_ptr, output_len);
+        let input_data = slice::from_raw_parts(input_ptr, len_bytes);
 
-        // Allocate output buffer
-        let mut output_buffer = allocate_align_64(max_compressed_size)?;
-
-        // Get input data as slice
-        let input_data = slice::from_raw_parts(data_ptr, len_bytes);
-
-        // Perform compression using the same method as CLI
-        let compressed_size = compress(
-            self.compression_level,
-            input_data,
-            output_buffer.as_mut_slice(),
-        )?;
+        // Perform compression using the provided buffer
+        let compressed_size = compress(self.compression_level, input_data, output_buffer)?;
 
         Ok(compressed_size)
     }
@@ -198,7 +200,13 @@ mod tests {
     fn estimate_empty_data() {
         let estimator = ZStandardSizeEstimation::new_default();
         let result = unsafe {
-            estimator.estimate_compressed_size(core::ptr::null(), 0, DataType::Bc1Colours)
+            estimator.estimate_compressed_size(
+                core::ptr::null(),
+                0,
+                DataType::Bc1Colours,
+                core::ptr::null_mut(),
+                0,
+            )
         };
         assert_eq!(result.unwrap(), 0);
     }
@@ -209,8 +217,18 @@ mod tests {
         let data =
             b"Hello, world! This is a test string for compression. test test test test test test!!";
 
+        // Get max compressed size and allocate buffer
+        let max_size = estimator.max_compressed_size(data.len()).unwrap();
+        let mut output_buffer = vec![0u8; max_size];
+
         let result = unsafe {
-            estimator.estimate_compressed_size(data.as_ptr(), data.len(), DataType::Bc1Colours)
+            estimator.estimate_compressed_size(
+                data.as_ptr(),
+                data.len(),
+                DataType::Bc1Colours,
+                output_buffer.as_mut_ptr(),
+                max_size,
+            )
         };
 
         assert!(result.is_ok());
@@ -234,12 +252,30 @@ mod tests {
         let estimator10 = ZStandardSizeEstimation::new(10).unwrap();
         let data = b"This is a longer test string that should compress well with different levels.";
 
+        // Get max compressed size and allocate buffers
+        let max_size1 = estimator1.max_compressed_size(data.len()).unwrap();
+        let max_size10 = estimator10.max_compressed_size(data.len()).unwrap();
+        let mut output_buffer1 = vec![0u8; max_size1];
+        let mut output_buffer10 = vec![0u8; max_size10];
+
         let level1_result = unsafe {
-            estimator1.estimate_compressed_size(data.as_ptr(), data.len(), DataType::Bc1Colours)
+            estimator1.estimate_compressed_size(
+                data.as_ptr(),
+                data.len(),
+                DataType::Bc1Colours,
+                output_buffer1.as_mut_ptr(),
+                max_size1,
+            )
         };
 
         let level10_result = unsafe {
-            estimator10.estimate_compressed_size(data.as_ptr(), data.len(), DataType::Bc1Colours)
+            estimator10.estimate_compressed_size(
+                data.as_ptr(),
+                data.len(),
+                DataType::Bc1Colours,
+                output_buffer10.as_mut_ptr(),
+                max_size10,
+            )
         };
 
         assert!(level1_result.is_ok());

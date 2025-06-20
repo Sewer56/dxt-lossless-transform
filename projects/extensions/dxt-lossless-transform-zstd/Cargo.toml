@@ -11,9 +11,6 @@ dxt-lossless-transform-common = { path = "../../core/dxt-lossless-transform-comm
 zstd-sys = { version = "2.0.15", features = ["experimental"] } # 1.5.7
 thiserror = { version = "2.0", default-features = false }
 
-# Optional dependencies for examples
-dxt-lossless-transform-bc1 = { path = "../../core/dxt-lossless-transform-bc1", optional = true }
-
 [features]
 default = ["std"]
 std = ["dxt-lossless-transform-api-common/std", "thiserror/std"]

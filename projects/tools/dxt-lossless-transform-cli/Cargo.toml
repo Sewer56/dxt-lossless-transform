@@ -10,7 +10,7 @@ debug-bc7 = ["debug"]
 # Debugging BC1 behaviour
 debug-bc1 = ["debug", "dxt-lossless-transform-bc1/experimental"]
 # Common debugging utilities
-debug = ["dxt-lossless-transform-api-common", "zstd-sys", "derive_more", "derive-new", "thiserror-no-std", "bytesize", "xxhash-rust", "bincode", "serde", "dirs", "derive-enum-all-values", "lossless-transform-utils", "dxt-lossless-transform-ltu", "dxt-lossless-transform-zstd"]
+debug = ["dxt-lossless-transform-api-common", "zstd-sys", "thiserror-no-std", "bytesize", "xxhash-rust", "bincode", "serde", "dirs", "derive-enum-all-values", "lossless-transform-utils", "dxt-lossless-transform-ltu", "dxt-lossless-transform-zstd"]
 
 nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/nightly", 
            "safe-allocator-api/nightly"]
@@ -28,8 +28,6 @@ thiserror = "2.0.12"
 # Debug only
 dxt-lossless-transform-api-common = { optional = true, path = "../../api/dxt-lossless-transform-api-common" }
 zstd-sys = { optional = true, version = "2.0.15", features = ["experimental"] } # 1.5.7
-derive_more = { optional = true, version = "2.0.1", features = ["deref", "deref_mut"] }
-derive-new = { optional = true, version = "0.7.0" }
 thiserror-no-std = { optional = true, version = "2.0.2" }
 bytesize = { optional = true, version = "2.0.1" }
 xxhash-rust = { optional = true, version = "0.8.12", features = ["xxh3"] }

@@ -10,6 +10,10 @@
 //!
 //! # Examples
 //!
+//! Note: Using `vec` here is not recommended, as it zeroes the buffer, leaving
+//! performance on the table. These examples use `vec` only to make it easier
+//! to demonstrate the API.
+//!
 //! ## Basic Transform and Untransform
 //!
 //! ```ignore

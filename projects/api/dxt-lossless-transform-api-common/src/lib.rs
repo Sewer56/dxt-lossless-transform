@@ -1,6 +1,9 @@
 #![doc = include_str!(concat!("../", core::env!("CARGO_PKG_README")))]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+/// Memory allocation utilities with cache line alignment support.
+pub mod allocate;
+
 /// Size estimation operations for file compression.
 pub mod estimate;
 

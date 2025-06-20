@@ -21,13 +21,17 @@ use core::arch::x86_64::*;
 /// - CPU must support AVX512VBMI instructions
 #[target_feature(enable = "avx512vbmi")]
 #[allow(clippy::identity_op)]
-pub(crate) unsafe fn avx512_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
+pub(crate) unsafe fn avx512_impl_unroll2(
+    colors: *const u8,
+    colors_out: *mut u8,
+    colors_len_bytes: usize,
+) {
     debug_assert!(
         colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
         "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
-    const BYTES_PER_ITERATION: usize = 128;
+    const BYTES_PER_ITERATION: usize = 256;
 
     // Setup pointers for processing
     let mut input_ptr = colors;
@@ -78,16 +82,23 @@ pub(crate) unsafe fn avx512_impl(colors: *const u8, colors_out: *mut u8, colors_
         // Load 64 bytes (2 blocks of 64 bytes each)
         let chunk1 = _mm512_loadu_si512(input_ptr as *const __m512i);
         let chunk2 = _mm512_loadu_si512(input_ptr.add(64) as *const __m512i);
+        let chunk3 = _mm512_loadu_si512(input_ptr.add(128) as *const __m512i);
+        let chunk4 = _mm512_loadu_si512(input_ptr.add(192) as *const __m512i);
         input_ptr = input_ptr.add(BYTES_PER_ITERATION); // 256
 
         // Store results
         let color0_rearranged_0 = _mm512_permutex2var_epi8(chunk1, shuffle_mask_color0, chunk2);
         let color1_rearranged_0 = _mm512_permutex2var_epi8(chunk1, shuffle_mask_color1, chunk2);
+        let color2_rearranged_1 = _mm512_permutex2var_epi8(chunk3, shuffle_mask_color0, chunk4);
+        let color3_rearranged_1 = _mm512_permutex2var_epi8(chunk3, shuffle_mask_color1, chunk4);
 
         _mm512_storeu_si512(output_low as *mut __m512i, color0_rearranged_0);
+        _mm512_storeu_si512(output_low.add(64) as *mut __m512i, color2_rearranged_1);
+        output_low = output_low.add(128);
+
         _mm512_storeu_si512(output_high as *mut __m512i, color1_rearranged_0);
-        output_low = output_low.add(64);
-        output_high = output_high.add(64);
+        _mm512_storeu_si512(output_high.add(64) as *mut __m512i, color3_rearranged_1);
+        output_high = output_high.add(128);
     }
 
     // Handle remaining elements
@@ -107,7 +118,7 @@ mod tests {
     use rstest::rstest;
 
     #[rstest]
-    #[case(avx512_impl, "avx512_impl")]
+    #[case(avx512_impl_unroll2, "avx512_impl_unroll2")]
     fn test_avx512_aligned(#[case] implementation: TransformFn, #[case] impl_name: &str) {
         if !is_x86_feature_detected!("avx512vbmi") {
             return;
@@ -116,7 +127,7 @@ mod tests {
     }
 
     #[rstest]
-    #[case(avx512_impl, "avx512_impl")]
+    #[case(avx512_impl_unroll2, "avx512_impl_unroll2")]
     fn test_avx512_unaligned(#[case] implementation: TransformFn, #[case] impl_name: &str) {
         if !is_x86_feature_detected!("avx512vbmi") {
             return;

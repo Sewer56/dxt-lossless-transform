@@ -15,6 +15,10 @@ mod ssse3;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;
 
+#[cfg(feature = "nightly")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+mod avx512;
+
 mod portable64;
 
 /// Split 565 color endpoints benchmark functions
@@ -145,7 +149,7 @@ pub unsafe fn avx2_shuf_impl_unroll_2(
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub unsafe fn avx512_impl_unroll2(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
-    super::avx512::avx512_impl_unroll2(colors, colors_out, colors_len_bytes)
+    avx512::avx512_impl_unroll2(colors, colors_out, colors_len_bytes)
 }
 
 #[cfg(feature = "nightly")]

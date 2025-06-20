@@ -1,4 +1,4 @@
-use super::{determine_best_transform_details_with_estimator, CompressionStatsCmd};
+use super::{determine_best_transform_details_with_estimator_cached, CompressionStatsCmd};
 use crate::{
     debug::{
         calc_compression_stats_common,
@@ -15,6 +15,7 @@ use crate::{
     DdsFilter,
 };
 use core::sync::atomic::{AtomicUsize, Ordering};
+use dxt_lossless_transform_api_common::estimate::DataType;
 use dxt_lossless_transform_bc1::{transform_bc1, Bc1TransformDetails};
 use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};
 use dxt_lossless_transform_dds::dds::DdsFormat;
@@ -151,6 +152,7 @@ fn analyze_bc1_compression_file(
                         len_bytes,
                         compression_level,
                         compression_algorithm,
+                        DataType::Bc1Colours,
                         cache,
                     )?,
                     api_recommended_result: analyze_bc1_api_recommendation(
@@ -203,6 +205,7 @@ fn analyze_bc1_compression_transforms(
                     len_bytes,
                     compression_level,
                     compression_algorithm,
+                    transform_options.to_data_type(),
                     cache,
                 )?,
             });
@@ -224,29 +227,14 @@ unsafe fn analyze_bc1_api_recommendation(
     use_all_decorrelation_modes: bool,
     cache: &Mutex<CompressionCache>,
 ) -> Result<Bc1TransformResult, TransformError> {
-    // Create the file size estimator with cache clone for static lifetime
-    let estimator = move |data_ptr: *const u8, len: usize| -> usize {
-        match calc_size_with_cache_and_estimation_algorithm(
-            data_ptr,
-            len,
-            estimate_compression_level,
-            estimate_compression_algorithm,
-            cache,
-        ) {
-            Ok(size) => size,
-            Err(e) => {
-                eprintln!("Warning: Compression estimation failed: {e}");
-                usize::MAX // Return max size on error to make this option less favorable
-            }
-        }
-    };
-
-    let best_details = determine_best_transform_details_with_estimator(
+    let best_details = determine_best_transform_details_with_estimator_cached(
         data_ptr,
         len_bytes,
-        estimator,
+        estimate_compression_level,
+        estimate_compression_algorithm,
         experimental_normalize,
         use_all_decorrelation_modes,
+        cache,
     )?;
 
     // Transform the data using the recommended details and measure the size
@@ -264,6 +252,7 @@ unsafe fn analyze_bc1_api_recommendation(
         len_bytes,
         final_compression_level,
         compression_algorithm,
+        best_details.to_data_type(),
         cache,
     )?;
 

@@ -1,4 +1,4 @@
-use super::{determine_best_transform_details_with_estimator, BenchmarkCmd};
+use super::{determine_best_transform_details_with_estimator_cached, BenchmarkCmd};
 use crate::{
     debug::{
         benchmark_common::{
@@ -8,8 +8,7 @@ use crate::{
         compressed_data_cache::CompressedDataCache,
         compression::{
             helpers::{
-                calc_size_with_cache_and_estimation_algorithm, compress_data_cached,
-                decompress_data, validate_compression_algorithm, CacheRefs,
+                compress_data_cached, decompress_data, validate_compression_algorithm, CacheRefs,
             },
             CompressionAlgorithm,
         },
@@ -196,14 +195,14 @@ fn process_file(
                 let scenarios = vec![
                     (
                         "API Recommended",
-                        get_api_recommended_details(
+                        determine_best_transform_details_with_estimator_cached(
                             data_ptr,
                             len_bytes,
                             config.estimate_compression_level,
                             config.estimate_compression_algorithm,
-                            caches.compressed_size_cache,
                             config.experimental_normalize,
                             config.use_all_decorrelation_modes,
+                            caches.compressed_size_cache,
                         )?,
                     ),
                     (
@@ -271,40 +270,6 @@ fn process_file(
     }
 
     Ok(file_result)
-}
-
-unsafe fn get_api_recommended_details(
-    data_ptr: *const u8,
-    len_bytes: usize,
-    estimate_compression_level: i32,
-    estimate_compression_algorithm: CompressionAlgorithm,
-    cache: &Mutex<CompressionSizeCache>,
-    experimental_normalize: bool,
-    use_all_decorrelation_modes: bool,
-) -> Result<Bc1TransformDetails, TransformError> {
-    let estimator = move |data_ptr: *const u8, len: usize| -> usize {
-        match calc_size_with_cache_and_estimation_algorithm(
-            data_ptr,
-            len,
-            estimate_compression_level,
-            estimate_compression_algorithm,
-            cache,
-        ) {
-            Ok(size) => size,
-            Err(e) => {
-                eprintln!("Warning: Compression estimation failed: {e}");
-                usize::MAX // Return max size on error to make this option less favorable
-            }
-        }
-    };
-
-    determine_best_transform_details_with_estimator(
-        data_ptr,
-        len_bytes,
-        estimator,
-        experimental_normalize,
-        use_all_decorrelation_modes,
-    )
 }
 
 unsafe fn process_scenario(

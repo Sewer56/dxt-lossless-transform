@@ -1,13 +1,14 @@
 //! Functions for determining the best transform options with experimental normalization support.
 
-use crate::determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions};
-use crate::{
-    determine_optimal_transform::DetermineBestTransformError, transforms::standard::transform,
-    YCoCgVariant,
+use crate::determine_optimal_transform::{
+    determine_best_transform_details, Bc1EstimateOptions, DetermineBestTransformError,
 };
+use crate::{transforms::standard::transform, Bc1TransformDetails, YCoCgVariant};
 use core::mem::size_of;
+use core::ptr::null_mut;
 use core::slice;
-use dxt_lossless_transform_common::allocate::FixedRawAllocArray;
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
+use dxt_lossless_transform_common::allocate::{allocate_align_64, FixedRawAllocArray};
 use dxt_lossless_transform_common::{
     color_565::Color565, transforms::split_565_color_endpoints::split_color_endpoints,
 };
@@ -38,17 +39,33 @@ use super::{
 /// # Safety
 ///
 /// Function is unsafe because it deals with raw pointers which must be correct.
-pub unsafe fn determine_best_transform_details_with_normalization<F>(
+pub unsafe fn determine_best_transform_details_with_normalization<T>(
     input_ptr: *const u8,
     len: usize,
-    transform_options: Bc1EstimateOptions<F>,
-) -> Result<Bc1TransformDetailsWithNormalization, DetermineBestTransformError>
+    transform_options: Bc1EstimateOptions<T>,
+) -> Result<Bc1TransformDetailsWithNormalization, DetermineBestTransformError<T::Error>>
 where
-    F: Fn(*const u8, usize) -> usize,
+    T: SizeEstimationOperations,
 {
     const NUM_NORMALIZE: usize = ColorNormalizationMode::all_values().len();
     let mut normalize_buffers = FixedRawAllocArray::<NUM_NORMALIZE>::new(len)?;
     let normalize_buffers_ptrs = normalize_buffers.get_pointer_slice();
+
+    // Pre-allocate compression buffer once for all iterations
+    // Note: len/2 because we only compress color data, not indices
+    let max_comp_size = transform_options
+        .size_estimator
+        .max_compressed_size(len / 2)
+        .map_err(DetermineBestTransformError::SizeEstimationError)?;
+
+    // Allocate compression buffer if needed (reused across all calls)
+    let (comp_buffer_ptr, comp_buffer_len, _comp_buffer) = if max_comp_size == 0 {
+        (core::ptr::null_mut(), 0, None)
+    } else {
+        let mut comp_buffer = allocate_align_64(max_comp_size)?;
+        let ptr = comp_buffer.as_mut_ptr();
+        (ptr, max_comp_size, Some(comp_buffer))
+    };
 
     // Normalize blocks into all possible modes.
     let any_normalized = normalize_blocks_all_modes(input_ptr, &normalize_buffers_ptrs, len);
@@ -95,6 +112,8 @@ where
                         &mut best_transform_details,
                         &mut best_size,
                         current_mode,
+                        comp_buffer_ptr,
+                        comp_buffer_len,
                     );
                 }
             }
@@ -107,7 +126,8 @@ where
         drop(normalize_buffers);
 
         // Call the regular function since no normalization is needed
-        let regular_result = determine_best_transform_details(input_ptr, len, transform_options)?;
+        let regular_result =
+            determine_best_transform_details(input_ptr, len, null_mut(), transform_options)?;
 
         // Convert regular result to normalization result using From trait
         Ok(regular_result.into())
@@ -116,16 +136,18 @@ where
 
 #[allow(clippy::too_many_arguments)]
 #[inline]
-unsafe fn test_normalize_variant_with_normalization<F>(
+unsafe fn test_normalize_variant_with_normalization<T>(
     input: *mut u8,
     output: *mut u8,
     len: usize,
-    transform_options: &Bc1EstimateOptions<F>,
+    transform_options: &Bc1EstimateOptions<T>,
     best_transform_details: &mut Bc1TransformDetailsWithNormalization,
     best_size: &mut usize,
     current_mode: Bc1TransformDetailsWithNormalization,
+    comp_buffer_ptr: *mut u8,
+    comp_buffer_len: usize,
 ) where
-    F: Fn(*const u8, usize) -> usize,
+    T: SizeEstimationOperations,
 {
     // So this is the fun part.
     if current_mode.split_colour_endpoints {
@@ -172,7 +194,22 @@ unsafe fn test_normalize_variant_with_normalization<F>(
     // indices_out_arr.copy_from_slice(indices_in_arr);
 
     // Test the current mode.
-    let result_size = (transform_options.file_size_estimator)(output, len / 2);
+    let transform_details = Bc1TransformDetails {
+        decorrelation_mode: current_mode.decorrelation_mode,
+        split_colour_endpoints: current_mode.split_colour_endpoints,
+    };
+
+    let result_size = match transform_options.size_estimator.estimate_compressed_size(
+        output,
+        len / 2,
+        transform_details.to_data_type(),
+        comp_buffer_ptr,
+        comp_buffer_len,
+    ) {
+        Ok(size) => size,
+        Err(_) => return, // Skip this variant if estimation fails
+    };
+
     if result_size < *best_size {
         *best_size = result_size;
         *best_transform_details = current_mode;
@@ -182,11 +219,7 @@ unsafe fn test_normalize_variant_with_normalization<F>(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// Simple dummy file size estimator that just returns the input length
-    fn dummy_file_size_estimator(_data: *const u8, len: usize) -> usize {
-        len
-    }
+    use dxt_lossless_transform_api_common::estimate::DataType;
 
     /// Test that determine_best_transform_details_with_normalization doesn't crash with minimal BC1 data
     #[test]
@@ -199,8 +232,30 @@ mod tests {
             0x00, 0x00, 0x00, 0x00, // Indices: all pointing to Color0
         ];
 
+        // Create a simple dummy estimator
+        struct DummyEstimator;
+
+        impl SizeEstimationOperations for DummyEstimator {
+            type Error = &'static str;
+
+            fn max_compressed_size(&self, _len_bytes: usize) -> Result<usize, Self::Error> {
+                Ok(0) // No buffer needed for dummy estimator
+            }
+
+            unsafe fn estimate_compressed_size(
+                &self,
+                _input_ptr: *const u8,
+                len_bytes: usize,
+                _data_type: DataType,
+                _output_ptr: *mut u8,
+                _output_len: usize,
+            ) -> Result<usize, Self::Error> {
+                Ok(len_bytes) // Just return the input length
+            }
+        }
+
         let transform_options = Bc1EstimateOptions {
-            file_size_estimator: dummy_file_size_estimator,
+            size_estimator: DummyEstimator,
             use_all_decorrelation_modes: false,
         };
 

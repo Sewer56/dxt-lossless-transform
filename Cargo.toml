@@ -32,6 +32,10 @@ members = [
     # Utility Libraries
     "projects/dxt-lossless-transform-dds", # Adds DDS support
 
+    # Extensions
+    "projects/extensions/dxt-lossless-transform-zstd", # ZStandard size estimation
+    "projects/extensions/dxt-lossless-transform-ltu", # Lossless Transform Utils size estimation
+
     # CLI Tool
     "projects/dxt-lossless-transform-cli",
 

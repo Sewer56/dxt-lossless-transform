@@ -21,6 +21,7 @@ use crate::transforms::{
     standard::{transform, untransform},
     with_recorrelate, with_split_colour, with_split_colour_and_recorr,
 };
+use dxt_lossless_transform_api_common::estimate::DataType;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
 /// The information about the BC1 transform that was just performed.
@@ -109,6 +110,22 @@ impl Bc1TransformDetails {
                     split_colour_endpoints: split_endpoints,
                 })
         })
+    }
+
+    /// Determines the appropriate [`DataType`] for size estimation based on the transform options.
+    ///
+    /// This method maps the transform configuration to the corresponding data type that
+    /// should be used for compression size estimation and caching.
+    ///
+    /// # Returns
+    /// The [`DataType`] that represents the data format after applying these transform options
+    pub fn to_data_type(&self) -> DataType {
+        match (self.decorrelation_mode, self.split_colour_endpoints) {
+            (YCoCgVariant::None, false) => DataType::Bc1Colours,
+            (YCoCgVariant::None, true) => DataType::Bc1SplitColours,
+            (_, true) => DataType::Bc1SplitDecorrelatedColours, // Split colours with decorrelation
+            (_, false) => DataType::Bc1DecorrelatedColours,     // Decorrelated but not split
+        }
     }
 }
 

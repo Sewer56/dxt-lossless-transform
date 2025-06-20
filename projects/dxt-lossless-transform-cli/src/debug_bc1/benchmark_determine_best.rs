@@ -4,7 +4,7 @@ use crate::{
         benchmark_common::{
             self, print_overall_statistics, BenchmarkResult, BenchmarkScenarioResult,
         },
-        compression::{helpers::calc_size_with_estimation_algorithm, CompressionAlgorithm},
+        compression::CompressionAlgorithm,
         extract_blocks_from_dds,
     },
     error::TransformError,
@@ -185,26 +185,11 @@ unsafe fn run_determine_best_once(
     experimental_normalize: bool,
     use_all_decorrelation_modes: bool,
 ) -> Result<Bc1TransformDetails, TransformError> {
-    // Create a compression file size estimator that compresses data without caching
-    let estimator = move |data_ptr: *const u8, len: usize| -> usize {
-        match calc_size_with_estimation_algorithm(
-            data_ptr,
-            len,
-            estimate_compression_level,
-            compression_algorithm,
-        ) {
-            Ok(size) => size,
-            Err(e) => {
-                eprintln!("Warning: Compression estimation failed: {e}");
-                usize::MAX // Return max size on error to make this option less favorable
-            }
-        }
-    };
-
     determine_best_transform_details_with_estimator(
         data_ptr,
         len_bytes,
-        estimator,
+        estimate_compression_level,
+        compression_algorithm,
         experimental_normalize,
         use_all_decorrelation_modes,
     )

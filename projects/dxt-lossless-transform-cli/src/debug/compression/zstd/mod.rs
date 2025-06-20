@@ -4,7 +4,6 @@ pub mod zstd_raw;
 use super::CompressionOperations;
 use crate::error::TransformError;
 use core::slice;
-pub use zstd_raw::*;
 
 /// ZStandard implementation of [`CompressionOperations`].
 pub struct ZStandardCompression;

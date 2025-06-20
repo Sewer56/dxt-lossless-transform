@@ -1,6 +1,9 @@
 //! Generic compression helpers with caching support for benchmarking
 //! and 'native' error handling. Supports multiple compression algorithms.
 
+use dxt_lossless_transform_api_common::estimate::DataType;
+use dxt_lossless_transform_common::allocate::allocate_align_64;
+
 use super::super::{
     calculate_content_hash, compressed_data_cache::CompressedDataCache,
     compression_size_cache::CompressionSizeCache,
@@ -8,7 +11,7 @@ use super::super::{
 use super::compress_with_algorithm;
 use super::decompress_with_algorithm;
 use super::CompressionAlgorithm;
-use crate::debug::estimation::estimate_compressed_size_with_algorithm;
+use crate::debug::estimation::create_size_estimator;
 use crate::error::TransformError;
 use std::sync::Mutex;
 
@@ -76,7 +79,13 @@ pub fn compress_data_cached(
     // Also populate the size cache when writing to data cache
     {
         let mut size_cache_guard = caches.compressed_size_cache.lock().unwrap();
-        size_cache_guard.insert(content_hash, compression_level, algorithm, compressed_size);
+        size_cache_guard.insert(
+            content_hash,
+            compression_level,
+            algorithm,
+            DataType::Unknown, // Actual compression doesn't differentiate by data type
+            compressed_size,
+        );
     }
 
     Ok((compressed_data, compressed_size))
@@ -89,12 +98,28 @@ pub unsafe fn calc_size_with_estimation_algorithm(
     len_bytes: usize,
     compression_level: i32,
     estimation_algorithm: CompressionAlgorithm,
+    data_type: DataType,
 ) -> Result<usize, TransformError> {
-    estimate_compressed_size_with_algorithm(
+    let estimator = create_size_estimator(estimation_algorithm, compression_level)?;
+
+    // Get max buffer size (may be 0 if no allocation needed)
+    let max_comp_size = estimator.max_compressed_size(len_bytes)?;
+
+    // Allocate buffer if needed
+    let (comp_buffer_ptr, comp_buffer_len, _comp_buffer) = if max_comp_size == 0 {
+        (std::ptr::null_mut(), 0, None)
+    } else {
+        let mut comp_buffer = allocate_align_64(max_comp_size)?;
+        let ptr = comp_buffer.as_mut_ptr();
+        (ptr, max_comp_size, Some(comp_buffer))
+    };
+
+    estimator.estimate_compressed_size(
         data_ptr,
         len_bytes,
-        estimation_algorithm,
-        compression_level,
+        data_type,
+        comp_buffer_ptr,
+        comp_buffer_len,
     )
 }
 
@@ -107,27 +132,42 @@ pub fn calc_size_with_cache_and_estimation_algorithm(
     len_bytes: usize,
     compression_level: i32,
     estimation_algorithm: CompressionAlgorithm,
+    data_type: DataType,
     cache: &Mutex<CompressionSizeCache>,
 ) -> Result<usize, TransformError> {
     let content_hash = calculate_content_hash(data_ptr, len_bytes);
 
+    // Create an estimator to check if it supports data type differentiation
+    let estimator = create_size_estimator(estimation_algorithm, compression_level)?;
+    let cache_data_type = if estimator.supports_data_type_differentiation() {
+        data_type
+    } else {
+        DataType::Unknown
+    };
+
     // Try to get from cache
     {
         let cache_guard = cache.lock().unwrap();
-        if let Some(cached_size) =
-            cache_guard.get(content_hash, compression_level, estimation_algorithm)
-        {
+        if let Some(cached_size) = cache_guard.get(
+            content_hash,
+            compression_level,
+            estimation_algorithm,
+            cache_data_type,
+        ) {
             return Ok(cached_size);
         }
     }
 
     // Not in cache, compute it
-    let compressed_size = estimate_compressed_size_with_algorithm(
-        data_ptr,
-        len_bytes,
-        estimation_algorithm,
-        compression_level,
-    )?;
+    let compressed_size = unsafe {
+        calc_size_with_estimation_algorithm(
+            data_ptr,
+            len_bytes,
+            compression_level,
+            estimation_algorithm,
+            data_type,
+        )?
+    };
 
     // Store in cache
     {
@@ -136,6 +176,7 @@ pub fn calc_size_with_cache_and_estimation_algorithm(
             content_hash,
             compression_level,
             estimation_algorithm,
+            cache_data_type,
             compressed_size,
         );
     }

@@ -4,6 +4,11 @@ version = "0.1.0"
 edition = "2021"
 readme = "README.MD"
 
+[dependencies]
+# Only used for serialization/deserialization of certain data types, which is optional and would not
+# reflect on binary size when unused.
+bincode = "2.0.1"
+
 [features]
 default = ["std"]
 # Enable use of standard library, currently a no-op.

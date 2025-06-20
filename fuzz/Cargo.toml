@@ -7,6 +7,11 @@ edition = "2021"
 [package.metadata]
 cargo-fuzz = true
 
+[features]
+default = []
+# Use nightly compiler features (AVX512)
+nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-bc2/nightly", "dxt-lossless-transform-bc3/nightly", "dxt-lossless-transform-common/nightly"]
+
 [dependencies]
 libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
 rgbcx-sys = "1.1.3"

@@ -9,6 +9,9 @@ readme = "README.MD"
 # reflect on binary size when unused.
 bincode = "2.0.1"
 
+# Internal common crate for conversion functions
+dxt-lossless-transform-common = { path = "../../core/dxt-lossless-transform-common" }
+
 [features]
 default = ["std"]
 # Enable use of standard library, currently a no-op.

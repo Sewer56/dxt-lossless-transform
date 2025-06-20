@@ -48,13 +48,3 @@ pub use transform::{
     transform_bc1_allocating, transform_bc1_slice, untransform_bc1_allocating,
     untransform_bc1_slice,
 };
-
-// Re-export commonly used types from the core crate
-pub use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
-pub use dxt_lossless_transform_bc1::{
-    Bc1DetransformDetails as CoreBc1DetransformDetails,
-    Bc1TransformDetails as CoreBc1TransformDetails,
-    determine_optimal_transform::Bc1EstimateOptions as CoreBc1EstimateOptions,
-    util::{decode_bc1_block, decode_bc1_block_from_slice},
-};
-pub use dxt_lossless_transform_common::color_565::YCoCgVariant;

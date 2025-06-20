@@ -3,8 +3,8 @@
 use crate::error::Bc1Error;
 use crate::optimal::determine_optimal_transform;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
+use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 use dxt_lossless_transform_bc1::Bc1TransformDetails;
-use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
 /// Builder for BC1 transform options with convenient configuration methods.
 #[derive(Debug, Clone, Copy, Default)]
@@ -37,6 +37,7 @@ impl Bc1TransformOptionsBuilder {
         Bc1TransformDetails {
             decorrelation_mode: self
                 .decorrelation_mode
+                .map(|mode| mode.to_internal_variant())
                 .unwrap_or(default.decorrelation_mode),
             split_colour_endpoints: self
                 .split_colour_endpoints
@@ -79,7 +80,10 @@ mod tests {
             .split_colour_endpoints(false)
             .build();
 
-        assert_eq!(options.decorrelation_mode, YCoCgVariant::Variant2);
+        assert_eq!(
+            options.decorrelation_mode,
+            YCoCgVariant::Variant2.to_internal_variant()
+        );
         assert!(!options.split_colour_endpoints);
     }
 }

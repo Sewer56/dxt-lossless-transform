@@ -279,11 +279,11 @@ Dataset is a bunch of textures from most popular Skyrim mods on [Nexus Mods](htt
 
 ### Load Times
 
-```
+```bash
 cargo run --bin dxt-lossless-transform-cli --release --features "debug-bc1" debug-bc1 benchmark "/home/sewer/Temp/texture-stuff/bc1-raw" --compression-level 16 --estimate-compression-level 1 --warmup-iterations 1 --iterations 3 --estimate-compression-algorithm ltu
 ```
 
-```
+```ignore
 📊 Overall Benchmark Statistics:
 ═══════════════════════════════════════════════════════════════
 Files benchmarked: 2130

@@ -4,8 +4,6 @@
 //! of data, which can be used for optimization algorithms that need to compare
 //! compression ratios without performing full compression.
 
-use core::ptr::null_mut;
-
 /// Enum representing the type of data being estimated for compression.
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

@@ -23,7 +23,7 @@ pub enum Bc1Error {
     #[error("Memory allocation failed: {0}")]
     AllocationFailed(#[from] AllocateError),
 
-    /// Transform determination failed.
-    #[error("Failed to determine optimal transform: {0}")]
-    DeterminationFailed(String),
+    /// Size estimation failed during transform optimization.
+    #[error("Size estimation failed: {0}")]
+    SizeEstimationFailed(String),
 }

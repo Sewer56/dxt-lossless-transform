@@ -109,7 +109,7 @@ All functions return [`Result`] types with detailed [`Bc1Error`] information:
 - [`Bc1Error::InvalidLength`] - Input data not divisible by 8 bytes
 - [`Bc1Error::OutputBufferTooSmall`] - Output buffer insufficient for operation
 - [`Bc1Error::AllocationFailed`] - Memory allocation error
-- [`Bc1Error::DeterminationFailed`] - Transform optimization error
+- [`Bc1Error::SizeEstimationFailed`] - Size estimation error during optimization
 
 ## Performance Considerations
 

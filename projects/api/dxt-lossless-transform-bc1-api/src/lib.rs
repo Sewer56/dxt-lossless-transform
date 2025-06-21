@@ -23,3 +23,7 @@ pub use transform::{
     untransform_bc1_slice,
 };
 pub use transform_options_builder::Bc1TransformOptionsBuilder;
+
+// Test utilities
+#[cfg(test)]
+mod test_prelude;

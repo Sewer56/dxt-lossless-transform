@@ -16,8 +16,8 @@ use core::slice;
 /// Transform BC1 data using transform details directly (ABI-unstable).
 ///
 /// ## ABI Instability Warning
-/// This function accepts `Dltbc1TransformDetails` directly, which may change between versions.
-/// Use `dltbc1_TransformContext_Transform` with a context for ABI stability.
+/// This function accepts [`Dltbc1TransformDetails`] directly, which may change between versions.
+/// Use [`dltbc1_TransformContext_Transform`] with a context for ABI stability.
 ///
 /// # Parameters
 /// - `input`: Pointer to input BC1 data
@@ -33,6 +33,8 @@ use core::slice;
 /// - `input` must be valid for reads of `input_len` bytes
 /// - `output` must be valid for writes of `output_len` bytes
 /// - Pointers must remain valid for the duration of the call
+///
+/// [`dltbc1_TransformContext_Transform`]: crate::c_api::transform::dltbc1_TransformContext_Transform
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_unstable_transform(
     input: *const u8,
@@ -62,8 +64,8 @@ pub unsafe extern "C" fn dltbc1_unstable_transform(
 /// Untransform BC1 data using detransform details directly (ABI-unstable).
 ///
 /// ## ABI Instability Warning
-/// This function accepts `Dltbc1DetransformDetails` directly, which may change between versions.
-/// Use `dltbc1_TransformContext_Untransform` with a context for ABI stability.
+/// This function accepts [`Dltbc1DetransformDetails`] directly, which may change between versions.
+/// Use [`dltbc1_TransformContext_Untransform`] with a context for ABI stability.
 ///
 /// # Parameters
 /// - `input`: Pointer to transformed BC1 data
@@ -79,6 +81,8 @@ pub unsafe extern "C" fn dltbc1_unstable_transform(
 /// - `input` must be valid for reads of `input_len` bytes
 /// - `output` must be valid for writes of `output_len` bytes
 /// - Pointers must remain valid for the duration of the call
+///
+/// [`dltbc1_TransformContext_Untransform`]: crate::c_api::transform::dltbc1_TransformContext_Untransform
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_unstable_untransform(
     input: *const u8,

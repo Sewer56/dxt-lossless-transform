@@ -66,7 +66,7 @@ pub unsafe extern "C" fn dltbc1_free_TransformContext(context: *mut Dltbc1Transf
 /// The returned context must be freed independently.
 ///
 /// # Safety
-/// - `context` must be a valid pointer to a Dltbc1TransformContext
+/// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 ///
 /// # Returns
 /// A pointer to a newly allocated transform context with the same settings, or null if allocation fails.
@@ -89,7 +89,7 @@ pub unsafe extern "C" fn dltbc1_clone_TransformContext(
 /// Get the transform details from a transform context.
 ///
 /// # Safety
-/// - `context` must be a valid pointer to a Dltbc1TransformContext
+/// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 pub(crate) unsafe fn get_transform_details(
     context: *const Dltbc1TransformContext,
 ) -> Bc1TransformDetails {
@@ -101,7 +101,7 @@ pub(crate) unsafe fn get_transform_details(
 /// Get the detransform details from a transform context.
 ///
 /// # Safety
-/// - `context` must be a valid pointer to a Dltbc1TransformContext
+/// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 pub(crate) unsafe fn get_detransform_details(
     context: *const Dltbc1TransformContext,
 ) -> Bc1DetransformDetails {
@@ -112,7 +112,7 @@ pub(crate) unsafe fn get_detransform_details(
 /// Get mutable access to the inner transform context.
 ///
 /// # Safety
-/// - `context` must be a valid pointer to a Dltbc1TransformContext
+/// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 pub(crate) unsafe fn get_context_mut(
     context: *mut Dltbc1TransformContext,
 ) -> &'static mut Dltbc1TransformContextInner {

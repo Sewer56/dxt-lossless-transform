@@ -34,7 +34,7 @@ use crate::c_api::transform::unstable::{dltbc1_unstable_transform, dltbc1_unstab
 /// # Safety
 /// - `input` must be valid for reads of `input_len` bytes
 /// - `output` must be valid for writes of `output_len` bytes
-/// - `context` must be a valid pointer to a Dltbc1TransformContext
+/// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 /// - Pointers must remain valid for the duration of the call
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_TransformContext_Transform(

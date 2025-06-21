@@ -70,7 +70,7 @@ pub unsafe extern "C" fn dltbc1_free_EstimateOptionsBuilder(
 
 /// Set whether to use all decorrelation modes.
 ///
-/// When `false` (default), only tests `YCoCgVariant::Variant1` and `YCoCgVariant::None`
+/// When `false` (default), only tests [`YCoCgVariant::Variant1`] and [`YCoCgVariant::None`]
 /// for faster optimization with good results.
 ///
 /// When `true`, tests all available decorrelation modes for potentially better
@@ -111,6 +111,7 @@ pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationMod
 /// - `context`: The BC1 context where optimal options will be stored on success
 ///
 /// # Returns
+///
 /// A [`Dltbc1Result`] indicating success or containing an error that must be freed.
 ///
 /// # Safety
@@ -120,6 +121,9 @@ pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationMod
 /// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 /// - The estimator's context and functions must remain valid for the duration of the call
 /// - The builder will be automatically freed, regardless of success or failure
+///
+/// Errors should not happen under regular usage, only under incorrect usage in practice, so the
+/// convenience of the automatic free is provided for you, to make the happy path easier to write.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
     builder: *mut Dltbc1EstimateOptionsBuilder,
@@ -139,7 +143,7 @@ pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
     } else {
         let builder_box =
             unsafe { Box::from_raw(builder as *mut Dltbc1EstimateOptionsBuilderImpl) };
-        builder_box.use_all_decorrelation_modes
+        builder_box.use_all_decorrelation_modes // frees builder_box
     };
 
     // Create settings struct

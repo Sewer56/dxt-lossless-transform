@@ -329,13 +329,13 @@ complexity while keeping similar compression ratios.
 
 ## License
 
-Licensed under [GPL v3 (with Reloaded FAQ)](../../../LICENSE).
+Licensed under [GPL v3 (with Reloaded FAQ)](https://github.com/Sewer56/dxt-lossless-transform/blob/main/LICENSE).
 
 For more information about licensing, see the [Reloaded project licensing guide][reloaded-license].
 
 ## C API (FFI)
 
-For C/C++/FFI usage, see the [C API documentation](https://docs.rs/dxt-lossless-transform-bc1-api/latest/dxt_lossless_transform_bc1_api/c_api/index.html).
+For C/C++/FFI usage, see the [C API documentation][c-api-docs].
 
 ## Development
 
@@ -343,3 +343,4 @@ For information on how to work with this codebase, see [README-DEV.MD][readme-de
 
 [reloaded-license]: https://reloaded-project.github.io/Reloaded.MkDocsMaterial.Themes.R2/Pages/license.html
 [readme-dev]: https://github.com/Sewer56/dxt-lossless-transform/blob/main/README-DEV.MD
+[c-api-docs]: crate::c_api

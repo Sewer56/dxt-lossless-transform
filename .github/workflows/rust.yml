@@ -163,6 +163,7 @@ jobs:
           additional-rustc-args: "--all-features"
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: true
+          build-library: true
 
       - name: Build C API (Common)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
@@ -176,6 +177,7 @@ jobs:
           additional-rustc-args: "--all-features"
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false
+          build-library: true
 
       - name: Build C API (BC1)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
@@ -189,6 +191,7 @@ jobs:
           additional-rustc-args: "--all-features"
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false
+          build-library: true
 
   build-c-cpp-headers:
     runs-on: ubuntu-latest

@@ -1,5 +1,6 @@
 //! BC1 format embedding support.
 
+use crate::dds::constants::DDS_MAGIC;
 use dxt_lossless_transform_api_common::embed::{
     EmbedError, EmbeddableTransformDetails, TransformHeader,
 };
@@ -8,6 +9,9 @@ use dxt_lossless_transform_bc1_api::embed::EmbeddableBc1Details;
 
 /// Embeds BC1 transform details into the DDS magic header.
 ///
+/// This function **overwrites** the original DDS magic header with transform details.
+/// The original header can be restored using [`unembed_bc1_details`].
+///
 /// # Safety
 ///
 /// - `ptr` must be valid for reads and writes of 4 bytes
@@ -15,44 +19,56 @@ use dxt_lossless_transform_bc1_api::embed::EmbeddableBc1Details;
 ///
 /// # Parameters
 ///
-/// - `ptr`: Pointer to the DDS data (will be modified)
+/// - `ptr`: Pointer to the DDS data (the first 4 bytes will be overwritten)
 /// - `details`: BC1 transform details to embed
 ///
-/// # Returns
+/// # Remarks
 ///
-/// - `Ok(())` on success
-/// - [`EmbedError`] on failure
+/// The DDS magic header (typically `DDS_MAGIC`) is temporarily replaced with
+/// embedded transform details. This allows the transform information to be
+/// stored within the file without increasing file size.
 pub unsafe fn embed_bc1_details(ptr: *mut u8, details: Bc1DetransformDetails) {
     let embeddable = EmbeddableBc1Details::from(details);
     let header = embeddable.to_header();
     header.write_to_ptr(ptr);
 }
 
-/// Unembeds BC1 transform details from the DDS magic header.
+/// Unembeds BC1 transform details from the DDS magic header and restores the original header.
+///
+/// This function reads the transform details from the DDS header and then **restores**
+/// the original DDS magic header, returning the file to its original state.
 ///
 /// # Safety
 ///
-/// - `ptr` must be valid (non-null) for read of 4 bytes
-/// - The DDS file must have been previously embedded with BC1 details
+/// - `ptr` must be valid for reads and writes of 4 bytes
+/// - The DDS file must have been previously embedded with BC1 details using [`embed_bc1_details`]
 ///
 /// # Parameters
 ///
-/// - `ptr`: Pointer to the DDS data with embedded details
+/// - `ptr`: Pointer to the DDS data with embedded details (the first 4 bytes will be restored)
 ///
 /// # Returns
 ///
 /// - `Ok(Bc1DetransformDetails)` on success
 /// - [`EmbedError`] on failure
-pub unsafe fn unembed_bc1_details(ptr: *const u8) -> Result<Bc1DetransformDetails, EmbedError> {
+///
+/// # Remarks
+///
+/// After successful unembedding, the DDS file header is restored to its original
+/// state with the proper `DDS_MAGIC` value, making the file a valid DDS file again.
+pub unsafe fn unembed_bc1_details(ptr: *mut u8) -> Result<Bc1DetransformDetails, EmbedError> {
     let header = TransformHeader::read_from_ptr(ptr);
     let embeddable = EmbeddableBc1Details::from_header(header)?;
+
+    // Restore the original DDS magic header
+    (ptr as *mut u32).write_unaligned(DDS_MAGIC);
+
     Ok(embeddable.into())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dds::constants::DDS_MAGIC;
     use dxt_lossless_transform_api_common::embed::TransformFormat;
     use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
@@ -78,7 +94,7 @@ mod tests {
 
                 unsafe {
                     embed_bc1_details(data.as_mut_ptr(), details);
-                    let recovered = unembed_bc1_details(data.as_ptr()).unwrap();
+                    let recovered = unembed_bc1_details(data.as_mut_ptr()).unwrap();
                     assert_eq!(
                         details, recovered,
                         "Failed for variant {variant:?} split {split}",
@@ -99,9 +115,40 @@ mod tests {
 
             // Should fail to unembed due to wrong format
             assert!(matches!(
-                unembed_bc1_details(data.as_ptr()),
+                unembed_bc1_details(data.as_mut_ptr()),
                 Err(EmbedError::InvalidHeaderFormat)
             ));
+        }
+    }
+
+    #[test]
+    fn test_header_restoration() {
+        let mut data = create_test_dds_data();
+
+        let details = Bc1DetransformDetails {
+            decorrelation_mode: YCoCgVariant::Variant1,
+            split_colour_endpoints: true,
+        };
+
+        unsafe {
+            // Verify original header is DDS_MAGIC
+            let original_header = (data.as_ptr() as *const u32).read_unaligned();
+            assert_eq!(original_header, DDS_MAGIC);
+
+            // Embed details (should overwrite header)
+            embed_bc1_details(data.as_mut_ptr(), details);
+
+            // Verify header has changed
+            let embedded_header = (data.as_ptr() as *const u32).read_unaligned();
+            assert_ne!(embedded_header, DDS_MAGIC);
+
+            // Unembed details (should restore original header)
+            let recovered = unembed_bc1_details(data.as_mut_ptr()).unwrap();
+            assert_eq!(details, recovered);
+
+            // Verify header is restored to DDS_MAGIC
+            let restored_header = (data.as_ptr() as *const u32).read_unaligned();
+            assert_eq!(restored_header, DDS_MAGIC);
         }
     }
 }

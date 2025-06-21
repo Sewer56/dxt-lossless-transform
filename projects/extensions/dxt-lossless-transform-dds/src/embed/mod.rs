@@ -12,6 +12,17 @@
 //! header becomes insignificant. In which case, we can use those 4 bytes to store the information we need.
 //!
 //! This module is responsible for embedding this information into the DDS header.
+//!
+//! # Header Overwriting and Restoration
+//!
+//! **Important**: The embed functions **overwrite** the original DDS magic header with transform details.
+//! The unembed functions **restore** the original DDS magic header after extracting the transform details.
+//! This ensures that:
+//!
+//! 1. During transformation: The file contains embedded transform details
+//! 2. After detransformation: The file is restored to a valid DDS state
+//!
+//! The embedding process is designed to be reversible, maintaining file integrity.
 
 pub mod bc1;
 

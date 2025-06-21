@@ -283,7 +283,7 @@ Dataset is a bunch of textures from most popular Skyrim mods on [Nexus Mods](htt
 cargo run --bin dxt-lossless-transform-cli --release --features "debug-bc1" debug-bc1 benchmark "/home/sewer/Temp/texture-stuff/bc1-raw" --compression-level 16 --estimate-compression-level 1 --warmup-iterations 1 --iterations 3 --estimate-compression-algorithm ltu
 ```
 
-```ignore
+```text
 📊 Overall Benchmark Statistics:
 ═══════════════════════════════════════════════════════════════
 Files benchmarked: 2130
@@ -329,9 +329,13 @@ complexity while keeping similar compression ratios.
 
 ## License
 
-Licensed under [GPL v3 (with Reloaded FAQ)](../../../LICENSE).
+Licensed under [GPL v3 (with Reloaded FAQ)](https://github.com/Sewer56/dxt-lossless-transform/blob/main/LICENSE).
 
 For more information about licensing, see the [Reloaded project licensing guide][reloaded-license].
+
+## C API (FFI)
+
+For C/C++/FFI usage, see the `C API documentation` in the `c_api` module.
 
 ## Development
 

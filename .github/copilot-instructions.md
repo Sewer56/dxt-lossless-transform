@@ -19,6 +19,11 @@ This is a high-performance Rust library for lossless DXT texture compression wit
 - Use descriptive names for performance-critical code
 - Follow Rust naming conventions (snake_case for functions/variables, PascalCase for types)
 
+### Import and Dependency Preferences
+
+- Prefer `core` over `std` when possible for better no_std compatibility
+- Prefer adding explicit `use` statements instead of fully qualified paths, unless the code is inside a feature block that blocks/enables compilation
+
 ## Documentation Standards
 
 ### Function Documentation

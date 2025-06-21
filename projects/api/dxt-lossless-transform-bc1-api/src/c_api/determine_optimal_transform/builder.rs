@@ -3,14 +3,21 @@
 use crate::c_api::{determine_optimal_transform::Dltbc1TransformContext, error::Dltbc1Result};
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 
+/// Internal structure holding the actual builder data.
+struct Dltbc1EstimateOptionsBuilderImpl {
+    use_all_decorrelation_modes: bool,
+}
+
 /// Opaque handle for BC1 estimate options builder.
 ///
 /// This builder allows configuring options for determining optimal BC1 transform settings.
 /// Use the provided functions to configure the builder and then call
 /// [`dltbc1_estimate_options_build_and_determine_optimal`] to execute the optimization.
+///
+/// The internal structure of this builder is completely hidden from C callers.
 #[repr(C)]
 pub struct Dltbc1EstimateOptionsBuilder {
-    use_all_decorrelation_modes: bool,
+    _private: [u8; 0],
 }
 
 /// Create a new BC1 estimate options builder with default settings.
@@ -26,11 +33,11 @@ pub struct Dltbc1EstimateOptionsBuilder {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_estimate_options_builder_new() -> *mut Dltbc1EstimateOptionsBuilder
 {
-    let builder = Box::new(Dltbc1EstimateOptionsBuilder {
+    let builder_impl = Box::new(Dltbc1EstimateOptionsBuilderImpl {
         use_all_decorrelation_modes: false,
     });
 
-    Box::into_raw(builder)
+    Box::into_raw(builder_impl) as *mut Dltbc1EstimateOptionsBuilder
 }
 
 /// Free a BC1 estimate options builder.
@@ -46,7 +53,7 @@ pub unsafe extern "C" fn dltbc1_estimate_options_builder_free(
     builder: *mut Dltbc1EstimateOptionsBuilder,
 ) {
     if !builder.is_null() {
-        let _ = unsafe { Box::from_raw(builder) };
+        let _ = unsafe { Box::from_raw(builder as *mut Dltbc1EstimateOptionsBuilderImpl) };
     }
 }
 
@@ -73,8 +80,8 @@ pub unsafe extern "C" fn dltbc1_estimate_options_set_use_all_decorrelation_modes
         return;
     }
 
-    let builder_ref = unsafe { &mut *builder };
-    builder_ref.use_all_decorrelation_modes = use_all;
+    let builder_impl = unsafe { &mut *(builder as *mut Dltbc1EstimateOptionsBuilderImpl) };
+    builder_impl.use_all_decorrelation_modes = use_all;
 }
 
 /// Build the estimate options and determine optimal transform settings for BC1 data.
@@ -111,7 +118,8 @@ pub unsafe extern "C" fn dltbc1_estimate_options_build_and_determine_optimal(
     let use_all_modes = if builder.is_null() {
         false // Default value if builder is null
     } else {
-        let builder_box = unsafe { Box::from_raw(builder) };
+        let builder_box =
+            unsafe { Box::from_raw(builder as *mut Dltbc1EstimateOptionsBuilderImpl) };
         builder_box.use_all_decorrelation_modes
     };
 

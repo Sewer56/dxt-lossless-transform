@@ -19,17 +19,17 @@ pub enum Dltbc1ErrorCode {
     SizeEstimationFailed = 4,
     /// Null pointer provided for data parameter
     NullDataPointer = 5,
-    /// Null pointer provided for estimator parameter
+    /// Null pointer provided for DltSizeEstimator parameter
     NullEstimatorPointer = 6,
-    /// Null pointer provided for transform details parameter
+    /// Null pointer provided for Dltbc1TransformDetails parameter
     NullTransformDetailsPointer = 7,
     /// Null pointer provided for input parameter
     NullInputPointer = 8,
     /// Null pointer provided for output buffer parameter
     NullOutputBufferPointer = 9,
-    /// Null pointer provided for transform context parameter
+    /// Null pointer provided for Dltbc1TransformContext parameter
     NullTransformContextPointer = 10,
-    /// Null pointer provided for estimate options builder parameter
+    /// Null pointer provided for Dltbc1EstimateOptionsBuilder parameter
     NullBuilderPointer = 11,
 }
 
@@ -101,10 +101,10 @@ pub unsafe extern "C" fn dltbc1_error_message(error_code: Dltbc1ErrorCode) -> *c
             c"Null pointer provided for data parameter".as_ptr() as *const c_char
         }
         Dltbc1ErrorCode::NullEstimatorPointer => {
-            c"Null pointer provided for estimator parameter".as_ptr() as *const c_char
+            c"Null pointer provided for DltSizeEstimator parameter".as_ptr() as *const c_char
         }
         Dltbc1ErrorCode::NullTransformDetailsPointer => {
-            c"Null pointer provided for transform details parameter".as_ptr() as *const c_char
+            c"Null pointer provided for Dltbc1TransformDetails parameter".as_ptr() as *const c_char
         }
         Dltbc1ErrorCode::NullInputPointer => {
             c"Null pointer provided for input parameter".as_ptr() as *const c_char
@@ -113,7 +113,7 @@ pub unsafe extern "C" fn dltbc1_error_message(error_code: Dltbc1ErrorCode) -> *c
             c"Null pointer provided for output parameter".as_ptr() as *const c_char
         }
         Dltbc1ErrorCode::NullTransformContextPointer => {
-            c"Null pointer provided for transform context parameter".as_ptr() as *const c_char
+            c"Null pointer provided for Dltbc1TransformContext parameter".as_ptr() as *const c_char
         }
         Dltbc1ErrorCode::NullBuilderPointer => {
             c"Null pointer provided for Dltbc1EstimateOptionsBuilder parameter".as_ptr()

@@ -17,7 +17,7 @@ use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 /// # Safety
 /// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_set_decorrelation_mode(
+pub unsafe extern "C" fn dltbc1_TransformContext_SetDecorrelationMode(
     context: *mut Dltbc1TransformContext,
     mode: YCoCgVariant,
 ) {
@@ -38,7 +38,7 @@ pub unsafe extern "C" fn dltbc1_set_decorrelation_mode(
 /// # Safety
 /// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_set_split_colour_endpoints(
+pub unsafe extern "C" fn dltbc1_TransformContext_SetSplitColourEndpoints(
     context: *mut Dltbc1TransformContext,
     split: bool,
 ) {
@@ -61,7 +61,7 @@ pub unsafe extern "C" fn dltbc1_set_split_colour_endpoints(
 /// # Safety
 /// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_get_split_colour_endpoints(
+pub unsafe extern "C" fn dltbc1_TransformContext_GetSplitColourEndpoints(
     context: *const Dltbc1TransformContext,
 ) -> bool {
     if context.is_null() {
@@ -80,7 +80,9 @@ pub unsafe extern "C" fn dltbc1_get_split_colour_endpoints(
 /// # Safety
 /// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_reset_to_defaults(context: *mut Dltbc1TransformContext) {
+pub unsafe extern "C" fn dltbc1_TransformContext_ResetToDefaults(
+    context: *mut Dltbc1TransformContext,
+) {
     if context.is_null() {
         return;
     }

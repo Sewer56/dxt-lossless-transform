@@ -19,7 +19,7 @@ struct Dltbc1EstimateOptionsBuilderImpl {
 ///
 /// This builder allows configuring options for determining optimal BC1 transform settings.
 /// Use the provided functions to configure the builder and then call
-/// [`dltbc1_estimate_options_build_and_determine_optimal`] to execute the optimization.
+/// [`dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal`] to execute the optimization.
 ///
 /// The internal structure of this builder is completely hidden from C callers.
 #[repr(C)]
@@ -33,13 +33,12 @@ pub struct Dltbc1EstimateOptionsBuilder {
 /// - `use_all_decorrelation_modes`: false (tests only Variant1 and None for faster optimization)
 ///
 /// # Returns
-/// A new builder instance that must be freed with [`dltbc1_estimate_options_builder_free`].
+/// A new builder instance that must be freed with [`dltbc1_free_EstimateOptionsBuilder`].
 ///
 /// # Safety
-/// - This function is unsafe because it returns a raw pointer that must be freed with [`dltbc1_estimate_options_builder_free`].
+/// - This function is unsafe because it returns a raw pointer that must be freed with [`dltbc1_free_EstimateOptionsBuilder`].
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_estimate_options_builder_new() -> *mut Dltbc1EstimateOptionsBuilder
-{
+pub unsafe extern "C" fn dltbc1_new_EstimateOptionsBuilder() -> *mut Dltbc1EstimateOptionsBuilder {
     let builder_impl = Box::new(Dltbc1EstimateOptionsBuilderImpl {
         use_all_decorrelation_modes: false,
     });
@@ -53,10 +52,10 @@ pub unsafe extern "C" fn dltbc1_estimate_options_builder_new() -> *mut Dltbc1Est
 /// - `builder`: The builder to free (can be null)
 ///
 /// # Safety
-/// - `builder` must be a valid pointer returned by [`dltbc1_estimate_options_builder_new`] or null
+/// - `builder` must be a valid pointer returned by [`dltbc1_new_EstimateOptionsBuilder`] or null
 /// - The builder must not be used after calling this function
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_estimate_options_builder_free(
+pub unsafe extern "C" fn dltbc1_free_EstimateOptionsBuilder(
     builder: *mut Dltbc1EstimateOptionsBuilder,
 ) {
     if !builder.is_null() {
@@ -79,7 +78,7 @@ pub unsafe extern "C" fn dltbc1_estimate_options_builder_free(
 /// # Safety
 /// - `builder` must be a valid pointer to a [`Dltbc1EstimateOptionsBuilder`]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_estimate_options_set_use_all_decorrelation_modes(
+pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(
     builder: *mut Dltbc1EstimateOptionsBuilder,
     use_all: bool,
 ) {
@@ -114,7 +113,7 @@ pub unsafe extern "C" fn dltbc1_estimate_options_set_use_all_decorrelation_modes
 /// - The estimator's context and functions must remain valid for the duration of the call
 /// - The builder will be automatically freed, regardless of success or failure
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_estimate_options_build_and_determine_optimal(
+pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
     builder: *mut Dltbc1EstimateOptionsBuilder,
     data: *const u8,
     data_len: usize,

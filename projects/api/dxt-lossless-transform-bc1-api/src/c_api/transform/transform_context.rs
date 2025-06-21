@@ -12,10 +12,10 @@ use dxt_lossless_transform_bc1::{Bc1DetransformDetails, Bc1TransformDetails};
 ///
 /// This context stores the current transform configuration and must be:
 ///
-/// - Created with [`dltbc1_transform_context_create()`]
+/// - Created with [`dltbc1_new_TransformContext()`]
 /// - Modified using the builder functions
 /// - Passed to transform operations
-/// - Freed with [`dltbc1_transform_context_free()`] when no longer needed
+/// - Freed with [`dltbc1_free_TransformContext()`] when no longer needed
 ///
 /// The context is NOT thread-safe and should not be shared between threads.
 /// Each thread should create its own context.
@@ -32,12 +32,12 @@ pub(crate) struct Dltbc1TransformContextInner {
 
 /// Create a new BC1 transform context with default settings.
 ///
-/// The returned context must be freed with [`dltbc1_transform_context_free()`] when no longer needed.
+/// The returned context must be freed with [`dltbc1_free_TransformContext()`] when no longer needed.
 ///
 /// # Returns
 /// A pointer to a newly allocated transform context, or null if allocation fails.
 #[unsafe(no_mangle)]
-pub extern "C" fn dltbc1_transform_context_create() -> *mut Dltbc1TransformContext {
+pub extern "C" fn dltbc1_new_TransformContext() -> *mut Dltbc1TransformContext {
     let inner = Box::new(Dltbc1TransformContextInner {
         builder: Bc1TransformOptionsBuilder::new(),
     });
@@ -48,11 +48,11 @@ pub extern "C" fn dltbc1_transform_context_create() -> *mut Dltbc1TransformConte
 /// Free a BC1 transform context.
 ///
 /// # Safety
-/// - `context` must be a valid pointer returned by [`dltbc1_transform_context_create()`]
+/// - `context` must be a valid pointer returned by [`dltbc1_new_TransformContext()`]
 /// - `context` must not have been freed already
 /// - After calling this function, `context` becomes invalid
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_transform_context_free(context: *mut Dltbc1TransformContext) {
+pub unsafe extern "C" fn dltbc1_free_TransformContext(context: *mut Dltbc1TransformContext) {
     if !context.is_null() {
         unsafe {
             drop(Box::from_raw(context as *mut Dltbc1TransformContextInner));
@@ -71,7 +71,7 @@ pub unsafe extern "C" fn dltbc1_transform_context_free(context: *mut Dltbc1Trans
 /// # Returns
 /// A pointer to a newly allocated transform context with the same settings, or null if allocation fails.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_transform_context_clone(
+pub unsafe extern "C" fn dltbc1_clone_TransformContext(
     context: *const Dltbc1TransformContext,
 ) -> *mut Dltbc1TransformContext {
     if context.is_null() {

@@ -64,7 +64,7 @@
 //!
 //! // Determine optimal transform (unsafe due to raw pointers)
 //! let transform_details = unsafe {
-//!     determine_best_transform_details(bc1_data.as_ptr(), bc1_data.len(), std::ptr::null_mut(), options)
+//!     determine_best_transform_details(bc1_data.as_ptr(), bc1_data.len(), core::ptr::null_mut(), options)
 //! }.expect("Transform determination failed");
 //! ```
 //!
@@ -298,7 +298,7 @@ mod tests {
             determine_best_transform_details(
                 bc1_data.as_ptr(),
                 bc1_data.len(),
-                std::ptr::null_mut(),
+                core::ptr::null_mut(),
                 transform_options,
             )
         };
@@ -351,7 +351,7 @@ mod tests {
             determine_best_transform_details(
                 bc1_data.as_ptr(),
                 bc1_data.len(),
-                std::ptr::null_mut(),
+                core::ptr::null_mut(),
                 transform_options,
             )
         };

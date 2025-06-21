@@ -171,14 +171,14 @@ mod tests {
         // Test null input
         unsafe {
             let result =
-                dltbc1_unstable_transform(std::ptr::null(), 8, output.as_mut_ptr(), 8, details);
+                dltbc1_unstable_transform(core::ptr::null(), 8, output.as_mut_ptr(), 8, details);
             assert!(!result.is_success());
         }
 
         // Test null output
         unsafe {
             let result =
-                dltbc1_unstable_transform(data.as_ptr(), 8, std::ptr::null_mut(), 8, details);
+                dltbc1_unstable_transform(data.as_ptr(), 8, core::ptr::null_mut(), 8, details);
             assert!(!result.is_success());
         }
     }

@@ -107,7 +107,7 @@ pub unsafe fn calc_size_with_estimation_algorithm(
 
     // Allocate buffer if needed
     let (comp_buffer_ptr, comp_buffer_len, _comp_buffer) = if max_comp_size == 0 {
-        (std::ptr::null_mut(), 0, None)
+        (core::ptr::null_mut(), 0, None)
     } else {
         let mut comp_buffer = allocate_align_64(max_comp_size)?;
         let ptr = comp_buffer.as_mut_ptr();

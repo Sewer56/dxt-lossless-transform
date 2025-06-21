@@ -10,11 +10,11 @@ use std::{path::PathBuf, time::Instant};
 #[argh(subcommand, name = "transform")]
 pub struct TransformCmd {
     /// input directory path
-    #[argh(option, from_str_fn(crate::canonicalize_cli_path))]
+    #[argh(option, from_str_fn(crate::util::canonicalize_cli_path))]
     pub input: PathBuf,
 
     /// output directory path
-    #[argh(option, from_str_fn(crate::canonicalize_cli_path))]
+    #[argh(option, from_str_fn(crate::util::canonicalize_cli_path))]
     pub output: PathBuf,
 
     /// filter by DDS type (bc1, bc2, bc3, bc7, all) [default: all]

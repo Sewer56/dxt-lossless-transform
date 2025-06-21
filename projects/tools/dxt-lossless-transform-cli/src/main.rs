@@ -8,11 +8,7 @@ mod error;
 mod util;
 use argh::FromArgs;
 use core::error::Error;
-use std::{
-    fs,
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+use std::str::FromStr;
 
 #[derive(Debug, Clone)]
 pub enum DdsFilter {
@@ -57,18 +53,6 @@ enum Commands {
     DebugBc7(commands::debug_bc7::DebugCmd),
     #[cfg(feature = "debug-bc1")]
     DebugBc1(commands::debug_bc1::DebugCmd),
-}
-
-pub fn canonicalize_cli_path(value: &str) -> Result<PathBuf, String> {
-    let path = Path::new(value);
-
-    // If path doesn't exist, create it
-    if !path.exists() {
-        fs::create_dir_all(path).map_err(|e| format!("Failed to create directory: {e}"))?;
-    }
-
-    // Now we can canonicalize it
-    fs::canonicalize(path).map_err(|e| format!("Invalid path: {e}"))
 }
 
 fn main() -> Result<(), Box<dyn Error>> {

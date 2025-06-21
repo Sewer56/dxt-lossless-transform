@@ -242,3 +242,24 @@ pub fn transform_dir_entry<TParam>(
 
     Ok(())
 }
+
+/// Canonicalizes a CLI path argument, creating the directory if it doesn't exist.
+///
+/// # Arguments
+///
+/// * `value` - The path string to canonicalize
+///
+/// # Returns
+///
+/// A canonicalized PathBuf on success, or a String error message on failure.
+pub fn canonicalize_cli_path(value: &str) -> Result<PathBuf, String> {
+    let path = Path::new(value);
+
+    // If path doesn't exist, create it
+    if !path.exists() {
+        fs::create_dir_all(path).map_err(|e| format!("Failed to create directory: {e}"))?;
+    }
+
+    // Now we can canonicalize it
+    fs::canonicalize(path).map_err(|e| format!("Invalid path: {e}"))
+}

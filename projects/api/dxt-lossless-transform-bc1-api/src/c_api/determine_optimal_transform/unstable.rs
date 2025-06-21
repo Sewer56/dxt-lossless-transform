@@ -4,6 +4,7 @@
 //!
 //! Functions in this module are prefixed with `dltbc1_unstable_` and are **NOT ABI-stable**.
 //! The parameter structures may change between versions, potentially breaking compatibility.
+//!
 
 use crate::Bc1Error;
 use crate::c_api::Dltbc1TransformDetails;
@@ -28,7 +29,7 @@ pub struct Dltbc1DetermineOptimalSettings {
 ///
 /// ## ABI Instability Warning
 /// This function accepts and returns ABI-unstable structures which may change between versions.
-/// Use `dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal` for ABI stability.
+/// Use [`dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal`] for ABI stability.
 ///
 /// # Parameters
 /// - `data`: Pointer to BC1 data to analyze
@@ -45,6 +46,8 @@ pub struct Dltbc1DetermineOptimalSettings {
 /// - `estimator` must be a valid pointer to a [`DltSizeEstimator`] with valid function pointers
 /// - `out_details` must be a valid pointer for writing [`Dltbc1TransformDetails`]
 /// - The estimator's context and functions must remain valid for the duration of the call
+///
+/// [`dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal`]: crate::c_api::determine_optimal_transform::dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_unstable_determine_optimal(
     data: *const u8,

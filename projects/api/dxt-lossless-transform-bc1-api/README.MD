@@ -335,7 +335,7 @@ For more information about licensing, see the [Reloaded project licensing guide]
 
 ## C API (FFI)
 
-For C/C++/FFI usage, see the [C API documentation][c-api-docs].
+For C/C++/FFI usage, see the `C API documentation` in the `c_api` module.
 
 ## Development
 
@@ -343,4 +343,3 @@ For information on how to work with this codebase, see [README-DEV.MD][readme-de
 
 [reloaded-license]: https://reloaded-project.github.io/Reloaded.MkDocsMaterial.Themes.R2/Pages/license.html
 [readme-dev]: https://github.com/Sewer56/dxt-lossless-transform/blob/main/README-DEV.MD
-[c-api-docs]: crate::c_api

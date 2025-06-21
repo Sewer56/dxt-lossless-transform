@@ -69,6 +69,8 @@ pub unsafe fn untransform_format(
             Bc1DetransformDetails::default(),
         );
     } else {
-        todo!()
+        panic!(
+            "Detransform operation is not supported for format {format:?}. Only BC1 format is currently supported.",
+        );
     }
 }

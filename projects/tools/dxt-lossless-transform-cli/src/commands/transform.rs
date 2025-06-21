@@ -70,6 +70,8 @@ pub unsafe fn transform_format(
             Bc1TransformDetails::default(),
         );
     } else {
-        todo!()
+        panic!(
+            "Transform operation is not supported for format {format:?}. Only BC1 format is currently supported.",
+        );
     }
 }

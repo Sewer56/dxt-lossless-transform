@@ -21,7 +21,8 @@ impl Bc1EstimateOptionsBuilder {
     /// for faster optimization with good results.
     ///
     /// When `true`, tests all available decorrelation modes for potentially better
-    /// compression at the cost of longer optimization time.
+    /// compression at the cost of twice as long optimization time (tests 4 options
+    /// instead of 2) for negligible gains (typically <0.1% extra savings).
     pub fn use_all_decorrelation_modes(mut self, use_all: bool) -> Self {
         self.use_all_decorrelation_modes = Some(use_all);
         self

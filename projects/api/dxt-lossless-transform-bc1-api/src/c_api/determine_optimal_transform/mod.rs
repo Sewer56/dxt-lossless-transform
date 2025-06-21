@@ -82,7 +82,8 @@ pub unsafe extern "C" fn dltbc1_free_EstimateOptionsBuilder(
 /// for faster optimization with good results.
 ///
 /// When `true`, tests all available decorrelation modes for potentially better
-/// compression at the cost of longer optimization time.
+/// compression at the cost of twice as long optimization time (tests 4 options
+/// instead of 2) for negligible gains (typically <0.1% extra savings).
 ///
 /// # Parameters
 /// - `builder`: The builder to configure

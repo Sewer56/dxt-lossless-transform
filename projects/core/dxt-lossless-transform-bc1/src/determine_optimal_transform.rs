@@ -136,7 +136,8 @@ where
     ///
     /// When `true`, tests all available decorrelation modes ([`YCoCgVariant::Variant1`],
     /// [`YCoCgVariant::Variant2`], [`YCoCgVariant::Variant3`], and [`YCoCgVariant::None`])
-    /// for potentially better compression at the cost of longer optimization time.
+    /// for potentially better compression at the cost of twice as long optimization
+    /// time (tests 4 options instead of 2) for negligible gains (typically <0.1% extra savings).
     pub use_all_decorrelation_modes: bool,
 }
 

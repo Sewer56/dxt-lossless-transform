@@ -18,7 +18,7 @@ use dxt_lossless_transform_bc1::{
 ///
 /// - `input`: The BC1 data to analyze
 /// - `estimator`: The size estimation operations to use
-/// - `use_all_modes`: Whether to test all decorrelation modes (slower but potentially better)
+/// - `use_all_modes`: Whether to test all decorrelation modes (twice as slow, tests 4 options instead of 2, typically <0.1% extra savings)
 ///
 /// # Returns
 ///

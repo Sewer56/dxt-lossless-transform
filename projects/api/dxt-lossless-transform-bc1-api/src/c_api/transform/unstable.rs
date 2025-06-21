@@ -161,7 +161,7 @@ mod tests {
 
     #[test]
     fn test_unstable_null_pointer_handling() {
-        let data = vec![0u8; 8];
+        let data = [0u8; 8];
         let mut output = vec![0u8; 8];
         let details = Dltbc1TransformDetails {
             decorrelation_mode: YCoCgVariant::None,

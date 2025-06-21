@@ -69,6 +69,7 @@ pub(crate) unsafe fn transform(input_ptr: *const u8, output_ptr: *mut u8, len: u
 /// - len must be divisible by 8 (BC1 block size)
 /// - It is recommended that all pointers are at least 16-byte aligned (recommended 32-byte align)
 /// - The color and index buffers must not overlap with each other or the input buffer
+#[cfg(feature = "experimental")]
 #[inline]
 pub(crate) unsafe fn transform_with_separate_pointers(
     input_ptr: *const u8,

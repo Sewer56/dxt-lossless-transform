@@ -16,6 +16,8 @@ use dxt_lossless_transform_bc1_api::embed::EmbeddableBc1Details;
 ///
 /// - `ptr` must be valid for reads and writes of 4 bytes
 /// - `ptr` must point to a valid DDS file with BC1 format
+/// - **The caller must verify the DDS magic header is present** using [`is_dds`] before calling this function
+/// - Do not rely solely on file extensions - always validate the actual header content
 ///
 /// # Parameters
 ///
@@ -27,6 +29,11 @@ use dxt_lossless_transform_bc1_api::embed::EmbeddableBc1Details;
 /// The DDS magic header (typically `DDS_MAGIC`) is temporarily replaced with
 /// embedded transform details. This allows the transform information to be
 /// stored within the file without increasing file size.
+///
+/// **Important**: This function assumes the file has already been validated as a proper
+/// DDS file. Use [`is_dds`] to verify the magic header before embedding.
+///
+/// [`is_dds`]: crate::dds::is_dds
 pub unsafe fn embed_bc1_details(ptr: *mut u8, details: Bc1DetransformDetails) {
     let embeddable = EmbeddableBc1Details::from(details);
     let header = embeddable.to_header();
@@ -42,6 +49,8 @@ pub unsafe fn embed_bc1_details(ptr: *mut u8, details: Bc1DetransformDetails) {
 ///
 /// - `ptr` must be valid for reads and writes of 4 bytes
 /// - The DDS file must have been previously embedded with BC1 details using [`embed_bc1_details`]
+/// - **The caller must ensure the data contains valid embedded transform details**
+/// - Do not call this on arbitrary files - only on files that were previously embedded
 ///
 /// # Parameters
 ///
@@ -56,6 +65,10 @@ pub unsafe fn embed_bc1_details(ptr: *mut u8, details: Bc1DetransformDetails) {
 ///
 /// After successful unembedding, the DDS file header is restored to its original
 /// state with the proper `DDS_MAGIC` value, making the file a valid DDS file again.
+///
+/// **Important**: This function will attempt to restore the DDS magic header regardless
+/// of whether the input data is valid. Only call this on files that were previously
+/// processed with [`embed_bc1_details`].
 pub unsafe fn unembed_bc1_details(ptr: *mut u8) -> Result<Bc1DetransformDetails, EmbedError> {
     let header = TransformHeader::read_from_ptr(ptr);
     let embeddable = EmbeddableBc1Details::from_header(header)?;

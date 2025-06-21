@@ -23,6 +23,14 @@
 //! 2. After detransformation: The file is restored to a valid DDS state
 //!
 //! The embedding process is designed to be reversible, maintaining file integrity.
+//!
+//! ## Validation Requirements
+//!
+//! **Critical**: Before embedding, callers must validate that the file is actually a DDS file
+//! using [`is_dds`]. Do not rely solely on file extensions or assumptions. The embed functions
+//! will blindly overwrite the first 4 bytes, potentially corrupting non-DDS files.
+//!
+//! [`is_dds`]: crate::dds::is_dds
 
 pub mod bc1;
 

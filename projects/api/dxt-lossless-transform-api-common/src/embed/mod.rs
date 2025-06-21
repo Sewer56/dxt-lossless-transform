@@ -23,11 +23,15 @@
 //!
 //! Format-specific implementations should follow this pattern:
 //!
-//! 1. **Embed functions**: Overwrite the original file header with transform details
-//! 2. **Unembed functions**: Extract transform details AND restore the original header
+//! 1. **Validation**: Verify the file has the expected header format before embedding
+//! 2. **Embed functions**: Overwrite the original file header with transform details
+//! 3. **Unembed functions**: Extract transform details AND restore the original header
 //!
 //! This ensures that after the unembed operation, the file is returned to a valid state
 //! and can be processed by standard tools that expect the original header format.
+//!
+//! **Critical Safety Note**: Embed functions should never blindly overwrite headers.
+//! Callers must validate the file format first - never trust file extensions alone.
 //!
 //! [`DDS_MAGIC`]: https://docs.rs/dxt-lossless-transform-dds/latest/dxt_lossless_transform_dds/dds/constants/constant.DDS_MAGIC.html
 //! [`dxt-lossless-transform-dds`]: https://github.com/Sewer56/dxt-lossless-transform/tree/main/projects/extensions/dxt-lossless-transform-dds

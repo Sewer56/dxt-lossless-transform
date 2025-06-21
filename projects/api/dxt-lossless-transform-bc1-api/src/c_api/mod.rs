@@ -7,11 +7,9 @@ pub mod determine_optimal_transform;
 pub mod error;
 pub mod transform;
 pub mod transform_context;
-pub mod transform_options_builder;
 
 // Re-export all C API functions
 pub use determine_optimal_transform::*;
 pub use error::*;
 pub use transform::*;
 pub use transform_context::*;
-pub use transform_options_builder::*;

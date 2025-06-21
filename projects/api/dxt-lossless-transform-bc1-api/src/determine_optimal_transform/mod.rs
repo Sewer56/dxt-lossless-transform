@@ -1,5 +1,7 @@
 //! Functions for determining optimal BC1 transform parameters.
 
+pub mod builder;
+
 use crate::error::Bc1Error;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_bc1::{

@@ -5,7 +5,7 @@
 
 use core::ptr;
 
-use crate::transform_options_builder::Bc1TransformOptionsBuilder;
+use crate::transform::Bc1TransformOptionsBuilder;
 use dxt_lossless_transform_bc1::{Bc1DetransformDetails, Bc1TransformDetails};
 
 /// Opaque transform context type for BC1 transform operations.

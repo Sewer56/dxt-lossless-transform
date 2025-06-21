@@ -1,9 +1,13 @@
 //! C API for determining optimal BC1 transform settings.
 
+pub mod builder;
+
+pub use builder::*;
+
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
 use crate::c_api::transform_context::{Dltbc1TransformContext, get_context_mut};
 use crate::determine_optimal_transform::determine_optimal_transform;
-use crate::{Bc1Error, Bc1TransformOptionsBuilder};
+use crate::{Bc1Error, transform::Bc1TransformOptionsBuilder};
 use core::slice;
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;

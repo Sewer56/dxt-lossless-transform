@@ -1,9 +1,13 @@
 //! C API for BC1 transform and untransform operations.
 
+pub mod builder;
+
+pub use builder::*;
+
+use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
 use crate::c_api::transform_context::{
     Dltbc1TransformContext, get_detransform_details, get_transform_details,
 };
-use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
 use crate::transform::{transform_bc1_slice, untransform_bc1_slice};
 use core::slice;
 

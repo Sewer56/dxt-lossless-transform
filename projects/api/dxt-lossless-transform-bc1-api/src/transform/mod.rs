@@ -5,6 +5,11 @@ use dxt_lossless_transform_bc1::{Bc1DetransformDetails, Bc1TransformDetails};
 use dxt_lossless_transform_common::allocate::allocate_align_64;
 use safe_allocator_api::RawAlloc;
 
+pub mod builder;
+
+// Re-export the builder for convenience
+pub use builder::Bc1TransformOptionsBuilder;
+
 /// Transform BC1 data in-place using the provided slices.
 ///
 /// # Parameters
@@ -249,24 +254,24 @@ mod tests {
 
     #[test]
     fn invalid_length() {
-        let input = vec![0u8; 7]; // Not divisible by 8
-        let mut output = vec![0u8; 8];
+        let data = vec![0u8; 7]; // Invalid length (not divisible by 8)
+        let mut output = vec![0u8; 7];
 
-        let result = transform_bc1_slice(&input, &mut output, Bc1TransformDetails::default());
+        let result = transform_bc1_slice(&data, &mut output, Bc1TransformDetails::default());
         assert!(matches!(result, Err(Bc1Error::InvalidLength(7))));
     }
 
     #[test]
     fn output_buffer_too_small() {
-        let input = vec![0u8; 16]; // 2 blocks
-        let mut output = vec![0u8; 8]; // Only 1 block
+        let data = vec![0u8; 8];
+        let mut output = vec![0u8; 4]; // Too small
 
-        let result = transform_bc1_slice(&input, &mut output, Bc1TransformDetails::default());
+        let result = transform_bc1_slice(&data, &mut output, Bc1TransformDetails::default());
         assert!(matches!(
             result,
             Err(Bc1Error::OutputBufferTooSmall {
-                needed: 16,
-                actual: 8
+                needed: 8,
+                actual: 4
             })
         ));
     }

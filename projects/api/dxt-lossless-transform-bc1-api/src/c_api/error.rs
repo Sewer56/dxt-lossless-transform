@@ -29,6 +29,8 @@ pub enum Dltbc1ErrorCode {
     NullOutputBufferPointer = 9,
     /// Null pointer provided for transform context parameter
     NullTransformContextPointer = 10,
+    /// Null pointer provided for estimate options builder parameter
+    NullBuilderPointer = 11,
 }
 
 /// C-compatible Result type for BC1 operations.
@@ -112,6 +114,10 @@ pub unsafe extern "C" fn dltbc1_error_message(error_code: Dltbc1ErrorCode) -> *c
         }
         Dltbc1ErrorCode::NullTransformContextPointer => {
             c"Null pointer provided for transform context parameter".as_ptr() as *const c_char
+        }
+        Dltbc1ErrorCode::NullBuilderPointer => {
+            c"Null pointer provided for Dltbc1EstimateOptionsBuilder parameter".as_ptr()
+                as *const c_char
         }
     }
 }

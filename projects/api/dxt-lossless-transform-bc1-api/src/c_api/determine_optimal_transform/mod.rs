@@ -26,6 +26,9 @@ struct Dltbc1EstimateOptionsBuilderImpl {
 /// Use the provided functions to configure the builder and then call
 /// [`dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal`] to execute the optimization.
 ///
+/// The builder can be reused multiple times and must be explicitly freed with
+/// [`dltbc1_free_EstimateOptionsBuilder`].
+///
 /// The internal structure of this builder is completely hidden from C callers.
 #[repr(C)]
 pub struct Dltbc1EstimateOptionsBuilder {
@@ -80,50 +83,47 @@ pub unsafe extern "C" fn dltbc1_free_EstimateOptionsBuilder(
 /// - `builder`: The builder to configure
 /// - `use_all`: Whether to use all decorrelation modes
 ///
+/// # Returns
+/// A [`Dltbc1Result`] indicating success or containing an error.
+///
 /// # Safety
 /// - `builder` must be a valid pointer to a [`Dltbc1EstimateOptionsBuilder`]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(
     builder: *mut Dltbc1EstimateOptionsBuilder,
     use_all: bool,
-) {
+) -> Dltbc1Result {
     if builder.is_null() {
-        return;
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullBuilderPointer);
     }
 
     let builder_impl = unsafe { &mut *(builder as *mut Dltbc1EstimateOptionsBuilderImpl) };
     builder_impl.use_all_decorrelation_modes = use_all;
+    Dltbc1Result::success()
 }
 
 /// Build the estimate options and determine optimal transform settings for BC1 data (ABI-stable).
 ///
-/// This function consumes the builder, uses the configured options to determine the optimal
-/// transform settings, and stores the results in the provided context.
-///
-/// This function provides ABI stability by using opaque types. Internally, it calls
-/// the unstable [`dltbc1_unstable_determine_optimal`] function.
+/// This function uses the configured options to determine the optimal
+/// transform settings for the given BC1 data and stores them in the provided context.
+/// The builder remains valid after this call and can be reused.
 ///
 /// # Parameters
-/// - `builder`: The builder to use (will be freed automatically)
+/// - `builder`: The configured builder (can be null to use default settings)
 /// - `data`: Pointer to BC1 data to analyze
 /// - `data_len`: Length of data in bytes (must be divisible by 8)
 /// - `estimator`: The size estimator to use for compression estimation
-/// - `context`: The BC1 context where optimal options will be stored on success
+/// - `context`: The transform context where optimal settings will be stored
 ///
 /// # Returns
-///
-/// A [`Dltbc1Result`] indicating success or containing an error that must be freed.
+/// A [`Dltbc1Result`] indicating success or containing an error.
 ///
 /// # Safety
-/// - `builder` must be a valid pointer to a [`Dltbc1EstimateOptionsBuilder`] or null
 /// - `data` must be valid for reads of `data_len` bytes
 /// - `estimator` must be a valid pointer to a [`DltSizeEstimator`] with valid function pointers
 /// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 /// - The estimator's context and functions must remain valid for the duration of the call
-/// - The builder will be automatically freed, regardless of success or failure
-///
-/// Errors should not happen under regular usage, only under incorrect usage in practice, so the
-/// convenience of the automatic free is provided for you, to make the happy path easier to write.
+/// - The builder (if not null) must be a valid pointer to a [`Dltbc1EstimateOptionsBuilder`]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
     builder: *mut Dltbc1EstimateOptionsBuilder,
@@ -137,13 +137,12 @@ pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
         return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullTransformContextPointer);
     }
 
-    // Always free the builder, even on early return
+    // Get settings from builder without freeing it
     let use_all_modes = if builder.is_null() {
         false // Default value if builder is null
     } else {
-        let builder_box =
-            unsafe { Box::from_raw(builder as *mut Dltbc1EstimateOptionsBuilderImpl) };
-        builder_box.use_all_decorrelation_modes // frees builder_box
+        let builder_impl = unsafe { &*(builder as *const Dltbc1EstimateOptionsBuilderImpl) };
+        builder_impl.use_all_decorrelation_modes
     };
 
     // Create settings struct
@@ -249,17 +248,24 @@ mod tests {
 
         // Test setting use_all_decorrelation_modes to true
         unsafe {
-            dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(builder, true);
+            let result = dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(builder, true);
+            assert!(result.is_success());
         }
 
         // Test setting use_all_decorrelation_modes to false
         unsafe {
-            dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(builder, false);
+            let result = dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(builder, false);
+            assert!(result.is_success());
         }
 
-        // Test with null builder (should not crash)
+        // Test with null builder (should return error)
         unsafe {
-            dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(core::ptr::null_mut(), true);
+            let result = dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(
+                core::ptr::null_mut(),
+                true,
+            );
+            assert!(!result.is_success());
+            assert_eq!(result.error_code, Dltbc1ErrorCode::NullBuilderPointer);
         }
 
         // Clean up
@@ -300,8 +306,9 @@ mod tests {
             );
         }
 
-        // Clean up context (builder is automatically freed)
+        // Clean up builder and context
         unsafe {
+            dltbc1_free_EstimateOptionsBuilder(builder);
             dltbc1_free_TransformContext(context);
         }
     }
@@ -325,6 +332,11 @@ mod tests {
                 result.error_code,
                 Dltbc1ErrorCode::NullTransformContextPointer
             );
+        }
+
+        // Clean up builder
+        unsafe {
+            dltbc1_free_EstimateOptionsBuilder(builder);
         }
     }
 
@@ -358,7 +370,8 @@ mod tests {
 
         // Set use_all_decorrelation_modes to true
         unsafe {
-            dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(builder, true);
+            let result = dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(builder, true);
+            assert!(result.is_success());
 
             let result = dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
                 builder,
@@ -369,6 +382,7 @@ mod tests {
             );
             assert!(result.is_success());
 
+            dltbc1_free_EstimateOptionsBuilder(builder);
             dltbc1_free_TransformContext(context);
         }
     }
@@ -393,6 +407,7 @@ mod tests {
             assert!(!result.is_success());
             assert_eq!(result.error_code, Dltbc1ErrorCode::InvalidLength);
 
+            dltbc1_free_EstimateOptionsBuilder(builder);
             dltbc1_free_TransformContext(context);
         }
     }
@@ -408,7 +423,8 @@ mod tests {
 
         unsafe {
             // Configure for more thorough optimization
-            dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(builder, true);
+            let result = dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(builder, true);
+            assert!(result.is_success());
         }
 
         // Create context to receive optimal settings
@@ -421,7 +437,7 @@ mod tests {
         // Determine optimal settings
         unsafe {
             let result = dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
-                builder, // Builder is automatically freed
+                builder,
                 bc1_data.as_ptr(),
                 bc1_data.len(),
                 &estimator,
@@ -442,6 +458,7 @@ mod tests {
 
         // Clean up
         unsafe {
+            dltbc1_free_EstimateOptionsBuilder(builder);
             dltbc1_free_TransformContext(context);
         }
     }

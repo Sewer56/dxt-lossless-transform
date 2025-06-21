@@ -120,7 +120,8 @@
 //!     printf("Analysis failed: %s\n", dltbc1_error_message(result.error_code));
 //! }
 //!
-//! // Clean up (builder is automatically freed by BuildAndDetermineOptimal)
+//! // Clean up
+//! dltbc1_free_EstimateOptionsBuilder(builder);
 //! dltbc1_free_TransformContext(context);
 //! ```
 //!
@@ -157,7 +158,7 @@
 //!
 //! - **`dltbc1_new_EstimateOptionsBuilder()`** - Create a builder for analysis settings
 //! - **`dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(builder, use_all)`** - Configure analysis thoroughness
-//! - **`dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(builder, data, data_len, estimator, context)`** - Analyze data and determine best settings, store in context
+//! - **`dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(builder, data, data_len, estimator, context)`** - Analyze data and determine best settings, store in context (builder remains valid)
 //! - **`dltbc1_free_EstimateOptionsBuilder(builder)`** - Free the builder
 //!
 //! ## ABI-Unstable Functions

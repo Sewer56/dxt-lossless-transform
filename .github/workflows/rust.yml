@@ -176,7 +176,7 @@ jobs:
           features: "c-exports"
           additional-rustc-args: "--all-features"
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
-          use-cache: false
+          use-cache: false # Cache setup is inherited from first call.
           build-library: true
 
       - name: Build C API (BC1)
@@ -190,7 +190,7 @@ jobs:
           features: "c-exports"
           additional-rustc-args: "--all-features"
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
-          use-cache: false
+          use-cache: false # Cache setup is inherited from first call.
           build-library: true
 
   build-c-cpp-headers:
@@ -215,7 +215,7 @@ jobs:
           config-file: ../../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-api-common.hpp
           artifact-prefix: ""
-          use-cache: false
+          use-cache: false # Cache setup is inherited from first call.
 
       - name: C bindings - DDS
         uses: Reloaded-Project/devops-rust-cbindgen@v1
@@ -224,7 +224,7 @@ jobs:
           config-file: ../../../cbindgen_c.toml
           output-header-file: dxt-lossless-transform-dds.h
           artifact-prefix: ""
-          use-cache: false
+          use-cache: false # Cache setup is inherited from first call.
 
       - name: C++ bindings - DDS
         uses: Reloaded-Project/devops-rust-cbindgen@v1
@@ -242,7 +242,7 @@ jobs:
           config-file: ../../../cbindgen_c.toml
           output-header-file: dxt-lossless-transform-bc1-api.h
           artifact-prefix: ""
-          use-cache: false
+          use-cache: false # Cache setup is inherited from first call.
 
       - name: C++ bindings - BC1 API
         uses: Reloaded-Project/devops-rust-cbindgen@v1
@@ -251,7 +251,7 @@ jobs:
           config-file: ../../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-bc1-api.hpp
           artifact-prefix: ""
-          use-cache: false
+          use-cache: false # Cache setup is inherited from first call.
 
   publish-crate:
     permissions:

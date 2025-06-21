@@ -48,15 +48,61 @@ where
     T: SizeEstimationOperations,
     T::Error: core::fmt::Debug,
 {
-    // Validate input length
-    if input.len() % 8 != 0 {
-        return Err(Bc1Error::InvalidLength(input.len()));
-    }
-
     let options = Bc1EstimateOptions {
         size_estimator: estimator,
         use_all_decorrelation_modes: use_all_modes,
     };
+
+    determine_optimal_transform_with_options(input, options)
+}
+
+/// Determine the optimal transform parameters for BC1 data using pre-configured options.
+///
+/// This function tests various transform configurations and returns the one that
+/// produces the smallest compressed size according to the provided estimator.
+///
+/// # Parameters
+///
+/// - `input`: The BC1 data to analyze
+/// - `options`: The pre-configured estimation options
+///
+/// # Returns
+///
+/// The optimal [`Bc1TransformDetails`] for the given data.
+///
+/// # Errors
+///
+/// - [`Bc1Error::InvalidLength`] if input length is not divisible by 8
+/// - [`Bc1Error::AllocationFailed`] if memory allocation fails
+/// - [`Bc1Error::SizeEstimationFailed`] if the estimator fails (contains the actual estimator error)
+///
+/// # Examples
+///
+/// ```ignore
+/// use dxt_lossless_transform_bc1_api::{determine_optimal_transform_with_options, Bc1EstimateOptionsBuilder};
+/// use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
+///
+/// let bc1_data = vec![0u8; 8 * 100]; // 100 BC1 blocks
+/// let estimator = LosslessTransformUtilsSizeEstimation::new();
+///
+/// let options = Bc1EstimateOptionsBuilder::new()
+///     .use_all_decorrelation_modes(true)
+///     .build(estimator);
+///
+/// let best_options = determine_optimal_transform_with_options(&bc1_data, options)?;
+/// ```
+pub fn determine_optimal_transform_with_options<T>(
+    input: &[u8],
+    options: Bc1EstimateOptions<T>,
+) -> Result<Bc1TransformDetails, Bc1Error<T::Error>>
+where
+    T: SizeEstimationOperations,
+    T::Error: core::fmt::Debug,
+{
+    // Validate input length
+    if input.len() % 8 != 0 {
+        return Err(Bc1Error::InvalidLength(input.len()));
+    }
 
     // Safety: We've validated the input length
     unsafe {
@@ -75,4 +121,53 @@ where
             Bc1Error::SizeEstimationFailed(err)
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
+
+    // Create a simple dummy estimator for testing
+    struct DummyEstimator;
+
+    impl SizeEstimationOperations for DummyEstimator {
+        type Error = &'static str;
+
+        fn max_compressed_size(&self, _len_bytes: usize) -> Result<usize, Self::Error> {
+            Ok(0) // No buffer needed for dummy estimator
+        }
+
+        unsafe fn estimate_compressed_size(
+            &self,
+            _input_ptr: *const u8,
+            len_bytes: usize,
+            _data_type: DataType,
+            _output_ptr: *mut u8,
+            _output_len: usize,
+        ) -> Result<usize, Self::Error> {
+            Ok(len_bytes) // Just return the input length
+        }
+    }
+
+    #[test]
+    fn test_determine_optimal_transform_with_options() {
+        // Create minimal BC1 block data (8 bytes per block)
+        let bc1_data = [
+            0x00, 0xF8, // Color0: Red in RGB565 (0xF800)
+            0x00, 0x00, // Color1: Black (0x0000)
+            0x00, 0x00, 0x00, 0x00, // Indices: all pointing to Color0
+        ];
+
+        let options = Bc1EstimateOptions {
+            size_estimator: DummyEstimator,
+            use_all_decorrelation_modes: false,
+        };
+
+        let result = determine_optimal_transform_with_options(&bc1_data, options);
+        assert!(
+            result.is_ok(),
+            "Function should not fail with valid BC1 data"
+        );
+    }
 }

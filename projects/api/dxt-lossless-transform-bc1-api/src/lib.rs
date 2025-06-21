@@ -4,6 +4,7 @@
 
 // Module declarations
 pub mod determine_optimal_transform;
+pub mod determine_optimal_transform_options_builder;
 pub mod error;
 pub mod transform;
 pub mod transform_options_builder;
@@ -12,7 +13,10 @@ pub mod transform_options_builder;
 pub mod c_api;
 
 // Re-export main functionality at crate root
-pub use determine_optimal_transform::determine_optimal_transform;
+pub use determine_optimal_transform::{
+    determine_optimal_transform, determine_optimal_transform_with_options,
+};
+pub use determine_optimal_transform_options_builder::Bc1EstimateOptionsBuilder;
 pub use error::Bc1Error;
 pub use transform::{
     transform_bc1_allocating, transform_bc1_slice, untransform_bc1_allocating,

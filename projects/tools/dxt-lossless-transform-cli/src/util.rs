@@ -2,6 +2,7 @@
 
 use crate::error::TransformError;
 use crate::DdsFilter;
+use core::{ops::Sub, ptr::copy_nonoverlapping};
 use dxt_lossless_transform_dds::dds::*;
 use lightweight_mmap::handles::*;
 use lightweight_mmap::mmap::*;
@@ -166,4 +167,99 @@ pub fn check_dds_format(
         (DdsFormat::BC7, DdsFilter::BC7 | DdsFilter::All) => Ok((info, DdsFormat::BC7)),
         _ => Err(TransformError::IgnoredByFilter),
     }
+}
+
+/// Handles errors from process_dir_entry function by printing to stderr
+/// (except for IgnoredByFilter which is silently ignored).
+pub fn handle_process_entry_error(result: Result<(), TransformError>) {
+    if let Err(e) = result {
+        match e {
+            TransformError::IgnoredByFilter => (),
+            _ => eprintln!("{e}"),
+        }
+    }
+}
+
+/// Processes a single directory entry (DDS file) for transformation or detransformation.
+///
+/// # Arguments
+///
+/// * `dir_entry` - The directory entry to process
+/// * `input` - Input directory path
+/// * `output` - Output directory path  
+/// * `filter` - DDS format filter
+/// * `transform_fn` - The transformation function to apply
+/// * `param` - Additional parameter for the transform function
+///
+/// # Returns
+///
+/// Result indicating success or a TransformError on failure.
+pub fn transform_dir_entry<TParam>(
+    dir_entry: &fs::DirEntry,
+    input: &Path,
+    output: &Path,
+    filter: DdsFilter,
+    transform_fn: unsafe fn(&TParam, *const u8, *mut u8, usize, DdsFormat),
+    param: &TParam,
+) -> Result<(), TransformError> {
+    let path = dir_entry.path();
+    let relative = path.strip_prefix(input).unwrap();
+    let target_path = output.join(relative);
+
+    if let Some(parent) = target_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let source_handle = open_read_handle(path)?;
+    let source_size = get_file_size(&source_handle)? as usize;
+    let source_mapping = open_readonly_mmap(&source_handle, source_size)?;
+
+    let dds_info = unsafe { parse_dds(source_mapping.data(), source_mapping.len()) };
+    let (info, format) = check_dds_format(dds_info, filter, &dir_entry.path())?;
+
+    let target_path_str = target_path.to_str().unwrap();
+    let target_handle = open_write_handle(&source_mapping, target_path_str)?;
+    let target_mapping = create_output_mapping(&target_handle, source_size as u64)?;
+
+    // Copy DDS headers.
+    unsafe {
+        copy_nonoverlapping(
+            source_mapping.data(),
+            target_mapping.data(),
+            info.data_offset as usize,
+        );
+    }
+
+    unsafe {
+        transform_fn(
+            param,
+            source_mapping.data().add(info.data_offset as usize),
+            target_mapping.data().add(info.data_offset as usize),
+            source_size.sub(info.data_offset as usize),
+            format,
+        );
+    }
+
+    Ok(())
+}
+
+/// Canonicalizes a CLI path argument, creating the directory if it doesn't exist.
+///
+/// # Arguments
+///
+/// * `value` - The path string to canonicalize
+///
+/// # Returns
+///
+/// A canonicalized PathBuf on success, or a String error message on failure.
+pub fn canonicalize_cli_path(value: &str) -> Result<PathBuf, String> {
+    let path = Path::new(value);
+
+    // If path doesn't exist, create it
+    if !path.exists() {
+        fs::create_dir_all(path).map_err(|e| format!("Failed to create directory: {e}"))?;
+    }
+
+    // Now we can canonicalize it
+    fs::canonicalize(path).map_err(|e| format!("Invalid path: {e}"))
 }

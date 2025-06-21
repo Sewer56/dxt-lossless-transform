@@ -8,9 +8,6 @@ repository = "https://github.com/Sewer56/dxt-lossless-transform"
 license-file = "LICENSE"
 include = ["src/**/*"]
 
-[lib]
-crate-type = ["cdylib"]
-
 [features]
 default = ["std"]
 std = ["dxt-lossless-transform-bc1/std", "dxt-lossless-transform-api-common/std", "dxt-lossless-transform-common/std"]

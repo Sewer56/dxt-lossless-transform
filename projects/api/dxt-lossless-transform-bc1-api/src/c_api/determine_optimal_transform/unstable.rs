@@ -54,8 +54,14 @@ pub unsafe extern "C" fn dltbc1_unstable_determine_optimal(
     out_details: *mut Dltbc1TransformDetails,
 ) -> Dltbc1Result {
     // Validate pointers
-    if data.is_null() || estimator.is_null() || out_details.is_null() {
-        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::InvalidLength);
+    if data.is_null() {
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullDataPointer);
+    }
+    if estimator.is_null() {
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullEstimatorPointer);
+    }
+    if out_details.is_null() {
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullOutputPointer);
     }
 
     // Create slice from raw pointer

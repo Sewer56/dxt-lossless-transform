@@ -4,7 +4,7 @@ use crate::error::Bc1Error;
 use core::ffi::c_char;
 
 /// C-compatible error codes for BC1 operations.
-#[repr(u8)]
+#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Dltbc1ErrorCode {
     /// Operation succeeded
@@ -17,6 +17,12 @@ pub enum Dltbc1ErrorCode {
     AllocationFailed = 3,
     /// Size estimation failed during transform optimization
     SizeEstimationFailed = 4,
+    /// Null pointer provided for data parameter
+    NullDataPointer = 5,
+    /// Null pointer provided for estimator parameter
+    NullEstimatorPointer = 6,
+    /// Null pointer provided for output details parameter
+    NullOutputPointer = 7,
 }
 
 /// C-compatible Result type for BC1 operations.
@@ -82,6 +88,15 @@ pub unsafe extern "C" fn dltbc1_error_message(error_code: Dltbc1ErrorCode) -> *c
         Dltbc1ErrorCode::AllocationFailed => c"Memory allocation failed".as_ptr() as *const c_char,
         Dltbc1ErrorCode::SizeEstimationFailed => {
             c"Size estimation failed during transform optimization".as_ptr() as *const c_char
+        }
+        Dltbc1ErrorCode::NullDataPointer => {
+            c"Null pointer provided for data parameter".as_ptr() as *const c_char
+        }
+        Dltbc1ErrorCode::NullEstimatorPointer => {
+            c"Null pointer provided for estimator parameter".as_ptr() as *const c_char
+        }
+        Dltbc1ErrorCode::NullOutputPointer => {
+            c"Null pointer provided for output details parameter".as_ptr() as *const c_char
         }
     }
 }

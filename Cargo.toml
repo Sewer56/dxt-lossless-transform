@@ -41,3 +41,8 @@ members = [
     "fuzz",
 ]
 resolver = "2"
+
+# Workspace-level package configuration that can be inherited
+[workspace.package]
+repository = "https://github.com/Sewer56/dxt-lossless-transform"
+license-file = "LICENSE"

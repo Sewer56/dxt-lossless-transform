@@ -51,7 +51,7 @@ impl Bc1TransformOptionsBuilder {
     ///
     /// - `data`: The BC1 data to analyze
     /// - `estimator`: The size estimation operations to use
-    /// - `use_all_modes`: Whether to test all decorrelation modes
+    /// - `use_all_modes`: Whether to test all decorrelation modes (twice as slow, tests 4 options instead of 2, typically <0.1% extra savings)
     ///
     /// # Returns
     ///

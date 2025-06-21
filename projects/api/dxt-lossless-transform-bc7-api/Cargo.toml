@@ -4,9 +4,14 @@ version = "0.1.0"
 edition = "2024"
 readme = "README.MD"
 description = "Safe, high-level API for BC7 texture data lossless transforms with automatic validation and error handling"
-repository = "https://github.com/Sewer56/dxt-lossless-transform"
-license-file = "LICENSE"
+repository.workspace = true
+license-file.workspace = true
 include = ["src/**/*"]
+
+# Documentation configuration for docs.rs
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = ["std"]

@@ -62,6 +62,7 @@
 /// this enum will maintain backward compatibility through conversion functions.
 ///
 /// [`Color565`]: https://docs.rs/dxt-lossless-transform-common/latest/dxt_lossless_transform_common/color_565/struct.Color565.html
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum YCoCgVariant {
     /// Variant 1: Standard bit arrangement

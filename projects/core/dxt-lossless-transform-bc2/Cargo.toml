@@ -3,10 +3,15 @@ name = "dxt-lossless-transform-bc2"
 version = "0.1.0"
 edition = "2021"
 description = "Fast lossless transforms for BC2 texture data that improve their compression ratio. This is an unstable crate containing the raw implementation."
-repository = "https://github.com/Sewer56/dxt-lossless-transform"
-license-file = "LICENSE"
+repository.workspace = true
+license-file.workspace = true
 include = ["src/**/*"]
 readme = "README.MD"
+
+# Documentation configuration for docs.rs
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = ["std"]

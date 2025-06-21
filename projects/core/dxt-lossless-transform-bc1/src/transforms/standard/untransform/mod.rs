@@ -82,6 +82,7 @@ pub(crate) unsafe fn untransform(input_ptr: *const u8, output_ptr: *mut u8, len:
     }
 }
 
+#[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))] // API only used in non-x86 paths, but code preserved.
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
 unsafe fn untransform_with_separate_pointers_x86(
@@ -174,6 +175,7 @@ unsafe fn untransform_with_separate_pointers_x86(
 /// - len must be divisible by 8
 /// - It is recommended that colors_ptr and indices_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
+#[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))] // API only used in non-x86 paths, but code preserved.
 pub(crate) unsafe fn untransform_with_separate_pointers(
     colors_ptr: *const u32,
     indices_ptr: *const u32,

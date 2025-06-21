@@ -163,6 +163,7 @@ jobs:
           additional-rustc-args: "--all-features"
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: true
+          build-library: true
 
       - name: Build C API (Common)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
@@ -175,7 +176,22 @@ jobs:
           features: "c-exports"
           additional-rustc-args: "--all-features"
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
-          use-cache: false
+          use-cache: false # Cache setup is inherited from first call.
+          build-library: true
+
+      - name: Build C API (BC1)
+        uses: Reloaded-Project/devops-rust-lightweight-binary@v1
+        with:
+          crate-name: "dxt-lossless-transform-bc1-api"
+          rust-project-path: "projects/api/dxt-lossless-transform-bc1-api"
+          workspace-path: "."
+          target: ${{ matrix.target }}
+          use-cross: ${{ matrix.use-cross }}
+          features: "c-exports"
+          additional-rustc-args: "--all-features"
+          codecov-token: ${{ secrets.CODECOV_TOKEN }}
+          use-cache: false # Cache setup is inherited from first call.
+          build-library: true
 
   build-c-cpp-headers:
     runs-on: ubuntu-latest
@@ -199,7 +215,7 @@ jobs:
           config-file: ../../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-api-common.hpp
           artifact-prefix: ""
-          use-cache: false
+          use-cache: false # Cache setup is inherited from first call.
 
       - name: C bindings - DDS
         uses: Reloaded-Project/devops-rust-cbindgen@v1
@@ -208,7 +224,7 @@ jobs:
           config-file: ../../../cbindgen_c.toml
           output-header-file: dxt-lossless-transform-dds.h
           artifact-prefix: ""
-          use-cache: false
+          use-cache: false # Cache setup is inherited from first call.
 
       - name: C++ bindings - DDS
         uses: Reloaded-Project/devops-rust-cbindgen@v1
@@ -218,6 +234,24 @@ jobs:
           output-header-file: dxt-lossless-transform-dds.hpp
           artifact-prefix: ""
           use-cache: false
+
+      - name: C bindings - BC1 API
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'projects/api/dxt-lossless-transform-bc1-api/'
+          config-file: ../../../cbindgen_c.toml
+          output-header-file: dxt-lossless-transform-bc1-api.h
+          artifact-prefix: ""
+          use-cache: false # Cache setup is inherited from first call.
+
+      - name: C++ bindings - BC1 API
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'projects/api/dxt-lossless-transform-bc1-api/'
+          config-file: ../../../cbindgen_cpp.toml
+          output-header-file: dxt-lossless-transform-bc1-api.hpp
+          artifact-prefix: ""
+          use-cache: false # Cache setup is inherited from first call.
 
   publish-crate:
     permissions:

@@ -1,9 +1,7 @@
 //! C API for BC1 transform options builder.
 
 use crate::{
-    c_api::transform::transform_context::{
-        Dltbc1TransformContext, get_context_mut, get_transform_details,
-    },
+    c_api::transform::transform_context::{Dltbc1TransformContext, get_context_mut},
     transform::Bc1TransformOptionsBuilder,
 };
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
@@ -48,28 +46,6 @@ pub unsafe extern "C" fn dltbc1_TransformContext_SetSplitColourEndpoints(
 
     let inner = unsafe { get_context_mut(context) };
     inner.builder = inner.builder.split_colour_endpoints(split);
-}
-
-/// Get whether colour endpoints are split from the context.
-///
-/// # Parameters
-/// - `context`: The BC1 context to query
-///
-/// # Returns
-/// Whether colour endpoints are split, or false if the context is null.
-///
-/// # Safety
-/// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_TransformContext_GetSplitColourEndpoints(
-    context: *const Dltbc1TransformContext,
-) -> bool {
-    if context.is_null() {
-        return false;
-    }
-
-    let details = unsafe { get_transform_details(context) };
-    details.split_colour_endpoints
 }
 
 /// Reset the context to default settings.

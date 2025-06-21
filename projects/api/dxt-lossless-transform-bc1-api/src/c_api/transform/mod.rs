@@ -180,4 +180,87 @@ mod tests {
             assert!(!result.is_success());
         }
     }
+
+    /// Test that matches the "Basic Transform Operation" C example
+    #[test]
+    fn test_c_example_basic_transform() {
+        // Your BC1 texture data (8 bytes per BC1 block)
+        let bc1_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
+        let mut transformed_data = [0u8; 8];
+
+        // Create and configure transform context
+        let context = dltbc1_new_TransformContext();
+        assert!(!context.is_null());
+
+        unsafe {
+            dltbc1_TransformContext_SetDecorrelationMode(context, YCoCgVariant::Variant1);
+            dltbc1_TransformContext_SetSplitColourEndpoints(context, true);
+        }
+
+        // Transform the data
+        unsafe {
+            let result = dltbc1_TransformContext_Transform(
+                bc1_data.as_ptr(),
+                bc1_data.len(),
+                transformed_data.as_mut_ptr(),
+                transformed_data.len(),
+                context,
+            );
+
+            if result.is_success() {
+                println!("Transform successful!");
+                // Now compress 'transformed_data' with your compressor...
+            } else {
+                panic!("Transform failed with error code: {:?}", result.error_code);
+            }
+        }
+
+        // Clean up
+        unsafe {
+            dltbc1_free_TransformContext(context);
+        }
+    }
+
+    /// Test that matches the "Untransform Operation" C example
+    #[test]
+    fn test_c_example_untransform() {
+        // Your transformed BC1 data (after decompression)
+        let transformed_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
+        let mut restored_data = [0u8; 8];
+
+        // Create context with SAME settings used for original transform
+        let context = dltbc1_new_TransformContext();
+        assert!(!context.is_null());
+
+        unsafe {
+            dltbc1_TransformContext_SetDecorrelationMode(context, YCoCgVariant::Variant1);
+            dltbc1_TransformContext_SetSplitColourEndpoints(context, true);
+        }
+
+        // Restore original BC1 data
+        unsafe {
+            let result = dltbc1_TransformContext_Untransform(
+                transformed_data.as_ptr(),
+                transformed_data.len(),
+                restored_data.as_mut_ptr(),
+                restored_data.len(),
+                context,
+            );
+
+            if result.is_success() {
+                println!("Untransform successful!");
+                // 'restored_data' now contains original BC1 data
+            } else {
+                panic!(
+                    "Untransform failed with error code: {:?}",
+                    result.error_code
+                );
+            }
+        }
+
+        // Clean up
+        unsafe {
+            dltbc1_free_TransformContext(context);
+        }
+    }
 }

@@ -2,6 +2,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
+#[cfg(feature = "c-exports")]
+pub mod c_api;
+
 use core::slice;
 use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
 use dxt_lossless_transform_common::allocate::AllocateError;
@@ -21,6 +24,7 @@ pub enum LosslessTransformUtilsError {
 }
 
 /// Settings for size estimation multipliers.
+#[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct EstimationSettings {
     /// Multiplier for LZ match effectiveness (default: 0.5809)
@@ -47,6 +51,17 @@ pub struct SizeEstimationParameters {
 ///
 /// It's significantly faster than performing actual compression while still
 /// providing reasonable accuracy for optimization purposes.
+///
+/// # Important: Texture-Specific Implementation
+///
+/// **This estimator is specifically tuned for DXT/BC texture data and may not work well with generic data.**
+/// The default parameters have been carefully calibrated for texture data passed in via the various
+/// `determine_optimal_transform` functions. (The [`DataType`] field is used to determine the settings.)
+///
+/// **Using [`LosslessTransformUtilsSizeEstimation::new_with_params`] or custom settings is discouraged**
+/// unless you have conducted thorough testing with your specific data type and understand
+/// the estimation model. The default settings via [`LosslessTransformUtilsSizeEstimation::new`]
+/// should be used in most cases.
 pub struct LosslessTransformUtilsSizeEstimation {
     /// Optional configuration settings for estimation multipliers
     /// If None, hardcoded defaults are used based on DataType
@@ -61,6 +76,11 @@ impl LosslessTransformUtilsSizeEstimation {
 
     /// Creates a new [lossless_transform_utils] size estimator with custom settings.
     ///
+    /// # Warning
+    /// **Using custom settings is discouraged unless you have conducted thorough testing**
+    /// with your specific data type. The default estimator is tuned for DXT/BC texture data.
+    /// Consider using [`Self::new`] instead.
+    ///
     /// # Parameters
     /// * `settings` - Custom estimation settings
     pub fn new_with_settings(settings: EstimationSettings) -> Self {
@@ -70,6 +90,12 @@ impl LosslessTransformUtilsSizeEstimation {
     }
 
     /// Creates a new lossless-transform-utils size estimator with custom parameters.
+    ///
+    /// # Warning
+    /// **Using custom parameters is discouraged unless you have conducted thorough testing**
+    /// with your specific data type. The default estimator is tuned for DXT/BC texture data,
+    /// whose type is passed in via the [`DataType`] field.
+    /// Consider using [`Self::new`] instead.
     ///
     /// # Parameters
     ///

@@ -49,6 +49,9 @@ jobs:
           
           # 32-bit ARM (e.g. Raspberry Pi, Legacy Android)
           - { label: "Linux 32-bit ARMv7", os: ubuntu-latest, target: armv7-unknown-linux-gnueabihf, use-cross: true, rust-toolchain: 'stable' }
+          
+          # 64-bit ARM (e.g. Raspberry Pi 4+, Modern ARM servers)
+          - { label: "Linux 64-bit ARM64", os: ubuntu-latest, target: aarch64-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable' }
 
           # Big Endian (32-bit)
           - { label: "Linux + Big Endian 32-bit", os: ubuntu-latest, target: powerpc-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable' }
@@ -95,6 +98,7 @@ jobs:
           # Linux Targets
           - { label: "Build CLI Linux x64", os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false }
           - { label: "Build CLI Linux x86", os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false }
+          - { label: "Build CLI Linux ARM64", os: ubuntu-latest, target: aarch64-unknown-linux-gnu, use-cross: true }
           
           # Windows Targets
           - { label: "Build CLI Windows x64", os: windows-latest, target: x86_64-pc-windows-msvc, use-cross: false }
@@ -132,6 +136,7 @@ jobs:
           # Linux Targets
           - { label: "Build C API Linux x64", os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false }
           - { label: "Build C API Linux x86", os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false }
+          - { label: "Build C API Linux ARM64", os: ubuntu-latest, target: aarch64-unknown-linux-gnu, use-cross: true }
           
           # Windows Targets
           - { label: "Build C API Windows x64", os: windows-latest, target: x86_64-pc-windows-msvc, use-cross: false }
@@ -184,6 +189,20 @@ jobs:
         with:
           crate-name: "dxt-lossless-transform-bc1-api"
           rust-project-path: "projects/api/dxt-lossless-transform-bc1-api"
+          workspace-path: "."
+          target: ${{ matrix.target }}
+          use-cross: ${{ matrix.use-cross }}
+          features: "c-exports"
+          additional-rustc-args: "--all-features"
+          codecov-token: ${{ secrets.CODECOV_TOKEN }}
+          use-cache: false # Cache setup is inherited from first call.
+          build-library: true
+
+      - name: Build C API (LTU)
+        uses: Reloaded-Project/devops-rust-lightweight-binary@v1
+        with:
+          crate-name: "dxt-lossless-transform-ltu"
+          rust-project-path: "projects/extensions/dxt-lossless-transform-ltu"
           workspace-path: "."
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
@@ -250,6 +269,24 @@ jobs:
           rust-project-path: 'projects/api/dxt-lossless-transform-bc1-api/'
           config-file: ../../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-bc1-api.hpp
+          artifact-prefix: ""
+          use-cache: false # Cache setup is inherited from first call.
+
+      - name: C bindings - LTU
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'projects/extensions/dxt-lossless-transform-ltu/'
+          config-file: ../../../cbindgen_c.toml
+          output-header-file: dxt-lossless-transform-ltu.h
+          artifact-prefix: ""
+          use-cache: false # Cache setup is inherited from first call.
+
+      - name: C++ bindings - LTU
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'projects/extensions/dxt-lossless-transform-ltu/'
+          config-file: ../../../cbindgen_cpp.toml
+          output-header-file: dxt-lossless-transform-ltu.hpp
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 

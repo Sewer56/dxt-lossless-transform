@@ -8,6 +8,7 @@ extern crate std;
 pub mod allocate;
 pub mod estimate;
 
+/// C API for the lossless transform API.
 #[cfg(feature = "c-exports")]
 pub mod c_api;
 

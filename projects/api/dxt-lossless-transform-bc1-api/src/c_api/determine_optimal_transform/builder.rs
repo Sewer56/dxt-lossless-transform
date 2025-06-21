@@ -1,7 +1,6 @@
 //! C API builder for BC1 determine optimal transform options.
 
-use crate::c_api::error::Dltbc1Result;
-use crate::c_api::transform_context::Dltbc1TransformContext;
+use crate::c_api::{determine_optimal_transform::Dltbc1TransformContext, error::Dltbc1Result};
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 
 /// Opaque handle for BC1 estimate options builder.
@@ -21,6 +20,9 @@ pub struct Dltbc1EstimateOptionsBuilder {
 ///
 /// # Returns
 /// A new builder instance that must be freed with [`dltbc1_estimate_options_builder_free`].
+///
+/// # Safety
+/// - This function is unsafe because it returns a raw pointer that must be freed with [`dltbc1_estimate_options_builder_free`].
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_estimate_options_builder_new() -> *mut Dltbc1EstimateOptionsBuilder
 {

@@ -1,8 +1,11 @@
 //! C API for BC1 transform options builder.
-use crate::c_api::transform_context::{
-    Dltbc1TransformContext, get_context_mut, get_transform_details,
+
+use crate::{
+    c_api::transform::transform_context::{
+        Dltbc1TransformContext, get_context_mut, get_transform_details,
+    },
+    transform::Bc1TransformOptionsBuilder,
 };
-use crate::transform::Bc1TransformOptionsBuilder;
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 
 /// Set the decorrelation mode for the context.

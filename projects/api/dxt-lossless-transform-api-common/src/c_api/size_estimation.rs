@@ -3,7 +3,7 @@
 use crate::estimate::{DataType, SizeEstimationOperations};
 use core::{ffi::c_void, fmt::Display};
 
-/// Function pointer type for max_compressed_size operation.
+/// Function pointer type for [`SizeEstimationOperations::max_compressed_size`] operation.
 ///
 /// # Parameters
 /// - `context`: User-provided context (can be null)
@@ -15,7 +15,7 @@ use core::{ffi::c_void, fmt::Display};
 pub type DltMaxCompressedSizeFn =
     unsafe extern "C" fn(context: *mut c_void, len_bytes: usize, out_size: *mut usize) -> u32;
 
-/// Function pointer type for estimate_compressed_size operation.
+/// Function pointer type for [`SizeEstimationOperations::estimate_compressed_size`] operation.
 ///
 /// # Parameters
 /// - `context`: User-provided context (can be null)

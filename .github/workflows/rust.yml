@@ -193,6 +193,20 @@ jobs:
           use-cache: false # Cache setup is inherited from first call.
           build-library: true
 
+      - name: Build C API (LTU)
+        uses: Reloaded-Project/devops-rust-lightweight-binary@v1
+        with:
+          crate-name: "dxt-lossless-transform-ltu"
+          rust-project-path: "projects/extensions/dxt-lossless-transform-ltu"
+          workspace-path: "."
+          target: ${{ matrix.target }}
+          use-cross: ${{ matrix.use-cross }}
+          features: "c-exports"
+          additional-rustc-args: "--all-features"
+          codecov-token: ${{ secrets.CODECOV_TOKEN }}
+          use-cache: false # Cache setup is inherited from first call.
+          build-library: true
+
   build-c-cpp-headers:
     runs-on: ubuntu-latest
     steps:
@@ -250,6 +264,24 @@ jobs:
           rust-project-path: 'projects/api/dxt-lossless-transform-bc1-api/'
           config-file: ../../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-bc1-api.hpp
+          artifact-prefix: ""
+          use-cache: false # Cache setup is inherited from first call.
+
+      - name: C bindings - LTU
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'projects/extensions/dxt-lossless-transform-ltu/'
+          config-file: ../../../cbindgen_c.toml
+          output-header-file: dxt-lossless-transform-ltu.h
+          artifact-prefix: ""
+          use-cache: false # Cache setup is inherited from first call.
+
+      - name: C++ bindings - LTU
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'projects/extensions/dxt-lossless-transform-ltu/'
+          config-file: ../../../cbindgen_cpp.toml
+          output-header-file: dxt-lossless-transform-ltu.hpp
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 

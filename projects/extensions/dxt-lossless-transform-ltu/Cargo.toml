@@ -16,3 +16,5 @@ default = ["std"]
 std = ["dxt-lossless-transform-api-common/std", "dxt-lossless-transform-common/std", "thiserror/std"]
 # Use nightly compiler features (AVX512)
 nightly = ["dxt-lossless-transform-api-common/nightly", "dxt-lossless-transform-common/nightly"]
+# Enable C-compatible FFI exports
+c-exports = ["dxt-lossless-transform-api-common/c-exports"]

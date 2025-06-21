@@ -1,6 +1,6 @@
 //! C API for determining optimal BC1 transform settings.
-
-pub mod builder;
+//!
+//! This module contains the private implementation of the determine optimal transform functionality.
 
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
 use crate::c_api::transform::transform_context::{Dltbc1TransformContext, get_context_mut};
@@ -10,10 +10,136 @@ use core::slice;
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 
-/// Determine the optimal transform settings for BC1 data.
+/// Internal structure holding the actual builder data.
+struct Dltbc1EstimateOptionsBuilderImpl {
+    use_all_decorrelation_modes: bool,
+}
+
+/// Opaque handle for BC1 estimate options builder.
+///
+/// This builder allows configuring options for determining optimal BC1 transform settings.
+/// Use the provided functions to configure the builder and then call
+/// [`dltbc1_estimate_options_build_and_determine_optimal`] to execute the optimization.
+///
+/// The internal structure of this builder is completely hidden from C callers.
+#[repr(C)]
+pub struct Dltbc1EstimateOptionsBuilder {
+    _private: [u8; 0],
+}
+
+/// Create a new BC1 estimate options builder with default settings.
+///
+/// The builder is initialized with:
+/// - `use_all_decorrelation_modes`: false (tests only Variant1 and None for faster optimization)
+///
+/// # Returns
+/// A new builder instance that must be freed with [`dltbc1_estimate_options_builder_free`].
+///
+/// # Safety
+/// - This function is unsafe because it returns a raw pointer that must be freed with [`dltbc1_estimate_options_builder_free`].
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn dltbc1_estimate_options_builder_new() -> *mut Dltbc1EstimateOptionsBuilder
+{
+    let builder_impl = Box::new(Dltbc1EstimateOptionsBuilderImpl {
+        use_all_decorrelation_modes: false,
+    });
+
+    Box::into_raw(builder_impl) as *mut Dltbc1EstimateOptionsBuilder
+}
+
+/// Free a BC1 estimate options builder.
+///
+/// # Parameters
+/// - `builder`: The builder to free (can be null)
+///
+/// # Safety
+/// - `builder` must be a valid pointer returned by [`dltbc1_estimate_options_builder_new`] or null
+/// - The builder must not be used after calling this function
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn dltbc1_estimate_options_builder_free(
+    builder: *mut Dltbc1EstimateOptionsBuilder,
+) {
+    if !builder.is_null() {
+        let _ = unsafe { Box::from_raw(builder as *mut Dltbc1EstimateOptionsBuilderImpl) };
+    }
+}
+
+/// Set whether to use all decorrelation modes.
+///
+/// When `false` (default), only tests `YCoCgVariant::Variant1` and `YCoCgVariant::None`
+/// for faster optimization with good results.
+///
+/// When `true`, tests all available decorrelation modes for potentially better
+/// compression at the cost of longer optimization time.
+///
+/// # Parameters
+/// - `builder`: The builder to configure
+/// - `use_all`: Whether to use all decorrelation modes
+///
+/// # Safety
+/// - `builder` must be a valid pointer to a [`Dltbc1EstimateOptionsBuilder`]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn dltbc1_estimate_options_set_use_all_decorrelation_modes(
+    builder: *mut Dltbc1EstimateOptionsBuilder,
+    use_all: bool,
+) {
+    if builder.is_null() {
+        return;
+    }
+
+    let builder_impl = unsafe { &mut *(builder as *mut Dltbc1EstimateOptionsBuilderImpl) };
+    builder_impl.use_all_decorrelation_modes = use_all;
+}
+
+/// Build the estimate options and determine optimal transform settings for BC1 data.
+///
+/// This function consumes the builder, uses the configured options to determine the optimal
+/// transform settings, and stores the results in the provided context.
+///
+/// # Parameters
+/// - `builder`: The builder to use (will be freed automatically)
+/// - `data`: Pointer to BC1 data to analyze
+/// - `data_len`: Length of data in bytes (must be divisible by 8)
+/// - `estimator`: The size estimator to use for compression estimation
+/// - `context`: The BC1 context where optimal options will be stored on success
+///
+/// # Returns
+/// A [`Dltbc1Result`] indicating success or containing an error that must be freed.
+///
+/// # Safety
+/// - `builder` must be a valid pointer to a [`Dltbc1EstimateOptionsBuilder`] or null
+/// - `data` must be valid for reads of `data_len` bytes
+/// - `estimator` must be a valid pointer to a [`DltSizeEstimator`] with valid function pointers
+/// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
+/// - The estimator's context and functions must remain valid for the duration of the call
+/// - The builder will be automatically freed, regardless of success or failure
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn dltbc1_estimate_options_build_and_determine_optimal(
+    builder: *mut Dltbc1EstimateOptionsBuilder,
+    data: *const u8,
+    data_len: usize,
+    estimator: *const DltSizeEstimator,
+    context: *mut Dltbc1TransformContext,
+) -> Dltbc1Result {
+    // Always free the builder, even on early return
+    let use_all_modes = if builder.is_null() {
+        false // Default value if builder is null
+    } else {
+        let builder_box =
+            unsafe { Box::from_raw(builder as *mut Dltbc1EstimateOptionsBuilderImpl) };
+        builder_box.use_all_decorrelation_modes
+    };
+
+    // Call the private determine optimal transform function
+    unsafe { dltbc1_determine_optimal_transform(data, data_len, estimator, use_all_modes, context) }
+}
+
+/// Private function to determine the optimal transform settings for BC1 data.
 ///
 /// This function tests different transform configurations and returns the one
 /// that produces the best compression ratio estimate using the provided size estimator.
+///
+/// This function is internal and should only be called through the builder API.
 ///
 /// # Parameters
 /// - `data`: Pointer to BC1 data to analyze
@@ -30,8 +156,7 @@ use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 /// - `estimator` must be a valid pointer to a [`DltSizeEstimator`] with valid function pointers
 /// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 /// - The estimator's context and functions must remain valid for the duration of the call
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_determine_optimal_transform(
+pub(crate) unsafe fn dltbc1_determine_optimal_transform(
     data: *const u8,
     data_len: usize,
     estimator: *const DltSizeEstimator,

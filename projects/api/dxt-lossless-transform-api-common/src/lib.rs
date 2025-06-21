@@ -6,6 +6,7 @@
 extern crate std;
 
 pub mod allocate;
+pub mod embed;
 pub mod estimate;
 
 /// C API for the lossless transform API.

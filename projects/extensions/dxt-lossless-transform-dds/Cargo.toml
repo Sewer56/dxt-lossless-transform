@@ -28,6 +28,8 @@ c-exports = []
 bitfield = "0.19.1"
 dxt-lossless-transform-bc1 = { path = "../../core/dxt-lossless-transform-bc1" }
 dxt-lossless-transform-common = { path = "../../core/dxt-lossless-transform-common" }
+dxt-lossless-transform-api-common = { path = "../../api/dxt-lossless-transform-api-common" }
+dxt-lossless-transform-bc1-api = { path = "../../api/dxt-lossless-transform-bc1-api" }
 
 [dev-dependencies]
 criterion = "0.5.1"

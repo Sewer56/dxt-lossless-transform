@@ -20,6 +20,9 @@ dxt-lossless-transform-common = { path = "../../core/dxt-lossless-transform-comm
 # Provides aligned memory allocation
 safe-allocator-api = "0.4.0"
 
+# For bitfield manipulation in embed headers
+bitfield = "0.19.1"
+
 [features]
 default = ["std"]
 # Enable use of standard library, currently a no-op.

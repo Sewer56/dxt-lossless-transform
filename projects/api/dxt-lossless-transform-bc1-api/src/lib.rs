@@ -4,6 +4,7 @@
 
 // Module declarations
 pub mod determine_optimal_transform;
+pub mod embed;
 pub mod error;
 pub mod transform;
 
@@ -15,6 +16,7 @@ pub use determine_optimal_transform::builder::Bc1EstimateOptionsBuilder;
 pub use determine_optimal_transform::{
     determine_optimal_transform, determine_optimal_transform_with_options,
 };
+pub use embed::{Bc1HeaderVersion, EmbeddableBc1Details};
 pub use error::Bc1Error;
 pub use transform::Bc1TransformOptionsBuilder;
 pub use transform::{

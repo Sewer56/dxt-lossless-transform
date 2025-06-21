@@ -177,6 +177,19 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false
 
+      - name: Build C API (BC1)
+        uses: Reloaded-Project/devops-rust-lightweight-binary@v1
+        with:
+          crate-name: "dxt-lossless-transform-bc1-api"
+          rust-project-path: "projects/api/dxt-lossless-transform-bc1-api"
+          workspace-path: "."
+          target: ${{ matrix.target }}
+          use-cross: ${{ matrix.use-cross }}
+          features: "c-exports"
+          additional-rustc-args: "--all-features"
+          codecov-token: ${{ secrets.CODECOV_TOKEN }}
+          use-cache: false
+
   build-c-cpp-headers:
     runs-on: ubuntu-latest
     steps:
@@ -216,6 +229,24 @@ jobs:
           rust-project-path: 'projects/extensions/dxt-lossless-transform-dds/'
           config-file: ../../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-dds.hpp
+          artifact-prefix: ""
+          use-cache: false
+
+      - name: C bindings - BC1 API
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'projects/api/dxt-lossless-transform-bc1-api/'
+          config-file: ../../../cbindgen_c.toml
+          output-header-file: dxt-lossless-transform-bc1-api.h
+          artifact-prefix: ""
+          use-cache: false
+
+      - name: C++ bindings - BC1 API
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'projects/api/dxt-lossless-transform-bc1-api/'
+          config-file: ../../../cbindgen_cpp.toml
+          output-header-file: dxt-lossless-transform-bc1-api.hpp
           artifact-prefix: ""
           use-cache: false
 

@@ -42,8 +42,11 @@ pub unsafe extern "C" fn dltbc1_unstable_transform(
     details: Dltbc1TransformDetails,
 ) -> Dltbc1Result {
     // Validate pointers
-    if input.is_null() || output.is_null() {
-        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::InvalidLength);
+    if input.is_null() {
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullInputPointer);
+    }
+    if output.is_null() {
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullOutputBufferPointer);
     }
 
     // Create slices from raw pointers
@@ -85,8 +88,11 @@ pub unsafe extern "C" fn dltbc1_unstable_untransform(
     details: Dltbc1DetransformDetails,
 ) -> Dltbc1Result {
     // Validate pointers
-    if input.is_null() || output.is_null() {
-        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::InvalidLength);
+    if input.is_null() {
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullInputPointer);
+    }
+    if output.is_null() {
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullOutputBufferPointer);
     }
 
     // Create slices from raw pointers

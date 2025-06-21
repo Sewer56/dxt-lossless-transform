@@ -43,7 +43,7 @@ pub unsafe extern "C" fn dltbc1_TransformContext_Transform(
 ) -> Dltbc1Result {
     // Validate context pointer
     if context.is_null() {
-        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::InvalidLength);
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullTransformContextPointer);
     }
 
     // Get transform options from context
@@ -84,7 +84,7 @@ pub unsafe extern "C" fn dltbc1_TransformContext_Untransform(
 ) -> Dltbc1Result {
     // Validate context pointer
     if context.is_null() {
-        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::InvalidLength);
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullTransformContextPointer);
     }
 
     // Get detransform options from context

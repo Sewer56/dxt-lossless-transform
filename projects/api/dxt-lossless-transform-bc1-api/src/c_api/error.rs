@@ -21,8 +21,14 @@ pub enum Dltbc1ErrorCode {
     NullDataPointer = 5,
     /// Null pointer provided for estimator parameter
     NullEstimatorPointer = 6,
-    /// Null pointer provided for output details parameter
-    NullOutputPointer = 7,
+    /// Null pointer provided for transform details parameter
+    NullTransformDetailsPointer = 7,
+    /// Null pointer provided for input parameter
+    NullInputPointer = 8,
+    /// Null pointer provided for output buffer parameter
+    NullOutputBufferPointer = 9,
+    /// Null pointer provided for transform context parameter
+    NullTransformContextPointer = 10,
 }
 
 /// C-compatible Result type for BC1 operations.
@@ -95,8 +101,17 @@ pub unsafe extern "C" fn dltbc1_error_message(error_code: Dltbc1ErrorCode) -> *c
         Dltbc1ErrorCode::NullEstimatorPointer => {
             c"Null pointer provided for estimator parameter".as_ptr() as *const c_char
         }
-        Dltbc1ErrorCode::NullOutputPointer => {
-            c"Null pointer provided for output details parameter".as_ptr() as *const c_char
+        Dltbc1ErrorCode::NullTransformDetailsPointer => {
+            c"Null pointer provided for transform details parameter".as_ptr() as *const c_char
+        }
+        Dltbc1ErrorCode::NullInputPointer => {
+            c"Null pointer provided for input parameter".as_ptr() as *const c_char
+        }
+        Dltbc1ErrorCode::NullOutputBufferPointer => {
+            c"Null pointer provided for output parameter".as_ptr() as *const c_char
+        }
+        Dltbc1ErrorCode::NullTransformContextPointer => {
+            c"Null pointer provided for transform context parameter".as_ptr() as *const c_char
         }
     }
 }

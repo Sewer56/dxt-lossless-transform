@@ -61,7 +61,7 @@ pub unsafe extern "C" fn dltbc1_unstable_determine_optimal(
         return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullEstimatorPointer);
     }
     if out_details.is_null() {
-        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullOutputPointer);
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullTransformDetailsPointer);
     }
 
     // Create slice from raw pointer

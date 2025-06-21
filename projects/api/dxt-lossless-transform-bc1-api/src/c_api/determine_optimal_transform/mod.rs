@@ -128,6 +128,11 @@ pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
     estimator: *const DltSizeEstimator,
     context: *mut Dltbc1TransformContext,
 ) -> Dltbc1Result {
+    // Validate context
+    if context.is_null() {
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullTransformContextPointer);
+    }
+
     // Always free the builder, even on early return
     let use_all_modes = if builder.is_null() {
         false // Default value if builder is null
@@ -136,11 +141,6 @@ pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
             unsafe { Box::from_raw(builder as *mut Dltbc1EstimateOptionsBuilderImpl) };
         builder_box.use_all_decorrelation_modes
     };
-
-    // Validate context
-    if context.is_null() {
-        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::InvalidLength);
-    }
 
     // Create settings struct
     let settings = Dltbc1DetermineOptimalSettings { use_all_modes };

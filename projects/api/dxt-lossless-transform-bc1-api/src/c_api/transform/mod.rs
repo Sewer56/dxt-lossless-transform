@@ -1,6 +1,9 @@
 //! C API for BC1 transform and untransform operations.
 //!
 //! This module provides ABI-stable transform functions using opaque context objects.
+//!
+//! [`Dltbc1Result`]: crate::c_api::error::Dltbc1Result
+//! [`Dltbc1TransformContext`]: crate::c_api::transform::transform_context::Dltbc1TransformContext
 
 pub mod builder;
 pub mod transform_context;

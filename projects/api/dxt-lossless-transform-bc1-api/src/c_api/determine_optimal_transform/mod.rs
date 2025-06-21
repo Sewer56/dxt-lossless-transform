@@ -2,6 +2,16 @@
 //!
 //! This module provides ABI-stable builder pattern for determining optimal transform settings.
 //! The builder pattern ensures ABI stability while internally using the unstable functions.
+//!
+//! [`dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal`]: dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal
+//! [`dltbc1_free_EstimateOptionsBuilder`]: dltbc1_free_EstimateOptionsBuilder
+//! [`dltbc1_new_EstimateOptionsBuilder`]: dltbc1_new_EstimateOptionsBuilder
+//! [`Dltbc1EstimateOptionsBuilder`]: Dltbc1EstimateOptionsBuilder
+//! [`Dltbc1Result`]: crate::c_api::error::Dltbc1Result
+//! [`YCoCgVariant::Variant1`]: dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant::Variant1
+//! [`YCoCgVariant::None`]: dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant::None
+//! [`DltSizeEstimator`]: dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator
+//! [`Dltbc1TransformContext`]: crate::c_api::transform::transform_context::Dltbc1TransformContext
 
 pub mod unstable;
 

@@ -283,7 +283,7 @@ Dataset is a bunch of textures from most popular Skyrim mods on [Nexus Mods](htt
 cargo run --bin dxt-lossless-transform-cli --release --features "debug-bc1" debug-bc1 benchmark "/home/sewer/Temp/texture-stuff/bc1-raw" --compression-level 16 --estimate-compression-level 1 --warmup-iterations 1 --iterations 3 --estimate-compression-algorithm ltu
 ```
 
-```ignore
+```text
 📊 Overall Benchmark Statistics:
 ═══════════════════════════════════════════════════════════════
 Files benchmarked: 2130
@@ -332,6 +332,31 @@ complexity while keeping similar compression ratios.
 Licensed under [GPL v3 (with Reloaded FAQ)](../../../LICENSE).
 
 For more information about licensing, see the [Reloaded project licensing guide][reloaded-license].
+
+## C API (FFI)
+
+*Note: The C API is only available when the `c-exports` feature is enabled.*
+
+The `c-exports` feature enables C-compatible FFI exports. The C API provides two categories of functions:
+
+### ABI-Stable Functions (Recommended)
+
+Functions using opaque contexts and builder patterns that maintain ABI stability across versions:
+
+- `dltbc1_TransformContext_Transform` / `dltbc1_TransformContext_Untransform` - Transform operations using contexts
+- `dltbc1_TransformContext_*` - Context configuration functions  
+- `dltbc1_EstimateOptionsBuilder_*` - Builder pattern for optimization
+
+### ABI-Unstable Functions
+
+Functions prefixed with `dltbc1_unstable_*` that accept transform details directly:
+
+- `dltbc1_unstable_transform` / `dltbc1_unstable_untransform` - Direct transform operations
+- `dltbc1_unstable_determine_optimal` - Direct optimization
+
+These provide maximum performance but may break between versions if structures change.
+
+For detailed documentation of all C API functions, see the [C API documentation](https://docs.rs/dxt-lossless-transform-bc1-api/latest/dxt_lossless_transform_bc1_api/c_api/index.html) (requires `c-exports` feature).
 
 ## Development
 

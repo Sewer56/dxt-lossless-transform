@@ -1,16 +1,22 @@
 //! C API for BC1 transform and untransform operations.
+//!
+//! This module provides ABI-stable transform functions using opaque context objects.
 
 pub mod builder;
 pub mod transform_context;
+pub mod unstable;
 
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
 use crate::c_api::transform::transform_context::{
     Dltbc1TransformContext, get_detransform_details, get_transform_details,
 };
-use crate::transform::{transform_bc1_slice, untransform_bc1_slice};
-use core::slice;
+use crate::c_api::transform::unstable::{dltbc1_unstable_transform, dltbc1_unstable_untransform};
 
-/// Transform BC1 data using a pre-allocated buffer.
+/// Transform BC1 data using a pre-allocated buffer (ABI-stable).
+///
+/// This function provides ABI stability by using an opaque context object.
+/// Internally, it extracts transform details from the context and calls
+/// the unstable transform function.
 ///
 /// # Parameters
 /// - `input`: Pointer to input BC1 data
@@ -28,32 +34,30 @@ use core::slice;
 /// - `context` must be a valid pointer to a Dltbc1TransformContext
 /// - Pointers must remain valid for the duration of the call
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_transform(
+pub unsafe extern "C" fn dltbc1_TransformContext_Transform(
     input: *const u8,
     input_len: usize,
     output: *mut u8,
     output_len: usize,
     context: *const Dltbc1TransformContext,
 ) -> Dltbc1Result {
-    // Validate pointers
-    if input.is_null() || output.is_null() || context.is_null() {
+    // Validate context pointer
+    if context.is_null() {
         return Dltbc1Result::from_error_code(Dltbc1ErrorCode::InvalidLength);
     }
 
-    // Create slices from raw pointers
-    let input_slice = unsafe { slice::from_raw_parts(input, input_len) };
-    let output_slice = unsafe { slice::from_raw_parts_mut(output, output_len) };
-
     // Get transform options from context
-    let options = unsafe { get_transform_details(context) };
+    let details = unsafe { get_transform_details(context) };
 
-    // Perform transform
-    let result = transform_bc1_slice(input_slice, output_slice, options);
-
-    result.into()
+    // Call the unstable transform function
+    unsafe { dltbc1_unstable_transform(input, input_len, output, output_len, details.into()) }
 }
 
-/// Untransform BC1 data using a pre-allocated buffer.
+/// Untransform BC1 data using a pre-allocated buffer (ABI-stable).
+///
+/// This function provides ABI stability by using an opaque context object.
+/// Internally, it extracts detransform details from the context and calls
+/// the unstable untransform function.
 ///
 /// # Parameters
 /// - `input`: Pointer to transformed BC1 data
@@ -71,27 +75,109 @@ pub unsafe extern "C" fn dltbc1_transform(
 /// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 /// - Pointers must remain valid for the duration of the call
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_untransform(
+pub unsafe extern "C" fn dltbc1_TransformContext_Untransform(
     input: *const u8,
     input_len: usize,
     output: *mut u8,
     output_len: usize,
     context: *const Dltbc1TransformContext,
 ) -> Dltbc1Result {
-    // Validate pointers
-    if input.is_null() || output.is_null() || context.is_null() {
+    // Validate context pointer
+    if context.is_null() {
         return Dltbc1Result::from_error_code(Dltbc1ErrorCode::InvalidLength);
     }
 
-    // Create slices from raw pointers
-    let input_slice = unsafe { slice::from_raw_parts(input, input_len) };
-    let output_slice = unsafe { slice::from_raw_parts_mut(output, output_len) };
-
     // Get detransform options from context
-    let options = unsafe { get_detransform_details(context) };
+    let details = unsafe { get_detransform_details(context) };
 
-    // Perform untransform
-    let result = untransform_bc1_slice(input_slice, output_slice, options);
+    // Call the unstable untransform function
+    unsafe { dltbc1_unstable_untransform(input, input_len, output, output_len, details.into()) }
+}
 
-    result.into()
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::c_api::transform::builder::*;
+    use crate::c_api::transform::transform_context::*;
+    use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
+
+    #[test]
+    fn test_stable_transform_roundtrip() {
+        // Create test data (8 bytes = 1 BC1 block)
+        let input = vec![0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
+        let mut transformed = vec![0u8; 8];
+        let mut restored = vec![0u8; 8];
+
+        // Create context
+        let context = dltbc1_new_TransformContext();
+        assert!(!context.is_null());
+
+        // Configure context
+        unsafe {
+            dltbc1_TransformContext_SetDecorrelationMode(context, YCoCgVariant::Variant1);
+            dltbc1_TransformContext_SetSplitColourEndpoints(context, true);
+        }
+
+        // Transform
+        unsafe {
+            let result = dltbc1_TransformContext_Transform(
+                input.as_ptr(),
+                input.len(),
+                transformed.as_mut_ptr(),
+                transformed.len(),
+                context,
+            );
+            assert!(result.is_success());
+        }
+
+        // Untransform
+        unsafe {
+            let result = dltbc1_TransformContext_Untransform(
+                transformed.as_ptr(),
+                transformed.len(),
+                restored.as_mut_ptr(),
+                restored.len(),
+                context,
+            );
+            assert!(result.is_success());
+        }
+
+        // Verify roundtrip
+        assert_eq!(input, restored);
+
+        // Clean up
+        unsafe {
+            dltbc1_free_TransformContext(context);
+        }
+    }
+
+    #[test]
+    fn test_stable_null_context_handling() {
+        let data = [0u8; 8];
+        let mut output = vec![0u8; 8];
+
+        // Test null context for transform
+        unsafe {
+            let result = dltbc1_TransformContext_Transform(
+                data.as_ptr(),
+                8,
+                output.as_mut_ptr(),
+                8,
+                core::ptr::null(),
+            );
+            assert!(!result.is_success());
+        }
+
+        // Test null context for untransform
+        unsafe {
+            let result = dltbc1_TransformContext_Untransform(
+                data.as_ptr(),
+                8,
+                output.as_mut_ptr(),
+                8,
+                core::ptr::null(),
+            );
+            assert!(!result.is_success());
+        }
+    }
 }

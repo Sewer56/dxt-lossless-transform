@@ -3,10 +3,15 @@ name = "dxt-lossless-transform-dds"
 version = "0.1.0"
 edition = "2021"
 description = "Adds DDS support for the dxt-lossless-transform crate."
-repository = "https://github.com/Sewer56/dxt-lossless-transform"
-license-file = "LICENSE"
+repository.workspace = true
+license-file.workspace = true
 include = ["src/**/*"]
 readme = "README.MD"
+
+# Documentation configuration for docs.rs
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lib]
 bench = false

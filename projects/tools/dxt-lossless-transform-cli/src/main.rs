@@ -1,16 +1,10 @@
 #![allow(unexpected_cfgs)]
 #![cfg(not(tarpaulin_include))]
 
+mod commands;
 #[cfg(feature = "debug")]
 mod debug;
-#[cfg(feature = "debug-bc1")]
-mod debug_bc1;
-#[cfg(feature = "debug-bc7")]
-mod debug_bc7;
-
-mod detransform;
 mod error;
-mod transform;
 mod util;
 use argh::FromArgs;
 use core::error::Error;
@@ -57,12 +51,12 @@ struct TopLevel {
 #[derive(FromArgs, Debug)]
 #[argh(subcommand)]
 enum Commands {
-    Transform(transform::TransformCmd),
-    Detransform(detransform::DetransformCmd),
+    Transform(commands::transform::TransformCmd),
+    Detransform(commands::detransform::DetransformCmd),
     #[cfg(feature = "debug-bc7")]
-    DebugBc7(debug_bc7::DebugCmd),
+    DebugBc7(commands::debug_bc7::DebugCmd),
     #[cfg(feature = "debug-bc1")]
-    DebugBc1(debug_bc1::DebugCmd),
+    DebugBc1(commands::debug_bc1::DebugCmd),
 }
 
 pub fn canonicalize_cli_path(value: &str) -> Result<PathBuf, String> {
@@ -82,18 +76,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     match cli.command {
         Commands::Transform(cmd) => {
-            transform::handle_transform_command(cmd)?;
+            commands::transform::handle_transform_command(cmd)?;
         }
         Commands::Detransform(cmd) => {
-            detransform::handle_detransform_command(cmd)?;
+            commands::detransform::handle_detransform_command(cmd)?;
         }
         #[cfg(feature = "debug-bc7")]
         Commands::DebugBc7(cmd) => {
-            debug_bc7::handle_debug_command(cmd)?;
+            commands::debug_bc7::handle_debug_command(cmd)?;
         }
         #[cfg(feature = "debug-bc1")]
         Commands::DebugBc1(cmd) => {
-            debug_bc1::handle_debug_command(cmd)?;
+            commands::debug_bc1::handle_debug_command(cmd)?;
         }
     }
 

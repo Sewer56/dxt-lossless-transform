@@ -18,9 +18,7 @@ pub use transform::{
 };
 
 // Re-export builders
-pub use transform::{
-    Bc1DetransformSettingsBuilder, Bc1EstimateSettingsBuilder, Bc1TransformSettingsBuilder,
-};
+pub use transform::{Bc1EstimateSettingsBuilder, Bc1TransformSettingsBuilder};
 
 // Re-export core types for convenience
 pub use transform::{

@@ -32,7 +32,7 @@ use dxt_lossless_transform_bc1::{
 /// ```ignore
 /// use dxt_lossless_transform_bc1_api::{
 ///     transform_bc1_with_settings, untransform_bc1_with_settings,
-///     Bc1TransformSettingsBuilder, Bc1DetransformSettingsBuilder
+///     Bc1TransformSettingsBuilder
 /// };
 /// use dxt_lossless_transform_common::color_565::YCoCgVariant;
 ///
@@ -48,9 +48,8 @@ use dxt_lossless_transform_bc1::{
 /// // Transform the data
 /// transform_bc1_with_settings(&bc1_data, &mut transformed, transform_settings)?;
 ///
-/// // Create matching detransform settings
-/// let detransform_settings = Bc1DetransformSettingsBuilder::from_transform_settings(transform_settings)
-///     .build();
+/// // Convert transform settings to detransform settings
+/// let detransform_settings = transform_settings.into();
 ///
 /// // Untransform to restore original data
 /// untransform_bc1_with_settings(&transformed, &mut restored, detransform_settings)?;

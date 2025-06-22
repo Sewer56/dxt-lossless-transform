@@ -8,7 +8,6 @@
 
 // Individual modules for different functionality
 pub mod auto_transform;
-pub mod detransform_settings_builder;
 pub mod estimate_settings_builder;
 pub mod transform_settings_builder;
 pub mod transform_with_settings;
@@ -17,7 +16,6 @@ pub mod util;
 
 // Re-export the main functions at the module level for convenience
 pub use auto_transform::transform_bc1_auto;
-pub use detransform_settings_builder::Bc1DetransformSettingsBuilder;
 pub use estimate_settings_builder::Bc1EstimateSettingsBuilder;
 pub use transform_settings_builder::Bc1TransformSettingsBuilder;
 pub use transform_with_settings::transform_bc1_with_settings;

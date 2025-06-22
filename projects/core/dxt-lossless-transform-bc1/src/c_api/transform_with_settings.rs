@@ -1,25 +1,74 @@
-//! BC1 transform operations with explicit settings for C API (ABI-unstable).
+//! BC1 transform operations with explicit settings for C API.
 //!
-//! **⚠️ ABI Instability Warning**: All functions in this module accept ABI-unstable
-//! structures which may change between versions without major version bumps.
-//! For production use, prefer the ABI-stable builder patterns in
-//! [`super::super::manual_transform_builder`].
-//!
-//! This module provides ABI-unstable functions for transforming and
+//! This module provides C-compatible FFI functions for transforming and
 //! untransforming BC1 data using specific transform settings.
 
-use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
-use crate::c_api::{Dltbc1DetransformSettings, Dltbc1TransformSettings};
-use core::slice;
-use dxt_lossless_transform_bc1::{
-    transform_bc1_with_settings_safe, untransform_bc1_with_settings_safe,
+use super::transform_auto::{Dltbc1ErrorCode, Dltbc1Result, Dltbc1TransformSettings};
+use crate::{
+    transform_bc1_with_settings_safe, untransform_bc1_with_settings_safe, Bc1ValidationError,
+    YCoCgVariant,
 };
+use core::slice;
+
+/// Detransform settings for BC1 data.
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Dltbc1DetransformSettings {
+    /// Whether colour endpoints were split during transform
+    pub split_colour_endpoints: bool,
+    /// Decorrelation mode used during transform
+    pub decorrelation_mode: u8, // Maps to YCoCgVariant
+}
+
+impl From<Dltbc1TransformSettings> for crate::Bc1TransformSettings {
+    fn from(settings: Dltbc1TransformSettings) -> Self {
+        Self {
+            split_colour_endpoints: settings.split_colour_endpoints,
+            decorrelation_mode: match settings.decorrelation_mode {
+                0 => YCoCgVariant::None,
+                1 => YCoCgVariant::Variant1,
+                2 => YCoCgVariant::Variant2,
+                3 => YCoCgVariant::Variant3,
+                _ => YCoCgVariant::None, // Default fallback
+            },
+        }
+    }
+}
+
+impl From<Dltbc1DetransformSettings> for crate::Bc1DetransformSettings {
+    fn from(settings: Dltbc1DetransformSettings) -> Self {
+        // Convert to Bc1TransformSettings first, then to Bc1DetransformSettings
+        let transform_settings = crate::Bc1TransformSettings {
+            split_colour_endpoints: settings.split_colour_endpoints,
+            decorrelation_mode: match settings.decorrelation_mode {
+                0 => YCoCgVariant::None,
+                1 => YCoCgVariant::Variant1,
+                2 => YCoCgVariant::Variant2,
+                3 => YCoCgVariant::Variant3,
+                _ => YCoCgVariant::None, // Default fallback
+            },
+        };
+        transform_settings.into()
+    }
+}
+
+impl From<Bc1ValidationError> for Dltbc1Result {
+    fn from(error: Bc1ValidationError) -> Self {
+        let error_code = match error {
+            Bc1ValidationError::InvalidLength(_) => Dltbc1ErrorCode::InvalidDataLength,
+            Bc1ValidationError::OutputBufferTooSmall { .. } => {
+                Dltbc1ErrorCode::OutputBufferTooSmall
+            }
+        };
+        Self::from_error_code(error_code)
+    }
+}
 
 // =============================================================================
-// ABI-Unstable Functions
+// C API Functions
 // =============================================================================
 
-/// Transform BC1 data using specified transform settings (ABI-unstable).
+/// Transform BC1 data using specified transform settings.
 ///
 /// # Parameters
 /// - `input`: Pointer to BC1 data to transform
@@ -34,35 +83,8 @@ use dxt_lossless_transform_bc1::{
 /// # Safety
 /// - `input` must be valid for reads of `input_len` bytes
 /// - `output` must be valid for writes of `output_len` bytes
-///
-/// **⚠️ ABI Instability Warning**: This function accepts ABI-unstable structures
-/// which may change between library versions. For production use, prefer
-/// [`super::super::manual_transform_builder::dltbc1_TransformSettingsBuilder_Transform`]
-/// which provides ABI stability and builder pattern convenience.
-///
-/// **Prefer the ABI-stable builder:** This function provides direct access but may have
-/// breaking changes. Consider using
-/// [`super::super::manual_transform_builder::dltbc1_TransformSettingsBuilder_Transform`]
-/// which provides ABI stability and convenient configuration methods.
-///
-/// # Recommended Alternative
-///
-/// For production use:
-/// ```c
-/// // Create and configure builder (ABI-stable)
-/// Dltbc1TransformSettingsBuilder* builder = dltbc1_new_TransformSettingsBuilder();
-/// dltbc1_TransformSettingsBuilder_SetDecorrelationMode(builder, YCOCG_VARIANT_1);
-/// dltbc1_TransformSettingsBuilder_SetSplitColourEndpoints(builder, true);
-///
-/// // Transform the data
-/// Dltbc1Result result = dltbc1_TransformSettingsBuilder_Transform(
-///     input, input_len, output, output_len, builder);
-///
-/// // Clean up
-/// dltbc1_free_TransformSettingsBuilder(builder);
-/// ```
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_unstable_transform(
+pub unsafe extern "C" fn dltbc1core_transform(
     input: *const u8,
     input_len: usize,
     output: *mut u8,
@@ -91,7 +113,7 @@ pub unsafe extern "C" fn dltbc1_unstable_transform(
     }
 }
 
-/// Untransform BC1 data using specified detransform settings (ABI-unstable).
+/// Untransform BC1 data using specified detransform settings.
 ///
 /// # Parameters
 /// - `input`: Pointer to transformed BC1 data to untransform
@@ -107,27 +129,8 @@ pub unsafe extern "C" fn dltbc1_unstable_transform(
 /// - `input` must be valid for reads of `input_len` bytes
 /// - `output` must be valid for writes of `output_len` bytes
 /// - The detransform settings must match the settings used for the original transformation
-///
-/// **⚠️ ABI Instability Warning**: This function accepts ABI-unstable structures
-/// which may change between library versions. For production use, prefer
-/// [`super::super::manual_transform_builder::dltbc1_TransformSettingsBuilder_Untransform`]
-/// which provides ABI stability.
-///
-/// **Prefer the ABI-stable builder:** This function provides direct access but may have
-/// breaking changes. Consider using
-/// [`super::super::manual_transform_builder::dltbc1_TransformSettingsBuilder_Untransform`]
-/// which provides ABI stability.
-///
-/// # Recommended Alternative
-///
-/// For production use:
-/// ```c
-/// // Use the same builder that was used for transform (ABI-stable)
-/// Dltbc1Result result = dltbc1_TransformSettingsBuilder_Untransform(
-///     transformed_data, transformed_len, restored_data, restored_len, builder);
-/// ```
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_unstable_untransform(
+pub unsafe extern "C" fn dltbc1core_untransform(
     input: *const u8,
     input_len: usize,
     output: *mut u8,

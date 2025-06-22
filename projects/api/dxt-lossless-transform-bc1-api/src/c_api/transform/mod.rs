@@ -10,14 +10,12 @@
 //!
 //! ## Unstable Functions (ABI-Unstable)
 //!
-//! For advanced users requiring maximum performance, see the [`unstable`] module.
-//! These functions may have breaking changes between versions without major version bumps.
+//! For advanced users requiring maximum performance, unstable functions are now available
+//! in the core crate at `dxt_lossless_transform_bc1::c_api`. These functions may have
+//! breaking changes between versions without major version bumps.
 //!
 //! **Production code should use the ABI-stable builder patterns above.**
 
 // Builder modules (stable, recommended)
 pub mod auto_transform_builder;
 pub mod manual_transform_builder;
-
-// Unstable direct functions (advanced users only)
-pub mod unstable;

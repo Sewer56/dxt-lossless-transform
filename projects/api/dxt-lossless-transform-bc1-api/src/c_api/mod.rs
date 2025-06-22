@@ -146,15 +146,13 @@
 //!
 //! ⚠️ **For advanced users only**: Functions prefixed with `dltbc1_unstable_*` accept transform details directly. These provide maximum performance by avoiding builder overhead but may break between versions if structures change. **Production code should use the ABI-stable builder patterns above.**
 //!
-//! The unstable functions are available in the [`transform::unstable`] module and require explicit import. They include:
+//! The unstable functions have been moved to the core crate and are available in `dxt_lossless_transform_bc1::c_api` when the `c_api` feature is enabled. They include:
 //!
 //! - **`dltbc1_unstable_transform(...)`** - Transform BC1 data with explicit settings (ABI-unstable)
 //! - **`dltbc1_unstable_untransform(...)`** - Restore BC1 data with explicit settings (ABI-unstable)  
 //! - **`dltbc1_unstable_transform_auto(...)`** - Analyze data, determine best settings, and apply transformation in one operation (ABI-unstable)
 //!
-//! See the [`transform::unstable`] module documentation for details and migration guidance.
-//!
-//! [`transform::unstable`]: transform/unstable/index.html
+//! See the core crate documentation for details and migration guidance.
 //!
 //! ## Error Handling
 //!

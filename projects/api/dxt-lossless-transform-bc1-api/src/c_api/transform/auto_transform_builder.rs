@@ -10,6 +10,31 @@ use crate::c_api::transform::manual_transform_builder::{
 };
 use crate::transform::Bc1ManualTransformBuilder;
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
+use dxt_lossless_transform_bc1::c_api::transform_auto::{
+    Dltbc1AutoTransformSettings as CoreAutoTransformSettings, Dltbc1ErrorCode as CoreErrorCode,
+    Dltbc1Result as CoreResult, Dltbc1TransformSettings as CoreTransformSettings,
+};
+
+// Conversion from core's Dltbc1Result to API's Dltbc1Result
+impl From<CoreResult> for Dltbc1Result {
+    fn from(core_result: CoreResult) -> Self {
+        let api_error_code = match core_result.error_code {
+            CoreErrorCode::Success => Dltbc1ErrorCode::Success,
+            CoreErrorCode::NullDataPointer => Dltbc1ErrorCode::NullDataPointer,
+            CoreErrorCode::NullOutputBufferPointer => Dltbc1ErrorCode::NullOutputBufferPointer,
+            CoreErrorCode::NullEstimatorPointer => Dltbc1ErrorCode::NullEstimatorPointer,
+            CoreErrorCode::NullTransformSettingsPointer => {
+                Dltbc1ErrorCode::NullTransformSettingsPointer
+            }
+            CoreErrorCode::InvalidDataLength => Dltbc1ErrorCode::InvalidLength,
+            CoreErrorCode::OutputBufferTooSmall => Dltbc1ErrorCode::OutputBufferTooSmall,
+            CoreErrorCode::SizeEstimationError => Dltbc1ErrorCode::SizeEstimationFailed,
+            CoreErrorCode::TransformationError => Dltbc1ErrorCode::AllocationFailed, // Map to closest available
+        };
+
+        Self::from_error_code(api_error_code)
+    }
+}
 
 /// Internal structure holding the actual builder data.
 pub struct Dltbc1EstimateSettingsBuilderImpl {
@@ -153,34 +178,57 @@ pub unsafe extern "C" fn dltbc1_EstimateSettingsBuilder_BuildAndTransform(
     };
 
     // Create settings struct
-    let settings = crate::c_api::transform::unstable::transform_auto::Dltbc1AutoTransformSettings {
-        use_all_modes,
-    };
+    let settings = CoreAutoTransformSettings { use_all_modes };
 
     // Allocate space for the transform details
-    let mut transform_details = Dltbc1TransformSettings::default();
+    let mut transform_details = CoreTransformSettings::default();
 
-    // Call the unstable transform auto function
+    // Call the core transform auto function
     let result = unsafe {
-        crate::c_api::transform::unstable::transform_auto::dltbc1_unstable_transform_auto(
+        dxt_lossless_transform_bc1::c_api::transform_auto::dltbc1core_transform_auto(
             data,
             data_len,
             output,
             output_len,
             estimator,
             settings,
-            &mut transform_details as *mut Dltbc1TransformSettings,
+            &mut transform_details as *mut CoreTransformSettings,
         )
     };
 
     // If successful, update the settings builder
     if result.is_success() {
         let builder_inner = unsafe { get_settings_builder_mut(settings_builder) };
+
+        // Convert core transform details to API transform details
+        let api_transform_details = Dltbc1TransformSettings {
+            decorrelation_mode: match transform_details.decorrelation_mode {
+                0 => dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant::None,
+                1 => {
+                    dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant::Variant1
+                }
+                2 => {
+                    dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant::Variant2
+                }
+                3 => {
+                    dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant::Variant3
+                }
+                _ => {
+                    dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant::Variant1
+                } // Default fallback
+            },
+            split_colour_endpoints: transform_details.split_colour_endpoints,
+        };
+
         // Update the builder with the transform details
         builder_inner.builder = Bc1ManualTransformBuilder::new()
-            .decorrelation_mode(transform_details.decorrelation_mode.to_internal_variant())
-            .split_colour_endpoints(transform_details.split_colour_endpoints);
+            .decorrelation_mode(
+                api_transform_details
+                    .decorrelation_mode
+                    .to_internal_variant(),
+            )
+            .split_colour_endpoints(api_transform_details.split_colour_endpoints);
     }
 
-    result
+    result.into()
 }

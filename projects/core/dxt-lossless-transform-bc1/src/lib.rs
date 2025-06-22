@@ -25,3 +25,7 @@ pub use dxt_lossless_transform_common::color_565::YCoCgVariant;
 /// Common test prelude for avoiding duplicate imports in test modules
 #[cfg(test)]
 pub mod test_prelude;
+
+/// C API exports
+#[cfg(feature = "c-exports")]
+pub mod c_api;

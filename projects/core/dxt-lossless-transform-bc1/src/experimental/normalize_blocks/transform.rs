@@ -21,7 +21,7 @@
 use crate::transform::settings::{COMPREHENSIVE_TEST_ORDER, FAST_TEST_ORDER};
 use crate::transform::standard::{transform, transform_with_separate_pointers};
 use crate::transform::{
-    transform_bc1_auto, Bc1EstimateOptions, Bc1TransformSettings, DetermineBestTransformError,
+    transform_bc1_auto, Bc1EstimateSettings, Bc1TransformSettings, DetermineBestTransformError,
 };
 use core::mem::size_of;
 use core::slice;
@@ -225,7 +225,7 @@ pub unsafe fn transform_bc1_auto_with_normalization<T>(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
-    transform_options: Bc1EstimateOptions<T>,
+    transform_options: Bc1EstimateSettings<T>,
 ) -> Result<Bc1TransformDetailsWithNormalization, DetermineBestTransformError<T::Error>>
 where
     T: SizeEstimationOperations,
@@ -338,7 +338,7 @@ unsafe fn test_normalize_variant_with_normalization<T>(
     input: *mut u8,
     output: *mut u8,
     len: usize,
-    transform_options: &Bc1EstimateOptions<T>,
+    transform_options: &Bc1EstimateSettings<T>,
     best_transform_details: &mut Bc1TransformDetailsWithNormalization,
     best_size: &mut usize,
     current_mode: Bc1TransformDetailsWithNormalization,
@@ -502,7 +502,7 @@ mod tests {
             }
         }
 
-        let transform_options = Bc1EstimateOptions {
+        let transform_options = Bc1EstimateSettings {
             size_estimator: DummyEstimator,
             use_all_decorrelation_modes: false,
         };

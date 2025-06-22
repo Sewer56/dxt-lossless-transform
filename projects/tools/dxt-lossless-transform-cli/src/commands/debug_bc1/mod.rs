@@ -13,7 +13,7 @@ use benchmark::handle_benchmark_command;
 use calc_compression_stats::handle_compression_stats_command;
 use dxt_lossless_transform_bc1::experimental::transform_bc1_auto_with_normalization;
 use dxt_lossless_transform_bc1::transform_bc1_auto;
-use dxt_lossless_transform_bc1::Bc1EstimateOptions;
+use dxt_lossless_transform_bc1::Bc1EstimateSettings;
 use dxt_lossless_transform_bc1::Bc1TransformSettings;
 use roundtrip::handle_roundtrip_command;
 use std::path::PathBuf;
@@ -250,7 +250,7 @@ where
 {
     use dxt_lossless_transform_common::allocate::allocate_align_64;
 
-    let transform_options = Bc1EstimateOptions {
+    let transform_options = Bc1EstimateSettings {
         size_estimator,
         use_all_decorrelation_modes,
     };

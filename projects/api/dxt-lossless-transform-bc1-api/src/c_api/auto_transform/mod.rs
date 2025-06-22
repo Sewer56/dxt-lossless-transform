@@ -17,11 +17,11 @@ use crate::c_api::auto_transform::unstable::{
 };
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
 use crate::c_api::transform::transform_context::{Dltbc1TransformContext, get_context_mut};
-use crate::transform::builder::Bc1TransformOptionsBuilder;
+use crate::transform::Bc1TransformSettingsBuilder;
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 
 /// Internal structure holding the actual builder data.
-struct Dltbc1EstimateOptionsBuilderImpl {
+struct Dltbc1EstimateSettingsBuilderImpl {
     use_all_decorrelation_modes: bool,
 }
 
@@ -36,7 +36,7 @@ struct Dltbc1EstimateOptionsBuilderImpl {
 ///
 /// The internal structure of this builder is completely hidden from C callers.
 #[repr(C)]
-pub struct Dltbc1EstimateOptionsBuilder {
+pub struct Dltbc1EstimateSettingsBuilder {
     _private: [u8; 0],
 }
 
@@ -51,12 +51,12 @@ pub struct Dltbc1EstimateOptionsBuilder {
 /// # Returns
 /// A pointer to a new builder, or null if allocation fails.
 #[unsafe(no_mangle)]
-pub extern "C" fn dltbc1_new_EstimateOptionsBuilder() -> *mut Dltbc1EstimateOptionsBuilder {
-    let builder_impl = Box::new(Dltbc1EstimateOptionsBuilderImpl {
+pub extern "C" fn dltbc1_new_EstimateOptionsBuilder() -> *mut Dltbc1EstimateSettingsBuilder {
+    let builder_impl = Box::new(Dltbc1EstimateSettingsBuilderImpl {
         use_all_decorrelation_modes: false,
     });
 
-    Box::into_raw(builder_impl) as *mut Dltbc1EstimateOptionsBuilder
+    Box::into_raw(builder_impl) as *mut Dltbc1EstimateSettingsBuilder
 }
 
 /// Free a BC1 estimate options builder.
@@ -67,10 +67,10 @@ pub extern "C" fn dltbc1_new_EstimateOptionsBuilder() -> *mut Dltbc1EstimateOpti
 /// - After calling this function, `builder` becomes invalid
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_free_EstimateOptionsBuilder(
-    builder: *mut Dltbc1EstimateOptionsBuilder,
+    builder: *mut Dltbc1EstimateSettingsBuilder,
 ) {
     if !builder.is_null() {
-        let _boxed = unsafe { Box::from_raw(builder as *mut Dltbc1EstimateOptionsBuilderImpl) };
+        let _boxed = unsafe { Box::from_raw(builder as *mut Dltbc1EstimateSettingsBuilderImpl) };
         // Boxed value is automatically dropped here
     }
 }
@@ -92,17 +92,17 @@ pub unsafe extern "C" fn dltbc1_free_EstimateOptionsBuilder(
 /// A [`Dltbc1Result`] indicating success or containing an error.
 ///
 /// # Safety
-/// - `builder` must be a valid pointer to a [`Dltbc1EstimateOptionsBuilder`]
+/// - `builder` must be a valid pointer to a [`Dltbc1EstimateSettingsBuilder`]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(
-    builder: *mut Dltbc1EstimateOptionsBuilder,
+    builder: *mut Dltbc1EstimateSettingsBuilder,
     use_all: bool,
 ) -> Dltbc1Result {
     if builder.is_null() {
         return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullBuilderPointer);
     }
 
-    let builder_impl = unsafe { &mut *(builder as *mut Dltbc1EstimateOptionsBuilderImpl) };
+    let builder_impl = unsafe { &mut *(builder as *mut Dltbc1EstimateSettingsBuilderImpl) };
     builder_impl.use_all_decorrelation_modes = use_all;
     Dltbc1Result::success()
 }
@@ -132,10 +132,10 @@ pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationMod
 /// - `estimator` must be a valid pointer to a [`DltSizeEstimator`] with valid function pointers
 /// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 /// - The estimator's context and functions must remain valid for the duration of the call
-/// - The builder (if not null) must be a valid pointer to a [`Dltbc1EstimateOptionsBuilder`]
+/// - The builder (if not null) must be a valid pointer to a [`Dltbc1EstimateSettingsBuilder`]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_BuildAndTransform(
-    builder: *mut Dltbc1EstimateOptionsBuilder,
+    builder: *mut Dltbc1EstimateSettingsBuilder,
     data: *const u8,
     data_len: usize,
     output: *mut u8,
@@ -152,7 +152,7 @@ pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_BuildAndTransform(
     let use_all_modes = if builder.is_null() {
         false // Default value if builder is null
     } else {
-        let builder_impl = unsafe { &*(builder as *const Dltbc1EstimateOptionsBuilderImpl) };
+        let builder_impl = unsafe { &*(builder as *const Dltbc1EstimateSettingsBuilderImpl) };
         builder_impl.use_all_decorrelation_modes
     };
 
@@ -179,7 +179,7 @@ pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_BuildAndTransform(
     if result.is_success() {
         let context_inner = unsafe { get_context_mut(context) };
         // Update the context with the transform details
-        context_inner.builder = Bc1TransformOptionsBuilder::new()
+        context_inner.builder = Bc1TransformSettingsBuilder::new()
             .decorrelation_mode(transform_details.decorrelation_mode.to_internal_variant())
             .split_colour_endpoints(transform_details.split_colour_endpoints);
     }

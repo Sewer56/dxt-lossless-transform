@@ -23,7 +23,7 @@ How to transform/untransform BC1 data:
 
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1EstimateOptionsBuilder};
+use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1EstimateSettingsBuilder};
 use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 
 // Your BC1 texture data (must be divisible by 8 bytes)
@@ -32,7 +32,7 @@ let mut transformed = vec![0u8; bc1_data.len()];
 
 // Transform with automatic optimization
 let estimator = LosslessTransformUtilsSizeEstimation::new();
-let options = Bc1EstimateOptionsBuilder::new()
+let options = Bc1EstimateSettingsBuilder::new()
     .use_all_decorrelation_modes(false)
     .build(estimator);
 let transform_details = transform_bc1_auto(&bc1_data, &mut transformed, options)?;
@@ -52,7 +52,7 @@ This finds the optimal transform parameters and applies them in one step.
 
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1EstimateOptionsBuilder};
+use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1EstimateSettingsBuilder};
 use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 use dxt_lossless_transform_api_common::allocate::allocate_cache_line_aligned;
 
@@ -63,7 +63,7 @@ let mut output_buffer = allocate_cache_line_aligned(8 * 500)?;
 
 // Automatically determine the best transform parameters and apply them
 let estimator = LosslessTransformUtilsSizeEstimation::new();
-let options = Bc1EstimateOptionsBuilder::new()
+let options = Bc1EstimateSettingsBuilder::new()
     .use_all_decorrelation_modes(false) // Fast mode
     .build(estimator);
 let transform_details = transform_bc1_auto(bc1_buffer.as_slice(), output_buffer.as_mut_slice(), options)?;
@@ -99,7 +99,7 @@ they should be used for final publishing only alongside other brute force option
 ### Optimization Functions
 
 - [`transform_bc1_auto`] - Transform with automatically determined optimal parameters
-- [`Bc1EstimateOptionsBuilder`] - Builder pattern for optimization configuration
+- [`Bc1EstimateSettingsBuilder`] - Builder pattern for optimization settings
 - [`Bc1TransformSettingsBuilder`] - Builder pattern for manual transform configuration
 
 ### Error Handling
@@ -137,7 +137,7 @@ Choose between speed and quality:
 
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-# use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1EstimateOptionsBuilder};
+# use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1EstimateSettingsBuilder};
 # use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 # let data = vec![0u8; 8 * 100];
 # let mut output_fast = vec![0u8; 8 * 100];
@@ -146,14 +146,14 @@ Choose between speed and quality:
 let estimator = LosslessTransformUtilsSizeEstimation::new();
 
 // Fast mode: ~2x faster, tests common configurations
-let fast_options = Bc1EstimateOptionsBuilder::new()
+let fast_options = Bc1EstimateSettingsBuilder::new()
     .use_all_decorrelation_modes(false)
     .build(estimator);
 let fast_details = transform_bc1_auto(&data, &mut output_fast, fast_options)?;
 
 // Thorough mode: tests all decorrelation modes for best compression (gains are minimal)
 let estimator = LosslessTransformUtilsSizeEstimation::new();
-let thorough_options = Bc1EstimateOptionsBuilder::new()
+let thorough_options = Bc1EstimateSettingsBuilder::new()
     .use_all_decorrelation_modes(true)
     .build(estimator);
 let thorough_details = transform_bc1_auto(&data, &mut output_thorough, thorough_options)?;
@@ -167,14 +167,14 @@ Use the automatic transform API:
 
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-# use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1EstimateOptionsBuilder};
+# use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1EstimateSettingsBuilder};
 # use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 # let input = vec![0u8; 8 * 10];
 # let mut output = vec![0u8; 8 * 10];
 
 // Use automatic optimization API
 let estimator = LosslessTransformUtilsSizeEstimation::new();
-let options = Bc1EstimateOptionsBuilder::new()
+let options = Bc1EstimateSettingsBuilder::new()
     .use_all_decorrelation_modes(false)
     .build(estimator);
 let transform_details = transform_bc1_auto(&input, &mut output, options)?;
@@ -188,7 +188,7 @@ let transform_details = transform_bc1_auto(&input, &mut output, options)?;
 
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1EstimateOptionsBuilder};
+use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1EstimateSettingsBuilder};
 # use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 # use dxt_lossless_transform_api_common::allocate::allocate_cache_line_aligned;
 # fn compress_with_zstd(data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
@@ -201,7 +201,7 @@ fn compress_bc1_texture(bc1_data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::
     
     // Step 2: Find optimal transform and apply it
     let estimator = LosslessTransformUtilsSizeEstimation::new();
-    let options = Bc1EstimateOptionsBuilder::new()
+    let options = Bc1EstimateSettingsBuilder::new()
         .use_all_decorrelation_modes(false)
         .build(estimator);
     let transform_details = transform_bc1_auto(bc1_data, transformed.as_mut_slice(), options)?;
@@ -222,13 +222,13 @@ fn compress_bc1_texture(bc1_data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::
 
 ```rust
 # fn main() {
-use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1EstimateOptionsBuilder, Bc1Error};
+use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1EstimateSettingsBuilder, Bc1Error};
 # use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 # let input = vec![0u8; 8 * 10];
 # let mut output = vec![0u8; 8 * 10];
 
 let estimator = LosslessTransformUtilsSizeEstimation::new();
-let options = Bc1EstimateOptionsBuilder::new()
+let options = Bc1EstimateSettingsBuilder::new()
     .use_all_decorrelation_modes(false)
     .build(estimator);
 

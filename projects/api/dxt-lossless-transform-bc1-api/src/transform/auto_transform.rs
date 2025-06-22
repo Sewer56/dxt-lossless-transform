@@ -6,7 +6,7 @@
 use crate::error::Bc1Error;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_bc1::{
-    Bc1EstimateOptions, Bc1TransformSettings, DetermineBestTransformError,
+    Bc1EstimateSettings, Bc1TransformSettings, DetermineBestTransformError,
     transform_bc1_auto as core_transform_bc1_auto,
 };
 
@@ -36,14 +36,14 @@ use dxt_lossless_transform_bc1::{
 /// # Examples
 ///
 /// ```ignore
-/// use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1EstimateOptionsBuilder};
+/// use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1EstimateSettingsBuilder};
 /// use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 ///
 /// let bc1_data = vec![0u8; 8 * 100]; // 100 BC1 blocks
 /// let mut output = vec![0u8; bc1_data.len()];
 /// let estimator = LosslessTransformUtilsSizeEstimation::new();
 ///
-/// let options = Bc1EstimateOptionsBuilder::new()
+/// let options = Bc1EstimateSettingsBuilder::new()
 ///     .use_all_decorrelation_modes(true)
 ///     .build(estimator);
 ///
@@ -52,7 +52,7 @@ use dxt_lossless_transform_bc1::{
 pub fn transform_bc1_auto<T>(
     input: &[u8],
     output: &mut [u8],
-    options: Bc1EstimateOptions<T>,
+    options: Bc1EstimateSettings<T>,
 ) -> Result<Bc1TransformSettings, Bc1Error<T::Error>>
 where
     T: SizeEstimationOperations,
@@ -98,7 +98,7 @@ mod tests {
         ];
         let mut output = [0u8; 8];
 
-        let options = Bc1EstimateOptions {
+        let options = Bc1EstimateSettings {
             size_estimator: DummyEstimator,
             use_all_decorrelation_modes: false,
         };

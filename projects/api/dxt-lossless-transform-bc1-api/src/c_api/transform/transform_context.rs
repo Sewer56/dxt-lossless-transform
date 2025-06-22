@@ -5,7 +5,7 @@
 
 use core::ptr;
 
-use crate::transform::builder::Bc1TransformOptionsBuilder;
+use crate::transform::Bc1TransformSettingsBuilder;
 
 /// Opaque transform context type for BC1 transform operations.
 ///
@@ -26,7 +26,7 @@ pub struct Dltbc1TransformContext {
 
 /// Internal representation of the transform context
 pub(crate) struct Dltbc1TransformContextInner {
-    pub(crate) builder: Bc1TransformOptionsBuilder,
+    pub(crate) builder: Bc1TransformSettingsBuilder,
 }
 
 /// Create a new BC1 transform context with default settings.
@@ -38,7 +38,7 @@ pub(crate) struct Dltbc1TransformContextInner {
 #[unsafe(no_mangle)]
 pub extern "C" fn dltbc1_new_TransformContext() -> *mut Dltbc1TransformContext {
     let inner = Box::new(Dltbc1TransformContextInner {
-        builder: Bc1TransformOptionsBuilder::new(),
+        builder: Bc1TransformSettingsBuilder::new(),
     });
 
     Box::into_raw(inner) as *mut Dltbc1TransformContext

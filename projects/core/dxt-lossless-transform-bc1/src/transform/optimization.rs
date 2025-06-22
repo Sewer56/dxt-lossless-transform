@@ -22,9 +22,9 @@ pub enum DetermineBestTransformError<E> {
     SizeEstimationError(E),
 }
 
-/// The options for [`transform_bc1_auto`], regarding how the estimation is done,
+/// The settings for [`transform_bc1_auto`], regarding how the estimation is done,
 /// and other related factors.
-pub struct Bc1EstimateOptions<T>
+pub struct Bc1EstimateSettings<T>
 where
     T: SizeEstimationOperations,
 {
@@ -72,7 +72,7 @@ where
 /// - `input_ptr`: A pointer to the input data (input BC1 blocks)
 /// - `output_ptr`: A pointer to the output buffer where transformed data will be written
 /// - `len`: The length of the input data in bytes
-/// - `transform_options`: Options for the estimation including the file size estimator
+/// - `transform_options`: Settings for the estimation including the file size estimator
 ///
 /// # Returns
 ///
@@ -124,7 +124,7 @@ where
 /// # Examples
 ///
 /// ```rust,no_run
-/// # use dxt_lossless_transform_bc1::{transform_bc1_auto, Bc1EstimateOptions};
+/// # use dxt_lossless_transform_bc1::{transform_bc1_auto, Bc1EstimateSettings};
 /// # use dxt_lossless_transform_api_common::estimate::{SizeEstimationOperations, DataType};
 ///
 /// // Define a compression estimator implementation
@@ -154,7 +154,7 @@ where
 ///
 /// let bc1_data = vec![0u8; 8]; // Example BC1 block data
 /// let mut output_buffer = vec![0u8; bc1_data.len()]; // Output buffer
-/// let options = Bc1EstimateOptions {
+/// let options = Bc1EstimateSettings {
 ///     size_estimator: MyCompressionEstimator,
 ///     use_all_decorrelation_modes: false, // Fast mode
 /// };
@@ -196,7 +196,7 @@ pub unsafe fn transform_bc1_auto<T>(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
-    transform_options: Bc1EstimateOptions<T>,
+    transform_options: Bc1EstimateSettings<T>,
 ) -> Result<Bc1TransformSettings, DetermineBestTransformError<T::Error>>
 where
     T: SizeEstimationOperations,

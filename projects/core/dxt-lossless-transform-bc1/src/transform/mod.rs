@@ -58,7 +58,7 @@ pub use settings::*;
 #[cfg(test)]
 mod tests {
     use super::optimization::{
-        transform_bc1_auto, Bc1EstimateOptions, DetermineBestTransformError,
+        transform_bc1_auto, Bc1EstimateSettings, DetermineBestTransformError,
     };
     use crate::test_prelude::*;
     use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
@@ -97,7 +97,7 @@ mod tests {
             }
         }
 
-        let transform_options = Bc1EstimateOptions {
+        let transform_options = Bc1EstimateSettings {
             size_estimator: DummyEstimator,
             use_all_decorrelation_modes: false,
         };
@@ -151,7 +151,7 @@ mod tests {
             }
         }
 
-        let transform_options = Bc1EstimateOptions {
+        let transform_options = Bc1EstimateSettings {
             size_estimator: FailingEstimator,
             use_all_decorrelation_modes: false,
         };

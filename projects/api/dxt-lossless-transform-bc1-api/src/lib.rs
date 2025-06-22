@@ -19,12 +19,12 @@ pub use transform::{
 
 // Re-export builders
 pub use transform::{
-    Bc1DetransformSettingsBuilder, Bc1EstimateOptionsBuilder, Bc1TransformSettingsBuilder,
+    Bc1DetransformSettingsBuilder, Bc1EstimateSettingsBuilder, Bc1TransformSettingsBuilder,
 };
 
 // Re-export core types for convenience
 pub use transform::{
-    Bc1DetransformSettings, Bc1EstimateOptions, Bc1TransformSettings, DetermineBestTransformError,
+    Bc1DetransformSettings, Bc1EstimateSettings, Bc1TransformSettings, DetermineBestTransformError,
     YCoCgVariant,
 };
 

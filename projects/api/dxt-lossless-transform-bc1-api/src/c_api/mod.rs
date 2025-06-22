@@ -86,7 +86,7 @@
 //!
 //! // Create transform context and options builder
 //! Dltbc1TransformContext* context = dltbc1_new_TransformContext();
-//! Dltbc1EstimateOptionsBuilder* builder = dltbc1_new_EstimateOptionsBuilder();
+//! Dltbc1EstimateSettingsBuilder* builder = dltbc1_new_EstimateOptionsBuilder();
 //!
 //! // Configure analysis (optional - false is default for faster analysis)
 //! dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(builder, false);

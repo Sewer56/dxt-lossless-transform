@@ -1,16 +1,16 @@
-//! Builder pattern implementation for BC1 estimate options.
+//! Builder pattern implementation for BC1 estimate settings.
 
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
-use dxt_lossless_transform_bc1::Bc1EstimateOptions;
+use dxt_lossless_transform_bc1::Bc1EstimateSettings;
 
-/// Builder for BC1 estimate options with convenient configuration methods.
+/// Builder for BC1 estimate settings with convenient configuration methods.
 #[derive(Debug, Clone, Copy)]
-pub struct Bc1EstimateOptionsBuilder {
+pub struct Bc1EstimateSettingsBuilder {
     use_all_decorrelation_modes: Option<bool>,
 }
 
-impl Bc1EstimateOptionsBuilder {
-    /// Create a new options builder.
+impl Bc1EstimateSettingsBuilder {
+    /// Create a new settings builder.
     pub fn new() -> Self {
         Self {
             use_all_decorrelation_modes: None,
@@ -27,19 +27,19 @@ impl Bc1EstimateOptionsBuilder {
         self
     }
 
-    /// Build the estimate options using the configured values and provided estimator.
-    pub fn build<T>(self, size_estimator: T) -> Bc1EstimateOptions<T>
+    /// Build the estimate settings using the configured values and provided estimator.
+    pub fn build<T>(self, size_estimator: T) -> Bc1EstimateSettings<T>
     where
         T: SizeEstimationOperations,
     {
-        Bc1EstimateOptions {
+        Bc1EstimateSettings {
             size_estimator,
             use_all_decorrelation_modes: self.use_all_decorrelation_modes.unwrap_or(false),
         }
     }
 }
 
-impl Default for Bc1EstimateOptionsBuilder {
+impl Default for Bc1EstimateSettingsBuilder {
     fn default() -> Self {
         Self::new()
     }
@@ -73,11 +73,11 @@ mod tests {
     }
 
     #[test]
-    fn test_estimate_options_builder() {
-        let options = Bc1EstimateOptionsBuilder::new()
+    fn test_estimate_settings_builder() {
+        let settings = Bc1EstimateSettingsBuilder::new()
             .use_all_decorrelation_modes(true)
             .build(DummyEstimator);
 
-        assert!(options.use_all_decorrelation_modes);
+        assert!(settings.use_all_decorrelation_modes);
     }
 }

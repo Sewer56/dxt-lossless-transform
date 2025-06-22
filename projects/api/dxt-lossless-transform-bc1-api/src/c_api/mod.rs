@@ -20,16 +20,16 @@
 //! uint8_t bc1_data[] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
 //! uint8_t transformed_data[8];
 //!
-//! // Create and configure transform context
-//! Dltbc1TransformContext* context = dltbc1_new_TransformContext();
-//! dltbc1_TransformContext_SetDecorrelationMode(context, YCOCG_VARIANT_1);
-//! dltbc1_TransformContext_SetSplitColourEndpoints(context, true);
+//! // Create and configure transform settings builder
+//! Dltbc1TransformSettingsBuilder* builder = dltbc1_new_TransformSettingsBuilder();
+//! dltbc1_TransformSettingsBuilder_SetDecorrelationMode(builder, YCOCG_VARIANT_1);
+//! dltbc1_TransformSettingsBuilder_SetSplitColourEndpoints(builder, true);
 //!
 //! // Transform the data
-//! Dltbc1Result result = dltbc1_TransformContext_Transform(
+//! Dltbc1Result result = dltbc1_TransformSettingsBuilder_Transform(
 //!     bc1_data, sizeof(bc1_data),
 //!     transformed_data, sizeof(transformed_data),
-//!     context);
+//!     builder);
 //!
 //! if (result.error_code == 0) {
 //!     printf("Transform successful!\n");
@@ -39,7 +39,7 @@
 //! }
 //!
 //! // Clean up
-//! dltbc1_free_TransformContext(context);
+//! dltbc1_free_TransformSettingsBuilder(builder);
 //! ```
 //!
 //! ### Untransform Operation (After Decompression)
@@ -52,16 +52,16 @@
 //! uint8_t transformed_data[] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
 //! uint8_t restored_data[8];
 //!
-//! // Create context with SAME settings used for original transform
-//! Dltbc1TransformContext* context = dltbc1_new_TransformContext();
-//! dltbc1_TransformContext_SetDecorrelationMode(context, YCOCG_VARIANT_1);
-//! dltbc1_TransformContext_SetSplitColourEndpoints(context, true);
+//! // Create builder with SAME settings used for original transform
+//! Dltbc1TransformSettingsBuilder* builder = dltbc1_new_TransformSettingsBuilder();
+//! dltbc1_TransformSettingsBuilder_SetDecorrelationMode(builder, YCOCG_VARIANT_1);
+//! dltbc1_TransformSettingsBuilder_SetSplitColourEndpoints(builder, true);
 //!
 //! // Restore original BC1 data
-//! Dltbc1Result result = dltbc1_TransformContext_Untransform(
+//! Dltbc1Result result = dltbc1_TransformSettingsBuilder_Untransform(
 //!     transformed_data, sizeof(transformed_data),
 //!     restored_data, sizeof(restored_data),
-//!     context);
+//!     builder);
 //!
 //! if (result.error_code == 0) {
 //!     printf("Untransform successful!\n");
@@ -71,7 +71,7 @@
 //! }
 //!
 //! // Clean up
-//! dltbc1_free_TransformContext(context);
+//! dltbc1_free_TransformSettingsBuilder(builder);
 //! ```
 //!
 //! ### Determine Best Transform Options
@@ -84,8 +84,8 @@
 //! uint8_t bc1_data[] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
 //! uint8_t transformed_data[8];
 //!
-//! // Create transform context and options builder
-//! Dltbc1TransformContext* context = dltbc1_new_TransformContext();
+//! // Create transform settings builder and options builder
+//! Dltbc1TransformSettingsBuilder* settings_builder = dltbc1_new_TransformSettingsBuilder();
 //! Dltbc1EstimateSettingsBuilder* builder = dltbc1_new_EstimateSettingsBuilder();
 //!
 //! // Configure analysis (optional - false is default for faster analysis)
@@ -101,12 +101,12 @@
 //!
 //! // Analyze data and determine best transform options
 //! Dltbc1Result result = dltbc1_EstimateSettingsBuilder_BuildAndTransform(
-//!     builder, bc1_data, sizeof(bc1_data), transformed_data, sizeof(transformed_data), &estimator, context);
+//!     builder, bc1_data, sizeof(bc1_data), transformed_data, sizeof(transformed_data), &estimator, settings_builder);
 //!
 //! if (result.error_code == 0) {
 //!     printf("Transform with best settings successful!\n");
 //!     // 'transformed_data' now contains the transformed data
-//!     // 'context' contains the transform details for later untransform
+//!     // 'settings_builder' contains the transform details for later untransform
 //!     // Now compress 'transformed_data' with your compressor...
 //! } else {
 //!     printf("Analysis failed: %s\n", dltbc1_error_message(result.error_code));
@@ -114,35 +114,35 @@
 //!
 //! // Clean up
 //! dltbc1_free_EstimateSettingsBuilder(builder);
-//! dltbc1_free_TransformContext(context);
+//! dltbc1_free_TransformSettingsBuilder(settings_builder);
 //! ```
 //!
 //! ## ABI-Stable Functions (Recommended)
 //!
 //! These functions use opaque contexts and builder patterns that maintain ABI stability across versions, making them safe for production use.
 //!
-//! ### Transform Context Functions
+//! ### Transform Settings Builder Functions
 //!
-//! The transform context is an opaque object that stores BC1 transform configuration. Use these functions for safe, ABI-stable transform operations:
+//! The transform settings builder is an opaque object that stores BC1 transform configuration. Use these functions for safe, ABI-stable transform operations:
 //!
-//! - **`dltbc1_new_TransformContext()`** - Create a new transform context with default settings
-//! - **`dltbc1_free_TransformContext(context)`** - Free a transform context (required to avoid memory leaks)
-//! - **`dltbc1_clone_TransformContext(context)`** - Create a copy of an existing context
+//! - **`dltbc1_new_TransformSettingsBuilder()`** - Create a new transform settings builder with default settings
+//! - **`dltbc1_free_TransformSettingsBuilder(builder)`** - Free a transform settings builder (required to avoid memory leaks)
+//! - **`dltbc1_clone_TransformSettingsBuilder(builder)`** - Create a copy of an existing builder
 //!
-//! ### Context Configuration Functions
+//! ### Settings Builder Configuration Functions
 //!
-//! Configure the transform context before performing operations:
+//! Configure the transform settings builder before performing operations:
 //!
-//! - **`dltbc1_TransformContext_SetDecorrelationMode(context, mode)`** - Set color decorrelation mode (YCoCg variants)
-//! - **`dltbc1_TransformContext_SetSplitColourEndpoints(context, split)`** - Enable/disable color endpoint splitting
-//! - **`dltbc1_TransformContext_ResetToDefaults(context)`** - Reset context to default values
+//! - **`dltbc1_TransformSettingsBuilder_SetDecorrelationMode(builder, mode)`** - Set color decorrelation mode (YCoCg variants)
+//! - **`dltbc1_TransformSettingsBuilder_SetSplitColourEndpoints(builder, split)`** - Enable/disable color endpoint splitting
+//! - **`dltbc1_TransformSettingsBuilder_ResetToDefaults(builder)`** - Reset builder to default values
 //!
 //! ### Transform Operations
 //!
 //! Perform the actual BC1 data transformation:
 //!
-//! - **`dltbc1_TransformContext_Transform(input, input_len, output, output_len, context)`** - Transform BC1 data for better compression
-//! - **`dltbc1_TransformContext_Untransform(input, input_len, output, output_len, context)`** - Restore original BC1 data after decompression
+//! - **`dltbc1_TransformSettingsBuilder_Transform(input, input_len, output, output_len, builder)`** - Transform BC1 data for better compression
+//! - **`dltbc1_TransformSettingsBuilder_Untransform(input, input_len, output, output_len, builder)`** - Restore original BC1 data after decompression
 //!
 //! ### Transform Options Analysis Functions
 //!
@@ -150,7 +150,7 @@
 //!
 //! - **`dltbc1_new_EstimateSettingsBuilder()`** - Create a builder for analysis settings
 //! - **`dltbc1_EstimateSettingsBuilder_SetUseAllDecorrelationModes(builder, use_all)`** - Configure analysis thoroughness
-//! - **`dltbc1_EstimateSettingsBuilder_BuildAndTransform(builder, data, data_len, output, output_len, estimator, context)`** - Analyze data, determine best settings, and apply transformation in one operation
+//! - **`dltbc1_EstimateSettingsBuilder_BuildAndTransform(builder, data, data_len, output, output_len, estimator, settings_builder)`** - Analyze data, determine best settings, and apply transformation in one operation
 //! - **`dltbc1_free_EstimateSettingsBuilder(builder)`** - Free the builder
 //!
 //! ## ABI-Unstable Functions

@@ -23,9 +23,9 @@ use core::slice;
 ///
 /// ## ABI Instability Warning
 /// This function accepts ABI-unstable structures which may change between versions.
-/// Use [`dltbc1_TransformContext_Transform`] for ABI stability.
+/// Use [`dltbc1_TransformSettingsBuilder_Transform`] for ABI stability.
 ///
-/// [`dltbc1_TransformContext_Transform`]: super::transform_settings_builder::dltbc1_TransformContext_Transform
+/// [`dltbc1_TransformSettingsBuilder_Transform`]: super::transform_settings_builder::dltbc1_TransformSettingsBuilder_Transform
 ///
 /// # Parameters
 /// - `input`: Pointer to BC1 data to transform
@@ -91,9 +91,9 @@ pub unsafe extern "C" fn dltbc1_unstable_transform(
 ///
 /// ## ABI Instability Warning
 /// This function accepts ABI-unstable structures which may change between versions.
-/// Use [`dltbc1_TransformContext_Untransform`] for ABI stability.
+/// Use [`dltbc1_TransformSettingsBuilder_Untransform`] for ABI stability.
 ///
-/// [`dltbc1_TransformContext_Untransform`]: super::transform_settings_builder::dltbc1_TransformContext_Untransform
+/// [`dltbc1_TransformSettingsBuilder_Untransform`]: super::transform_settings_builder::dltbc1_TransformSettingsBuilder_Untransform
 ///
 /// # Parameters
 /// - `input`: Pointer to transformed BC1 data to untransform

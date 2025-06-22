@@ -5,7 +5,7 @@
 //! ## ABI-Stable Modules (Recommended for Production)
 //! - [`estimate_settings_builder`] - Builder pattern for automatic optimization settings
 //! - [`transform_settings_builder`] - Builder pattern for manual transform configuration  
-//! - [`transform_context`] - Context management for storing transform settings
+
 //!
 //! ## ABI-Unstable Modules (Maximum Performance)
 //! - [`transform_auto`] - Direct automatic transformation with unstable structs
@@ -17,6 +17,6 @@
 
 pub mod estimate_settings_builder;
 pub mod transform_auto;
-pub mod transform_context;
+
 pub mod transform_settings_builder;
 pub mod transform_with_settings;

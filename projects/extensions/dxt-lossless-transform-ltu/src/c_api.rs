@@ -237,8 +237,8 @@ fn create_c_size_estimator(ltu: Box<LosslessTransformUtilsSizeEstimation>) -> Dl
 /// let ltu_estimator = unsafe { dltltu_new_size_estimator() };
 ///
 /// // Use it with BC1 API
-/// let bc1_context = unsafe { dltbc1_new_TransformContext() };
-/// let bc1_builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
+/// let bc1_settings_builder = unsafe { dltbc1_new_TransformSettingsBuilder() };
+/// let bc1_estimate_builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
 ///
 /// // Your BC1 texture data (8 bytes per BC1 block)
 /// let bc1_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
@@ -246,25 +246,25 @@ fn create_c_size_estimator(ltu: Box<LosslessTransformUtilsSizeEstimation>) -> Dl
 /// // Determine optimal settings using LTU for fast estimation
 /// let result = unsafe {
 ///     dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
-///         bc1_builder,
+///         bc1_estimate_builder,
 ///         bc1_data.as_ptr(),
 ///         bc1_data.len(),
 ///         ltu_estimator, // Use LTU estimator here
-///         bc1_context,
+///         bc1_settings_builder,
 ///     )
 /// };
 ///
 /// if result.is_success() {
 ///     println!("Optimal settings determined using LTU!");
-///     // Context now contains the optimal transform settings
+///     // Settings builder now contains the optimal transform settings
 ///     // Use it for transform operations...
 /// }
 ///
 /// // Clean up
 /// unsafe {
 ///     dltltu_free_size_estimator(ltu_estimator);
-///     dltbc1_free_EstimateOptionsBuilder(bc1_builder);
-///     dltbc1_free_TransformContext(bc1_context);
+///     dltbc1_free_EstimateOptionsBuilder(bc1_estimate_builder);
+///     dltbc1_free_TransformSettingsBuilder(bc1_settings_builder);
 /// }
 /// ```
 #[cfg(test)]

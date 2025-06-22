@@ -5,7 +5,9 @@
 
 use crate::c_api::Dltbc1TransformSettings;
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
-use crate::c_api::transform::transform_context::{Dltbc1TransformContext, get_context_mut};
+use crate::c_api::transform::transform_settings_builder::{
+    Dltbc1TransformSettingsBuilder, Dltbc1TransformSettingsBuilderInner,
+};
 use crate::transform::Bc1TransformSettingsBuilder;
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 
@@ -115,7 +117,7 @@ pub unsafe extern "C" fn dltbc1_EstimateSettingsBuilder_SetUseAllDecorrelationMo
 /// - `output`: Pointer to output buffer where transformed data will be written
 /// - `output_len`: Length of output buffer in bytes (must be at least `data_len`)
 /// - `estimator`: The size estimator to use for compression estimation
-/// - `context`: The transform context where transform details will be stored
+/// - `settings_builder`: The transform settings builder where transform details will be stored
 ///
 /// # Returns
 /// A [`Dltbc1Result`] indicating success or containing an error.
@@ -124,7 +126,7 @@ pub unsafe extern "C" fn dltbc1_EstimateSettingsBuilder_SetUseAllDecorrelationMo
 /// - `data` must be valid for reads of `data_len` bytes
 /// - `output` must be valid for writes of `output_len` bytes
 /// - `estimator` must be a valid pointer to a [`DltSizeEstimator`] with valid function pointers
-/// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
+/// - `settings_builder` must be a valid pointer to a [`Dltbc1TransformSettingsBuilder`]
 /// - The estimator's context and functions must remain valid for the duration of the call
 /// - The builder (if not null) must be a valid pointer to a [`Dltbc1EstimateSettingsBuilder`]
 #[unsafe(no_mangle)]
@@ -135,11 +137,11 @@ pub unsafe extern "C" fn dltbc1_EstimateSettingsBuilder_BuildAndTransform(
     output: *mut u8,
     output_len: usize,
     estimator: *const DltSizeEstimator,
-    context: *mut Dltbc1TransformContext,
+    settings_builder: *mut Dltbc1TransformSettingsBuilder,
 ) -> Dltbc1Result {
-    // Validate context
-    if context.is_null() {
-        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullTransformContextPointer);
+    // Validate settings builder
+    if settings_builder.is_null() {
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullTransformSettingsBuilderPointer);
     }
 
     // Get settings from builder without freeing it
@@ -170,14 +172,25 @@ pub unsafe extern "C" fn dltbc1_EstimateSettingsBuilder_BuildAndTransform(
         )
     };
 
-    // If successful, update the context
+    // If successful, update the settings builder
     if result.is_success() {
-        let context_inner = unsafe { get_context_mut(context) };
-        // Update the context with the transform details
-        context_inner.builder = Bc1TransformSettingsBuilder::new()
+        let builder_inner = unsafe { get_settings_builder_mut(settings_builder) };
+        // Update the builder with the transform details
+        builder_inner.builder = Bc1TransformSettingsBuilder::new()
             .decorrelation_mode(transform_details.decorrelation_mode.to_internal_variant())
             .split_colour_endpoints(transform_details.split_colour_endpoints);
     }
 
     result
+}
+
+/// Get mutable access to the inner transform settings builder.
+///
+/// # Safety
+/// - `builder` must be a valid pointer to a [`Dltbc1TransformSettingsBuilder`]
+unsafe fn get_settings_builder_mut(
+    builder: *mut Dltbc1TransformSettingsBuilder,
+) -> &'static mut Dltbc1TransformSettingsBuilderInner {
+    debug_assert!(!builder.is_null());
+    unsafe { &mut *(builder as *mut Dltbc1TransformSettingsBuilderInner) }
 }

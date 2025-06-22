@@ -5,7 +5,7 @@
 
 use crate::c_api::Dltbc1TransformSettings;
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
-use crate::c_api::transform_context::{Dltbc1TransformContext, get_context_mut};
+use crate::c_api::transform::transform_context::{Dltbc1TransformContext, get_context_mut};
 use crate::transform::Bc1TransformSettingsBuilder;
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 
@@ -151,14 +151,15 @@ pub unsafe extern "C" fn dltbc1_EstimateSettingsBuilder_BuildAndTransform(
     };
 
     // Create settings struct
-    let settings = crate::c_api::transform_auto::Dltbc1AutoTransformSettings { use_all_modes };
+    let settings =
+        crate::c_api::transform::transform_auto::Dltbc1AutoTransformSettings { use_all_modes };
 
     // Allocate space for the transform details
     let mut transform_details = Dltbc1TransformSettings::default();
 
     // Call the unstable transform auto function
     let result = unsafe {
-        crate::c_api::transform_auto::dltbc1_unstable_transform_auto(
+        crate::c_api::transform::transform_auto::dltbc1_unstable_transform_auto(
             data,
             data_len,
             output,

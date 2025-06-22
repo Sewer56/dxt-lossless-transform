@@ -5,7 +5,7 @@
 
 use crate::Bc1Error;
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
-use crate::c_api::transform_context::{Dltbc1TransformContext, get_context_mut};
+use crate::c_api::transform::transform_context::{Dltbc1TransformContext, get_context_mut};
 use crate::transform::{transform_bc1_with_settings, untransform_bc1_with_settings};
 use core::slice;
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;

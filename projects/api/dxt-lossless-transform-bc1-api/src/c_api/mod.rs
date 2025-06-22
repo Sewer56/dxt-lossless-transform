@@ -176,11 +176,7 @@
 
 // Module declarations - mirrors the structure of the non-C API
 pub mod error;
-pub mod estimate_settings_builder;
-pub mod transform_auto;
-pub mod transform_context;
-pub mod transform_settings_builder;
-pub mod transform_with_settings;
+pub mod transform;
 
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 use dxt_lossless_transform_bc1::{Bc1DetransformSettings, Bc1TransformSettings};

@@ -16,7 +16,7 @@ use crate::{
 };
 use core::sync::atomic::{AtomicUsize, Ordering};
 use dxt_lossless_transform_api_common::estimate::DataType;
-use dxt_lossless_transform_bc1::{transform_bc1, Bc1TransformDetails};
+use dxt_lossless_transform_bc1::{transform_bc1, Bc1TransformSettings};
 use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};
 use dxt_lossless_transform_dds::dds::DdsFormat;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -24,8 +24,8 @@ use std::{fs, sync::Mutex};
 
 // Type aliases for BC1-specific compression stats
 type Bc1CompressionStatsResult =
-    calc_compression_stats_common::CompressionStatsResult<Bc1TransformDetails>;
-type Bc1TransformResult = calc_compression_stats_common::TransformResult<Bc1TransformDetails>;
+    calc_compression_stats_common::CompressionStatsResult<Bc1TransformSettings>;
+type Bc1TransformResult = calc_compression_stats_common::TransformResult<Bc1TransformSettings>;
 type CompressionCache = compression_size_cache::CompressionSizeCache;
 
 pub(crate) fn handle_compression_stats_command(
@@ -188,7 +188,7 @@ fn analyze_bc1_compression_transforms(
     let mut results = Vec::new();
     unsafe {
         // Test all transform combinations
-        for transform_options in Bc1TransformDetails::all_combinations() {
+        for transform_options in Bc1TransformSettings::all_combinations() {
             // Transform the data
             transform_bc1(
                 data_ptr,
@@ -262,8 +262,8 @@ unsafe fn analyze_bc1_api_recommendation(
     })
 }
 
-/// Formats [`Bc1TransformDetails`] as a human-readable string  
-fn format_transform_details(details: Bc1TransformDetails) -> String {
+/// Formats [`Bc1TransformSettings`] as a human-readable string
+fn format_transform_details(details: Bc1TransformSettings) -> String {
     let decorr_mode = match details.decorrelation_mode {
         YCoCgVariant::None => "None",
         YCoCgVariant::Variant1 => "YCoCg1",

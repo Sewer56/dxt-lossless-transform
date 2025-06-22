@@ -1,11 +1,11 @@
 //! Functions for determining the best transform options with experimental normalization support.
 
 use crate::determine_optimal_transform::{
-    determine_best_transform_details, Bc1EstimateOptions, DetermineBestTransformError,
+    transform_with_best_options, Bc1EstimateOptions, DetermineBestTransformError,
+    COMPREHENSIVE_TEST_ORDER, FAST_TEST_ORDER,
 };
-use crate::{transforms::standard::transform, Bc1TransformDetails, YCoCgVariant};
+use crate::{transforms::standard::transform, Bc1TransformSettings};
 use core::mem::size_of;
-use core::ptr::null_mut;
 use core::slice;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_common::allocate::{allocate_align_64, FixedRawAllocArray};
@@ -14,14 +14,20 @@ use dxt_lossless_transform_common::{
 };
 
 use super::{
-    normalize_blocks_all_modes, Bc1TransformDetailsWithNormalization, ColorNormalizationMode,
+    normalize_blocks_all_modes, transform_bc1_with_normalize_blocks,
+    Bc1TransformDetailsWithNormalization, ColorNormalizationMode,
 };
 
-/// Determine the best transform details with full normalization testing.
+/// Transform BC1 data with the best normalization and transform settings.
+///
+/// This function tests various normalization modes combined with transform configurations  
+/// and applies the combination that produces the smallest compressed size according to
+/// the provided estimator.
 ///
 /// # Parameters
 ///
 /// - `input_ptr`: A pointer to the input data (input BC1 blocks)
+/// - `output_ptr`: A pointer to the output buffer where transformed data will be written
 /// - `len`: The length of the input data in bytes
 /// - `transform_options`: Options for the estimation including the file size estimator and normalization settings
 ///
@@ -31,16 +37,38 @@ use super::{
 ///
 /// # Remarks
 ///
-/// This function tests all normalization options, the characteristics of this function are:
+/// This function combines normalization with the brute force transform approach,
+/// testing all normalization options with all transform configurations:
 ///
-/// - 1/24th of the compression speed ([`ColorNormalizationMode`] * [`YCoCgVariant`] * 2 (split_colours))
+/// - 1/12th of the compression speed in fast mode (3 [`ColorNormalizationMode`] * 2 [`YCoCgVariant`] * 2 (split_colours))
+/// - 1/24th of the compression speed in comprehensive mode (3 [`ColorNormalizationMode`] * 4 [`YCoCgVariant`] * 2 (split_colours))
 /// - Uses 3x the memory of input size when no normalization is needed, 6x when normalization is required
+///
+/// ## Performance Optimization
+///
+/// The transform options are tested in order of decreasing probability of being optimal,
+/// based on analysis of 2,130 BC1 texture files (zstd estimator level 1):
+/// - YCoCg1/Split (71.1% probability) - **tested last to minimize redundant transforms**
+/// - YCoCg1/NoSplit (17.9% probability)
+/// - YCoCg2/Split (3.5% probability)  
+/// - YCoCg3/Split (2.7% probability)
+/// - YCoCg3/NoSplit (1.9% probability)
+/// - None/Split (1.1% probability)
+/// - None/NoSplit (1.0% probability)
+/// - YCoCg2/NoSplit (0.9% probability)
+///
+/// This ordering is applied within each normalization mode to minimize redundant
+/// final transforms.
 ///
 /// # Safety
 ///
-/// Function is unsafe because it deals with raw pointers which must be correct.
-pub unsafe fn determine_best_transform_details_with_normalization<T>(
+/// - `input_ptr` must be valid for reads of `len` bytes
+/// - `output_ptr` must be valid for writes of `len` bytes
+/// - `len` must be divisible by 8
+/// - It is recommended that `input_ptr` and `output_ptr` are at least 16-byte aligned (recommended 32-byte align)
+pub unsafe fn transform_with_best_options_and_normalization<T>(
     input_ptr: *const u8,
+    output_ptr: *mut u8,
     len: usize,
     transform_options: Bc1EstimateOptions<T>,
 ) -> Result<Bc1TransformDetailsWithNormalization, DetermineBestTransformError<T::Error>>
@@ -82,42 +110,58 @@ where
         let split_blocks_buffers_ptrs = split_blocks_buffers.get_pointer_slice();
 
         // split_blocks_buffers_ptrs: buffer_a
-        // result_pointers: buffer_b (output)
-        let result_pointers = normalize_buffers.get_pointer_slice();
 
         // Now split all blocks.
         for x in 0..NUM_NORMALIZE {
             transform(normalize_buffers_ptrs[x], split_blocks_buffers_ptrs[x], len);
         }
 
+        // We'll also need a working buffer for transformation
+        let mut work_buffer = allocate_align_64(len / 2)?;
+        let work_ptr = work_buffer.as_mut_ptr();
+
+        // Use optimal test order within each normalization mode to minimize redundant transforms
+        let test_order = if transform_options.use_all_decorrelation_modes {
+            COMPREHENSIVE_TEST_ORDER
+        } else {
+            FAST_TEST_ORDER
+        };
+
         for norm_idx in 0..NUM_NORMALIZE {
-            for decorrelation_mode in YCoCgVariant::all_values() {
-                for split_colours in [true, false] {
-                    // Get the current mode we're testing.
-                    let current_mode = Bc1TransformDetailsWithNormalization {
-                        color_normalization_mode: ColorNormalizationMode::all_values()[norm_idx],
-                        decorrelation_mode: *decorrelation_mode,
-                        split_colour_endpoints: split_colours,
-                    };
+            for &(decorrelation_mode, split_colours) in test_order {
+                // Get the current mode we're testing.
+                let current_mode = Bc1TransformDetailsWithNormalization {
+                    color_normalization_mode: ColorNormalizationMode::all_values()[norm_idx],
+                    decorrelation_mode,
+                    split_colour_endpoints: split_colours,
+                };
 
-                    // Get input/output buffers.
-                    let input = split_blocks_buffers_ptrs[norm_idx];
-                    let output = result_pointers[norm_idx];
+                // Get input/output buffers.
+                let input = split_blocks_buffers_ptrs[norm_idx];
+                let output = work_ptr;
 
-                    test_normalize_variant_with_normalization(
-                        input,
-                        output,
-                        len,
-                        &transform_options,
-                        &mut best_transform_details,
-                        &mut best_size,
-                        current_mode,
-                        comp_buffer_ptr,
-                        comp_buffer_len,
-                    );
-                }
+                test_normalize_variant_with_normalization(
+                    input,
+                    output,
+                    len,
+                    &transform_options,
+                    &mut best_transform_details,
+                    &mut best_size,
+                    current_mode,
+                    comp_buffer_ptr,
+                    comp_buffer_len,
+                );
             }
         }
+
+        // Now transform with the best settings to the output buffer
+        transform_bc1_with_normalize_blocks(
+            input_ptr,
+            output_ptr,
+            work_ptr,
+            len,
+            best_transform_details,
+        );
 
         Ok(best_transform_details)
     } else {
@@ -125,9 +169,9 @@ where
         // Drop buffers first for memory usage
         drop(normalize_buffers);
 
-        // Call the regular function since no normalization is needed
+        // Use the regular transform function since no normalization is needed
         let regular_result =
-            determine_best_transform_details(input_ptr, len, null_mut(), transform_options)?;
+            transform_with_best_options(input_ptr, output_ptr, len, transform_options)?;
 
         // Convert regular result to normalization result using From trait
         Ok(regular_result.into())
@@ -194,7 +238,7 @@ unsafe fn test_normalize_variant_with_normalization<T>(
     // indices_out_arr.copy_from_slice(indices_in_arr);
 
     // Test the current mode.
-    let transform_details = Bc1TransformDetails {
+    let transform_details = Bc1TransformSettings {
         decorrelation_mode: current_mode.decorrelation_mode,
         split_colour_endpoints: current_mode.split_colour_endpoints,
     };
@@ -221,9 +265,9 @@ mod tests {
     use super::*;
     use dxt_lossless_transform_api_common::estimate::DataType;
 
-    /// Test that determine_best_transform_details_with_normalization doesn't crash with minimal BC1 data
+    /// Test that transform_with_best_options_and_normalization doesn't crash with minimal BC1 data
     #[test]
-    fn determine_best_transform_details_with_normalization_does_not_crash() {
+    fn test_transform_with_best_options_and_normalization_does_not_crash() {
         // Create minimal BC1 block data (8 bytes per block)
         // This is a simple red block
         let bc1_data = [
@@ -231,6 +275,7 @@ mod tests {
             0x00, 0x00, // Color1: Black (0x0000)
             0x00, 0x00, 0x00, 0x00, // Indices: all pointing to Color0
         ];
+        let mut output_buffer = [0u8; 8];
 
         // Create a simple dummy estimator
         struct DummyEstimator;
@@ -261,8 +306,9 @@ mod tests {
 
         // This should not crash
         let result = unsafe {
-            determine_best_transform_details_with_normalization(
+            transform_with_best_options_and_normalization(
                 bc1_data.as_ptr(),
+                output_buffer.as_mut_ptr(),
                 bc1_data.len(),
                 transform_options,
             )

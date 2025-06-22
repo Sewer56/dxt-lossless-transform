@@ -1,7 +1,8 @@
-//! C API for determining optimal BC1 transform settings.
+//! C API for transforming BC1 data with automatic optimization.
 //!
-//! This module provides ABI-stable builder pattern for determining optimal transform settings.
-//! The builder pattern ensures ABI stability while internally using the unstable functions.
+//! This module provides ABI-stable builder pattern for transforming BC1 data with
+//! automatically determined optimal settings. The builder pattern ensures ABI stability
+//! while internally using the unstable functions.
 //!
 //! [`YCoCgVariant::Variant1`]: dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant::Variant1
 //! [`YCoCgVariant::None`]: dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant::None
@@ -11,14 +12,13 @@
 pub mod unstable;
 
 use crate::c_api::Dltbc1TransformDetails;
-use crate::c_api::determine_optimal_transform::unstable::{
-    Dltbc1DetermineOptimalSettings, dltbc1_unstable_determine_optimal,
+use crate::c_api::auto_transform::unstable::{
+    Dltbc1AutoTransformSettings, dltbc1_unstable_transform_auto,
 };
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
 use crate::c_api::transform::transform_context::{Dltbc1TransformContext, get_context_mut};
-use crate::transform::Bc1TransformOptionsBuilder;
+use crate::transform::builder::Bc1TransformOptionsBuilder;
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
-use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 
 /// Internal structure holding the actual builder data.
 struct Dltbc1EstimateOptionsBuilderImpl {
@@ -27,9 +27,9 @@ struct Dltbc1EstimateOptionsBuilderImpl {
 
 /// Opaque handle for BC1 estimate options builder.
 ///
-/// This builder allows configuring options for determining optimal BC1 transform settings.
+/// This builder allows configuring options for BC1 transformation with automatic optimization.
 /// Use the provided functions to configure the builder and then call
-/// [`dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal`] to execute the optimization.
+/// [`dltbc1_EstimateOptionsBuilder_BuildAndTransform`] to execute the transformation.
 ///
 /// The builder can be reused multiple times and must be explicitly freed with
 /// [`dltbc1_free_EstimateOptionsBuilder`].
@@ -42,16 +42,16 @@ pub struct Dltbc1EstimateOptionsBuilder {
 
 /// Create a new BC1 estimate options builder with default settings.
 ///
-/// The builder is initialized with:
-/// - `use_all_decorrelation_modes`: false (tests only Variant1 and None for faster optimization)
+/// The builder starts with conservative defaults that prioritize speed over compression.
+/// Use [`dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes`] to configure
+/// whether to test all decorrelation modes.
+///
+/// The returned builder must be freed with [`dltbc1_free_EstimateOptionsBuilder`].
 ///
 /// # Returns
-/// A new builder instance that must be freed with [`dltbc1_free_EstimateOptionsBuilder`].
-///
-/// # Safety
-/// - This function is unsafe because it returns a raw pointer that must be freed with [`dltbc1_free_EstimateOptionsBuilder`].
+/// A pointer to a new builder, or null if allocation fails.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_new_EstimateOptionsBuilder() -> *mut Dltbc1EstimateOptionsBuilder {
+pub extern "C" fn dltbc1_new_EstimateOptionsBuilder() -> *mut Dltbc1EstimateOptionsBuilder {
     let builder_impl = Box::new(Dltbc1EstimateOptionsBuilderImpl {
         use_all_decorrelation_modes: false,
     });
@@ -61,33 +61,32 @@ pub unsafe extern "C" fn dltbc1_new_EstimateOptionsBuilder() -> *mut Dltbc1Estim
 
 /// Free a BC1 estimate options builder.
 ///
-/// # Parameters
-/// - `builder`: The builder to free (can be null)
-///
 /// # Safety
-/// - `builder` must be a valid pointer returned by [`dltbc1_new_EstimateOptionsBuilder`] or null
-/// - The builder must not be used after calling this function
+/// - `builder` must be a valid pointer returned by [`dltbc1_new_EstimateOptionsBuilder`]
+/// - `builder` must not have been freed already
+/// - After calling this function, `builder` becomes invalid
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_free_EstimateOptionsBuilder(
     builder: *mut Dltbc1EstimateOptionsBuilder,
 ) {
     if !builder.is_null() {
-        let _ = unsafe { Box::from_raw(builder as *mut Dltbc1EstimateOptionsBuilderImpl) };
+        let _boxed = unsafe { Box::from_raw(builder as *mut Dltbc1EstimateOptionsBuilderImpl) };
+        // Boxed value is automatically dropped here
     }
 }
 
-/// Set whether to use all decorrelation modes.
+/// Configure whether to use all decorrelation modes for comprehensive testing.
 ///
-/// When `false` (default), only tests [`YCoCgVariant::Variant1`] and [`YCoCgVariant::None`]
+/// When `use_all` is `false` (default), only tests [`YCoCgVariant::Variant1`] and [`YCoCgVariant::None`]
 /// for faster optimization with good results.
 ///
-/// When `true`, tests all available decorrelation modes for potentially better
+/// When `use_all` is `true`, tests all available decorrelation modes for potentially better
 /// compression at the cost of twice as long optimization time (tests 4 options
 /// instead of 2) for negligible gains (typically <0.1% extra savings).
 ///
 /// # Parameters
 /// - `builder`: The builder to configure
-/// - `use_all`: Whether to use all decorrelation modes
+/// - `use_all`: Whether to test all decorrelation modes
 ///
 /// # Returns
 /// A [`Dltbc1Result`] indicating success or containing an error.
@@ -108,33 +107,39 @@ pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationMod
     Dltbc1Result::success()
 }
 
-/// Build the estimate options and determine optimal transform settings for BC1 data (ABI-stable).
+/// Transform BC1 data using automatically determined optimal settings (ABI-stable).
 ///
 /// This function uses the configured options to determine the optimal
-/// transform settings for the given BC1 data and stores them in the provided context.
+/// transform settings for the given BC1 data, applies the transformation,
+/// and stores the transform details in the provided context.
 /// The builder remains valid after this call and can be reused.
 ///
 /// # Parameters
 /// - `builder`: The configured builder (can be null to use default settings)
-/// - `data`: Pointer to BC1 data to analyze
-/// - `data_len`: Length of data in bytes (must be divisible by 8)
+/// - `data`: Pointer to BC1 data to transform
+/// - `data_len`: Length of input data in bytes (must be divisible by 8)
+/// - `output`: Pointer to output buffer where transformed data will be written
+/// - `output_len`: Length of output buffer in bytes (must be at least `data_len`)
 /// - `estimator`: The size estimator to use for compression estimation
-/// - `context`: The transform context where optimal settings will be stored
+/// - `context`: The transform context where transform details will be stored
 ///
 /// # Returns
 /// A [`Dltbc1Result`] indicating success or containing an error.
 ///
 /// # Safety
 /// - `data` must be valid for reads of `data_len` bytes
+/// - `output` must be valid for writes of `output_len` bytes
 /// - `estimator` must be a valid pointer to a [`DltSizeEstimator`] with valid function pointers
 /// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 /// - The estimator's context and functions must remain valid for the duration of the call
 /// - The builder (if not null) must be a valid pointer to a [`Dltbc1EstimateOptionsBuilder`]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
+pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_BuildAndTransform(
     builder: *mut Dltbc1EstimateOptionsBuilder,
     data: *const u8,
     data_len: usize,
+    output: *mut u8,
+    output_len: usize,
     estimator: *const DltSizeEstimator,
     context: *mut Dltbc1TransformContext,
 ) -> Dltbc1Result {
@@ -152,35 +157,31 @@ pub unsafe extern "C" fn dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
     };
 
     // Create settings struct
-    let settings = Dltbc1DetermineOptimalSettings { use_all_modes };
+    let settings = Dltbc1AutoTransformSettings { use_all_modes };
 
-    // Allocate space for the optimal details
-    let mut optimal_details = Dltbc1TransformDetails::default();
+    // Allocate space for the transform details
+    let mut transform_details = Dltbc1TransformDetails::default();
 
-    // Call the unstable determine optimal function
+    // Call the unstable transform auto function
     let result = unsafe {
-        dltbc1_unstable_determine_optimal(
+        dltbc1_unstable_transform_auto(
             data,
             data_len,
+            output,
+            output_len,
             estimator,
             settings,
-            &mut optimal_details as *mut Dltbc1TransformDetails,
+            &mut transform_details as *mut Dltbc1TransformDetails,
         )
     };
 
     // If successful, update the context
     if result.is_success() {
-        // Update the context with optimal settings
-        let inner = unsafe { get_context_mut(context) };
-
-        // Convert from internal variant to API decorrelation mode variant
-        let api_variant = YCoCgVariant::from_internal_variant(
-            optimal_details.decorrelation_mode.to_internal_variant(),
-        );
-
-        inner.builder = Bc1TransformOptionsBuilder::new()
-            .decorrelation_mode(api_variant)
-            .split_colour_endpoints(optimal_details.split_colour_endpoints);
+        let context_inner = unsafe { get_context_mut(context) };
+        // Update the context with the transform details
+        context_inner.builder = Bc1TransformOptionsBuilder::new()
+            .decorrelation_mode(transform_details.decorrelation_mode.to_internal_variant())
+            .split_colour_endpoints(transform_details.split_colour_endpoints);
     }
 
     result
@@ -281,9 +282,10 @@ mod tests {
     }
 
     #[test]
-    fn test_determine_optimal_success() {
+    fn test_transform_auto_success() {
         // Create test data (8 bytes = 1 BC1 block)
         let test_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
+        let mut output = [0u8; 8];
 
         // Create builder
         let builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
@@ -296,12 +298,14 @@ mod tests {
         // Create test estimator
         let estimator = create_test_estimator();
 
-        // Determine optimal transform
+        // Transform with automatic optimization
         unsafe {
-            let result = dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
+            let result = dltbc1_EstimateOptionsBuilder_BuildAndTransform(
                 builder,
                 test_data.as_ptr(),
                 test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
                 &estimator,
                 context,
             );
@@ -320,16 +324,19 @@ mod tests {
     }
 
     #[test]
-    fn test_determine_optimal_null_context() {
+    fn test_transform_auto_null_context() {
         let test_data = [0u8; 8];
+        let mut output = [0u8; 8];
         let builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
         let estimator = create_test_estimator();
 
         unsafe {
-            let result = dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
+            let result = dltbc1_EstimateOptionsBuilder_BuildAndTransform(
                 builder,
                 test_data.as_ptr(),
                 test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
                 &estimator,
                 core::ptr::null_mut(),
             );
@@ -347,16 +354,19 @@ mod tests {
     }
 
     #[test]
-    fn test_determine_optimal_null_builder() {
+    fn test_transform_auto_null_builder() {
         let test_data = [0u8; 8];
+        let mut output = [0u8; 8];
         let context = dltbc1_new_TransformContext();
         let estimator = create_test_estimator();
 
         unsafe {
-            let result = dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
+            let result = dltbc1_EstimateOptionsBuilder_BuildAndTransform(
                 core::ptr::null_mut(),
                 test_data.as_ptr(),
                 test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
                 &estimator,
                 context,
             );
@@ -368,8 +378,9 @@ mod tests {
     }
 
     #[test]
-    fn test_determine_optimal_with_use_all_modes() {
+    fn test_transform_auto_with_use_all_modes() {
         let test_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
+        let mut output = [0u8; 8];
         let builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
         let context = dltbc1_new_TransformContext();
         let estimator = create_test_estimator();
@@ -379,10 +390,12 @@ mod tests {
             let result = dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(builder, true);
             assert!(result.is_success());
 
-            let result = dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
+            let result = dltbc1_EstimateOptionsBuilder_BuildAndTransform(
                 builder,
                 test_data.as_ptr(),
                 test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
                 &estimator,
                 context,
             );
@@ -394,18 +407,21 @@ mod tests {
     }
 
     #[test]
-    fn test_determine_optimal_invalid_data_length() {
+    fn test_transform_auto_invalid_data_length() {
         // Use 7 bytes (not divisible by 8)
         let test_data = [0u8; 7];
+        let mut output = [0u8; 8];
         let builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
         let context = dltbc1_new_TransformContext();
         let estimator = create_test_estimator();
 
         unsafe {
-            let result = dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
+            let result = dltbc1_EstimateOptionsBuilder_BuildAndTransform(
                 builder,
                 test_data.as_ptr(),
                 test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
                 &estimator,
                 context,
             );
@@ -419,9 +435,10 @@ mod tests {
     }
 
     #[test]
-    fn test_c_example_determine_optimal() {
+    fn test_c_example_transform_auto() {
         // Your BC1 texture data (8 bytes per BC1 block)
         let bc1_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
+        let mut output = [0u8; 8];
 
         // Create builder and set options
         let builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
@@ -433,32 +450,31 @@ mod tests {
             assert!(result.is_success());
         }
 
-        // Create context to receive optimal settings
+        // Create context to receive transform details
         let context = dltbc1_new_TransformContext();
         assert!(!context.is_null());
 
         // Create estimator
         let estimator = create_test_estimator();
 
-        // Determine optimal settings
+        // Transform with automatic optimization
         unsafe {
-            let result = dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
+            let result = dltbc1_EstimateOptionsBuilder_BuildAndTransform(
                 builder,
                 bc1_data.as_ptr(),
                 bc1_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
                 &estimator,
                 context,
             );
 
             if result.is_success() {
-                println!("Optimal settings determined successfully!");
-                // Context now contains the optimal transform settings
-                // Use it for transform operations...
+                println!("Transform completed successfully!");
+                // Context now contains the transform details
+                // Output buffer contains the transformed data
             } else {
-                panic!(
-                    "Failed to determine optimal settings: {:?}",
-                    result.error_code
-                );
+                panic!("Failed to transform data: {:?}", result.error_code);
             }
         }
 

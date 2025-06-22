@@ -26,10 +26,10 @@ use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
 /// The information about the BC1 transform that was just performed.
 /// Each item transformed via [`transform_bc1`] will produce an instance of this struct.
-/// To undo the transform, you'll need to pass [`Bc1DetransformDetails`] to [`untransform_bc1`],
+/// To undo the transform, you'll need to pass [`Bc1DetransformSettings`] to [`untransform_bc1`],
 /// which can be obtained from this struct using the `into` method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Bc1TransformDetails {
+pub struct Bc1TransformSettings {
     /// The decorrelation mode that was used to decorrelate the colors.
     pub decorrelation_mode: YCoCgVariant,
 
@@ -37,12 +37,12 @@ pub struct Bc1TransformDetails {
     pub split_colour_endpoints: bool,
 }
 
-/// Details required to detransform BC1 data.
+/// Settings required to detransform BC1 data.
 ///
 /// This struct contains only the information needed to reverse the transform operation.
 /// Note that color normalization is a preprocessing step that doesn't need to be reversed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Bc1DetransformDetails {
+pub struct Bc1DetransformSettings {
     /// The decorrelation mode that was used to decorrelate the colors.
     pub decorrelation_mode: YCoCgVariant,
 
@@ -50,16 +50,16 @@ pub struct Bc1DetransformDetails {
     pub split_colour_endpoints: bool,
 }
 
-impl From<Bc1TransformDetails> for Bc1DetransformDetails {
-    fn from(transform_details: Bc1TransformDetails) -> Self {
+impl From<Bc1TransformSettings> for Bc1DetransformSettings {
+    fn from(transform_settings: Bc1TransformSettings) -> Self {
         Self {
-            decorrelation_mode: transform_details.decorrelation_mode,
-            split_colour_endpoints: transform_details.split_colour_endpoints,
+            decorrelation_mode: transform_settings.decorrelation_mode,
+            split_colour_endpoints: transform_settings.split_colour_endpoints,
         }
     }
 }
 
-impl Default for Bc1DetransformDetails {
+impl Default for Bc1DetransformSettings {
     fn default() -> Self {
         Self {
             decorrelation_mode: YCoCgVariant::Variant1,
@@ -68,7 +68,7 @@ impl Default for Bc1DetransformDetails {
     }
 }
 
-impl Default for Bc1TransformDetails {
+impl Default for Bc1TransformSettings {
     fn default() -> Self {
         // Best (on average) results, but of course not perfect, as is with brute-force method.
         Self {
@@ -78,8 +78,8 @@ impl Default for Bc1TransformDetails {
     }
 }
 
-impl Bc1TransformDetails {
-    /// Returns an iterator over all possible combinations of [`Bc1TransformDetails`] values.
+impl Bc1TransformSettings {
+    /// Returns an iterator over all possible combinations of [`Bc1TransformSettings`] values.
     ///
     /// This function generates all possible combinations by iterating through:
     /// - All [`YCoCgVariant`] variants  
@@ -91,21 +91,21 @@ impl Bc1TransformDetails {
     /// # Examples
     ///
     /// ```
-    /// use dxt_lossless_transform_bc1::Bc1TransformDetails;
+    /// use dxt_lossless_transform_bc1::Bc1TransformSettings;
     ///
-    /// let all_combinations: Vec<_> = Bc1TransformDetails::all_combinations().collect();
+    /// let all_combinations: Vec<_> = Bc1TransformSettings::all_combinations().collect();
     /// println!("Total combinations: {}", all_combinations.len());
     ///
-    /// for details in Bc1TransformDetails::all_combinations() {
-    ///     println!("{:?}", details);
+    /// for settings in Bc1TransformSettings::all_combinations() {
+    ///     println!("{:?}", settings);
     /// }
     /// ```
     #[cfg(not(tarpaulin_include))]
-    pub fn all_combinations() -> impl Iterator<Item = Bc1TransformDetails> {
+    pub fn all_combinations() -> impl Iterator<Item = Bc1TransformSettings> {
         YCoCgVariant::all_values().iter().flat_map(|decorr_mode| {
             [true, false]
                 .into_iter()
-                .map(move |split_endpoints| Bc1TransformDetails {
+                .map(move |split_endpoints| Bc1TransformSettings {
                     decorrelation_mode: *decorr_mode,
                     split_colour_endpoints: split_endpoints,
                 })
@@ -137,8 +137,8 @@ impl Bc1TransformDetails {
 /// - `output_ptr`: A pointer to the output data (output BC1 blocks)
 /// - `len`: The length of the input data in bytes (size of `input_ptr`, `output_ptr`)
 /// - `transform_options`: The transform options to use.
-///   Obtained from [`determine_optimal_transform::determine_best_transform_details`] or
-///   [`Bc1TransformDetails::default`] for less optimal result(s).
+///   Obtained from [`determine_optimal_transform::transform_with_best_options`] or
+///   [`Bc1TransformSettings::default`] for less optimal result(s).
 ///
 /// # Safety
 ///
@@ -151,7 +151,7 @@ pub unsafe fn transform_bc1(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
-    transform_options: Bc1TransformDetails,
+    transform_options: Bc1TransformSettings,
 ) {
     debug_assert!(len % 8 == 0);
 
@@ -212,7 +212,7 @@ pub unsafe fn untransform_bc1(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
-    detransform_options: Bc1DetransformDetails,
+    detransform_options: Bc1DetransformSettings,
 ) {
     debug_assert!(len % 8 == 0);
 

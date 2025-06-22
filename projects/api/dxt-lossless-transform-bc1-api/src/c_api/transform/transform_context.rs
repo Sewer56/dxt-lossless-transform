@@ -5,8 +5,8 @@
 
 use core::ptr;
 
-use crate::transform::Bc1TransformOptionsBuilder;
-use dxt_lossless_transform_bc1::{Bc1DetransformDetails, Bc1TransformDetails};
+use crate::transform::builder::Bc1TransformOptionsBuilder;
+use dxt_lossless_transform_bc1::{Bc1DetransformSettings, Bc1TransformSettings};
 
 /// Opaque transform context type for BC1 transform operations.
 ///
@@ -92,7 +92,7 @@ pub unsafe extern "C" fn dltbc1_clone_TransformContext(
 /// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 pub(crate) unsafe fn get_transform_details(
     context: *const Dltbc1TransformContext,
-) -> Bc1TransformDetails {
+) -> Bc1TransformSettings {
     debug_assert!(!context.is_null());
     let inner = unsafe { &*(context as *const Dltbc1TransformContextInner) };
     inner.builder.build()
@@ -104,7 +104,7 @@ pub(crate) unsafe fn get_transform_details(
 /// - `context` must be a valid pointer to a [`Dltbc1TransformContext`]
 pub(crate) unsafe fn get_detransform_details(
     context: *const Dltbc1TransformContext,
-) -> Bc1DetransformDetails {
+) -> Bc1DetransformSettings {
     let transform_details = unsafe { get_transform_details(context) };
     transform_details.into()
 }

@@ -155,7 +155,7 @@ mod tests {
     /// Test roundtrip transform→untransform for all combinations of Bc1TransformDetailsWithNormalization
     #[test]
     fn roundtrip_test_all_combinations() {
-        use crate::{untransform_bc1, Bc1DetransformDetails};
+        use crate::{untransform_bc1, Bc1DetransformSettings};
 
         const MAX_BLOCKS: usize = 64;
 
@@ -180,7 +180,7 @@ mod tests {
                     );
 
                     // Untransform using standard function (normalization doesn't need to be reversed)
-                    let detransform_details: Bc1DetransformDetails = details.into();
+                    let detransform_details: Bc1DetransformSettings = details.into();
                     untransform_bc1(
                         transformed.as_ptr(),
                         reconstructed.as_mut_ptr(),

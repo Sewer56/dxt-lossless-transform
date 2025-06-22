@@ -12,7 +12,7 @@ use crate::{
     DdsFilter,
 };
 use core::time::Duration;
-use dxt_lossless_transform_bc1::Bc1TransformDetails;
+use dxt_lossless_transform_bc1::Bc1TransformSettings;
 use dxt_lossless_transform_dds::dds::DdsFormat;
 use std::fs;
 
@@ -184,7 +184,7 @@ unsafe fn run_determine_best_once(
     compression_algorithm: CompressionAlgorithm,
     experimental_normalize: bool,
     use_all_decorrelation_modes: bool,
-) -> Result<Bc1TransformDetails, TransformError> {
+) -> Result<Bc1TransformSettings, TransformError> {
     determine_best_transform_details_with_estimator(
         data_ptr,
         len_bytes,

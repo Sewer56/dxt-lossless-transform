@@ -88,7 +88,7 @@ pub use determine_optimal_transform::*;
 pub use normalize::*;
 pub use transform::*;
 
-use crate::{Bc1DetransformDetails, Bc1TransformDetails, YCoCgVariant};
+use crate::{Bc1DetransformSettings, Bc1TransformSettings, YCoCgVariant};
 
 /// The information about the BC1 transform that was just performed with experimental normalization support.
 /// Each item transformed via [`transform_bc1_with_normalize_blocks`] will produce an instance of this struct.
@@ -106,7 +106,7 @@ pub struct Bc1TransformDetailsWithNormalization {
     pub split_colour_endpoints: bool,
 }
 
-impl From<Bc1TransformDetailsWithNormalization> for Bc1DetransformDetails {
+impl From<Bc1TransformDetailsWithNormalization> for Bc1DetransformSettings {
     fn from(transform_details: Bc1TransformDetailsWithNormalization) -> Self {
         Self {
             decorrelation_mode: transform_details.decorrelation_mode,
@@ -126,8 +126,8 @@ impl Default for Bc1TransformDetailsWithNormalization {
     }
 }
 
-impl From<Bc1TransformDetails> for Bc1TransformDetailsWithNormalization {
-    fn from(transform_details: Bc1TransformDetails) -> Self {
+impl From<Bc1TransformSettings> for Bc1TransformDetailsWithNormalization {
+    fn from(transform_details: Bc1TransformSettings) -> Self {
         Self {
             color_normalization_mode: ColorNormalizationMode::None,
             decorrelation_mode: transform_details.decorrelation_mode,

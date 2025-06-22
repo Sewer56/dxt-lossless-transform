@@ -2,7 +2,7 @@
 
 use crate::{
     c_api::transform::transform_context::{Dltbc1TransformContext, get_context_mut},
-    transform::Bc1TransformOptionsBuilder,
+    transform::builder::Bc1TransformOptionsBuilder,
 };
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 

@@ -6,7 +6,7 @@
 //! ## Overview
 //!
 //! BC1 compression can be further optimized by applying various transformations before
-//! final compression. This module analyzes different transformation options and [`Bc1TransformDetails`]
+//! final compression. This module analyzes different transformation options and [`Bc1TransformSettings`]
 //! and selects the combination that results in the smallest compressed file size.
 //!
 //! ## Performance Characteristics
@@ -22,13 +22,13 @@
 //! so in practice the speed depends on how fast the estimator function can run. When ran with `zstandard -1`,
 //! the speed is ~265MiB/s for the estimator function. With `lossless-transform-utils` it is 641.30MiB/s
 //!
-//! For memory, the usage is the same as the size of the input data, we need a buffer for the transformed
-//! output.
+//! For memory, the usage is the same as the size of the input data plus the compression buffer needed
+//! by the estimator.
 //!
 //! ## Usage Example
 //!
 //! ```rust,no_run
-//! # use dxt_lossless_transform_bc1::determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions};
+//! # use dxt_lossless_transform_bc1::determine_optimal_transform::{transform_with_best_options, Bc1EstimateOptions};
 //! # use dxt_lossless_transform_api_common::estimate::{SizeEstimationOperations, DataType};
 //!
 //! // Define a compression estimator implementation
@@ -57,15 +57,23 @@
 //! }
 //!
 //! let bc1_data = vec![0u8; 8]; // Example BC1 block data
+//! let mut output_buffer = vec![0u8; bc1_data.len()]; // Output buffer
 //! let options = Bc1EstimateOptions {
 //!     size_estimator: MyCompressionEstimator,
 //!     use_all_decorrelation_modes: false, // Fast mode
 //! };
 //!
-//! // Determine optimal transform (unsafe due to raw pointers)
+//! // Transform with optimal settings (unsafe due to raw pointers)
 //! let transform_details = unsafe {
-//!     determine_best_transform_details(bc1_data.as_ptr(), bc1_data.len(), core::ptr::null_mut(), options)
-//! }.expect("Transform determination failed");
+//!     transform_with_best_options(
+//!         bc1_data.as_ptr(),
+//!         output_buffer.as_mut_ptr(),
+//!         bc1_data.len(),
+//!         options
+//!     )
+//! }.expect("Transform failed");
+//!
+//! // output_buffer now contains the optimally transformed data
 //! ```
 //!
 //! Your 'estimator' function needs to use the same 'concepts' as the actual final compression function.
@@ -76,8 +84,9 @@
 //!
 //! ## Optimization Strategy
 //!
-//! Determines the best [`Bc1TransformDetails`] by brute force testing of different transformation
+//! Determines the best [`Bc1TransformSettings`] by brute force testing of different transformation
 //! combinations and selecting the one that produces the smallest estimated compressed size.
+//! The transformed data from the best option is kept in the output buffer.
 //!
 //! ## Implementation Notes
 //!
@@ -86,13 +95,33 @@
 //! - The brute force approach ensures finding the global optimum within tested parameters
 //! - Memory allocation uses 64-byte alignment for optimal SIMD performance
 
-use crate::Bc1TransformDetails;
+use crate::Bc1TransformSettings;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_common::{
     allocate::{allocate_align_64, AllocateError},
     color_565::YCoCgVariant,
 };
 use thiserror::Error;
+
+/// Test order for fast mode optimization (tests only common combinations)
+pub(crate) static FAST_TEST_ORDER: &[(YCoCgVariant, bool)] = &[
+    (YCoCgVariant::None, false),     // None/NoSplit
+    (YCoCgVariant::None, true),      // None/Split
+    (YCoCgVariant::Variant1, false), // YCoCg1/NoSplit (17.9%)
+    (YCoCgVariant::Variant1, true),  // YCoCg1/Split (71.1%) - most common, test last
+];
+
+/// Test order for comprehensive mode optimization (tests all combinations)
+pub(crate) static COMPREHENSIVE_TEST_ORDER: &[(YCoCgVariant, bool)] = &[
+    (YCoCgVariant::Variant2, false), // YCoCg2/NoSplit (0.9%)
+    (YCoCgVariant::None, false),     // None/NoSplit (1.0%)
+    (YCoCgVariant::None, true),      // None/Split (1.1%)
+    (YCoCgVariant::Variant3, false), // YCoCg3/NoSplit (1.9%)
+    (YCoCgVariant::Variant3, true),  // YCoCg3/Split (2.7%)
+    (YCoCgVariant::Variant2, true),  // YCoCg2/Split (3.5%)
+    (YCoCgVariant::Variant1, false), // YCoCg1/NoSplit (17.9%)
+    (YCoCgVariant::Variant1, true),  // YCoCg1/Split (71.1%) - most common, test last
+];
 
 /// An error that happened during transform determination.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
@@ -106,7 +135,7 @@ pub enum DetermineBestTransformError<E> {
     SizeEstimationError(E),
 }
 
-/// The options for [`determine_best_transform_details`], regarding how the estimation is done,
+/// The options for [`transform_with_best_options`], regarding how the estimation is done,
 /// and other related factors.
 pub struct Bc1EstimateOptions<T>
 where
@@ -124,7 +153,7 @@ where
     /// be compressed with.
     ///
     /// Otherwise consider using a slightly lower level of the same compression function, both to
-    /// maximize speed of [`determine_best_transform_details`], and to improve decompression speed
+    /// maximize speed of [`transform_with_best_options`], and to improve decompression speed
     /// by reducing the size of the sliding window (so more data in cache) and increasing minimum
     /// match length.
     pub size_estimator: T,
@@ -141,62 +170,78 @@ where
     pub use_all_decorrelation_modes: bool,
 }
 
-/// Determine the best transform details for the given BC1 blocks.
+/// Transform BC1 data using the best determined settings.
+///
+/// This function tests various transform configurations and applies the one that
+/// produces the smallest compressed size according to the provided estimator.
 ///
 /// # Parameters
 ///
 /// - `input_ptr`: A pointer to the input data (input BC1 blocks)
+/// - `output_ptr`: A pointer to the output buffer where transformed data will be written
 /// - `len`: The length of the input data in bytes
-/// - `result_buffer_ptr`: A mutable pointer to the working buffer, or null to allocate internally
 /// - `transform_options`: Options for the estimation including the file size estimator
 ///
 /// # Returns
 ///
-/// The best (smallest size) format for the given data.
+/// The [`Bc1TransformSettings`] that produced the best (smallest) compressed size.
 ///
 /// # Remarks
+///
+/// This function combines the functionality of determining the best transform options
+/// and actually transforming the data, eliminating the need for two separate calls.
+/// The output buffer will contain the transformed data using the optimal settings.
 ///
 /// This function is a brute force approach that tests all standard transform options:
 /// - 1/4th of the compression speed in fast mode (2 [`YCoCgVariant`] * 2 (split_colours))
 /// - 1/8th of the compression speed in comprehensive mode (4 [`YCoCgVariant`] * 2 (split_colours))
-/// - If `result_buffer_ptr` is null, allocates memory internally; otherwise uses the provided buffer
+///
+/// ## Performance Characteristics
+///
+/// Overall throughput depends on the estimator used:
+/// - **LTU estimator**: ~641 MiB/s (fast, good accuracy)
+/// - **ZStandard level 1 estimator**: ~265 MiB/s (slower, higher accuracy)
+///
+/// The transformation itself runs at ~24GB/s, so the estimator becomes the bottleneck.
+///
+/// ## Performance Optimization
+///
+/// The transform options are tested in order of decreasing probability of being optimal,
+/// based on analysis of 2,130 BC1 texture files (zstd estimator level 1):
+/// - YCoCg1/Split (71.1% probability) - **tested last to minimize redundant transforms**
+/// - YCoCg1/NoSplit (17.9% probability)
+/// - YCoCg2/Split (3.5% probability)
+/// - YCoCg3/Split (2.7% probability)
+/// - YCoCg3/NoSplit (1.9% probability)
+/// - None/Split (1.1% probability)
+/// - None/NoSplit (1.0% probability)
+/// - YCoCg2/NoSplit (0.9% probability)
+///
+/// Since YCoCg1/Split is optimal for ~71% of textures, testing it last means we avoid
+/// a final redundant transform in the majority of cases.
 ///
 /// For experimental normalization support, use the functions in the experimental module instead.
 ///
 /// # Safety
 ///
-/// Function is unsafe because it deals with raw pointers which must be correct.
-/// If `result_buffer_ptr` is not null, it must point to at least `len` bytes of valid memory.
-pub unsafe fn determine_best_transform_details<T>(
+/// - `input_ptr` must be valid for reads of `len` bytes
+/// - `output_ptr` must be valid for writes of `len` bytes
+/// - `len` must be divisible by 8
+/// - It is recommended that `input_ptr` and `output_ptr` are at least 16-byte aligned (recommended 32-byte align)
+pub unsafe fn transform_with_best_options<T>(
     input_ptr: *const u8,
+    output_ptr: *mut u8,
     len: usize,
-    result_buffer_ptr: *mut u8,
     transform_options: Bc1EstimateOptions<T>,
-) -> Result<Bc1TransformDetails, DetermineBestTransformError<T::Error>>
+) -> Result<Bc1TransformSettings, DetermineBestTransformError<T::Error>>
 where
     T: SizeEstimationOperations,
 {
-    // Check if we need to allocate memory or use the provided buffer
-    let (buffer_ptr, _allocated_buffer) = if result_buffer_ptr.is_null() {
-        let mut allocated = allocate_align_64(len)?;
-        (allocated.as_mut_ptr(), Some(allocated))
-    } else {
-        (result_buffer_ptr, None)
-    };
-
-    let mut best_transform_details = Bc1TransformDetails::default();
+    let mut best_transform_settings = Bc1TransformSettings::default();
     let mut best_size = usize::MAX;
+    let mut last_tested = Bc1TransformSettings::default();
 
-    // Choose decorrelation modes to test based on the flag
-    let decorrelation_modes = if transform_options.use_all_decorrelation_modes {
-        // Test all available decorrelation modes
-        YCoCgVariant::all_values()
-    } else {
-        // Test only Variant1 and None for faster optimization
-        &[YCoCgVariant::Variant1, YCoCgVariant::None]
-    };
-
-    // Pre-allocate compression buffer once for all iterations\
+    // Pre-allocate compression buffer once for all iterations
     // Note: len/2 because we only compress color data, not indices
     let max_comp_size = transform_options
         .size_estimator
@@ -212,42 +257,55 @@ where
         (ptr, max_comp_size, Some(comp_buffer))
     };
 
-    for decorrelation_mode in decorrelation_modes {
-        for split_colours in [true, false] {
-            // Get the current mode we're testing.
-            let current_mode = Bc1TransformDetails {
-                decorrelation_mode: *decorrelation_mode,
-                split_colour_endpoints: split_colours,
-            };
+    // Test transforms in order of decreasing probability, with most common (YCoCg1/Split) last
+    // This minimizes redundant final transforms since YCoCg1/Split is optimal ~71% of the time
+    let test_order = if transform_options.use_all_decorrelation_modes {
+        COMPREHENSIVE_TEST_ORDER
+    } else {
+        FAST_TEST_ORDER
+    };
 
-            // Apply a full transformation (~24GB/s on 1 thread, Ryzen 9950X3D)
-            crate::transform_bc1(input_ptr, buffer_ptr, len, current_mode);
+    for &(decorrelation_mode, split_colours) in test_order {
+        // Get the current mode we're testing.
+        let current_mode = Bc1TransformSettings {
+            decorrelation_mode,
+            split_colour_endpoints: split_colours,
+        };
 
-            // Note(sewer): The indices are very poorly compressible (entropy == ~7.0 , no lz matches).
-            // Excluding them from the estimation has negligible effect on results, with a doubling of
-            // speed.
+        // Apply a full transformation (~24GB/s on 1 thread, Ryzen 9950X3D)
+        crate::transform_bc1(input_ptr, output_ptr, len, current_mode);
+        last_tested = current_mode;
 
-            // Test the current mode by measuring the compressed size using the trait
-            let data_type = current_mode.to_data_type();
+        // Note(sewer): The indices are very poorly compressible (entropy == ~7.0 , no lz matches).
+        // Excluding them from the estimation has negligible effect on results, with a doubling of
+        // speed.
 
-            let result_size = transform_options
-                .size_estimator
-                .estimate_compressed_size(
-                    buffer_ptr,
-                    len / 2,
-                    data_type,
-                    comp_buffer_ptr,
-                    comp_buffer_len,
-                )
-                .map_err(DetermineBestTransformError::SizeEstimationError)?;
-            if result_size < best_size {
-                best_size = result_size;
-                best_transform_details = current_mode;
-            }
+        // Test the current mode by measuring the compressed size using the trait
+        let data_type = current_mode.to_data_type();
+
+        let result_size = transform_options
+            .size_estimator
+            .estimate_compressed_size(
+                output_ptr,
+                len / 2,
+                data_type,
+                comp_buffer_ptr,
+                comp_buffer_len,
+            )
+            .map_err(DetermineBestTransformError::SizeEstimationError)?;
+        if result_size < best_size {
+            best_size = result_size;
+            best_transform_settings = current_mode;
         }
     }
 
-    Ok(best_transform_details)
+    // If the best option wasn't the last one tested, we need to transform again
+    if best_transform_settings != last_tested {
+        // Transform the data one final time with the best settings
+        crate::transform_bc1(input_ptr, output_ptr, len, best_transform_settings);
+    }
+
+    Ok(best_transform_settings)
 }
 
 #[cfg(test)]
@@ -255,9 +313,9 @@ mod tests {
     use super::*;
     use crate::test_prelude::*;
 
-    /// Test that determine_best_transform_details doesn't crash with minimal BC1 data
+    /// Test that transform_with_best_options works correctly
     #[rstest]
-    fn determine_best_transform_details_does_not_crash_and_burn() {
+    fn test_transform_with_best_options() {
         // Create minimal BC1 block data (8 bytes per block)
         // This is a simple red block
         let bc1_data = [
@@ -265,6 +323,7 @@ mod tests {
             0x00, 0x00, // Color1: Black (0x0000)
             0x00, 0x00, 0x00, 0x00, // Indices: all pointing to Color0
         ];
+        let mut output_buffer = [0u8; 8];
 
         // Create a simple dummy estimator
         struct DummyEstimator;
@@ -293,32 +352,32 @@ mod tests {
             use_all_decorrelation_modes: false,
         };
 
-        // This should not crash
+        // This should not crash and should produce transformed data
         let result = unsafe {
-            determine_best_transform_details(
+            transform_with_best_options(
                 bc1_data.as_ptr(),
+                output_buffer.as_mut_ptr(),
                 bc1_data.len(),
-                core::ptr::null_mut(),
                 transform_options,
             )
         };
 
-        // Just verify it returns Ok, we don't care about the specific transform details
         assert!(
             result.is_ok(),
             "Function should not crash with valid BC1 data"
         );
     }
 
-    /// Test that determine_best_transform_details handles estimation errors properly
+    /// Test that transform_with_best_options handles estimation errors properly
     #[rstest]
-    fn determine_best_transform_details_handles_errors() {
+    fn test_transform_with_best_options_handles_errors() {
         // Create minimal BC1 block data
         let bc1_data = [
             0x00, 0xF8, // Color0: Red in RGB565 (0xF800)
             0x00, 0x00, // Color1: Black (0x0000)
             0x00, 0x00, 0x00, 0x00, // Indices: all pointing to Color0
         ];
+        let mut output_buffer = [0u8; 8];
 
         // Create an estimator that always fails
         struct FailingEstimator;
@@ -348,10 +407,10 @@ mod tests {
         };
 
         let result = unsafe {
-            determine_best_transform_details(
+            transform_with_best_options(
                 bc1_data.as_ptr(),
+                output_buffer.as_mut_ptr(),
                 bc1_data.len(),
-                core::ptr::null_mut(),
                 transform_options,
             )
         };

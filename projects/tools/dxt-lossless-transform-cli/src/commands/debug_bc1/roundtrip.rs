@@ -6,7 +6,7 @@ use crate::{
     debug::extract_blocks_from_dds, error::TransformError, util::find_all_files, DdsFilter,
 };
 use dxt_lossless_transform_bc1::{
-    transform_bc1, untransform_bc1, util::decode_bc1_block, Bc1TransformDetails,
+    transform_bc1, untransform_bc1, util::decode_bc1_block, Bc1TransformSettings,
 };
 use dxt_lossless_transform_common::allocate::allocate_align_64;
 use dxt_lossless_transform_dds::dds::DdsFormat;
@@ -62,7 +62,7 @@ fn test_bc1_roundtrip(data_ptr: *const u8, len_bytes: usize) -> Result<(), Trans
 
     unsafe {
         // Try all transform options
-        for transform_options in Bc1TransformDetails::all_combinations() {
+        for transform_options in Bc1TransformSettings::all_combinations() {
             // Transform the data
             transform_bc1(
                 data_ptr,

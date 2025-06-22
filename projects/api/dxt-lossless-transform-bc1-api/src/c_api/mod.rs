@@ -100,22 +100,14 @@
 //! };
 //!
 //! // Analyze data and determine best transform options
-//! Dltbc1Result result = dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(
-//!     builder, bc1_data, sizeof(bc1_data), &estimator, context);
+//! Dltbc1Result result = dltbc1_EstimateOptionsBuilder_BuildAndTransform(
+//!     builder, bc1_data, sizeof(bc1_data), transformed_data, sizeof(transformed_data), &estimator, context);
 //!
 //! if (result.error_code == 0) {
-//!     printf("Best options determined successfully!\n");
-//!     
-//!     // Transform with the determined best settings
-//!     result = dltbc1_TransformContext_Transform(
-//!         bc1_data, sizeof(bc1_data),
-//!         transformed_data, sizeof(transformed_data),
-//!         context);
-//!     
-//!     if (result.error_code == 0) {
-//!         printf("Transform with best settings successful!\n");
-//!         // Now compress 'transformed_data' with your compressor...
-//!     }
+//!     printf("Transform with best settings successful!\n");
+//!     // 'transformed_data' now contains the transformed data
+//!     // 'context' contains the transform details for later untransform
+//!     // Now compress 'transformed_data' with your compressor...
 //! } else {
 //!     printf("Analysis failed: %s\n", dltbc1_error_message(result.error_code));
 //! }
@@ -158,7 +150,7 @@
 //!
 //! - **`dltbc1_new_EstimateOptionsBuilder()`** - Create a builder for analysis settings
 //! - **`dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(builder, use_all)`** - Configure analysis thoroughness
-//! - **`dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal(builder, data, data_len, estimator, context)`** - Analyze data and determine best settings, store in context (builder remains valid)
+//! - **`dltbc1_EstimateOptionsBuilder_BuildAndTransform(builder, data, data_len, output, output_len, estimator, context)`** - Analyze data, determine best settings, and apply transformation in one operation
 //! - **`dltbc1_free_EstimateOptionsBuilder(builder)`** - Free the builder
 //!
 //! ## ABI-Unstable Functions
@@ -172,7 +164,7 @@
 //!
 //! ### Direct Options Analysis
 //!
-//! - **`dltbc1_unstable_determine_optimal(data, data_len, estimator, settings, out_details)`** - Analyze data and determine best settings, return directly
+//! - **`dltbc1_unstable_transform_auto(data, data_len, output, output_len, estimator, settings, out_details)`** - Analyze data, determine best settings, and apply transformation in one operation
 //!
 //! ## Error Handling
 //!
@@ -182,36 +174,36 @@
 //!
 //! For detailed documentation of all C API functions, see the [C API documentation](https://docs.rs/dxt-lossless-transform-bc1-api/latest/dxt_lossless_transform_bc1_api/c_api/index.html) (requires `c-exports` feature).
 
-mod determine_optimal_transform;
+mod auto_transform;
 pub mod error;
 pub mod transform;
 
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
-use dxt_lossless_transform_bc1::{Bc1DetransformDetails, Bc1TransformDetails};
+use dxt_lossless_transform_bc1::{Bc1DetransformSettings, Bc1TransformSettings};
 
-/// FFI-safe version of [`Bc1TransformDetails`] for C API.
+/// FFI-safe version of [`Bc1TransformSettings`] for C API.
 ///
-/// This struct mirrors the internal [`Bc1TransformDetails`] but is guaranteed
+/// This struct mirrors the internal [`Bc1TransformSettings`] but is guaranteed
 /// to have stable ABI layout for C interoperability.
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct Dltbc1TransformDetails {
     /// The decorrelation mode that was used to decorrelate the colors.
     pub decorrelation_mode: YCoCgVariant,
-    /// Whether or not the colour endpoints are to be split or not.
+    /// Whether color endpoints are split.
     pub split_colour_endpoints: bool,
 }
 
-/// FFI-safe version of [`Bc1DetransformDetails`] for C API.
+/// FFI-safe version of [`Bc1DetransformSettings`] for C API.
 ///
-/// This struct mirrors the internal [`Bc1DetransformDetails`] but is guaranteed
+/// This struct mirrors the internal [`Bc1DetransformSettings`] but is guaranteed
 /// to have stable ABI layout for C interoperability.
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct Dltbc1DetransformDetails {
     /// The decorrelation mode that was used to decorrelate the colors.
     pub decorrelation_mode: YCoCgVariant,
-    /// Whether or not the colour endpoints are to be split or not.
+    /// Whether color endpoints are split.
     pub split_colour_endpoints: bool,
 }
 
@@ -234,8 +226,8 @@ impl Default for Dltbc1DetransformDetails {
 }
 
 // Conversion implementations
-impl From<Bc1TransformDetails> for Dltbc1TransformDetails {
-    fn from(details: Bc1TransformDetails) -> Self {
+impl From<Bc1TransformSettings> for Dltbc1TransformDetails {
+    fn from(details: Bc1TransformSettings) -> Self {
         Self {
             decorrelation_mode: YCoCgVariant::from_internal_variant(details.decorrelation_mode),
             split_colour_endpoints: details.split_colour_endpoints,
@@ -243,7 +235,7 @@ impl From<Bc1TransformDetails> for Dltbc1TransformDetails {
     }
 }
 
-impl From<Dltbc1TransformDetails> for Bc1TransformDetails {
+impl From<Dltbc1TransformDetails> for Bc1TransformSettings {
     fn from(details: Dltbc1TransformDetails) -> Self {
         Self {
             decorrelation_mode: details.decorrelation_mode.to_internal_variant(),
@@ -252,8 +244,8 @@ impl From<Dltbc1TransformDetails> for Bc1TransformDetails {
     }
 }
 
-impl From<Bc1DetransformDetails> for Dltbc1DetransformDetails {
-    fn from(details: Bc1DetransformDetails) -> Self {
+impl From<Bc1DetransformSettings> for Dltbc1DetransformDetails {
+    fn from(details: Bc1DetransformSettings) -> Self {
         Self {
             decorrelation_mode: YCoCgVariant::from_internal_variant(details.decorrelation_mode),
             split_colour_endpoints: details.split_colour_endpoints,
@@ -261,7 +253,7 @@ impl From<Bc1DetransformDetails> for Dltbc1DetransformDetails {
     }
 }
 
-impl From<Dltbc1DetransformDetails> for Bc1DetransformDetails {
+impl From<Dltbc1DetransformDetails> for Bc1DetransformSettings {
     fn from(details: Dltbc1DetransformDetails) -> Self {
         Self {
             decorrelation_mode: details.decorrelation_mode.to_internal_variant(),

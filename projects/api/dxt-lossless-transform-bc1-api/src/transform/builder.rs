@@ -1,22 +1,66 @@
-//! Builder pattern implementation for BC1 transform options.
+//! Builder pattern implementation for BC1 estimate options.
 
-use crate::determine_optimal_transform::determine_optimal_transform;
-use crate::error::Bc1Error;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
-use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
-use dxt_lossless_transform_bc1::Bc1TransformDetails;
+use dxt_lossless_transform_bc1::Bc1TransformSettings;
+use dxt_lossless_transform_bc1::determine_optimal_transform::Bc1EstimateOptions;
+use dxt_lossless_transform_common::color_565::YCoCgVariant;
+
+/// Builder for BC1 estimate options with convenient configuration methods.
+#[derive(Debug, Clone, Copy)]
+pub struct Bc1EstimateOptionsBuilder {
+    use_all_decorrelation_modes: Option<bool>,
+}
+
+impl Bc1EstimateOptionsBuilder {
+    /// Create a new options builder.
+    pub fn new() -> Self {
+        Self {
+            use_all_decorrelation_modes: None,
+        }
+    }
+
+    /// Set whether to use all decorrelation modes.
+    ///
+    /// When `false` (default), only tests common configurations for faster optimization.
+    /// When `true`, tests all decorrelation modes for potentially better compression
+    /// at the cost of twice as long optimization time.
+    pub fn use_all_decorrelation_modes(mut self, use_all: bool) -> Self {
+        self.use_all_decorrelation_modes = Some(use_all);
+        self
+    }
+
+    /// Build the estimate options using the configured values and provided estimator.
+    pub fn build<T>(self, size_estimator: T) -> Bc1EstimateOptions<T>
+    where
+        T: SizeEstimationOperations,
+    {
+        Bc1EstimateOptions {
+            size_estimator,
+            use_all_decorrelation_modes: self.use_all_decorrelation_modes.unwrap_or(false),
+        }
+    }
+}
+
+impl Default for Bc1EstimateOptionsBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 /// Builder for BC1 transform options with convenient configuration methods.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy)]
 pub struct Bc1TransformOptionsBuilder {
     decorrelation_mode: Option<YCoCgVariant>,
     split_colour_endpoints: Option<bool>,
 }
 
 impl Bc1TransformOptionsBuilder {
-    /// Create a new options builder.
+    /// Create a new transform options builder.
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            decorrelation_mode: None,
+            split_colour_endpoints: None,
+        }
     }
 
     /// Set the decorrelation mode.
@@ -31,60 +75,73 @@ impl Bc1TransformOptionsBuilder {
         self
     }
 
-    /// Build the transform options using the configured values or defaults.
-    pub fn build(self) -> Bc1TransformDetails {
-        let default = Bc1TransformDetails::default();
-        Bc1TransformDetails {
-            decorrelation_mode: self
-                .decorrelation_mode
-                .map(|mode| mode.to_internal_variant())
-                .unwrap_or(default.decorrelation_mode),
-            split_colour_endpoints: self
-                .split_colour_endpoints
-                .unwrap_or(default.split_colour_endpoints),
+    /// Build the transform settings using the configured values.
+    pub fn build(self) -> Bc1TransformSettings {
+        Bc1TransformSettings {
+            decorrelation_mode: self.decorrelation_mode.unwrap_or(YCoCgVariant::Variant1),
+            split_colour_endpoints: self.split_colour_endpoints.unwrap_or(true),
         }
     }
+}
 
-    /// Automatically determine the best options for the given data.
-    ///
-    /// # Parameters
-    ///
-    /// - `data`: The BC1 data to analyze
-    /// - `estimator`: The size estimation operations to use
-    /// - `use_all_modes`: Whether to test all decorrelation modes (twice as slow, tests 4 options instead of 2, typically <0.1% extra savings)
-    ///
-    /// # Returns
-    ///
-    /// The optimal transform options for the given data.
-    pub fn auto_determine_with<T>(
-        self,
-        data: &[u8],
-        estimator: T,
-        use_all_modes: bool,
-    ) -> Result<Bc1TransformDetails, Bc1Error<T::Error>>
-    where
-        T: SizeEstimationOperations,
-        T::Error: core::fmt::Debug,
-    {
-        determine_optimal_transform(data, estimator, use_all_modes)
+impl Default for Bc1TransformOptionsBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
+
+    /// Dummy estimator for testing
+    struct DummyEstimator;
+
+    impl SizeEstimationOperations for DummyEstimator {
+        type Error = &'static str;
+
+        fn max_compressed_size(&self, _len_bytes: usize) -> Result<usize, Self::Error> {
+            Ok(0)
+        }
+
+        unsafe fn estimate_compressed_size(
+            &self,
+            _input_ptr: *const u8,
+            len_bytes: usize,
+            _data_type: DataType,
+            _output_ptr: *mut u8,
+            _output_len: usize,
+        ) -> Result<usize, Self::Error> {
+            Ok(len_bytes)
+        }
+    }
 
     #[test]
-    fn builder() {
-        let options = Bc1TransformOptionsBuilder::new()
-            .decorrelation_mode(YCoCgVariant::Variant2)
+    fn test_estimate_options_builder() {
+        let options = Bc1EstimateOptionsBuilder::new()
+            .use_all_decorrelation_modes(true)
+            .build(DummyEstimator);
+
+        assert!(options.use_all_decorrelation_modes);
+    }
+
+    #[test]
+    fn test_transform_options_builder() {
+        let settings = Bc1TransformOptionsBuilder::new()
+            .decorrelation_mode(YCoCgVariant::None)
             .split_colour_endpoints(false)
             .build();
 
-        assert_eq!(
-            options.decorrelation_mode,
-            YCoCgVariant::Variant2.to_internal_variant()
-        );
-        assert!(!options.split_colour_endpoints);
+        assert_eq!(settings.decorrelation_mode, YCoCgVariant::None);
+        assert!(!settings.split_colour_endpoints);
+    }
+
+    #[test]
+    fn test_transform_options_builder_defaults() {
+        let settings = Bc1TransformOptionsBuilder::new().build();
+
+        assert_eq!(settings.decorrelation_mode, YCoCgVariant::Variant1);
+        assert!(settings.split_colour_endpoints);
     }
 }

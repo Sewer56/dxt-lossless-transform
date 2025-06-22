@@ -9,9 +9,9 @@ use std::{collections::HashMap, hash::Hash, path::Path};
 
 /// Generic compression statistics result for a single file analysis.
 ///
-/// Type parameter `T` represents the transform details type (e.g., [`Bc1TransformDetails`]).
+/// Type parameter `T` represents the transform details type (e.g., [`Bc1TransformSettings`]).
 ///
-/// [`Bc1TransformDetails`]: dxt_lossless_transform_bc1::Bc1TransformDetails
+/// [`Bc1TransformSettings`]: dxt_lossless_transform_bc1::Bc1TransformSettings
 #[derive(Debug, Clone, PartialEq, Hash, Default)]
 pub struct CompressionStatsResult<T>
 where
@@ -59,9 +59,9 @@ where
 
 /// Result of applying a specific transform and measuring its compressed size.
 ///
-/// Type parameter `T` represents the transform details type (e.g., [`Bc1TransformDetails`]).
+/// Type parameter `T` represents the transform details type (e.g., [`Bc1TransformSettings`]).
 ///
-/// [`Bc1TransformDetails`]: dxt_lossless_transform_bc1::Bc1TransformDetails
+/// [`Bc1TransformSettings`]: dxt_lossless_transform_bc1::Bc1TransformSettings
 #[derive(Debug, Clone, PartialEq, Hash, Default, Copy)]
 pub struct TransformResult<T>
 where

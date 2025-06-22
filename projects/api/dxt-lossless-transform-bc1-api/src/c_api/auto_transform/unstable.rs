@@ -1,4 +1,4 @@
-//! ABI-unstable C API functions for determining optimal BC1 transform settings.
+//! ABI-unstable C API functions for transforming BC1 data with automatic optimization.
 //!
 //! ## Warning: ABI Instability
 //!
@@ -9,56 +9,64 @@
 use crate::Bc1Error;
 use crate::c_api::Dltbc1TransformDetails;
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
-use crate::determine_optimal_transform::determine_optimal_transform;
+use crate::transform::transform_bc1_auto;
 use core::slice;
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 
-/// Settings for determining optimal BC1 transform configuration (ABI-unstable).
+/// Settings for automatic BC1 transform configuration (ABI-unstable).
 ///
 /// This struct contains all settings that affect how the optimal transform
-/// is determined. Using a struct allows adding new fields without breaking
+/// is determined and applied. Using a struct allows adding new fields without breaking
 /// the function signature, though the struct layout itself is still ABI-unstable.
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
-pub struct Dltbc1DetermineOptimalSettings {
+pub struct Dltbc1AutoTransformSettings {
     /// If true, tests all decorrelation modes; if false, only tests Variant1 and None
     pub use_all_modes: bool,
 }
 
-/// Determine optimal transform settings for BC1 data (ABI-unstable).
+/// Transform BC1 data using automatically determined optimal settings (ABI-unstable).
 ///
 /// ## ABI Instability Warning
 /// This function accepts and returns ABI-unstable structures which may change between versions.
-/// Use [`dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal`] for ABI stability.
+/// Use [`dltbc1_EstimateOptionsBuilder_BuildAndTransform`] for ABI stability.
 ///
 /// # Parameters
-/// - `data`: Pointer to BC1 data to analyze
-/// - `data_len`: Length of data in bytes (must be divisible by 8)
+/// - `data`: Pointer to BC1 data to transform
+/// - `data_len`: Length of input data in bytes (must be divisible by 8)
+/// - `output`: Pointer to output buffer where transformed data will be written
+/// - `output_len`: Length of output buffer in bytes (must be at least `data_len`)
 /// - `estimator`: The size estimator to use for compression estimation
 /// - `settings`: Settings controlling the optimization process
-/// - `out_details`: Pointer where optimal transform details will be written on success
+/// - `out_details`: Pointer where transform details will be written on success
 ///
 /// # Returns
-/// A [`Dltbc1Result`] indicating success or containing an error that must be freed.
+/// A [`Dltbc1Result`] indicating success or containing an error.
 ///
 /// # Safety
 /// - `data` must be valid for reads of `data_len` bytes
+/// - `output` must be valid for writes of `output_len` bytes
 /// - `estimator` must be a valid pointer to a [`DltSizeEstimator`] with valid function pointers
 /// - `out_details` must be a valid pointer for writing [`Dltbc1TransformDetails`]
 /// - The estimator's context and functions must remain valid for the duration of the call
 ///
-/// [`dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal`]: crate::c_api::determine_optimal_transform::dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal
+/// [`dltbc1_EstimateOptionsBuilder_BuildAndTransform`]: crate::c_api::auto_transform::dltbc1_EstimateOptionsBuilder_BuildAndTransform
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dltbc1_unstable_determine_optimal(
+pub unsafe extern "C" fn dltbc1_unstable_transform_auto(
     data: *const u8,
     data_len: usize,
+    output: *mut u8,
+    output_len: usize,
     estimator: *const DltSizeEstimator,
-    settings: Dltbc1DetermineOptimalSettings,
+    settings: Dltbc1AutoTransformSettings,
     out_details: *mut Dltbc1TransformDetails,
 ) -> Dltbc1Result {
     // Validate pointers
     if data.is_null() {
         return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullDataPointer);
+    }
+    if output.is_null() {
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullOutputBufferPointer);
     }
     if estimator.is_null() {
         return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullEstimatorPointer);
@@ -67,18 +75,25 @@ pub unsafe extern "C" fn dltbc1_unstable_determine_optimal(
         return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullTransformDetailsPointer);
     }
 
-    // Create slice from raw pointer
+    // Create slices from raw pointers
     let data_slice = unsafe { slice::from_raw_parts(data, data_len) };
+    let output_slice = unsafe { slice::from_raw_parts_mut(output, output_len) };
 
     // Use the provided estimator
     let estimator_ref = unsafe { &*estimator };
 
-    // Determine optimal transform
-    match determine_optimal_transform(data_slice, estimator_ref, settings.use_all_modes) {
-        Ok(optimal_details) => {
-            // Write the optimal details to the output pointer
+    // Create options struct
+    let options = dxt_lossless_transform_bc1::determine_optimal_transform::Bc1EstimateOptions {
+        size_estimator: estimator_ref,
+        use_all_decorrelation_modes: settings.use_all_modes,
+    };
+
+    // Transform with automatic optimization
+    match transform_bc1_auto(data_slice, output_slice, options) {
+        Ok(transform_details) => {
+            // Write the transform details to the output pointer
             unsafe {
-                *out_details = optimal_details.into();
+                *out_details = transform_details.into();
             }
             Dltbc1Result::success()
         }
@@ -177,58 +192,40 @@ mod tests {
 
     #[test]
     fn test_settings_default() {
-        let settings = Dltbc1DetermineOptimalSettings::default();
+        let settings = Dltbc1AutoTransformSettings::default();
         assert!(!settings.use_all_modes);
     }
 
     #[test]
     fn test_settings_construction() {
-        let settings = Dltbc1DetermineOptimalSettings {
+        let settings = Dltbc1AutoTransformSettings {
             use_all_modes: true,
         };
         assert!(settings.use_all_modes);
 
-        let settings = Dltbc1DetermineOptimalSettings {
+        let settings = Dltbc1AutoTransformSettings {
             use_all_modes: false,
         };
         assert!(!settings.use_all_modes);
     }
 
     #[test]
-    fn test_unstable_determine_optimal_success() {
+    fn test_unstable_transform_auto_success() {
         // Create test data (8 bytes = 1 BC1 block)
         let test_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
+        let mut output = [0u8; 8];
         let mut details = Dltbc1TransformDetails::default();
         let estimator = create_test_estimator();
-        let settings = Dltbc1DetermineOptimalSettings {
+        let settings = Dltbc1AutoTransformSettings {
             use_all_modes: false,
         };
 
         unsafe {
-            let result = dltbc1_unstable_determine_optimal(
+            let result = dltbc1_unstable_transform_auto(
                 test_data.as_ptr(),
                 test_data.len(),
-                &estimator,
-                settings,
-                &mut details,
-            );
-            assert!(result.is_success());
-        }
-    }
-
-    #[test]
-    fn test_unstable_determine_optimal_use_all_modes() {
-        let test_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
-        let mut details = Dltbc1TransformDetails::default();
-        let estimator = create_test_estimator();
-        let settings = Dltbc1DetermineOptimalSettings {
-            use_all_modes: true,
-        };
-
-        unsafe {
-            let result = dltbc1_unstable_determine_optimal(
-                test_data.as_ptr(),
-                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
                 &estimator,
                 settings,
                 &mut details,
@@ -239,14 +236,17 @@ mod tests {
 
     #[test]
     fn test_unstable_null_data_pointer() {
+        let mut output = [0u8; 8];
         let mut details = Dltbc1TransformDetails::default();
         let estimator = create_test_estimator();
-        let settings = Dltbc1DetermineOptimalSettings::default();
+        let settings = Dltbc1AutoTransformSettings::default();
 
         unsafe {
-            let result = dltbc1_unstable_determine_optimal(
+            let result = dltbc1_unstable_transform_auto(
                 core::ptr::null(),
                 8,
+                output.as_mut_ptr(),
+                output.len(),
                 &estimator,
                 settings,
                 &mut details,
@@ -257,15 +257,40 @@ mod tests {
     }
 
     #[test]
-    fn test_unstable_null_estimator_pointer() {
+    fn test_unstable_null_output_pointer() {
         let test_data = [0u8; 8];
         let mut details = Dltbc1TransformDetails::default();
-        let settings = Dltbc1DetermineOptimalSettings::default();
+        let estimator = create_test_estimator();
+        let settings = Dltbc1AutoTransformSettings::default();
 
         unsafe {
-            let result = dltbc1_unstable_determine_optimal(
+            let result = dltbc1_unstable_transform_auto(
                 test_data.as_ptr(),
                 test_data.len(),
+                core::ptr::null_mut(),
+                8,
+                &estimator,
+                settings,
+                &mut details,
+            );
+            assert!(!result.is_success());
+            assert_eq!(result.error_code, Dltbc1ErrorCode::NullOutputBufferPointer);
+        }
+    }
+
+    #[test]
+    fn test_unstable_null_estimator_pointer() {
+        let test_data = [0u8; 8];
+        let mut output = [0u8; 8];
+        let mut details = Dltbc1TransformDetails::default();
+        let settings = Dltbc1AutoTransformSettings::default();
+
+        unsafe {
+            let result = dltbc1_unstable_transform_auto(
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
                 core::ptr::null(),
                 settings,
                 &mut details,
@@ -278,13 +303,16 @@ mod tests {
     #[test]
     fn test_unstable_null_details_pointer() {
         let test_data = [0u8; 8];
+        let mut output = [0u8; 8];
         let estimator = create_test_estimator();
-        let settings = Dltbc1DetermineOptimalSettings::default();
+        let settings = Dltbc1AutoTransformSettings::default();
 
         unsafe {
-            let result = dltbc1_unstable_determine_optimal(
+            let result = dltbc1_unstable_transform_auto(
                 test_data.as_ptr(),
                 test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
                 &estimator,
                 settings,
                 core::ptr::null_mut(),
@@ -301,14 +329,17 @@ mod tests {
     fn test_unstable_invalid_data_length() {
         // Use 7 bytes (not divisible by 8)
         let test_data = [0u8; 7];
+        let mut output = [0u8; 8];
         let mut details = Dltbc1TransformDetails::default();
         let estimator = create_test_estimator();
-        let settings = Dltbc1DetermineOptimalSettings::default();
+        let settings = Dltbc1AutoTransformSettings::default();
 
         unsafe {
-            let result = dltbc1_unstable_determine_optimal(
+            let result = dltbc1_unstable_transform_auto(
                 test_data.as_ptr(),
                 test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
                 &estimator,
                 settings,
                 &mut details,
@@ -321,14 +352,17 @@ mod tests {
     #[test]
     fn test_unstable_size_estimation_failure() {
         let test_data = [0u8; 8];
+        let mut output = [0u8; 8];
         let mut details = Dltbc1TransformDetails::default();
         let estimator = create_failing_estimator();
-        let settings = Dltbc1DetermineOptimalSettings::default();
+        let settings = Dltbc1AutoTransformSettings::default();
 
         unsafe {
-            let result = dltbc1_unstable_determine_optimal(
+            let result = dltbc1_unstable_transform_auto(
                 test_data.as_ptr(),
                 test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
                 &estimator,
                 settings,
                 &mut details,
@@ -345,16 +379,19 @@ mod tests {
             0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66,
             0x77, 0x88,
         ];
+        let mut output = [0u8; 16];
         let mut details = Dltbc1TransformDetails::default();
         let estimator = create_test_estimator();
-        let settings = Dltbc1DetermineOptimalSettings {
+        let settings = Dltbc1AutoTransformSettings {
             use_all_modes: true,
         };
 
         unsafe {
-            let result = dltbc1_unstable_determine_optimal(
+            let result = dltbc1_unstable_transform_auto(
                 test_data.as_ptr(),
                 test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
                 &estimator,
                 settings,
                 &mut details,
@@ -365,37 +402,37 @@ mod tests {
 
     /// Test that matches a typical C usage pattern
     #[test]
-    fn test_c_example_unstable_determine_optimal() {
+    fn test_c_example_unstable_transform_auto() {
         // Your BC1 texture data (8 bytes per BC1 block)
         let bc1_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
+        let mut output = [0u8; 8];
         let mut optimal_details = Dltbc1TransformDetails::default();
 
         // Configure settings
-        let settings = Dltbc1DetermineOptimalSettings {
+        let settings = Dltbc1AutoTransformSettings {
             use_all_modes: true, // Test all decorrelation modes for best results
         };
 
         // Create estimator
         let estimator = create_test_estimator();
 
-        // Determine optimal settings
+        // Transform with automatic optimization
         unsafe {
-            let result = dltbc1_unstable_determine_optimal(
+            let result = dltbc1_unstable_transform_auto(
                 bc1_data.as_ptr(),
                 bc1_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
                 &estimator,
                 settings,
                 &mut optimal_details,
             );
 
             if result.is_success() {
-                println!("Optimal settings determined successfully!");
-                // optimal_details now contains the best transform settings
+                println!("Transform completed successfully!");
+                // optimal_details now contains the transform details
             } else {
-                panic!(
-                    "Failed to determine optimal settings: {:?}",
-                    result.error_code
-                );
+                panic!("Failed to transform data: {:?}", result.error_code);
             }
         }
     }

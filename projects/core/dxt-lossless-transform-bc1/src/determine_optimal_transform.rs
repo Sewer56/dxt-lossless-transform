@@ -273,7 +273,7 @@ where
         };
 
         // Apply a full transformation (~24GB/s on 1 thread, Ryzen 9950X3D)
-        crate::transform_bc1(input_ptr, output_ptr, len, current_mode);
+        crate::transform_bc1_with_settings(input_ptr, output_ptr, len, current_mode);
         last_tested = current_mode;
 
         // Note(sewer): The indices are very poorly compressible (entropy == ~7.0 , no lz matches).
@@ -302,7 +302,7 @@ where
     // If the best option wasn't the last one tested, we need to transform again
     if best_transform_settings != last_tested {
         // Transform the data one final time with the best settings
-        crate::transform_bc1(input_ptr, output_ptr, len, best_transform_settings);
+        crate::transform_bc1_with_settings(input_ptr, output_ptr, len, best_transform_settings);
     }
 
     Ok(best_transform_settings)

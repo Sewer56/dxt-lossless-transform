@@ -16,7 +16,7 @@ use crate::{
 };
 use core::sync::atomic::{AtomicUsize, Ordering};
 use dxt_lossless_transform_api_common::estimate::DataType;
-use dxt_lossless_transform_bc1::{transform_bc1, Bc1TransformSettings};
+use dxt_lossless_transform_bc1::{transform_bc1_with_settings, Bc1TransformSettings};
 use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};
 use dxt_lossless_transform_dds::dds::DdsFormat;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -190,7 +190,7 @@ fn analyze_bc1_compression_transforms(
         // Test all transform combinations
         for transform_options in Bc1TransformSettings::all_combinations() {
             // Transform the data
-            transform_bc1(
+            transform_bc1_with_settings(
                 data_ptr,
                 transformed_data.as_mut_ptr(),
                 len_bytes,
@@ -239,7 +239,7 @@ unsafe fn analyze_bc1_api_recommendation(
 
     // Transform the data using the recommended details and measure the size
     let mut transformed_data = allocate_align_64(len_bytes)?;
-    transform_bc1(
+    transform_bc1_with_settings(
         data_ptr,
         transformed_data.as_mut_ptr(),
         len_bytes,

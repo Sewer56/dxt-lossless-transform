@@ -8,7 +8,7 @@
 pub use rstest::rstest;
 
 // Core functionality from this crate
-pub use crate::{transform_bc1, Bc1TransformSettings};
+pub use crate::{transform_bc1_with_settings, Bc1TransformSettings};
 
 // Experimental features commonly tested
 #[cfg(feature = "experimental")]
@@ -315,7 +315,7 @@ pub(crate) fn run_with_recorrelate_untransform_unaligned_test(
         // Transform using standard implementation
         let mut transformed = allocate_align_64(original.len());
         unsafe {
-            transform_bc1(
+            transform_bc1_with_settings(
                 original.as_ptr(),
                 transformed.as_mut_ptr(),
                 original.len(),
@@ -410,7 +410,7 @@ pub(crate) fn run_with_split_colour_untransform_unaligned_test(
         // Transform using standard implementation
         let mut transformed = allocate_align_64(original.len());
         unsafe {
-            transform_bc1(
+            transform_bc1_with_settings(
                 original.as_ptr(),
                 transformed.as_mut_ptr(),
                 original.len(),
@@ -464,7 +464,7 @@ pub(crate) fn run_with_split_colour_and_recorr_untransform_unaligned_test(
         // Transform using standard implementation
         let mut transformed = allocate_align_64(original.len());
         unsafe {
-            transform_bc1(
+            transform_bc1_with_settings(
                 original.as_ptr(),
                 transformed.as_mut_ptr(),
                 original.len(),

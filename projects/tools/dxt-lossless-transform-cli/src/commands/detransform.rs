@@ -62,7 +62,7 @@ pub unsafe fn untransform_format(
     format: DdsFormat,
 ) {
     if format == DdsFormat::BC1 {
-        dxt_lossless_transform_bc1::untransform_bc1(
+        dxt_lossless_transform_bc1::untransform_bc1_with_settings(
             input_ptr,
             output_ptr,
             len,

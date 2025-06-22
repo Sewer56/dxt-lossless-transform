@@ -20,7 +20,9 @@ use crate::{
     DdsFilter,
 };
 use core::time::Duration;
-use dxt_lossless_transform_bc1::{transform_bc1, untransform_bc1, Bc1TransformSettings};
+use dxt_lossless_transform_bc1::{
+    transform_bc1_with_settings, untransform_bc1_with_settings, Bc1TransformSettings,
+};
 use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};
 use dxt_lossless_transform_dds::dds::DdsFormat;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -284,7 +286,7 @@ unsafe fn process_scenario(
     let mut transformed_data = allocate_align_64(len_bytes)?;
 
     // Transform the original data
-    transform_bc1(
+    transform_bc1_with_settings(
         data_ptr,
         transformed_data.as_mut_ptr(),
         len_bytes,
@@ -321,7 +323,7 @@ unsafe fn process_scenario(
         )?;
 
         // Detransform
-        untransform_bc1(
+        untransform_bc1_with_settings(
             decompressed_data.as_ptr(),
             final_output.as_mut_ptr(),
             len_bytes,
@@ -344,7 +346,7 @@ unsafe fn process_scenario(
     // Benchmark detransform
     let (_, detransform_time) = benchmark_common::measure_time(|| {
         for _ in 0..config.iterations {
-            untransform_bc1(
+            untransform_bc1_with_settings(
                 decompressed_data.as_ptr(),
                 final_output.as_mut_ptr(),
                 len_bytes,

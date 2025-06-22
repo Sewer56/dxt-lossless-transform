@@ -25,8 +25,8 @@ use dxt_lossless_transform_api_common::estimate::DataType;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
 /// The information about the BC1 transform that was just performed.
-/// Each item transformed via [`transform_bc1`] will produce an instance of this struct.
-/// To undo the transform, you'll need to pass [`Bc1DetransformSettings`] to [`untransform_bc1`],
+/// Each item transformed via [`transform_bc1_with_settings`] will produce an instance of this struct.
+/// To undo the transform, you'll need to pass [`Bc1DetransformSettings`] to [`untransform_bc1_with_settings`],
 /// which can be obtained from this struct using the `into` method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Bc1TransformSettings {
@@ -147,7 +147,7 @@ impl Bc1TransformSettings {
 /// - len must be divisible by 8
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn transform_bc1(
+pub unsafe fn transform_bc1_with_settings(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
@@ -195,11 +195,11 @@ pub unsafe fn transform_bc1(
 /// # Parameters
 ///
 /// - `input_ptr`: A pointer to the input data (input BC1 blocks).
-///   Output from [`transform_bc1`].
+///   Output from [`transform_bc1_with_settings`].
 /// - `output_ptr`: A pointer to the output data (output BC1 blocks)
 /// - `len`: The length of the input data in bytes
 /// - `detransform_options`: A struct containing information about the transform that was originally performed.
-///   Must match the settings used in [`transform_bc1`] function (excluding color normalization).
+///   Must match the settings used in [`transform_bc1_with_settings`] function (excluding color normalization).
 ///
 /// # Safety
 ///
@@ -208,7 +208,7 @@ pub unsafe fn transform_bc1(
 /// - len must be divisible by 8
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn untransform_bc1(
+pub unsafe fn untransform_bc1_with_settings(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,

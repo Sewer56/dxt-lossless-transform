@@ -63,7 +63,7 @@ pub unsafe fn transform_format(
 ) {
     // DDS Integration
     if format == DdsFormat::BC1 {
-        dxt_lossless_transform_bc1::transform_bc1(
+        dxt_lossless_transform_bc1::transform_bc1_with_settings(
             input_ptr,
             output_ptr,
             len,

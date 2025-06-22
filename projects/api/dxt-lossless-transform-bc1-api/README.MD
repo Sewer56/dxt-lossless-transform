@@ -100,7 +100,7 @@ they should be used for final publishing only alongside other brute force option
 
 - [`transform_bc1_auto`] - Transform with automatically determined optimal parameters
 - [`Bc1EstimateOptionsBuilder`] - Builder pattern for optimization configuration
-- [`Bc1TransformOptionsBuilder`] - Builder pattern for manual transform configuration
+- [`Bc1TransformSettingsBuilder`] - Builder pattern for manual transform configuration
 
 ### Error Handling
 

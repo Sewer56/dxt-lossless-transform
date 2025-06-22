@@ -2,8 +2,6 @@
 
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_bc1::Bc1EstimateOptions;
-use dxt_lossless_transform_bc1::Bc1TransformSettings;
-use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
 /// Builder for BC1 estimate options with convenient configuration methods.
 #[derive(Debug, Clone, Copy)]
@@ -47,49 +45,6 @@ impl Default for Bc1EstimateOptionsBuilder {
     }
 }
 
-/// Builder for BC1 transform options with convenient configuration methods.
-#[derive(Debug, Clone, Copy)]
-pub struct Bc1TransformOptionsBuilder {
-    decorrelation_mode: Option<YCoCgVariant>,
-    split_colour_endpoints: Option<bool>,
-}
-
-impl Bc1TransformOptionsBuilder {
-    /// Create a new transform options builder.
-    pub fn new() -> Self {
-        Self {
-            decorrelation_mode: None,
-            split_colour_endpoints: None,
-        }
-    }
-
-    /// Set the decorrelation mode.
-    pub fn decorrelation_mode(mut self, mode: YCoCgVariant) -> Self {
-        self.decorrelation_mode = Some(mode);
-        self
-    }
-
-    /// Set whether to split colour endpoints.
-    pub fn split_colour_endpoints(mut self, split: bool) -> Self {
-        self.split_colour_endpoints = Some(split);
-        self
-    }
-
-    /// Build the transform settings using the configured values.
-    pub fn build(self) -> Bc1TransformSettings {
-        Bc1TransformSettings {
-            decorrelation_mode: self.decorrelation_mode.unwrap_or(YCoCgVariant::Variant1),
-            split_colour_endpoints: self.split_colour_endpoints.unwrap_or(true),
-        }
-    }
-}
-
-impl Default for Bc1TransformOptionsBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -124,24 +79,5 @@ mod tests {
             .build(DummyEstimator);
 
         assert!(options.use_all_decorrelation_modes);
-    }
-
-    #[test]
-    fn test_transform_options_builder() {
-        let settings = Bc1TransformOptionsBuilder::new()
-            .decorrelation_mode(YCoCgVariant::None)
-            .split_colour_endpoints(false)
-            .build();
-
-        assert_eq!(settings.decorrelation_mode, YCoCgVariant::None);
-        assert!(!settings.split_colour_endpoints);
-    }
-
-    #[test]
-    fn test_transform_options_builder_defaults() {
-        let settings = Bc1TransformOptionsBuilder::new().build();
-
-        assert_eq!(settings.decorrelation_mode, YCoCgVariant::Variant1);
-        assert!(settings.split_colour_endpoints);
     }
 }

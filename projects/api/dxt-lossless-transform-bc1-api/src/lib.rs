@@ -13,7 +13,7 @@ pub mod c_api;
 pub use error::Bc1Error;
 
 // Re-export BUILDERS FIRST (stable, recommended)
-pub use transform::{Bc1EstimateSettingsBuilder, Bc1TransformSettingsBuilder};
+pub use transform::{Bc1AutoTransformBuilder, Bc1ManualTransformBuilder};
 
 // Re-export core types for convenience
 pub use transform::{

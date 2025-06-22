@@ -2,7 +2,7 @@
 //!
 //! **⚠️ ABI Instability Warning**: This function may have breaking changes between
 //! library versions without major version bumps. For production use, consider
-//! [`crate::Bc1EstimateSettingsBuilder`] which provides a stable interface.
+//! [`crate::Bc1AutoTransformBuilder`] which provides a stable interface.
 //!
 //! This module provides functions to automatically determine the optimal transform settings
 //! for BC1 data and apply the transformation in a single operation.
@@ -57,20 +57,20 @@ use dxt_lossless_transform_bc1::{
 ///
 /// **⚠️ ABI Instability Warning**: This function accepts ABI-unstable structures
 /// which may change between library versions. For production use, prefer
-/// [`crate::Bc1EstimateSettingsBuilder::build_and_transform`] which provides
+/// [`crate::Bc1AutoTransformBuilder::build_and_transform`] which provides
 /// ABI stability and the same functionality.
 ///
 /// # Recommended Alternative
 ///
 /// ```
-/// use dxt_lossless_transform_bc1_api::Bc1EstimateSettingsBuilder;
+/// use dxt_lossless_transform_bc1_api::Bc1AutoTransformBuilder;
 /// use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 ///
 /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
 /// let mut output = vec![0u8; bc1_data.len()];
 /// let estimator = LosslessTransformUtilsSizeEstimation::new();
 ///
-/// let _transform_details = Bc1EstimateSettingsBuilder::new()
+/// let _transform_details = Bc1AutoTransformBuilder::new()
 ///     .use_all_decorrelation_modes(false)
 ///     .build_and_transform(&bc1_data, &mut output, estimator).unwrap();
 /// ```

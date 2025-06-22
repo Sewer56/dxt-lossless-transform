@@ -1,18 +1,24 @@
-//! Builder pattern implementation for BC1 estimate settings.
+//! Builder pattern implementation for BC1 automatic transform optimization.
 
 use crate::Bc1Error;
 use crate::transform::transform_bc1_auto;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_bc1::{Bc1EstimateSettings, Bc1TransformSettings};
 
-/// Builder for BC1 estimate settings with convenient configuration methods.
+/// Automatic BC1 transform optimization builder.
+///
+/// Uses a size estimator to automatically determine the best transform settings
+/// for optimal compression. Ideal when you want the best compression without
+/// manual tuning.
+///
+/// For manual control over transform parameters, use [`crate::Bc1ManualTransformBuilder`].
 #[derive(Debug, Clone, Copy)]
-pub struct Bc1EstimateSettingsBuilder {
+pub struct Bc1AutoTransformBuilder {
     use_all_decorrelation_modes: Option<bool>,
 }
 
-impl Bc1EstimateSettingsBuilder {
-    /// Create a new settings builder.
+impl Bc1AutoTransformBuilder {
+    /// Create a new automatic transform builder.
     pub fn new() -> Self {
         Self {
             use_all_decorrelation_modes: None,
@@ -74,7 +80,7 @@ impl Bc1EstimateSettingsBuilder {
     }
 }
 
-impl Default for Bc1EstimateSettingsBuilder {
+impl Default for Bc1AutoTransformBuilder {
     fn default() -> Self {
         Self::new()
     }
@@ -108,8 +114,8 @@ mod tests {
     }
 
     #[test]
-    fn test_estimate_settings_builder() {
-        let settings = Bc1EstimateSettingsBuilder::new()
+    fn test_auto_transform_builder() {
+        let settings = Bc1AutoTransformBuilder::new()
             .use_all_decorrelation_modes(true)
             .build(DummyEstimator);
 
@@ -117,7 +123,7 @@ mod tests {
     }
 
     #[test]
-    fn test_estimate_settings_builder_build_and_transform() {
+    fn test_auto_transform_builder_build_and_transform() {
         // Create minimal BC1 block data (8 bytes per block)
         let bc1_data = [
             0x00, 0xF8, // Color0: Red in RGB565 (0xF800)
@@ -126,7 +132,7 @@ mod tests {
         ];
         let mut output = [0u8; 8];
 
-        let result = Bc1EstimateSettingsBuilder::new()
+        let result = Bc1AutoTransformBuilder::new()
             .use_all_decorrelation_modes(false)
             .build_and_transform(&bc1_data, &mut output, DummyEstimator);
 

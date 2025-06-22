@@ -36,8 +36,13 @@ use core::slice;
 ///
 /// **⚠️ ABI Instability Warning**: This function accepts ABI-unstable structures
 /// which may change between library versions. For production use, prefer
-/// [`super::super::transform_settings_builder::dltbc1_TransformSettingsBuilder_Transform`]
+/// [`super::super::manual_transform_builder::dltbc1_TransformSettingsBuilder_Transform`]
 /// which provides ABI stability and builder pattern convenience.
+///
+/// **Prefer the ABI-stable builder:** This function provides direct access but may have
+/// breaking changes. Consider using
+/// [`super::super::manual_transform_builder::dltbc1_ManualTransformBuilder_build_and_transform`]
+/// which provides ABI stability and convenient configuration methods.
 ///
 /// # Recommended Alternative
 ///
@@ -121,7 +126,12 @@ pub unsafe extern "C" fn dltbc1_unstable_transform(
 ///
 /// **⚠️ ABI Instability Warning**: This function accepts ABI-unstable structures
 /// which may change between library versions. For production use, prefer
-/// [`super::super::transform_settings_builder::dltbc1_TransformSettingsBuilder_Untransform`]
+/// [`super::super::manual_transform_builder::dltbc1_TransformSettingsBuilder_Untransform`]
+/// which provides ABI stability.
+///
+/// **Prefer the ABI-stable builder:** This function provides direct access but may have
+/// breaking changes. Consider using
+/// [`super::super::manual_transform_builder::dltbc1_ManualTransformBuilder_build_and_untransform`]
 /// which provides ABI stability.
 ///
 /// # Recommended Alternative

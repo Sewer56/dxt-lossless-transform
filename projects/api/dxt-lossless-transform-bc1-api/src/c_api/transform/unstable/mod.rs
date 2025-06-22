@@ -1,32 +1,20 @@
-//! ABI-unstable BC1 transform functions for C API.
+//! Unstable BC1 transform C API functions.
 //!
-//! **⚠️ ABI Instability Warning**: All functions in this module accept ABI-unstable
-//! structures which may change between versions without major version bumps.
-//! Function signatures and struct layouts are subject to change as the library evolves.
-//!
-//! ## Why Use These Functions?
-//!
-//! These functions provide maximum performance by avoiding builder pattern overhead
-//! and allowing direct struct manipulation. They are ideal for performance-critical
-//! inner loops where every allocation and function call matters.
-//!
-//! ## Why Are They Unstable?
-//!
-//! The C structs and function signatures may evolve as new transform options
-//! are added or existing ones are modified. This allows the library to improve
-//! without being constrained by ABI backwards compatibility.
-//!
-//! ## Recommended Alternative
+//! **⚠️ ABI Instability Warning**: All functions in this module may have breaking changes
+//! between library versions without major version bumps. These functions accept
+//! structs directly for maximum performance but sacrifice ABI stability.
 //!
 //! For production code, use the ABI-stable builder patterns instead:
-//! - [`super::estimate_settings_builder`] for automatic optimization
-//! - [`super::transform_settings_builder`] for manual configuration
+//! - [`super::auto_transform_builder`] for automatic optimization
+//! - [`super::manual_transform_builder`] for manual configuration
 //!
 //! ## Migration Path
 //!
-//! If you're using these functions and experience breaking changes:
-//! 1. Update your code to use the new signatures, or
-//! 2. Switch to the stable builder patterns for long-term compatibility
+//! If you're currently using these unstable functions and want to migrate to stable APIs:
+//!
+//! - Replace direct calls with builder patterns from the parent modules
+//! - The stable APIs provide the same functionality with guaranteed ABI compatibility
+//! - Performance difference is minimal in most use cases
 
 // Individual modules for different functionality
 pub mod transform_auto;

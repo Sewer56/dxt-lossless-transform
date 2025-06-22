@@ -64,8 +64,13 @@ pub struct Dltbc1AutoTransformSettings {
 ///
 /// **⚠️ ABI Instability Warning**: This function accepts and returns ABI-unstable structures
 /// which may change between library versions. For production use,
-/// [`super::super::estimate_settings_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform`]
+/// [`super::super::auto_transform_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform`]
 /// is strongly recommended as it guarantees better ABI stability across library versions.
+///
+/// **Prefer the ABI-stable builder:** This function provides direct access but may have
+/// breaking changes. Consider using
+/// [`super::super::auto_transform_builder::dltbc1_AutoTransformBuilder_build_and_transform_with_zstd_estimator`]
+/// which provides ABI stability and the same functionality.
 ///
 /// # Recommended Alternative
 ///

@@ -2,7 +2,7 @@
 //!
 //! **⚠️ ABI Instability Warning**: These functions may have breaking changes between
 //! library versions without major version bumps. For production use, consider
-//! [`crate::Bc1TransformSettingsBuilder`] which provides a stable interface.
+//! [`crate::Bc1ManualTransformBuilder`] which provides a stable interface.
 //!
 //! This module provides functions to transform and untransform BC1 data using specific
 //! transform settings without automatic optimization.
@@ -54,19 +54,19 @@ use dxt_lossless_transform_bc1::{
 ///
 /// **⚠️ ABI Instability Warning**: This function accepts ABI-unstable structures
 /// which may change between library versions. For production use, prefer
-/// [`crate::Bc1TransformSettingsBuilder`] which provides ABI stability and
+/// [`crate::Bc1ManualTransformBuilder`] which provides ABI stability and
 /// builder pattern convenience.
 ///
 /// # Recommended Alternative
 ///
 /// ```
-/// use dxt_lossless_transform_bc1_api::Bc1TransformSettingsBuilder;
+/// use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
 /// use dxt_lossless_transform_bc1_api::YCoCgVariant;
 ///
 /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
 /// let mut output = vec![0u8; bc1_data.len()];
 ///
-/// Bc1TransformSettingsBuilder::new()
+/// Bc1ManualTransformBuilder::new()
 ///     .decorrelation_mode(YCoCgVariant::Variant1)
 ///     .split_colour_endpoints(true)
 ///     .build_and_transform(&bc1_data, &mut output).unwrap();
@@ -152,19 +152,19 @@ pub fn transform_bc1_with_settings(
 ///
 /// **⚠️ ABI Instability Warning**: This function accepts ABI-unstable structures
 /// which may change between library versions. For production use, prefer
-/// [`crate::Bc1TransformSettingsBuilder`] which provides ABI stability.
+/// [`crate::Bc1ManualTransformBuilder`] which provides ABI stability.
 ///
 /// # Recommended Alternative
 ///
 /// ```
-/// use dxt_lossless_transform_bc1_api::Bc1TransformSettingsBuilder;
+/// use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
 /// use dxt_lossless_transform_bc1_api::YCoCgVariant;
 ///
 /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
 /// let mut transformed = vec![0u8; bc1_data.len()];
 /// let mut restored = vec![0u8; bc1_data.len()];
 ///
-/// let builder = Bc1TransformSettingsBuilder::new()
+/// let builder = Bc1ManualTransformBuilder::new()
 ///     .decorrelation_mode(YCoCgVariant::Variant1)
 ///     .split_colour_endpoints(true);
 ///

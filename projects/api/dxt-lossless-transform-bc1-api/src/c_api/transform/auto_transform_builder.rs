@@ -5,10 +5,10 @@
 
 use crate::c_api::Dltbc1TransformSettings;
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
-use crate::c_api::transform::transform_settings_builder::{
-    Dltbc1TransformSettingsBuilder, Dltbc1TransformSettingsBuilderInner,
+use crate::c_api::transform::manual_transform_builder::{
+    Dltbc1TransformSettingsBuilder, get_settings_builder_mut,
 };
-use crate::transform::Bc1TransformSettingsBuilder;
+use crate::transform::Bc1ManualTransformBuilder;
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 
 /// Internal structure holding the actual builder data.
@@ -177,21 +177,10 @@ pub unsafe extern "C" fn dltbc1_EstimateSettingsBuilder_BuildAndTransform(
     if result.is_success() {
         let builder_inner = unsafe { get_settings_builder_mut(settings_builder) };
         // Update the builder with the transform details
-        builder_inner.builder = Bc1TransformSettingsBuilder::new()
+        builder_inner.builder = Bc1ManualTransformBuilder::new()
             .decorrelation_mode(transform_details.decorrelation_mode.to_internal_variant())
             .split_colour_endpoints(transform_details.split_colour_endpoints);
     }
 
     result
-}
-
-/// Get mutable access to the inner transform settings builder.
-///
-/// # Safety
-/// - `builder` must be a valid pointer to a [`Dltbc1TransformSettingsBuilder`]
-unsafe fn get_settings_builder_mut(
-    builder: *mut Dltbc1TransformSettingsBuilder,
-) -> &'static mut Dltbc1TransformSettingsBuilderInner {
-    debug_assert!(!builder.is_null());
-    unsafe { &mut *(builder as *mut Dltbc1TransformSettingsBuilderInner) }
 }

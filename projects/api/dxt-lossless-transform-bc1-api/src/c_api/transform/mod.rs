@@ -1,25 +1,23 @@
-//! Transform-related C API functions for BC1 operations.
+//! C API bindings for BC1 transform operations.
 //!
-//! This module contains several submodules providing different approaches to BC1 transformation.
-//! For maximum compatibility and future-proofing, **use the ABI-stable builder patterns**
-//! rather than direct transform functions.
+//! This module provides C-compatible FFI exports for BC1 transform functionality with a focus
+//! on ABI stability and ease of use from C/C++ code.
 //!
-//! ## ABI-Stable Modules (Recommended for Production)
+//! ## Builder Modules (ABI-Stable)
 //!
-//! - [`estimate_settings_builder`] - Builder pattern for automatic optimization settings
-//! - [`transform_settings_builder`] - Builder pattern for manual transform configuration  
+//! - [`auto_transform_builder`] - Builder pattern for automatic optimization settings
+//! - [`manual_transform_builder`] - Builder pattern for manual transform configuration
 //!
-//! ## ABI-Unstable Module (Maximum Performance)
+//! ## Unstable Functions (ABI-Unstable)
 //!
-//! - [`unstable`] - Direct transformation with unstable structs for performance-critical scenarios
+//! For advanced users requiring maximum performance, see the [`unstable`] module.
+//! These functions may have breaking changes between versions without major version bumps.
 //!
-//! **Recommendation**: Use the ABI-stable modules for production code to ensure
-//! compatibility across library versions. The ABI-unstable module is provided for
-//! performance-critical scenarios where you can accept potential breaking changes.
+//! **Production code should use the ABI-stable builder patterns above.**
 
-// ABI-stable modules (recommended for production)
-pub mod estimate_settings_builder;
-pub mod transform_settings_builder;
+// Builder modules (stable, recommended)
+pub mod auto_transform_builder;
+pub mod manual_transform_builder;
 
-// ABI-unstable modules (advanced users only)
+// Unstable direct functions (advanced users only)
 pub mod unstable;

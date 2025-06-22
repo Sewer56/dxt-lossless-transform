@@ -39,14 +39,14 @@ pub struct Dltbc1TransformSettingsBuilder {
 
 /// Internal representation of the transform settings builder
 pub(crate) struct Dltbc1TransformSettingsBuilderInner {
-    pub(crate) builder: crate::transform::Bc1TransformSettingsBuilder,
+    pub(crate) builder: crate::transform::Bc1ManualTransformBuilder,
 }
 
 /// Get mutable access to the inner transform settings builder.
 ///
 /// # Safety
 /// - `builder` must be a valid pointer to a [`Dltbc1TransformSettingsBuilder`]
-unsafe fn get_settings_builder_mut(
+pub(crate) unsafe fn get_settings_builder_mut(
     builder: *mut Dltbc1TransformSettingsBuilder,
 ) -> &'static mut Dltbc1TransformSettingsBuilderInner {
     debug_assert!(!builder.is_null());
@@ -66,7 +66,7 @@ unsafe fn get_settings_builder_mut(
 #[unsafe(no_mangle)]
 pub extern "C" fn dltbc1_new_TransformSettingsBuilder() -> *mut Dltbc1TransformSettingsBuilder {
     let inner = Box::new(Dltbc1TransformSettingsBuilderInner {
-        builder: crate::transform::Bc1TransformSettingsBuilder::new(),
+        builder: crate::transform::Bc1ManualTransformBuilder::new(),
     });
 
     Box::into_raw(inner) as *mut Dltbc1TransformSettingsBuilder
@@ -131,9 +131,9 @@ pub unsafe extern "C" fn dltbc1_clone_TransformSettingsBuilder(
 /// it's recommended to use a compression level on the estimator (e.g., ZStandard estimator)
 /// closer to your final compression level instead.
 ///
-/// For automatic optimization, consider using [`dltbc1_EstimateSettingsBuilder_BuildAndTransform`] instead.
+/// For automatic optimization, consider using [`super::auto_transform_builder::dltbc1_AutoTransformBuilder_build_and_transform_with_zstd_estimator`] instead.
 ///
-/// [`dltbc1_EstimateSettingsBuilder_BuildAndTransform`]: super::estimate_settings_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform
+/// [`super::auto_transform_builder::dltbc1_AutoTransformBuilder_build_and_transform_with_zstd_estimator`]: super::auto_transform_builder::dltbc1_AutoTransformBuilder_build_and_transform_with_zstd_estimator
 ///
 /// # Parameters
 /// - `builder`: The BC1 settings builder to modify
@@ -161,9 +161,9 @@ pub unsafe extern "C" fn dltbc1_TransformSettingsBuilder_SetDecorrelationMode(
 ///
 /// **File Size**: This setting reduces file size around 78% of the time.
 ///
-/// For automatic optimization, consider using [`dltbc1_EstimateSettingsBuilder_BuildAndTransform`] instead.
+/// For automatic optimization, consider using [`super::auto_transform_builder::dltbc1_AutoTransformBuilder_build_and_transform_with_zstd_estimator`] instead.
 ///
-/// [`dltbc1_EstimateSettingsBuilder_BuildAndTransform`]: super::estimate_settings_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform
+/// [`super::auto_transform_builder::dltbc1_AutoTransformBuilder_build_and_transform_with_zstd_estimator`]: super::auto_transform_builder::dltbc1_AutoTransformBuilder_build_and_transform_with_zstd_estimator
 ///
 /// # Parameters
 /// - `builder`: The BC1 settings builder to modify
@@ -200,7 +200,7 @@ pub unsafe extern "C" fn dltbc1_TransformSettingsBuilder_ResetToDefaults(
     }
 
     let inner = unsafe { get_settings_builder_mut(builder) };
-    inner.builder = crate::transform::Bc1TransformSettingsBuilder::new();
+    inner.builder = crate::transform::Bc1ManualTransformBuilder::new();
 }
 
 // =============================================================================

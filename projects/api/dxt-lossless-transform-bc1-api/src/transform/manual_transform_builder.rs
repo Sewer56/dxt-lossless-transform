@@ -1,19 +1,25 @@
-//! Builder pattern implementation for BC1 transform settings.
+//! Builder pattern implementation for BC1 manual transform configuration.
 
 use crate::Bc1Error;
 use crate::transform::{transform_bc1_with_settings, untransform_bc1_with_settings};
 use dxt_lossless_transform_bc1::Bc1TransformSettings;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
-/// Builder for BC1 transform options with convenient configuration methods.
+/// Manual BC1 transform configuration builder.
+///
+/// Allows precise control over transform parameters like decorrelation mode
+/// and color endpoint splitting. Ideal when you know what settings work
+/// best for your specific use case.
+///
+/// For automatic optimization, use [`crate::Bc1AutoTransformBuilder`].
 #[derive(Debug, Clone, Copy)]
-pub struct Bc1TransformSettingsBuilder {
+pub struct Bc1ManualTransformBuilder {
     decorrelation_mode: Option<YCoCgVariant>,
     split_colour_endpoints: Option<bool>,
 }
 
-impl Bc1TransformSettingsBuilder {
-    /// Create a new transform options builder.
+impl Bc1ManualTransformBuilder {
+    /// Create a new manual transform builder.
     pub fn new() -> Self {
         Self {
             decorrelation_mode: None,
@@ -31,9 +37,7 @@ impl Bc1TransformSettingsBuilder {
     /// it's recommended to use a compression level on the estimator (e.g., ZStandard estimator)
     /// closer to your final compression level instead.
     ///
-    /// For automatic optimization, consider using [`transform_bc1_auto`] instead.
-    ///
-    /// [`transform_bc1_auto`]: crate::transform_bc1_auto
+    /// For automatic optimization, consider using [`crate::Bc1AutoTransformBuilder`] instead.
     pub fn decorrelation_mode(mut self, mode: YCoCgVariant) -> Self {
         self.decorrelation_mode = Some(mode);
         self
@@ -46,9 +50,7 @@ impl Bc1TransformSettingsBuilder {
     ///
     /// **File Size**: This setting reduces file size around 78% of the time.
     ///
-    /// For automatic optimization, consider using [`transform_bc1_auto`] instead.
-    ///
-    /// [`transform_bc1_auto`]: crate::transform_bc1_auto
+    /// For automatic optimization, consider using [`crate::Bc1AutoTransformBuilder`] instead.
     pub fn split_colour_endpoints(mut self, split: bool) -> Self {
         self.split_colour_endpoints = Some(split);
         self
@@ -80,13 +82,13 @@ impl Bc1TransformSettingsBuilder {
     /// # Examples
     ///
     /// ```ignore
-    /// use dxt_lossless_transform_bc1_api::Bc1TransformSettingsBuilder;
+    /// use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
     /// use dxt_lossless_transform_common::color_565::YCoCgVariant;
     ///
     /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
     /// let mut output = vec![0u8; 8];
     ///
-    /// Bc1TransformSettingsBuilder::new()
+    /// Bc1ManualTransformBuilder::new()
     ///     .decorrelation_mode(YCoCgVariant::Variant1)
     ///     .split_colour_endpoints(true)
     ///     .build_and_transform(&bc1_data, &mut output)?;
@@ -114,13 +116,13 @@ impl Bc1TransformSettingsBuilder {
     /// # Examples
     ///
     /// ```ignore
-    /// use dxt_lossless_transform_bc1_api::Bc1TransformSettingsBuilder;
+    /// use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
     /// use dxt_lossless_transform_common::color_565::YCoCgVariant;
     ///
     /// let transformed_data = vec![0u8; 8]; // 1 transformed BC1 block
     /// let mut output = vec![0u8; 8];
     ///
-    /// Bc1TransformSettingsBuilder::new()
+    /// Bc1ManualTransformBuilder::new()
     ///     .decorrelation_mode(YCoCgVariant::Variant1)
     ///     .split_colour_endpoints(true)
     ///     .build_and_untransform(&transformed_data, &mut output)?;
@@ -132,7 +134,7 @@ impl Bc1TransformSettingsBuilder {
     }
 }
 
-impl Default for Bc1TransformSettingsBuilder {
+impl Default for Bc1ManualTransformBuilder {
     fn default() -> Self {
         Self::new()
     }
@@ -143,8 +145,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_transform_settings_builder() {
-        let settings = Bc1TransformSettingsBuilder::new()
+    fn test_manual_transform_builder() {
+        let settings = Bc1ManualTransformBuilder::new()
             .decorrelation_mode(YCoCgVariant::None)
             .split_colour_endpoints(false)
             .build();
@@ -154,15 +156,15 @@ mod tests {
     }
 
     #[test]
-    fn test_transform_settings_builder_defaults() {
-        let settings = Bc1TransformSettingsBuilder::new().build();
+    fn test_manual_transform_builder_defaults() {
+        let settings = Bc1ManualTransformBuilder::new().build();
 
         assert_eq!(settings.decorrelation_mode, YCoCgVariant::Variant1);
         assert!(settings.split_colour_endpoints);
     }
 
     #[test]
-    fn test_transform_settings_builder_build_and_transform() {
+    fn test_manual_transform_builder_build_and_transform() {
         // Create minimal BC1 block data (8 bytes per block)
         let bc1_data = [
             0x00, 0xF8, // Color0: Red in RGB565 (0xF800)
@@ -171,7 +173,7 @@ mod tests {
         ];
         let mut output = [0u8; 8];
 
-        let result = Bc1TransformSettingsBuilder::new()
+        let result = Bc1ManualTransformBuilder::new()
             .decorrelation_mode(YCoCgVariant::Variant1)
             .split_colour_endpoints(true)
             .build_and_transform(&bc1_data, &mut output);
@@ -183,7 +185,7 @@ mod tests {
     }
 
     #[test]
-    fn test_transform_settings_builder_build_and_untransform() {
+    fn test_manual_transform_builder_build_and_untransform() {
         // First transform some data
         let bc1_data = [
             0x00, 0xF8, // Color0: Red in RGB565 (0xF800)
@@ -193,7 +195,7 @@ mod tests {
         let mut transformed = [0u8; 8];
         let mut restored = [0u8; 8];
 
-        let builder = Bc1TransformSettingsBuilder::new()
+        let builder = Bc1ManualTransformBuilder::new()
             .decorrelation_mode(YCoCgVariant::Variant1)
             .split_colour_endpoints(true);
 

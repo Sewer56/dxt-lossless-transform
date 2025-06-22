@@ -1,4 +1,13 @@
-//! ABI-unstable BC1 transform functions.
+//! Unstable BC1 transform API
+//!
+//! This module provides direct access to BC1 transform functions without the ABI stability
+//! guarantees of the builder patterns. These functions offer maximum performance but may
+//! have breaking changes in future versions.
+//!
+//! **For most use cases, prefer the stable builder API:**
+//!
+//! - [`crate::Bc1AutoTransformBuilder`] for automatic optimization
+//! - [`crate::Bc1ManualTransformBuilder`] for manual configuration
 //!
 //! **⚠️ ABI Instability Warning**: All functions in this module may have breaking changes
 //! between library versions without major version bumps. The structures and function
@@ -19,8 +28,8 @@
 //! ## Recommended Alternative
 //!
 //! For production code, use the ABI-stable builder patterns instead:
-//! - [`crate::Bc1EstimateSettingsBuilder`] for automatic optimization
-//! - [`crate::Bc1TransformSettingsBuilder`] for manual configuration
+//! - [`crate::Bc1AutoTransformBuilder`] for automatic optimization
+//! - [`crate::Bc1ManualTransformBuilder`] for manual configuration
 //!
 //! ## Migration Path
 //!

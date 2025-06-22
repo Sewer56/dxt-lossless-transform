@@ -6,10 +6,13 @@
 use dxt_lossless_transform_api_common::estimate::DataType;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
-/// The information about the BC1 transform that was just performed.
-/// Each item transformed via [`crate::transform_bc1_with_settings`] will produce an instance of this struct.
-/// To undo the transform, you'll need to pass [`Bc1DetransformSettings`] to [`crate::untransform_bc1_with_settings`],
-/// which can be obtained from this struct using the `into` method.
+/// Settings for BC1 transform and detransform operations.
+///
+/// This struct contains the configuration for both transforming and detransforming BC1 data.
+/// Each item transformed via [`crate::transform_bc1_with_settings`] will use an instance of this struct.
+/// To undo the transform, pass the same settings to [`crate::untransform_bc1_with_settings`].
+///
+/// Note that color normalization is a preprocessing step that doesn't need to be reversed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Bc1TransformSettings {
     /// The decorrelation mode that was used to decorrelate the colors.
@@ -24,41 +27,11 @@ pub struct Bc1TransformSettings {
     pub split_colour_endpoints: bool,
 }
 
-/// Settings required to detransform BC1 data.
+/// Type alias for backward compatibility.
 ///
-/// This struct contains only the information needed to reverse the transform operation.
-/// Note that color normalization is a preprocessing step that doesn't need to be reversed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Bc1DetransformSettings {
-    /// The decorrelation mode that was used to decorrelate the colors.
-    pub decorrelation_mode: YCoCgVariant,
-
-    /// Whether or not the colour endpoints are to be split or not.
-    ///
-    /// This setting controls whether BC1 texture color endpoints are separated during processing,
-    /// which can improve compression efficiency for many textures.
-    ///
-    /// **File Size**: This setting reduces file size around 78% of the time.
-    pub split_colour_endpoints: bool,
-}
-
-impl From<Bc1TransformSettings> for Bc1DetransformSettings {
-    fn from(transform_settings: Bc1TransformSettings) -> Self {
-        Self {
-            decorrelation_mode: transform_settings.decorrelation_mode,
-            split_colour_endpoints: transform_settings.split_colour_endpoints,
-        }
-    }
-}
-
-impl Default for Bc1DetransformSettings {
-    fn default() -> Self {
-        Self {
-            decorrelation_mode: YCoCgVariant::Variant1,
-            split_colour_endpoints: true,
-        }
-    }
-}
+/// [`Bc1DetransformSettings`] is now unified with [`Bc1TransformSettings`] since they were
+/// structurally identical. Use [`Bc1TransformSettings`] for both transform and detransform operations.
+pub type Bc1DetransformSettings = Bc1TransformSettings;
 
 impl Default for Bc1TransformSettings {
     fn default() -> Self {

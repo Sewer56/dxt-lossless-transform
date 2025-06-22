@@ -33,13 +33,16 @@
 //! [`is_dds`]: crate::dds::is_dds
 
 pub mod bc1;
+pub mod file_handler;
 
-// Re-export the functions from BC1 module
+// Re-export the functions from BC1 module for backward compatibility
 pub use bc1::{embed_bc1_details, unembed_bc1_details};
 
-// Re-export types from the API crate
-pub use dxt_lossless_transform_api_common::embed::{EmbedError, TransformHeader};
-pub use dxt_lossless_transform_bc1_api::embed::EmbeddableBc1Details;
+// Re-export the new file handler and filter
+pub use file_handler::{DdsFormatFilter, DdsHandler};
 
-// Re-export transform details from the BC1 transform crate
+// Re-export types from the API crates
+pub use dxt_lossless_transform_api_common::embed::{EmbedError, TransformHeader};
+
+// Re-export BC1 types for backward compatibility
 pub use dxt_lossless_transform_bc1::Bc1DetransformDetails;

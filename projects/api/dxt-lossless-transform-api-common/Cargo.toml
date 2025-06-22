@@ -23,6 +23,9 @@ safe-allocator-api = "0.4.0"
 # For bitfield manipulation in embed headers
 bitfield = "0.19.1"
 
+# For error handling with automatic Display derivation
+thiserror = "2.0.0"
+
 [features]
 default = ["std"]
 # Enable use of standard library, currently a no-op.

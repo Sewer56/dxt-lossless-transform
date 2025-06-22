@@ -1,0 +1,64 @@
+[package]
+name = "dxt-lossless-transform-api-fileformats"
+version = "0.1.0"
+edition = "2021"
+readme = "README.MD"
+description = "High-level file format API for DXT lossless transforms with file format integration"
+repository.workspace = true
+license-file.workspace = true
+include = ["src/**/*"]
+
+# Documentation configuration for docs.rs
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[features]
+default = ["std"]
+std = [
+    "dxt-lossless-transform-api-common/std",
+    "dxt-lossless-transform-bc1-api/std",
+    "dxt-lossless-transform-common/std"
+]
+# Use CPU features selected at compile time.
+no-runtime-cpu-detection = [
+    "dxt-lossless-transform-bc1-api/no-runtime-cpu-detection",
+    "dxt-lossless-transform-common/no-runtime-cpu-detection"
+]
+# Use nightly compiler features
+nightly = [
+    "dxt-lossless-transform-api-common/nightly",
+    "dxt-lossless-transform-bc1-api/nightly",
+    "dxt-lossless-transform-common/nightly"
+]
+
+[dependencies]
+# Core embedding infrastructure from stable API
+dxt-lossless-transform-api-common = { path = "../dxt-lossless-transform-api-common" }
+
+# Transform APIs for each format
+dxt-lossless-transform-bc1-api = { path = "../dxt-lossless-transform-bc1-api" }
+dxt-lossless-transform-bc2-api = { path = "../dxt-lossless-transform-bc2-api" }
+dxt-lossless-transform-bc3-api = { path = "../dxt-lossless-transform-bc3-api" }
+dxt-lossless-transform-bc7-api = { path = "../dxt-lossless-transform-bc7-api" }
+
+# Core transform libraries
+dxt-lossless-transform-bc1 = { path = "../../core/dxt-lossless-transform-bc1" }
+
+# Common utilities
+dxt-lossless-transform-common = { path = "../../core/dxt-lossless-transform-common" }
+
+# Error handling
+thiserror = "2.0.12"
+
+# Parallel processing
+rayon = "1.10.0"
+
+# Bitfield manipulation
+bitfield = "0.19.1"
+
+# File system operations
+lightweight-mmap = "0.6.0"
+
+[dev-dependencies]
+dxt-lossless-transform-ltu = { path = "../../extensions/dxt-lossless-transform-ltu" } 

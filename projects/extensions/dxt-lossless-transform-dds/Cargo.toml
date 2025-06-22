@@ -18,6 +18,7 @@ bench = false
 
 [features]
 default = ["std"]
+# Enable use of standard library.
 std = []
 # Compiles the public C API for the crate.
 c-exports = []
@@ -25,11 +26,17 @@ c-exports = []
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# Core bitfield manipulation
 bitfield = "0.19.1"
+
+# Core embedding infrastructure
+dxt-lossless-transform-api-common = { path = "../../api/dxt-lossless-transform-api-common" }
+dxt-lossless-transform-api-fileformats = { path = "../../api/dxt-lossless-transform-api-fileformats" }
+
+# Transform APIs and core libraries
+dxt-lossless-transform-bc1-api = { path = "../../api/dxt-lossless-transform-bc1-api" }
 dxt-lossless-transform-bc1 = { path = "../../core/dxt-lossless-transform-bc1" }
 dxt-lossless-transform-common = { path = "../../core/dxt-lossless-transform-common" }
-dxt-lossless-transform-api-common = { path = "../../api/dxt-lossless-transform-api-common" }
-dxt-lossless-transform-bc1-api = { path = "../../api/dxt-lossless-transform-bc1-api" }
 
 [dev-dependencies]
 criterion = "0.5.1"

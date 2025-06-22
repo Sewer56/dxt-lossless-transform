@@ -13,10 +13,6 @@ pub use crate::{transform_bc1_with_settings, Bc1TransformSettings};
 // Common types from dxt_lossless_transform_api_common
 pub use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
 
-// Experimental features commonly tested
-#[cfg(feature = "experimental")]
-pub use crate::experimental::normalize_blocks::*;
-
 // Common types from dxt_lossless_transform_common
 pub use dxt_lossless_transform_common::color_565::YCoCgVariant;
 pub use dxt_lossless_transform_common::color_8888::Color8888;

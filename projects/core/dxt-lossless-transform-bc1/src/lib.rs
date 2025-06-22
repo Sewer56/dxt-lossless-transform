@@ -24,4 +24,4 @@ pub use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
 /// Common test prelude for avoiding duplicate imports in test modules
 #[cfg(test)]
-pub(crate) mod test_prelude;
+pub mod test_prelude;

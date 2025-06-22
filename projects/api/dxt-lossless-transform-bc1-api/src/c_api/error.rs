@@ -2,6 +2,9 @@
 
 use crate::error::Bc1Error;
 use core::ffi::c_char;
+use dxt_lossless_transform_bc1::{
+    Bc1AutoTransformError, Bc1ValidationError, DetermineBestTransformError,
+};
 
 /// C-compatible error codes for BC1 operations.
 #[repr(C)]
@@ -63,16 +66,56 @@ impl<T> From<Result<T, Bc1Error>> for Dltbc1Result {
     fn from(result: Result<T, Bc1Error>) -> Self {
         match result {
             Ok(_) => Self::success(),
-            Err(e) => {
-                let error_code = match e {
-                    Bc1Error::InvalidLength(_) => Dltbc1ErrorCode::InvalidLength,
-                    Bc1Error::OutputBufferTooSmall { .. } => Dltbc1ErrorCode::OutputBufferTooSmall,
-                    Bc1Error::AllocationFailed(_) => Dltbc1ErrorCode::AllocationFailed,
-                    Bc1Error::SizeEstimationFailed(_) => Dltbc1ErrorCode::SizeEstimationFailed,
-                };
-                Self::from_error_code(error_code)
-            }
+            Err(e) => e.into(),
         }
+    }
+}
+
+impl<E> From<Bc1Error<E>> for Dltbc1Result
+where
+    E: core::fmt::Debug,
+{
+    fn from(error: Bc1Error<E>) -> Self {
+        let error_code = match error {
+            Bc1Error::InvalidLength(_) => Dltbc1ErrorCode::InvalidLength,
+            Bc1Error::OutputBufferTooSmall { .. } => Dltbc1ErrorCode::OutputBufferTooSmall,
+            Bc1Error::AllocationFailed(_) => Dltbc1ErrorCode::AllocationFailed,
+            Bc1Error::SizeEstimationFailed(_) => Dltbc1ErrorCode::SizeEstimationFailed,
+        };
+        Self::from_error_code(error_code)
+    }
+}
+
+impl From<Bc1ValidationError> for Dltbc1Result {
+    fn from(error: Bc1ValidationError) -> Self {
+        let error_code = match error {
+            Bc1ValidationError::InvalidLength(_) => Dltbc1ErrorCode::InvalidLength,
+            Bc1ValidationError::OutputBufferTooSmall { .. } => {
+                Dltbc1ErrorCode::OutputBufferTooSmall
+            }
+        };
+        Self::from_error_code(error_code)
+    }
+}
+
+impl<E> From<Bc1AutoTransformError<E>> for Dltbc1Result
+where
+    E: core::fmt::Debug,
+{
+    fn from(error: Bc1AutoTransformError<E>) -> Self {
+        let error_code = match error {
+            Bc1AutoTransformError::InvalidLength(_) => Dltbc1ErrorCode::InvalidLength,
+            Bc1AutoTransformError::OutputBufferTooSmall { .. } => {
+                Dltbc1ErrorCode::OutputBufferTooSmall
+            }
+            Bc1AutoTransformError::DetermineBestTransform(inner) => match inner {
+                DetermineBestTransformError::SizeEstimationError(_) => {
+                    Dltbc1ErrorCode::SizeEstimationFailed
+                }
+                DetermineBestTransformError::AllocateError(_) => Dltbc1ErrorCode::AllocationFailed,
+            },
+        };
+        Self::from_error_code(error_code)
     }
 }
 

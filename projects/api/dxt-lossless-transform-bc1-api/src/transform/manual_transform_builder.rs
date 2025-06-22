@@ -1,8 +1,9 @@
 //! Builder pattern implementation for BC1 manual transform configuration.
 
 use crate::Bc1Error;
-use crate::transform::{transform_bc1_with_settings, untransform_bc1_with_settings};
-use dxt_lossless_transform_bc1::Bc1TransformSettings;
+use dxt_lossless_transform_bc1::{
+    Bc1TransformSettings, transform_bc1_with_settings_safe, untransform_bc1_with_settings_safe,
+};
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
 /// Manual BC1 transform configuration builder.
@@ -95,7 +96,7 @@ impl Bc1ManualTransformBuilder {
     /// ```
     pub fn build_and_transform(self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
         let settings = self.build();
-        transform_bc1_with_settings(input, output, settings)
+        transform_bc1_with_settings_safe(input, output, settings).map_err(Bc1Error::from)
     }
 
     /// Build the transform settings and untransform BC1 data in one operation.
@@ -130,7 +131,8 @@ impl Bc1ManualTransformBuilder {
     pub fn build_and_untransform(self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
         let settings = self.build();
         let detransform_settings = settings.into();
-        untransform_bc1_with_settings(input, output, detransform_settings)
+        untransform_bc1_with_settings_safe(input, output, detransform_settings)
+            .map_err(Bc1Error::from)
     }
 }
 

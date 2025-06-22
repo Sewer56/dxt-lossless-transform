@@ -8,11 +8,12 @@
 //! This module provides ABI-unstable functions for transforming and
 //! untransforming BC1 data using specific transform settings.
 
-use crate::Bc1Error;
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
 use crate::c_api::{Dltbc1DetransformSettings, Dltbc1TransformSettings};
-use crate::transform::unstable::{transform_bc1_with_settings, untransform_bc1_with_settings};
 use core::slice;
+use dxt_lossless_transform_bc1::{
+    transform_bc1_with_settings_safe, untransform_bc1_with_settings_safe,
+};
 
 // =============================================================================
 // ABI-Unstable Functions
@@ -83,27 +84,10 @@ pub unsafe extern "C" fn dltbc1_unstable_transform(
     // Convert FFI details to internal settings
     let settings = details.into();
 
-    // Perform the transformation
-    match transform_bc1_with_settings(input_slice, output_slice, settings) {
+    // Perform the transformation using core crate's safe function
+    match transform_bc1_with_settings_safe(input_slice, output_slice, settings) {
         Ok(()) => Dltbc1Result::success(),
-        Err(e) => {
-            // Map the error to error codes
-            match e {
-                Bc1Error::InvalidLength(_) => {
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::InvalidLength)
-                }
-                Bc1Error::OutputBufferTooSmall { .. } => {
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::OutputBufferTooSmall)
-                }
-                Bc1Error::AllocationFailed(_) => {
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::AllocationFailed)
-                }
-                Bc1Error::SizeEstimationFailed(_) => {
-                    // This shouldn't happen in transform_with_settings, but handle it anyway
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::SizeEstimationFailed)
-                }
-            }
-        }
+        Err(e) => e.into(),
     }
 }
 
@@ -165,26 +149,9 @@ pub unsafe extern "C" fn dltbc1_unstable_untransform(
     // Convert FFI details to internal settings
     let settings = details.into();
 
-    // Perform the untransformation
-    match untransform_bc1_with_settings(input_slice, output_slice, settings) {
+    // Perform the untransformation using core crate's safe function
+    match untransform_bc1_with_settings_safe(input_slice, output_slice, settings) {
         Ok(()) => Dltbc1Result::success(),
-        Err(e) => {
-            // Map the error to error codes
-            match e {
-                Bc1Error::InvalidLength(_) => {
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::InvalidLength)
-                }
-                Bc1Error::OutputBufferTooSmall { .. } => {
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::OutputBufferTooSmall)
-                }
-                Bc1Error::AllocationFailed(_) => {
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::AllocationFailed)
-                }
-                Bc1Error::SizeEstimationFailed(_) => {
-                    // This shouldn't happen in untransform_with_settings, but handle it anyway
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::SizeEstimationFailed)
-                }
-            }
-        }
+        Err(e) => e.into(),
     }
 }

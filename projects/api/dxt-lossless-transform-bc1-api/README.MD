@@ -94,12 +94,14 @@ they should be used for final publishing only alongside other brute force option
 - [`Bc1EstimateSettings`] - Automatic optimization settings
 - [`YCoCgVariant`] - Color decorrelation mode variants
 
-### Unstable API (Advanced Users)
+### Advanced API (Core Crate)
 
-**⚠️ ABI Instability Warning**: These functions may have breaking changes between versions without major version bumps.
+For advanced users who need direct access to transform functions:
 
-- [`transform_bc1_with_settings`] - Transform BC1 data with explicit settings (ABI-unstable)
-- [`untransform_bc1_with_settings`] - Untransform BC1 data with explicit settings (ABI-unstable)
+- **Core Crate Functions**: For ABI-unstable but safe slice-based functions, see `dxt-lossless-transform-bc1::transform::safe`
+- **Maximum Performance**: For unsafe pointer-based functions, see `dxt-lossless-transform-bc1::transform`
+
+**⚠️ Note**: Functions in the core crate may have breaking changes between versions. For production use, prefer the builder patterns above.
 
 ### Error Handling
 
@@ -120,7 +122,7 @@ When you know the optimal settings for your data, you can configure transforms m
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
 use dxt_lossless_transform_bc1_api::{
-    Bc1ManualTransformBuilder, transform_bc1_with_settings, untransform_bc1_with_settings, YCoCgVariant
+    Bc1ManualTransformBuilder, YCoCgVariant
 };
 
 let bc1_data = vec![0u8; 8 * 100]; // 100 BC1 blocks
@@ -137,13 +139,6 @@ builder.build_and_transform(&bc1_data, &mut transformed)?;
 
 // Later, after decompression, restore original data
 builder.build_and_untransform(&transformed, &mut restored)?;
-
-// Alternative: Build settings once, reuse multiple times with unstable API
-let transform_settings = builder.build();
-transform_bc1_with_settings(&bc1_data, &mut transformed, transform_settings)?;
-
-let detransform_settings = transform_settings.into();
-untransform_bc1_with_settings(&transformed, &mut restored, detransform_settings)?;
 
 // Restored data should match original
 assert_eq!(bc1_data, restored);

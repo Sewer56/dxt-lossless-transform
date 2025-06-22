@@ -10,9 +10,7 @@
 //!
 //! [`transform_with_settings`]: super::unstable::transform_with_settings
 
-use crate::Bc1Error;
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
-use crate::transform::{transform_bc1_with_settings, untransform_bc1_with_settings};
 use core::{ptr, slice};
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 
@@ -264,31 +262,16 @@ pub unsafe extern "C" fn dltbc1_TransformSettingsBuilder_Transform(
     let input_slice = unsafe { slice::from_raw_parts(input, input_len) };
     let output_slice = unsafe { slice::from_raw_parts_mut(output, output_len) };
 
-    // Get the settings from the builder
+    // Get the builder and perform transformation using its method
     let builder_inner = unsafe { get_settings_builder_mut(builder) };
-    let settings = builder_inner.builder.build();
 
-    // Perform the transformation
-    match transform_bc1_with_settings(input_slice, output_slice, settings) {
+    // Perform the transformation using the builder's method
+    match builder_inner
+        .builder
+        .build_and_transform(input_slice, output_slice)
+    {
         Ok(()) => Dltbc1Result::success(),
-        Err(e) => {
-            // Map the error to error codes
-            match e {
-                Bc1Error::InvalidLength(_) => {
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::InvalidLength)
-                }
-                Bc1Error::OutputBufferTooSmall { .. } => {
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::OutputBufferTooSmall)
-                }
-                Bc1Error::AllocationFailed(_) => {
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::AllocationFailed)
-                }
-                Bc1Error::SizeEstimationFailed(_) => {
-                    // This shouldn't happen in transform_with_settings, but handle it anyway
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::SizeEstimationFailed)
-                }
-            }
-        }
+        Err(e) => e.into(),
     }
 }
 
@@ -346,31 +329,15 @@ pub unsafe extern "C" fn dltbc1_TransformSettingsBuilder_Untransform(
     let input_slice = unsafe { slice::from_raw_parts(input, input_len) };
     let output_slice = unsafe { slice::from_raw_parts_mut(output, output_len) };
 
-    // Get the settings from the builder and convert to detransform settings
+    // Get the builder and perform untransformation using its method
     let builder_inner = unsafe { get_settings_builder_mut(builder) };
-    let transform_settings = builder_inner.builder.build();
-    let detransform_settings = transform_settings.into();
 
-    // Perform the untransformation
-    match untransform_bc1_with_settings(input_slice, output_slice, detransform_settings) {
+    // Perform the untransformation using the builder's method
+    match builder_inner
+        .builder
+        .build_and_untransform(input_slice, output_slice)
+    {
         Ok(()) => Dltbc1Result::success(),
-        Err(e) => {
-            // Map the error to error codes
-            match e {
-                Bc1Error::InvalidLength(_) => {
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::InvalidLength)
-                }
-                Bc1Error::OutputBufferTooSmall { .. } => {
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::OutputBufferTooSmall)
-                }
-                Bc1Error::AllocationFailed(_) => {
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::AllocationFailed)
-                }
-                Bc1Error::SizeEstimationFailed(_) => {
-                    // This shouldn't happen in untransform_with_settings, but handle it anyway
-                    Dltbc1Result::from_error_code(Dltbc1ErrorCode::SizeEstimationFailed)
-                }
-            }
-        }
+        Err(e) => e.into(),
     }
 }

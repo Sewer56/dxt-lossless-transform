@@ -50,10 +50,19 @@ pub(crate) mod with_recorrelate;
 pub(crate) mod with_split_colour;
 pub(crate) mod with_split_colour_and_recorr;
 
+// Safe slice-based wrapper functions
+pub mod safe;
+
 // Re-export all public items from submodules
 pub use settings::*;
 pub use transform_auto::*;
 pub use transform_with_settings::*;
+
+// Re-export safe module functions
+pub use safe::{
+    transform_bc1_auto_safe, transform_bc1_with_settings_safe, untransform_bc1_with_settings_safe,
+    Bc1AutoTransformError, Bc1ValidationError,
+};
 
 #[cfg(test)]
 mod tests {

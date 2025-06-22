@@ -1,20 +1,34 @@
-//! BC1 automatic transform operations (ABI-unstable).
-//!
-//! **⚠️ ABI Instability Warning**: This function may have breaking changes between
-//! library versions without major version bumps. For production use, consider
-//! [`crate::Bc1AutoTransformBuilder`] which provides a stable interface.
+//! BC1 automatic transform operations (safe slice-based wrapper).
 //!
 //! This module provides functions to automatically determine the optimal transform settings
 //! for BC1 data and apply the transformation in a single operation.
+//!
+//! Note: For production use with ABI stability, consider using
+//! `dxt-lossless-transform-bc1-api::Bc1AutoTransformBuilder`.
 
-use crate::error::Bc1Error;
-use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
-use dxt_lossless_transform_bc1::{
-    Bc1EstimateSettings, Bc1TransformSettings, DetermineBestTransformError,
-    transform_bc1_auto as core_transform_bc1_auto,
+use crate::transform::{
+    transform_bc1_auto as unsafe_transform_bc1_auto, Bc1EstimateSettings, Bc1TransformSettings,
+    DetermineBestTransformError,
 };
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 
-/// Transform BC1 data using automatically determined optimal settings (ABI-unstable).
+/// Extended error type that includes validation errors.
+#[derive(Debug)]
+pub enum Bc1AutoTransformError<T> {
+    /// Input validation failed.
+    InvalidLength(usize),
+    /// Output buffer too small.
+    OutputBufferTooSmall {
+        /// Required buffer size.
+        needed: usize,
+        /// Actual buffer size provided.
+        actual: usize,
+    },
+    /// Transform determination failed.
+    DetermineBestTransform(DetermineBestTransformError<T>),
+}
+
+/// Transform BC1 data using automatically determined optimal settings.
 ///
 /// This function tests various transform configurations and applies the one that
 /// produces the smallest compressed size according to the provided estimator.
@@ -32,15 +46,13 @@ use dxt_lossless_transform_bc1::{
 ///
 /// # Errors
 ///
-/// - [`Bc1Error::InvalidLength`] if input length is not divisible by 8
-/// - [`Bc1Error::OutputBufferTooSmall`] if output buffer is smaller than input
-/// - [`Bc1Error::AllocationFailed`] if memory allocation fails
-/// - [`Bc1Error::SizeEstimationFailed`] if the estimator fails (contains the actual estimator error)
+/// - [`DetermineBestTransformError::AllocateError`] if memory allocation fails
+/// - [`DetermineBestTransformError::SizeEstimationError`] if the estimator fails
 ///
 /// # Examples
 ///
-/// ```
-/// use dxt_lossless_transform_bc1_api::transform_bc1_auto;
+/// ```ignore
+/// use dxt_lossless_transform_bc1::transform::safe::transform_bc1_auto;
 /// use dxt_lossless_transform_bc1::Bc1EstimateSettings;
 /// use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 ///
@@ -55,14 +67,9 @@ use dxt_lossless_transform_bc1::{
 /// let _transform_details = transform_bc1_auto(&bc1_data, &mut output, options).unwrap();
 /// ```
 ///
-/// **⚠️ ABI Instability Warning**: This function accepts ABI-unstable structures
-/// which may change between library versions. For production use, prefer
-/// [`crate::Bc1AutoTransformBuilder::build_and_transform`] which provides
-/// ABI stability and the same functionality.
+/// # Recommended Stable Alternative
 ///
-/// # Recommended Alternative
-///
-/// ```
+/// ```ignore
 /// use dxt_lossless_transform_bc1_api::Bc1AutoTransformBuilder;
 /// use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 ///
@@ -78,40 +85,58 @@ pub fn transform_bc1_auto<T>(
     input: &[u8],
     output: &mut [u8],
     options: Bc1EstimateSettings<T>,
-) -> Result<Bc1TransformSettings, Bc1Error<T::Error>>
+) -> Result<Bc1TransformSettings, Bc1AutoTransformError<T::Error>>
 where
     T: SizeEstimationOperations,
     T::Error: core::fmt::Debug,
 {
     // Validate input length
     if input.len() % 8 != 0 {
-        return Err(Bc1Error::InvalidLength(input.len()));
+        return Err(Bc1AutoTransformError::InvalidLength(input.len()));
     }
 
     // Validate output buffer size
     if output.len() < input.len() {
-        return Err(Bc1Error::OutputBufferTooSmall {
+        return Err(Bc1AutoTransformError::OutputBufferTooSmall {
             needed: input.len(),
             actual: output.len(),
         });
     }
 
-    // Safety: We've validated the input length and output buffer size
-    unsafe { core_transform_bc1_auto(input.as_ptr(), output.as_mut_ptr(), input.len(), options) }
-        .map_err(|e| match e {
-            DetermineBestTransformError::AllocateError(alloc_err) => {
-                Bc1Error::AllocationFailed(alloc_err)
-            }
-            DetermineBestTransformError::SizeEstimationError(err) => {
-                Bc1Error::SizeEstimationFailed(err)
-            }
-        })
+    // Safety: We're passing valid slices to the unsafe function
+    let result = unsafe {
+        unsafe_transform_bc1_auto(input.as_ptr(), output.as_mut_ptr(), input.len(), options)
+    };
+
+    result.map_err(Bc1AutoTransformError::DetermineBestTransform)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_prelude::DummyEstimator;
+    use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
+
+    /// Test dummy estimator for testing purposes
+    struct DummyEstimator;
+
+    impl SizeEstimationOperations for DummyEstimator {
+        type Error = &'static str;
+
+        fn max_compressed_size(&self, _len_bytes: usize) -> Result<usize, Self::Error> {
+            Ok(0) // No buffer needed for dummy estimator
+        }
+
+        unsafe fn estimate_compressed_size(
+            &self,
+            _input_ptr: *const u8,
+            len_bytes: usize,
+            _data_type: DataType,
+            _output_ptr: *mut u8,
+            _output_len: usize,
+        ) -> Result<usize, Self::Error> {
+            Ok(len_bytes) // Just return the input length
+        }
+    }
 
     #[test]
     fn test_transform_bc1_auto() {
@@ -128,7 +153,7 @@ mod tests {
             use_all_decorrelation_modes: false,
         };
 
-        let result = transform_bc1_auto(&bc1_data, &mut output, options);
+        let result = super::transform_bc1_auto(&bc1_data, &mut output, options);
         assert!(
             result.is_ok(),
             "Function should not fail with valid BC1 data"

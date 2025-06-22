@@ -1,20 +1,36 @@
-//! BC1 transform operations with explicit settings (ABI-unstable).
-//!
-//! **⚠️ ABI Instability Warning**: These functions may have breaking changes between
-//! library versions without major version bumps. For production use, consider
-//! [`crate::Bc1ManualTransformBuilder`] which provides a stable interface.
+//! BC1 transform operations with explicit settings (safe slice-based wrapper).
 //!
 //! This module provides functions to transform and untransform BC1 data using specific
 //! transform settings without automatic optimization.
+//!
+//! Note: For production use with ABI stability, consider using
+//! `dxt-lossless-transform-bc1-api::Bc1ManualTransformBuilder`.
 
-use crate::error::Bc1Error;
-use dxt_lossless_transform_bc1::{
-    Bc1DetransformSettings, Bc1TransformSettings,
-    transform_bc1_with_settings as core_transform_bc1_with_settings,
-    untransform_bc1_with_settings as core_untransform_bc1_with_settings,
+use crate::transform::{
+    transform_bc1_with_settings as unsafe_transform_bc1_with_settings,
+    untransform_bc1_with_settings as unsafe_untransform_bc1_with_settings, Bc1DetransformSettings,
+    Bc1TransformSettings,
 };
+use thiserror::Error;
 
-/// Transform BC1 data using specified transform settings (ABI-unstable).
+/// Validation errors for BC1 transform operations.
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum Bc1ValidationError {
+    /// Input length is not divisible by 8 (BC1 blocks are 8 bytes each).
+    #[error("Invalid input length: {0} (must be divisible by 8)")]
+    InvalidLength(usize),
+
+    /// Output buffer is too small to hold the transformed data.
+    #[error("Output buffer too small: needed {needed}, got {actual}")]
+    OutputBufferTooSmall {
+        /// The required buffer size.
+        needed: usize,
+        /// The actual buffer size provided.
+        actual: usize,
+    },
+}
+
+/// Transform BC1 data using specified transform settings.
 ///
 /// This function applies the transformation directly using the provided settings
 /// without any optimization or testing of different configurations.
@@ -27,19 +43,15 @@ use dxt_lossless_transform_bc1::{
 ///
 /// # Errors
 ///
-/// - [`Bc1Error::InvalidLength`] if input length is not divisible by 8
-/// - [`Bc1Error::OutputBufferTooSmall`] if output buffer is smaller than input
-///
-/// # Safety
-///
-/// The underlying function is safe to call with validated inputs.
+/// - [`Bc1ValidationError::InvalidLength`] if input length is not divisible by 8
+/// - [`Bc1ValidationError::OutputBufferTooSmall`] if output buffer is smaller than input
 ///
 /// # Examples
 ///
-/// ```
-/// use dxt_lossless_transform_bc1_api::transform_bc1_with_settings;
-/// use dxt_lossless_transform_bc1::Bc1TransformSettings;
-/// use dxt_lossless_transform_bc1_api::YCoCgVariant;
+/// ```ignore
+/// use dxt_lossless_transform_bc1::transform::safe::transform_bc1_with_settings;
+/// use dxt_lossless_transform_bc1::{Bc1TransformSettings};
+/// use dxt_lossless_transform_common::color_565::YCoCgVariant;
 ///
 /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
 /// let mut output = vec![0u8; bc1_data.len()];
@@ -52,14 +64,9 @@ use dxt_lossless_transform_bc1::{
 /// transform_bc1_with_settings(&bc1_data, &mut output, settings).unwrap();
 /// ```
 ///
-/// **⚠️ ABI Instability Warning**: This function accepts ABI-unstable structures
-/// which may change between library versions. For production use, prefer
-/// [`crate::Bc1ManualTransformBuilder`] which provides ABI stability and
-/// builder pattern convenience.
+/// # Recommended Stable Alternative
 ///
-/// # Recommended Alternative
-///
-/// ```
+/// ```ignore
 /// use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
 /// use dxt_lossless_transform_bc1_api::YCoCgVariant;
 ///
@@ -75,15 +82,15 @@ pub fn transform_bc1_with_settings(
     input: &[u8],
     output: &mut [u8],
     settings: Bc1TransformSettings,
-) -> Result<(), Bc1Error> {
+) -> Result<(), Bc1ValidationError> {
     // Validate input length
     if input.len() % 8 != 0 {
-        return Err(Bc1Error::InvalidLength(input.len()));
+        return Err(Bc1ValidationError::InvalidLength(input.len()));
     }
 
     // Validate output buffer size
     if output.len() < input.len() {
-        return Err(Bc1Error::OutputBufferTooSmall {
+        return Err(Bc1ValidationError::OutputBufferTooSmall {
             needed: input.len(),
             actual: output.len(),
         });
@@ -91,7 +98,7 @@ pub fn transform_bc1_with_settings(
 
     // Safety: We've validated the input length and output buffer size
     unsafe {
-        core_transform_bc1_with_settings(
+        unsafe_transform_bc1_with_settings(
             input.as_ptr(),
             output.as_mut_ptr(),
             input.len(),
@@ -102,7 +109,7 @@ pub fn transform_bc1_with_settings(
     Ok(())
 }
 
-/// Untransform BC1 data using specified detransform settings (ABI-unstable).
+/// Untransform BC1 data using specified detransform settings.
 ///
 /// This function reverses the transformation applied by [`transform_bc1_with_settings`]
 /// or [`super::transform_auto::transform_bc1_auto`], restoring the original BC1 data.
@@ -115,21 +122,17 @@ pub fn transform_bc1_with_settings(
 ///
 /// # Errors
 ///
-/// - [`Bc1Error::InvalidLength`] if input length is not divisible by 8
-/// - [`Bc1Error::OutputBufferTooSmall`] if output buffer is smaller than input
-///
-/// # Safety
-///
-/// The underlying function is safe to call with validated inputs.
+/// - [`Bc1ValidationError::InvalidLength`] if input length is not divisible by 8
+/// - [`Bc1ValidationError::OutputBufferTooSmall`] if output buffer is smaller than input
 ///
 /// # Examples
 ///
-/// ```
-/// use dxt_lossless_transform_bc1_api::{
+/// ```ignore
+/// use dxt_lossless_transform_bc1::transform::safe::{
 ///     transform_bc1_with_settings, untransform_bc1_with_settings
 /// };
 /// use dxt_lossless_transform_bc1::{Bc1TransformSettings, Bc1DetransformSettings};
-/// use dxt_lossless_transform_bc1_api::YCoCgVariant;
+/// use dxt_lossless_transform_common::color_565::YCoCgVariant;
 ///
 /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
 /// let mut transformed = vec![0u8; bc1_data.len()];
@@ -150,13 +153,9 @@ pub fn transform_bc1_with_settings(
 /// untransform_bc1_with_settings(&transformed, &mut restored, detransform_settings).unwrap();
 /// ```
 ///
-/// **⚠️ ABI Instability Warning**: This function accepts ABI-unstable structures
-/// which may change between library versions. For production use, prefer
-/// [`crate::Bc1ManualTransformBuilder`] which provides ABI stability.
+/// # Recommended Stable Alternative
 ///
-/// # Recommended Alternative
-///
-/// ```
+/// ```ignore
 /// use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
 /// use dxt_lossless_transform_bc1_api::YCoCgVariant;
 ///
@@ -178,15 +177,15 @@ pub fn untransform_bc1_with_settings(
     input: &[u8],
     output: &mut [u8],
     settings: Bc1DetransformSettings,
-) -> Result<(), Bc1Error> {
+) -> Result<(), Bc1ValidationError> {
     // Validate input length
     if input.len() % 8 != 0 {
-        return Err(Bc1Error::InvalidLength(input.len()));
+        return Err(Bc1ValidationError::InvalidLength(input.len()));
     }
 
     // Validate output buffer size
     if output.len() < input.len() {
-        return Err(Bc1Error::OutputBufferTooSmall {
+        return Err(Bc1ValidationError::OutputBufferTooSmall {
             needed: input.len(),
             actual: output.len(),
         });
@@ -194,7 +193,7 @@ pub fn untransform_bc1_with_settings(
 
     // Safety: We've validated the input length and output buffer size
     unsafe {
-        core_untransform_bc1_with_settings(
+        unsafe_untransform_bc1_with_settings(
             input.as_ptr(),
             output.as_mut_ptr(),
             input.len(),
@@ -243,7 +242,7 @@ mod tests {
         };
 
         let result = transform_bc1_with_settings(&bc1_data, &mut output, settings);
-        assert!(matches!(result, Err(Bc1Error::InvalidLength(7))));
+        assert!(matches!(result, Err(Bc1ValidationError::InvalidLength(7))));
     }
 
     #[test]
@@ -259,7 +258,7 @@ mod tests {
         let result = transform_bc1_with_settings(&bc1_data, &mut output, settings);
         assert!(matches!(
             result,
-            Err(Bc1Error::OutputBufferTooSmall {
+            Err(Bc1ValidationError::OutputBufferTooSmall {
                 needed: 8,
                 actual: 4
             })
@@ -299,7 +298,7 @@ mod tests {
         };
 
         let result = untransform_bc1_with_settings(&bc1_data, &mut output, settings);
-        assert!(matches!(result, Err(Bc1Error::InvalidLength(7))));
+        assert!(matches!(result, Err(Bc1ValidationError::InvalidLength(7))));
     }
 
     #[test]
@@ -315,7 +314,7 @@ mod tests {
         let result = untransform_bc1_with_settings(&bc1_data, &mut output, settings);
         assert!(matches!(
             result,
-            Err(Bc1Error::OutputBufferTooSmall {
+            Err(Bc1ValidationError::OutputBufferTooSmall {
                 needed: 8,
                 actual: 4
             })

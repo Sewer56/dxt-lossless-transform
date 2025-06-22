@@ -17,9 +17,6 @@ pub(crate) mod manual_transform_builder;
 // Utility functions (stable)
 mod util;
 
-// Unstable ABI functions (for advanced users)
-pub mod unstable;
-
 // Re-export the BUILDERS FIRST at the module level for prominence
 pub use auto_transform_builder::Bc1AutoTransformBuilder;
 pub use manual_transform_builder::Bc1ManualTransformBuilder;
@@ -32,8 +29,3 @@ pub use dxt_lossless_transform_bc1::{
     Bc1DetransformSettings, Bc1EstimateSettings, Bc1TransformSettings, DetermineBestTransformError,
 };
 pub use dxt_lossless_transform_common::color_565::YCoCgVariant;
-
-// Re-export unstable functions for backwards compatibility (but not prominently)
-pub use unstable::{
-    transform_bc1_auto, transform_bc1_with_settings, untransform_bc1_with_settings,
-};

@@ -23,13 +23,3 @@ pub use transform::{
 
 // Re-export utility functions
 pub use transform::{Decoded4x4Block, decode_bc1_block, decode_bc1_block_from_slice};
-
-// Re-export unstable functions for backwards compatibility (but not prominently)
-// Note: These are ABI-unstable and may change between versions
-pub use transform::{
-    transform_bc1_auto, transform_bc1_with_settings, untransform_bc1_with_settings,
-};
-
-// Test utilities
-#[cfg(test)]
-mod test_prelude;

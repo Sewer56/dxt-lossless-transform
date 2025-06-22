@@ -20,6 +20,3 @@ pub use transform::{
     Bc1DetransformSettings, Bc1EstimateSettings, Bc1TransformSettings, DetermineBestTransformError,
     YCoCgVariant,
 };
-
-// Re-export utility functions
-pub use transform::{Decoded4x4Block, decode_bc1_block, decode_bc1_block_from_slice};

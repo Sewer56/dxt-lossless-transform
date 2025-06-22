@@ -14,15 +14,9 @@
 pub(crate) mod auto_transform_builder;
 pub(crate) mod manual_transform_builder;
 
-// Utility functions (stable)
-mod util;
-
 // Re-export the BUILDERS FIRST at the module level for prominence
 pub use auto_transform_builder::Bc1AutoTransformBuilder;
 pub use manual_transform_builder::Bc1ManualTransformBuilder;
-
-// Re-export utility functions
-pub use util::*;
 
 // Re-export core types for convenience
 pub use dxt_lossless_transform_bc1::{

@@ -83,7 +83,7 @@ pub unsafe extern "C" fn dltbc1_unstable_transform_auto(
     let estimator_ref = unsafe { &*estimator };
 
     // Create options struct
-    let options = dxt_lossless_transform_bc1::determine_optimal_transform::Bc1EstimateOptions {
+    let options = dxt_lossless_transform_bc1::transform::Bc1EstimateOptions {
         size_estimator: estimator_ref,
         use_all_decorrelation_modes: settings.use_all_modes,
     };

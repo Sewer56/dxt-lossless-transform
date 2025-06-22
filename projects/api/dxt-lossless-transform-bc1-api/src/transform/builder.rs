@@ -2,7 +2,7 @@
 
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_bc1::Bc1TransformSettings;
-use dxt_lossless_transform_bc1::determine_optimal_transform::Bc1EstimateOptions;
+use dxt_lossless_transform_bc1::transform::Bc1EstimateOptions;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
 /// Builder for BC1 estimate options with convenient configuration methods.

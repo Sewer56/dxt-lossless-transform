@@ -246,8 +246,8 @@ where
     T::Error: core::fmt::Debug,
 {
     use dxt_lossless_transform_bc1::{
-        determine_optimal_transform::{transform_with_best_options, Bc1EstimateOptions},
-        experimental::normalize_blocks::determine_optimal_transform::transform_with_best_options_and_normalization,
+        experimental::normalize_blocks::transform::transform_with_best_options_and_normalization,
+        transform::{transform_with_best_options, Bc1EstimateOptions},
         Bc1TransformSettings,
     };
     use dxt_lossless_transform_common::allocate::allocate_align_64;

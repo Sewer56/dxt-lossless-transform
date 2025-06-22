@@ -1,18 +1,17 @@
-//! Optimal BC1 Transform Determination
+//! BC1 Transform Operations
 //!
-//! This module provides functionality to determine the best transformation parameters for BC1
+//! This module provides the core transformation and optimization functionality for BC1
 //! (DXT1) compressed texture data to achieve optimal compression ratios.
 //!
 //! ## Overview
 //!
 //! BC1 compression can be further optimized by applying various transformations before
-//! final compression. This module analyzes different transformation options and [`Bc1TransformSettings`]
-//! and selects the combination that results in the smallest compressed file size.
+//! final compression. This module provides both manual transform operations and automatic
+//! optimization to determine the best transformation parameters.
 //!
 //! ## Performance Characteristics
 //!
-//! The functions in this module perform brute force testing of different transformations
-//! as follows:
+//! The optimization functions in this module perform brute force testing of different transformations:
 //!
 //! 1. Transform the data into a specific format.
 //! 2. Estimate the compressed size using a provided file size estimator function.
@@ -24,84 +23,246 @@
 //!
 //! For memory, the usage is the same as the size of the input data plus the compression buffer needed
 //! by the estimator.
-//!
-//! ## Usage Example
-//!
-//! ```rust,no_run
-//! # use dxt_lossless_transform_bc1::determine_optimal_transform::{transform_with_best_options, Bc1EstimateOptions};
-//! # use dxt_lossless_transform_api_common::estimate::{SizeEstimationOperations, DataType};
-//!
-//! // Define a compression estimator implementation
-//! struct MyCompressionEstimator;
-//!
-//! impl SizeEstimationOperations for MyCompressionEstimator {
-//!     type Error = &'static str;
-//!
-//!     fn max_compressed_size(
-//!         &self,
-//!         _len_bytes: usize,
-//!     ) -> Result<usize, Self::Error> {
-//!         Ok(0) // No buffer needed for this simple estimator
-//!     }
-//!
-//!     unsafe fn estimate_compressed_size(
-//!         &self,
-//!         _input_ptr: *const u8,
-//!         len_bytes: usize,
-//!         _data_type: DataType,
-//!         _output_ptr: *mut u8,
-//!         _output_len: usize,
-//!     ) -> Result<usize, Self::Error> {
-//!         Ok(len_bytes) // Your compression size estimation logic here
-//!     }
-//! }
-//!
-//! let bc1_data = vec![0u8; 8]; // Example BC1 block data
-//! let mut output_buffer = vec![0u8; bc1_data.len()]; // Output buffer
-//! let options = Bc1EstimateOptions {
-//!     size_estimator: MyCompressionEstimator,
-//!     use_all_decorrelation_modes: false, // Fast mode
-//! };
-//!
-//! // Transform with optimal settings (unsafe due to raw pointers)
-//! let transform_details = unsafe {
-//!     transform_with_best_options(
-//!         bc1_data.as_ptr(),
-//!         output_buffer.as_mut_ptr(),
-//!         bc1_data.len(),
-//!         options
-//!     )
-//! }.expect("Transform failed");
-//!
-//! // output_buffer now contains the optimally transformed data
-//! ```
-//!
-//! Your 'estimator' function needs to use the same 'concepts' as the actual final compression function.
-//! For example, an LZ compressor will work well for another LZ compressor, but not for something
-//! based on the Burrows-Wheeler Transform (BWT).
-//!
-//! [See my blog post](https://sewer56.dev/blog/2025/03/11/a-program-for-helping-create-lossless-transforms.html#estimator-accuracy-vs-bzip3) for reference.
-//!
-//! ## Optimization Strategy
-//!
-//! Determines the best [`Bc1TransformSettings`] by brute force testing of different transformation
-//! combinations and selecting the one that produces the smallest estimated compressed size.
-//! The transformed data from the best option is kept in the output buffer.
-//!
-//! ## Implementation Notes
-//!
-//! - Index data is excluded from size estimation as it has poor compressibility
-//!   (entropy ≈ 7.0, minimal LZ matches) with negligible impact on results
-//! - The brute force approach ensures finding the global optimum within tested parameters
-//! - Memory allocation uses 64-byte alignment for optimal SIMD performance
 
-use crate::Bc1TransformSettings;
-use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
+use crate::transforms::{
+    standard::{transform, untransform},
+    with_recorrelate, with_split_colour, with_split_colour_and_recorr,
+};
+use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
 use dxt_lossless_transform_common::{
     allocate::{allocate_align_64, AllocateError},
     color_565::YCoCgVariant,
 };
 use thiserror::Error;
+
+/// The information about the BC1 transform that was just performed.
+/// Each item transformed via [`transform_bc1_with_settings`] will produce an instance of this struct.
+/// To undo the transform, you'll need to pass [`Bc1DetransformSettings`] to [`untransform_bc1_with_settings`],
+/// which can be obtained from this struct using the `into` method.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Bc1TransformSettings {
+    /// The decorrelation mode that was used to decorrelate the colors.
+    pub decorrelation_mode: YCoCgVariant,
+
+    /// Whether or not the colour endpoints are to be split or not.
+    pub split_colour_endpoints: bool,
+}
+
+/// Settings required to detransform BC1 data.
+///
+/// This struct contains only the information needed to reverse the transform operation.
+/// Note that color normalization is a preprocessing step that doesn't need to be reversed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Bc1DetransformSettings {
+    /// The decorrelation mode that was used to decorrelate the colors.
+    pub decorrelation_mode: YCoCgVariant,
+
+    /// Whether or not the colour endpoints are to be split or not.
+    pub split_colour_endpoints: bool,
+}
+
+impl From<Bc1TransformSettings> for Bc1DetransformSettings {
+    fn from(transform_settings: Bc1TransformSettings) -> Self {
+        Self {
+            decorrelation_mode: transform_settings.decorrelation_mode,
+            split_colour_endpoints: transform_settings.split_colour_endpoints,
+        }
+    }
+}
+
+impl Default for Bc1DetransformSettings {
+    fn default() -> Self {
+        Self {
+            decorrelation_mode: YCoCgVariant::Variant1,
+            split_colour_endpoints: true,
+        }
+    }
+}
+
+impl Default for Bc1TransformSettings {
+    fn default() -> Self {
+        // Best (on average) results, but of course not perfect, as is with brute-force method.
+        Self {
+            decorrelation_mode: YCoCgVariant::Variant1,
+            split_colour_endpoints: true,
+        }
+    }
+}
+
+impl Bc1TransformSettings {
+    /// Returns an iterator over all possible combinations of [`Bc1TransformSettings`] values.
+    ///
+    /// This function generates all possible combinations by iterating through:
+    /// - All [`YCoCgVariant`] variants  
+    /// - Both `true` and `false` values for `split_colour_endpoints`
+    ///
+    /// The total number of combinations is:
+    /// [`YCoCgVariant`] variants × 2 bool values
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dxt_lossless_transform_bc1::transform::Bc1TransformSettings;
+    ///
+    /// let all_combinations: Vec<_> = Bc1TransformSettings::all_combinations().collect();
+    /// println!("Total combinations: {}", all_combinations.len());
+    ///
+    /// for settings in Bc1TransformSettings::all_combinations() {
+    ///     println!("{:?}", settings);
+    /// }
+    /// ```
+    #[cfg(not(tarpaulin_include))]
+    pub fn all_combinations() -> impl Iterator<Item = Bc1TransformSettings> {
+        YCoCgVariant::all_values().iter().flat_map(|decorr_mode| {
+            [true, false]
+                .into_iter()
+                .map(move |split_endpoints| Bc1TransformSettings {
+                    decorrelation_mode: *decorr_mode,
+                    split_colour_endpoints: split_endpoints,
+                })
+        })
+    }
+
+    /// Determines the appropriate [`DataType`] for size estimation based on the transform options.
+    ///
+    /// This method maps the transform configuration to the corresponding data type that
+    /// should be used for compression size estimation and caching.
+    ///
+    /// # Returns
+    /// The [`DataType`] that represents the data format after applying these transform options
+    pub fn to_data_type(&self) -> DataType {
+        match (self.decorrelation_mode, self.split_colour_endpoints) {
+            (YCoCgVariant::None, false) => DataType::Bc1Colours,
+            (YCoCgVariant::None, true) => DataType::Bc1SplitColours,
+            (_, true) => DataType::Bc1SplitDecorrelatedColours, // Split colours with decorrelation
+            (_, false) => DataType::Bc1DecorrelatedColours,     // Decorrelated but not split
+        }
+    }
+}
+
+/// Transform BC1 data into a more compressible format.
+///
+/// # Parameters
+///
+/// - `input_ptr`: A pointer to the input data (input BC1 blocks)
+/// - `output_ptr`: A pointer to the output data (output BC1 blocks)
+/// - `len`: The length of the input data in bytes (size of `input_ptr`, `output_ptr`)
+/// - `transform_options`: The transform options to use.
+///   Obtained from [`transform_with_best_options`] or
+///   [`Bc1TransformSettings::default`] for less optimal result(s).
+///
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len must be divisible by 8
+/// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
+#[inline]
+pub unsafe fn transform_bc1_with_settings(
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+    transform_options: Bc1TransformSettings,
+) {
+    debug_assert!(len % 8 == 0);
+
+    let has_split_colours = transform_options.split_colour_endpoints;
+
+    if has_split_colours {
+        if transform_options.decorrelation_mode == YCoCgVariant::None {
+            with_split_colour::transform_with_split_colour(
+                input_ptr,
+                output_ptr as *mut u16,              // color0 values
+                output_ptr.add(len / 4) as *mut u16, // color1 values
+                output_ptr.add(len / 2) as *mut u32, // indices in last half
+                len / 8,                             // number of blocks (8 bytes per block)
+            );
+        } else {
+            with_split_colour_and_recorr::transform_with_split_colour_and_recorr(
+                input_ptr,
+                output_ptr as *mut u16,              // color0 values
+                output_ptr.add(len / 4) as *mut u16, // color1 values
+                output_ptr.add(len / 2) as *mut u32, // indices in last half
+                len / 8,                             // number of blocks (8 bytes per block)
+                transform_options.decorrelation_mode,
+            );
+        }
+    } else if transform_options.decorrelation_mode == YCoCgVariant::None {
+        // Standard transform – no split-colour and no decorrelation.
+        transform(input_ptr, output_ptr, len);
+    } else {
+        // Standard transform + decorrelate.
+        with_recorrelate::transform_with_decorrelate(
+            input_ptr,
+            output_ptr,
+            len,
+            transform_options.decorrelation_mode,
+        );
+    }
+}
+
+/// Untransform BC1 file back to its original format.
+///
+/// # Parameters
+///
+/// - `input_ptr`: A pointer to the input data (input BC1 blocks).
+///   Output from [`transform_bc1_with_settings`].
+/// - `output_ptr`: A pointer to the output data (output BC1 blocks)
+/// - `len`: The length of the input data in bytes
+/// - `detransform_options`: A struct containing information about the transform that was originally performed.
+///   Must match the settings used in [`transform_bc1_with_settings`] function (excluding color normalization).
+///
+/// # Safety
+///
+/// - input_ptr must be valid for reads of len bytes
+/// - output_ptr must be valid for writes of len bytes
+/// - len must be divisible by 8
+/// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
+#[inline]
+pub unsafe fn untransform_bc1_with_settings(
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+    detransform_options: Bc1DetransformSettings,
+) {
+    debug_assert!(len % 8 == 0);
+
+    let has_split_colours = detransform_options.split_colour_endpoints;
+
+    if has_split_colours {
+        if detransform_options.decorrelation_mode == YCoCgVariant::None {
+            // Optimized single-pass operation: unsplit split colors and combine with indices
+            // directly into BC1 blocks, avoiding intermediate memory copies
+            with_split_colour::untransform_with_split_colour(
+                input_ptr as *const u16,              // color0 values
+                input_ptr.add(len / 4) as *const u16, // color1 values
+                input_ptr.add(len / 2) as *const u32, // indices
+                output_ptr,                           // output BC1 blocks
+                len / 8,                              // number of blocks (8 bytes per block)
+            );
+        } else {
+            with_split_colour_and_recorr::untransform_with_split_colour_and_recorr(
+                input_ptr as *const u16,              // color0 values
+                input_ptr.add(len / 4) as *const u16, // color1 values
+                input_ptr.add(len / 2) as *const u32, // indices
+                output_ptr,                           // output BC1 blocks
+                len / 8,                              // number of blocks (8 bytes per block)
+                detransform_options.decorrelation_mode,
+            );
+        }
+    } else if detransform_options.decorrelation_mode == YCoCgVariant::None {
+        // Standard transform – no split-colour and no decorrelation.
+        untransform(input_ptr, output_ptr, len);
+    } else {
+        // Standard transform + recorrelate.
+        with_recorrelate::untransform_with_recorrelate(
+            input_ptr,
+            output_ptr,
+            len,
+            detransform_options.decorrelation_mode,
+        );
+    }
+}
 
 /// Test order for fast mode optimization (tests only common combinations)
 pub(crate) static FAST_TEST_ORDER: &[(YCoCgVariant, bool)] = &[
@@ -228,6 +389,76 @@ where
 /// - `output_ptr` must be valid for writes of `len` bytes
 /// - `len` must be divisible by 8
 /// - It is recommended that `input_ptr` and `output_ptr` are at least 16-byte aligned (recommended 32-byte align)
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// # use dxt_lossless_transform_bc1::transform::{transform_with_best_options, Bc1EstimateOptions};
+/// # use dxt_lossless_transform_api_common::estimate::{SizeEstimationOperations, DataType};
+///
+/// // Define a compression estimator implementation
+/// struct MyCompressionEstimator;
+///
+/// impl SizeEstimationOperations for MyCompressionEstimator {
+///     type Error = &'static str;
+///
+///     fn max_compressed_size(
+///         &self,
+///         _len_bytes: usize,
+///     ) -> Result<usize, Self::Error> {
+///         Ok(0) // No buffer needed for this simple estimator
+///     }
+///
+///     unsafe fn estimate_compressed_size(
+///         &self,
+///         _input_ptr: *const u8,
+///         len_bytes: usize,
+///         _data_type: DataType,
+///         _output_ptr: *mut u8,
+///         _output_len: usize,
+///     ) -> Result<usize, Self::Error> {
+///         Ok(len_bytes) // Your compression size estimation logic here
+///     }
+/// }
+///
+/// let bc1_data = vec![0u8; 8]; // Example BC1 block data
+/// let mut output_buffer = vec![0u8; bc1_data.len()]; // Output buffer
+/// let options = Bc1EstimateOptions {
+///     size_estimator: MyCompressionEstimator,
+///     use_all_decorrelation_modes: false, // Fast mode
+/// };
+///
+/// // Transform with optimal settings (unsafe due to raw pointers)
+/// let transform_details = unsafe {
+///     transform_with_best_options(
+///         bc1_data.as_ptr(),
+///         output_buffer.as_mut_ptr(),
+///         bc1_data.len(),
+///         options
+///     )
+/// }.expect("Transform failed");
+///
+/// // output_buffer now contains the optimally transformed data
+/// ```
+///
+/// Your 'estimator' function needs to use the same 'concepts' as the actual final compression function.
+/// For example, an LZ compressor will work well for another LZ compressor, but not for something
+/// based on the Burrows-Wheeler Transform (BWT).
+///
+/// [See my blog post](https://sewer56.dev/blog/2025/03/11/a-program-for-helping-create-lossless-transforms.html#estimator-accuracy-vs-bzip3) for reference.
+///
+/// ## Optimization Strategy
+///
+/// Determines the best [`Bc1TransformSettings`] by brute force testing of different transformation
+/// combinations and selecting the one that produces the smallest estimated compressed size.
+/// The transformed data from the best option is kept in the output buffer.
+///
+/// ## Implementation Notes
+///
+/// - Index data is excluded from size estimation as it has poor compressibility
+///   (entropy ≈ 7.0, minimal LZ matches) with negligible impact on results
+/// - The brute force approach ensures finding the global optimum within tested parameters
+/// - Memory allocation uses 64-byte alignment for optimal SIMD performance
 pub unsafe fn transform_with_best_options<T>(
     input_ptr: *const u8,
     output_ptr: *mut u8,
@@ -273,7 +504,7 @@ where
         };
 
         // Apply a full transformation (~24GB/s on 1 thread, Ryzen 9950X3D)
-        crate::transform_bc1_with_settings(input_ptr, output_ptr, len, current_mode);
+        transform_bc1_with_settings(input_ptr, output_ptr, len, current_mode);
         last_tested = current_mode;
 
         // Note(sewer): The indices are very poorly compressible (entropy == ~7.0 , no lz matches).
@@ -302,7 +533,7 @@ where
     // If the best option wasn't the last one tested, we need to transform again
     if best_transform_settings != last_tested {
         // Transform the data one final time with the best settings
-        crate::transform_bc1_with_settings(input_ptr, output_ptr, len, best_transform_settings);
+        transform_bc1_with_settings(input_ptr, output_ptr, len, best_transform_settings);
     }
 
     Ok(best_transform_settings)

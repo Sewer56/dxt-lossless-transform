@@ -22,6 +22,10 @@ use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Dltbc1AutoTransformSettings {
     /// If true, tests all decorrelation modes; if false, only tests Variant1 and None
+    ///
+    /// Note: The typical improvement from testing all decorrelation modes is <0.1% in practice.
+    /// For better compression gains, consider using a compression level on the estimator
+    /// (e.g., ZStandard estimator) closer to your final compression level instead.
     pub use_all_modes: bool,
 }
 
@@ -410,7 +414,7 @@ mod tests {
 
         // Configure settings
         let settings = Dltbc1AutoTransformSettings {
-            use_all_modes: true, // Test all decorrelation modes for best results
+            use_all_modes: true, // Test all decorrelation modes (typical gains <0.1%)
         };
 
         // Create estimator

@@ -22,6 +22,10 @@ impl Bc1EstimateSettingsBuilder {
     /// When `false` (default), only tests common configurations for faster optimization.
     /// When `true`, tests all decorrelation modes for potentially better compression
     /// at the cost of twice as long optimization time.
+    ///
+    /// **Note**: The typical improvement from testing all decorrelation modes is <0.1% in practice.
+    /// For better compression gains, it's recommended to use a compression level on the
+    /// estimator (e.g., ZStandard estimator) closer to your final compression level instead.
     pub fn use_all_decorrelation_modes(mut self, use_all: bool) -> Self {
         self.use_all_decorrelation_modes = Some(use_all);
         self

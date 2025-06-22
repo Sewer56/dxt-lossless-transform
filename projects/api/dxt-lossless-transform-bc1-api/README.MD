@@ -151,7 +151,8 @@ let fast_options = Bc1EstimateSettingsBuilder::new()
     .build(estimator);
 let fast_details = transform_bc1_auto(&data, &mut output_fast, fast_options)?;
 
-// Thorough mode: tests all decorrelation modes for best compression (gains are minimal)
+// Thorough mode: tests all decorrelation modes for best compression
+// (typical gains are <0.1%; consider using estimator level closer to final compression level instead)
 let estimator = LosslessTransformUtilsSizeEstimation::new();
 let thorough_options = Bc1EstimateSettingsBuilder::new()
     .use_all_decorrelation_modes(true)

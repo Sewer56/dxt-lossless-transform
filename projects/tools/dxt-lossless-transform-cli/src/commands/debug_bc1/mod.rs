@@ -73,7 +73,8 @@ pub struct CompressionStatsCmd {
     #[argh(switch)]
     pub experimental_normalize: bool,
 
-    /// test all decorrelation modes instead of just Variant1 and None (slower but more thorough)
+    /// test all decorrelation modes instead of just Variant1 and None
+    /// (typical gains <0.1%; consider using estimator level closer to final compression level instead)
     #[argh(switch)]
     pub use_all_decorrelation_modes: bool,
 }
@@ -114,7 +115,8 @@ pub struct BenchmarkCmd {
     #[argh(switch)]
     pub experimental_normalize: bool,
 
-    /// test all decorrelation modes instead of just Variant1 and None (slower but more thorough)
+    /// test all decorrelation modes instead of just Variant1 and None
+    /// (typical gains <0.1%; consider using estimator level closer to final compression level instead)
     #[argh(switch)]
     pub use_all_decorrelation_modes: bool,
 }
@@ -147,7 +149,8 @@ pub struct BenchmarkDetermineBestCmd {
     #[argh(switch)]
     pub experimental_normalize: bool,
 
-    /// test all decorrelation modes instead of just Variant1 and None (slower but more thorough)
+    /// test all decorrelation modes instead of just Variant1 and None
+    /// (typical gains <0.1%; consider using estimator level closer to final compression level instead)
     #[argh(switch)]
     pub use_all_decorrelation_modes: bool,
 }

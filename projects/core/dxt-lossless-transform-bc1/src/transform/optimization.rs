@@ -53,7 +53,11 @@ where
     /// When `true`, tests all available decorrelation modes ([YCoCgVariant::Variant1],
     /// [YCoCgVariant::Variant2], [YCoCgVariant::Variant3], and [YCoCgVariant::None])
     /// for potentially better compression at the cost of twice as long optimization
-    /// time (tests 4 options instead of 2) for negligible gains (typically <0.1% extra savings).
+    /// time (tests 4 options instead of 2).
+    ///
+    /// **Note**: The typical improvement from testing all decorrelation modes is <0.1% in practice.
+    /// For better compression gains, it's recommended to use a compression level on the
+    /// estimator (e.g., ZStandard estimator) closer to your final compression level instead.
     ///
     /// [YCoCgVariant::Variant1]: dxt_lossless_transform_common::color_565::YCoCgVariant::Variant1
     /// [YCoCgVariant::Variant2]: dxt_lossless_transform_common::color_565::YCoCgVariant::Variant2

@@ -44,7 +44,7 @@ use dxt_lossless_transform_bc1::{
 /// let estimator = LosslessTransformUtilsSizeEstimation::new();
 ///
 /// let options = Bc1EstimateSettingsBuilder::new()
-///     .use_all_decorrelation_modes(true)
+///     .use_all_decorrelation_modes(true) // Typical improvement <0.1%; consider estimator level instead
 ///     .build(estimator);
 ///
 /// let transform_details = transform_bc1_auto(&bc1_data, &mut output, options)?;

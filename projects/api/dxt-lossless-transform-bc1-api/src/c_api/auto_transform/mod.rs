@@ -75,14 +75,15 @@ pub unsafe extern "C" fn dltbc1_free_EstimateOptionsBuilder(
     }
 }
 
-/// Configure whether to use all decorrelation modes for comprehensive testing.
+/// Set whether to use all decorrelation modes during optimization.
 ///
-/// When `use_all` is `false` (default), only tests [`YCoCgVariant::Variant1`] and [`YCoCgVariant::None`]
-/// for faster optimization with good results.
+/// When `false` (default), only tests common configurations for faster optimization.
+/// When `true`, tests all decorrelation modes for potentially better compression
+/// at the cost of twice as long optimization time.
 ///
-/// When `use_all` is `true`, tests all available decorrelation modes for potentially better
-/// compression at the cost of twice as long optimization time (tests 4 options
-/// instead of 2) for negligible gains (typically <0.1% extra savings).
+/// **Note**: The typical improvement from testing all decorrelation modes is <0.1% in practice.
+/// For better compression gains, it's recommended to use a compression level on the
+/// estimator (e.g., ZStandard estimator) closer to your final compression level instead.
 ///
 /// # Parameters
 /// - `builder`: The builder to configure

@@ -20,6 +20,18 @@ impl Bc1TransformSettingsBuilder {
     }
 
     /// Set the decorrelation mode.
+    ///
+    /// Controls the YCoCg-R color space decorrelation variant used for transformation.
+    /// Different variants can provide varying compression ratios depending on the texture content.
+    ///
+    /// **Note**: When manually testing decorrelation modes, the typical improvement from
+    /// using different variants is <0.1% in practice. For better compression gains,
+    /// it's recommended to use a compression level on the estimator (e.g., ZStandard estimator)
+    /// closer to your final compression level instead.
+    ///
+    /// For automatic optimization, consider using [`transform_bc1_auto`] instead.
+    ///
+    /// [`transform_bc1_auto`]: crate::transform_bc1_auto
     pub fn decorrelation_mode(mut self, mode: YCoCgVariant) -> Self {
         self.decorrelation_mode = Some(mode);
         self

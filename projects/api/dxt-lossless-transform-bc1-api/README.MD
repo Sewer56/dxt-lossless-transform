@@ -49,24 +49,24 @@ Run the untransform after decompressing.
 
 ### Automatic Optimization
 
-This finds the optimal transform parameters for your data.
+This finds the optimal transform parameters and applies them in one step.
 
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-use dxt_lossless_transform_bc1_api::{determine_optimal_transform, transform_bc1_allocating};
+use dxt_lossless_transform_bc1_api::transform_bc1_auto;
 use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 use dxt_lossless_transform_api_common::allocate::allocate_cache_line_aligned;
 
 // Use cache-line aligned allocation for best performance
 let mut bc1_buffer = allocate_cache_line_aligned(8 * 500)?; // 500 BC1 blocks
 // Fill with your BC1 data...
+let mut output_buffer = allocate_cache_line_aligned(8 * 500)?;
 
-// Automatically determine the best transform parameters
+// Automatically determine the best transform parameters and apply them
 let estimator = LosslessTransformUtilsSizeEstimation::new();
-let optimal_options = determine_optimal_transform(bc1_buffer.as_slice(), estimator, false)?;
+let transform_details = transform_bc1_auto(bc1_buffer.as_slice(), output_buffer.as_mut_slice(), estimator, false)?;
 
-// Apply the optimal transform with automatic allocation
-let transformed = transform_bc1_allocating(bc1_buffer.as_slice(), optimal_options)?;
+// output_buffer now contains the optimally transformed data
 # Ok(())
 # }
 ```
@@ -99,8 +99,10 @@ they should be used for final publishing only alongside other brute force option
 
 ### Optimization Functions
 
-- [`mod@determine_optimal_transform`] - Automatically find best transform parameters
-- [`Bc1TransformOptionsBuilder`] - Builder pattern for custom configuration
+- [`transform_bc1_auto`] - Transform with automatically determined optimal parameters
+- [`transform_bc1_auto_with_options`] - Transform with custom optimization options
+- [`Bc1EstimateOptionsBuilder`] - Builder pattern for optimization configuration
+- [`Bc1TransformOptionsBuilder`] - Builder pattern for manual transform configuration
 
 ### Error Handling
 
@@ -137,16 +139,18 @@ Choose between speed and quality:
 
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-# use dxt_lossless_transform_bc1_api::determine_optimal_transform;
+# use dxt_lossless_transform_bc1_api::transform_bc1_auto;
 # use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 # let data = vec![0u8; 8 * 100];
+# let mut output_fast = vec![0u8; 8 * 100];
+# let mut output_thorough = vec![0u8; 8 * 100];
 # let estimator = LosslessTransformUtilsSizeEstimation::new();
 // Fast mode: ~2x faster, tests common configurations
-let fast_options = determine_optimal_transform(&data, estimator, false)?;
+let fast_details = transform_bc1_auto(&data, &mut output_fast, estimator, false)?;
 
 // Thorough mode: tests all decorrelation modes for best compression (gains are minimal)
 # let estimator = LosslessTransformUtilsSizeEstimation::new();
-let thorough_options = determine_optimal_transform(&data, estimator, true)?;
+let thorough_details = transform_bc1_auto(&data, &mut output_thorough, estimator, true)?;
 # Ok(())
 # }
 ```
@@ -177,19 +181,23 @@ let result = transform_bc1_allocating(&input, options)?;
 
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-use dxt_lossless_transform_bc1_api::{determine_optimal_transform, transform_bc1_allocating};
+use dxt_lossless_transform_bc1_api::{transform_bc1_auto_with_options, Bc1EstimateOptionsBuilder};
 # use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
+# use dxt_lossless_transform_api_common::allocate::allocate_cache_line_aligned;
 # fn compress_with_zstd(data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
 #     Ok(data.to_vec()) // Simulate compression
 # }
 
 fn compress_bc1_texture(bc1_data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    // Step 1: Find optimal transform
-    let estimator = LosslessTransformUtilsSizeEstimation::new();
-    let transform_options = determine_optimal_transform(bc1_data, estimator, false)?;
+    // Step 1: Allocate output buffer
+    let mut transformed = allocate_cache_line_aligned(bc1_data.len())?;
     
-    // Step 2: Apply transform
-    let transformed = transform_bc1_allocating(bc1_data, transform_options)?;
+    // Step 2: Find optimal transform and apply it
+    let estimator = LosslessTransformUtilsSizeEstimation::new();
+    let options = Bc1EstimateOptionsBuilder::new()
+        .use_all_decorrelation_modes(false)
+        .build(estimator);
+    let transform_details = transform_bc1_auto_with_options(bc1_data, transformed.as_mut_slice(), options)?;
     
     // Step 3: Compress with your preferred library
     let compressed = compress_with_zstd(transformed.as_slice())?;

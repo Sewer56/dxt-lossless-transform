@@ -11,7 +11,6 @@ use crate::error::TransformError;
 use argh::FromArgs;
 use benchmark::handle_benchmark_command;
 use calc_compression_stats::handle_compression_stats_command;
-use core::ptr::null_mut;
 use dxt_lossless_transform_bc1::Bc1TransformDetails;
 use roundtrip::handle_roundtrip_command;
 use std::path::PathBuf;
@@ -247,21 +246,28 @@ where
     T::Error: core::fmt::Debug,
 {
     use dxt_lossless_transform_bc1::{
-        determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions},
-        experimental::normalize_blocks::determine_optimal_transform::determine_best_transform_details_with_normalization,
+        determine_optimal_transform::{transform_with_best_options, Bc1EstimateOptions},
+        experimental::normalize_blocks::determine_optimal_transform::transform_with_best_options_and_normalization,
         Bc1TransformDetails,
     };
+    use dxt_lossless_transform_common::allocate::allocate_align_64;
 
     let transform_options = Bc1EstimateOptions {
         size_estimator,
         use_all_decorrelation_modes,
     };
 
+    // Allocate output buffer for the transformed data
+    let mut output_buffer = allocate_align_64(len_bytes)
+        .map_err(|e| TransformError::Debug(format!("Failed to allocate output buffer: {e:?}")))?;
+    let output_ptr = output_buffer.as_mut_ptr();
+
     unsafe {
         if experimental_normalize {
             // Use experimental API with normalization support
-            let experimental_details = determine_best_transform_details_with_normalization(
+            let experimental_details = transform_with_best_options_and_normalization(
                 data_ptr,
+                output_ptr,
                 len_bytes,
                 transform_options,
             )
@@ -276,7 +282,7 @@ where
             })
         } else {
             // Use standard API without normalization
-            determine_best_transform_details(data_ptr, len_bytes, null_mut(), transform_options)
+            transform_with_best_options(data_ptr, output_ptr, len_bytes, transform_options)
                 .map_err(|e| TransformError::Debug(format!("API recommendation failed: {e:?}")))
         }
     }

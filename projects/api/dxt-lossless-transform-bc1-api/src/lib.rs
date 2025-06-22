@@ -12,9 +12,7 @@ pub mod c_api;
 
 // Re-export main functionality at crate root
 pub use determine_optimal_transform::builder::Bc1EstimateOptionsBuilder;
-pub use determine_optimal_transform::{
-    determine_optimal_transform, determine_optimal_transform_with_options,
-};
+pub use determine_optimal_transform::{transform_bc1_auto, transform_bc1_auto_with_options};
 pub use error::Bc1Error;
 pub use transform::Bc1TransformOptionsBuilder;
 pub use transform::{

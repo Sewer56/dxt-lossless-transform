@@ -1,8 +1,5 @@
 //! Builder pattern implementation for BC1 transform options.
 
-use crate::determine_optimal_transform::determine_optimal_transform;
-use crate::error::Bc1Error;
-use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 use dxt_lossless_transform_bc1::Bc1TransformDetails;
 
@@ -43,30 +40,6 @@ impl Bc1TransformOptionsBuilder {
                 .split_colour_endpoints
                 .unwrap_or(default.split_colour_endpoints),
         }
-    }
-
-    /// Automatically determine the best options for the given data.
-    ///
-    /// # Parameters
-    ///
-    /// - `data`: The BC1 data to analyze
-    /// - `estimator`: The size estimation operations to use
-    /// - `use_all_modes`: Whether to test all decorrelation modes (twice as slow, tests 4 options instead of 2, typically <0.1% extra savings)
-    ///
-    /// # Returns
-    ///
-    /// The optimal transform options for the given data.
-    pub fn auto_determine_with<T>(
-        self,
-        data: &[u8],
-        estimator: T,
-        use_all_modes: bool,
-    ) -> Result<Bc1TransformDetails, Bc1Error<T::Error>>
-    where
-        T: SizeEstimationOperations,
-        T::Error: core::fmt::Debug,
-    {
-        determine_optimal_transform(data, estimator, use_all_modes)
     }
 }
 

@@ -23,36 +23,7 @@ How to transform/untransform BC1 data:
 
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1AutoTransformBuilder};
-use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
-
-// Your BC1 texture data (must be divisible by 8 bytes)
-let bc1_data = vec![0u8; 8 * 100]; // 100 BC1 blocks
-let mut transformed = vec![0u8; bc1_data.len()];
-
-// Transform with automatic optimization
-let estimator = LosslessTransformUtilsSizeEstimation::new();
-let options = Bc1AutoTransformBuilder::new()
-    .use_all_decorrelation_modes(false)
-    .build(estimator);
-let transform_details = transform_bc1_auto(&bc1_data, &mut transformed, options)?;
-
-// Use transform_details for untransform configuration
-// Note: Untransform API would be separate and not shown in this basic example
-# Ok(())
-# }
-```
-
-Run the transform before passing it to your compressor.
-Run the untransform after decompressing.
-
-### Automatic Optimization
-
-This finds the optimal transform parameters and applies them in one step.
-
-```rust
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1AutoTransformBuilder};
+use dxt_lossless_transform_bc1_api::Bc1AutoTransformBuilder;
 use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 use dxt_lossless_transform_api_common::allocate::allocate_cache_line_aligned;
 
@@ -63,15 +34,17 @@ let mut output_buffer = allocate_cache_line_aligned(8 * 500)?;
 
 // Automatically determine the best transform parameters and apply them
 let estimator = LosslessTransformUtilsSizeEstimation::new();
-let options = Bc1AutoTransformBuilder::new()
+let transform_details = Bc1AutoTransformBuilder::new()
     .use_all_decorrelation_modes(false) // Fast mode
-    .build(estimator);
-let transform_details = transform_bc1_auto(bc1_buffer.as_slice(), output_buffer.as_mut_slice(), options)?;
+    .build_and_transform(bc1_buffer.as_slice(), output_buffer.as_mut_slice(), estimator)?;
 
 // output_buffer now contains the optimally transformed data
 # Ok(())
 # }
 ```
+
+Run the transform before passing it to your compressor.
+Run the untransform after decompressing.
 
 Recommended estimators ***for ZStandard compression***:
 
@@ -94,22 +67,89 @@ they should be used for final publishing only alongside other brute force option
 
 ### Core Transform Functions
 
-- [`transform_bc1_auto`] - Transform BC1 data with automatically determined optimal parameters
+- [`Bc1AutoTransformBuilder::build_and_transform`] - Transform BC1 data with automatically determined optimal parameters
 
-### Optimization Functions
+### Automatic Optimization
 
-- [`transform_bc1_auto`] - Transform with automatically determined optimal parameters
 - [`Bc1AutoTransformBuilder`] - Builder pattern for automatic optimization settings
+  - `new()` - Create a new automatic transform builder
+  - `use_all_decorrelation_modes(bool)` - Configure thoroughness vs speed tradeoff
+  - `build(estimator)` - Build estimate settings with provided estimator
+  - `build_and_transform(input, output, estimator)` - Build settings and transform in one operation
+
+### Manual Configuration
+
 - [`Bc1ManualTransformBuilder`] - Builder pattern for manual transform configuration
+  - `new()` - Create a new manual transform builder  
+  - `decorrelation_mode(YCoCgVariant)` - Set the decorrelation mode
+  - `split_colour_endpoints(bool)` - Set whether to split color endpoints
+  - `build()` - Build transform settings
+  - `build_and_transform(input, output)` - Build settings and transform in one operation
+  - `build_and_untransform(input, output)` - Build settings and untransform in one operation
+
+### Core Types
+
+- [`Bc1TransformSettings`] - Transform configuration settings
+- [`Bc1DetransformSettings`] - Detransform configuration settings  
+- [`Bc1EstimateSettings`] - Automatic optimization settings
+- [`YCoCgVariant`] - Color decorrelation mode variants
+
+### Unstable API (Advanced Users)
+
+**⚠️ ABI Instability Warning**: These functions may have breaking changes between versions without major version bumps.
+
+- [`transform_bc1_with_settings`] - Transform BC1 data with explicit settings (ABI-unstable)
+- [`untransform_bc1_with_settings`] - Untransform BC1 data with explicit settings (ABI-unstable)
 
 ### Error Handling
 
-All functions return [`Result`] types with detailed [`Bc1Error`] information:
+All functions return [`Result`] types with detailed error information:
 
 - [`Bc1Error::InvalidLength`] - Input data not divisible by 8 bytes
 - [`Bc1Error::OutputBufferTooSmall`] - Output buffer insufficient for operation
 - [`Bc1Error::AllocationFailed`] - Memory allocation error
 - [`Bc1Error::SizeEstimationFailed`] - Size estimation error during optimization (preserves the actual estimator error)
+- [`DetermineBestTransformError`] - Error type for transform optimization failures
+
+## Usage Examples
+
+### Manual Transform Configuration
+
+When you know the optimal settings for your data, you can configure transforms manually. The builder can be reused as needed:
+
+```rust
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+use dxt_lossless_transform_bc1_api::{
+    Bc1ManualTransformBuilder, transform_bc1_with_settings, untransform_bc1_with_settings, YCoCgVariant
+};
+
+let bc1_data = vec![0u8; 8 * 100]; // 100 BC1 blocks
+let mut transformed = vec![0u8; bc1_data.len()];
+let mut restored = vec![0u8; bc1_data.len()];
+
+// Create reusable builder with specific settings
+let builder = Bc1ManualTransformBuilder::new()
+    .decorrelation_mode(YCoCgVariant::Variant1)
+    .split_colour_endpoints(true);
+
+// Transform the data
+builder.build_and_transform(&bc1_data, &mut transformed)?;
+
+// Later, after decompression, restore original data
+builder.build_and_untransform(&transformed, &mut restored)?;
+
+// Alternative: Build settings once, reuse multiple times with unstable API
+let transform_settings = builder.build();
+transform_bc1_with_settings(&bc1_data, &mut transformed, transform_settings)?;
+
+let detransform_settings = transform_settings.into();
+untransform_bc1_with_settings(&transformed, &mut restored, detransform_settings)?;
+
+// Restored data should match original
+assert_eq!(bc1_data, restored);
+# Ok(())
+# }
+```
 
 ## Performance Considerations
 
@@ -137,7 +177,7 @@ Choose between speed and quality:
 
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-# use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1AutoTransformBuilder};
+# use dxt_lossless_transform_bc1_api::Bc1AutoTransformBuilder;
 # use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 # let data = vec![0u8; 8 * 100];
 # let mut output_fast = vec![0u8; 8 * 100];
@@ -146,94 +186,36 @@ Choose between speed and quality:
 let estimator = LosslessTransformUtilsSizeEstimation::new();
 
 // Fast mode: ~2x faster, tests common configurations
-let fast_options = Bc1AutoTransformBuilder::new()
+let fast_details = Bc1AutoTransformBuilder::new()
     .use_all_decorrelation_modes(false)
-    .build(estimator);
-let fast_details = transform_bc1_auto(&data, &mut output_fast, fast_options)?;
+    .build_and_transform(&data, &mut output_fast, estimator)?;
 
 // Thorough mode: tests all decorrelation modes for best compression
 // (typical gains are <0.1%; consider using estimator level closer to final compression level instead)
 let estimator = LosslessTransformUtilsSizeEstimation::new();
-let thorough_options = Bc1AutoTransformBuilder::new()
+let thorough_details = Bc1AutoTransformBuilder::new()
     .use_all_decorrelation_modes(true)
-    .build(estimator);
-let thorough_details = transform_bc1_auto(&data, &mut output_thorough, thorough_options)?;
-# Ok(())
-# }
-```
-
-### Memory Management
-
-Use the automatic transform API:
-
-```rust
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-# use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1AutoTransformBuilder};
-# use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
-# let input = vec![0u8; 8 * 10];
-# let mut output = vec![0u8; 8 * 10];
-
-// Use automatic optimization API
-let estimator = LosslessTransformUtilsSizeEstimation::new();
-let options = Bc1AutoTransformBuilder::new()
-    .use_all_decorrelation_modes(false)
-    .build(estimator);
-let transform_details = transform_bc1_auto(&input, &mut output, options)?;
+    .build_and_transform(&data, &mut output_thorough, estimator)?;
 # Ok(())
 # }
 ```
 
 ## Integration Examples
 
-### With Compression Libraries
-
-```rust
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1AutoTransformBuilder};
-# use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
-# use dxt_lossless_transform_api_common::allocate::allocate_cache_line_aligned;
-# fn compress_with_zstd(data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-#     Ok(data.to_vec()) // Simulate compression
-# }
-
-fn compress_bc1_texture(bc1_data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    // Step 1: Allocate output buffer
-    let mut transformed = allocate_cache_line_aligned(bc1_data.len())?;
-    
-    // Step 2: Find optimal transform and apply it
-    let estimator = LosslessTransformUtilsSizeEstimation::new();
-    let options = Bc1AutoTransformBuilder::new()
-        .use_all_decorrelation_modes(false)
-        .build(estimator);
-    let transform_details = transform_bc1_auto(bc1_data, transformed.as_mut_slice(), options)?;
-    
-    // Step 3: Compress with your preferred library
-    let compressed = compress_with_zstd(transformed.as_slice())?;
-    
-    Ok(compressed)
-}
-
-# let bc1_data = vec![0u8; 8 * 10];
-# let result = compress_bc1_texture(&bc1_data)?;
-# Ok(())
-# }
-```
-
 ### Error Handling Patterns
 
 ```rust
 # fn main() {
-use dxt_lossless_transform_bc1_api::{transform_bc1_auto, Bc1AutoTransformBuilder, Bc1Error};
+use dxt_lossless_transform_bc1_api::{Bc1AutoTransformBuilder, Bc1Error};
 # use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 # let input = vec![0u8; 8 * 10];
 # let mut output = vec![0u8; 8 * 10];
 
 let estimator = LosslessTransformUtilsSizeEstimation::new();
-let options = Bc1AutoTransformBuilder::new()
-    .use_all_decorrelation_modes(false)
-    .build(estimator);
 
-match transform_bc1_auto(&input, &mut output, options) {
+match Bc1AutoTransformBuilder::new()
+    .use_all_decorrelation_modes(false)
+    .build_and_transform(&input, &mut output, estimator) {
     Ok(transform_details) => println!("Transform successful"),
     Err(Bc1Error::InvalidLength(len)) => {
         eprintln!("Invalid input: {} bytes (must be divisible by 8)", len);

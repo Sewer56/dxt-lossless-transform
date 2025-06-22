@@ -65,7 +65,7 @@ mod tests {
     #[test]
     fn test_builder_creation_and_destruction() {
         // Create builder
-        let builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
+        let builder = dltbc1_new_EstimateOptionsBuilder();
         assert!(!builder.is_null());
 
         // Free builder
@@ -81,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_builder_use_all_decorrelation_modes() {
-        let builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
+        let builder = dltbc1_new_EstimateOptionsBuilder();
         assert!(!builder.is_null());
 
         // Test setting use_all_decorrelation_modes to true
@@ -119,7 +119,7 @@ mod tests {
         let mut output = [0u8; 8];
 
         // Create builder
-        let builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
+        let builder = dltbc1_new_EstimateOptionsBuilder();
         assert!(!builder.is_null());
 
         // Create context
@@ -158,7 +158,7 @@ mod tests {
     fn test_transform_auto_null_context() {
         let test_data = [0u8; 8];
         let mut output = [0u8; 8];
-        let builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
+        let builder = dltbc1_new_EstimateOptionsBuilder();
         let estimator = create_test_estimator();
 
         unsafe {
@@ -212,7 +212,7 @@ mod tests {
     fn test_transform_auto_with_use_all_modes() {
         let test_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
         let mut output = [0u8; 8];
-        let builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
+        let builder = dltbc1_new_EstimateOptionsBuilder();
         let context = dltbc1_new_TransformContext();
         let estimator = create_test_estimator();
 
@@ -242,7 +242,7 @@ mod tests {
         // Use 7 bytes (not divisible by 8)
         let test_data = [0u8; 7];
         let mut output = [0u8; 8];
-        let builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
+        let builder = dltbc1_new_EstimateOptionsBuilder();
         let context = dltbc1_new_TransformContext();
         let estimator = create_test_estimator();
 
@@ -272,7 +272,7 @@ mod tests {
         let mut output = [0u8; 8];
 
         // Create builder and set options
-        let builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
+        let builder = dltbc1_new_EstimateOptionsBuilder();
         assert!(!builder.is_null());
 
         unsafe {

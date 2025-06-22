@@ -12,11 +12,8 @@ pub mod c_api;
 // Re-export main functionality at crate root
 pub use error::Bc1Error;
 
-// Re-export BUILDERS FIRST (stable, recommended)
+// Re-export BUILDERS (stable, recommended)
 pub use transform::{Bc1AutoTransformBuilder, Bc1ManualTransformBuilder};
 
-// Re-export stable API types for convenience
-pub use transform::{
-    Bc1DetransformSettings, Bc1EstimateSettings, Bc1TransformSettings, DetermineBestTransformError,
-    YCoCgVariant,
-};
+// Re-export only essential types (YCoCgVariant for builder configuration)
+pub use transform::YCoCgVariant;

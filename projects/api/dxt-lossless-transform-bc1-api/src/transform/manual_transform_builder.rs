@@ -1,9 +1,10 @@
 //! Builder pattern implementation for BC1 manual transform configuration.
 
-use super::{Bc1DetransformSettings, Bc1TransformSettings, YCoCgVariant};
+use super::YCoCgVariant;
 use crate::Bc1Error;
 use dxt_lossless_transform_bc1::{
-    transform_bc1_with_settings_safe, untransform_bc1_with_settings_safe,
+    Bc1DetransformSettings, Bc1TransformSettings, transform_bc1_with_settings_safe,
+    untransform_bc1_with_settings_safe,
 };
 
 /// Manual BC1 transform configuration builder.
@@ -57,18 +58,7 @@ impl Bc1ManualTransformBuilder {
         self
     }
 
-    /// Build the transform settings using the configured values.
-    pub fn build(self) -> Bc1TransformSettings {
-        Bc1TransformSettings {
-            decorrelation_mode: self.decorrelation_mode.unwrap_or(YCoCgVariant::Variant1),
-            split_colour_endpoints: self.split_colour_endpoints.unwrap_or(true),
-        }
-    }
-
-    /// Build the transform settings and transform BC1 data in one operation.
-    ///
-    /// This is a convenience method that combines building the settings and calling
-    /// [`dxt_lossless_transform_bc1::transform_bc1_with_settings_safe`] in a single operation.
+    /// Transform BC1 data using the configured settings.
     ///
     /// # Parameters
     /// - `input`: The BC1 data to transform
@@ -83,57 +73,72 @@ impl Bc1ManualTransformBuilder {
     /// # Examples
     ///
     /// ```ignore
-    /// use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
-    /// use dxt_lossless_transform_common::color_565::YCoCgVariant;
+    /// use dxt_lossless_transform_bc1_api::{Bc1ManualTransformBuilder, YCoCgVariant};
     ///
     /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
-    /// let mut output = vec![0u8; 8];
+    /// let mut transformed = vec![0u8; 8];
+    /// let mut restored = vec![0u8; 8];
     ///
-    /// Bc1ManualTransformBuilder::new()
+    /// let builder = Bc1ManualTransformBuilder::new()
     ///     .decorrelation_mode(YCoCgVariant::Variant1)
-    ///     .split_colour_endpoints(true)
-    ///     .build_and_transform(&bc1_data, &mut output)?;
+    ///     .split_colour_endpoints(true);
+    ///
+    /// // Transform
+    /// builder.transform(&bc1_data, &mut transformed)?;
+    ///
+    /// // Later, detransform with the same builder
+    /// builder.detransform(&transformed, &mut restored)?;
     /// ```
-    pub fn build_and_transform(self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
-        let stable_settings = self.build();
-        let internal_settings = stable_settings.into();
-        transform_bc1_with_settings_safe(input, output, internal_settings).map_err(Bc1Error::from)
+    pub fn transform(&self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
+        let settings = Bc1TransformSettings {
+            decorrelation_mode: self
+                .decorrelation_mode
+                .unwrap_or(YCoCgVariant::Variant1)
+                .to_internal_variant(),
+            split_colour_endpoints: self.split_colour_endpoints.unwrap_or(true),
+        };
+        transform_bc1_with_settings_safe(input, output, settings).map_err(Bc1Error::from)
     }
 
-    /// Build the transform settings and untransform BC1 data in one operation.
+    /// Detransform BC1 data using the configured settings.
     ///
-    /// This is a convenience method that combines building the settings and calling
-    /// [`dxt_lossless_transform_bc1::untransform_bc1_with_settings_safe`] in a single operation.
+    /// This method reverses the transformation applied by [`transform`](Self::transform),
+    /// using the same configuration that was used for the original transformation.
     ///
     /// # Parameters
-    /// - `input`: The transformed BC1 data to untransform
+    /// - `input`: The transformed BC1 data to detransform
     /// - `output`: The output buffer where original BC1 data will be written
     ///
     /// # Returns
     /// Ok(()) on success, or an error on failure.
     ///
     /// # Errors
-    /// Returns [`Bc1Error`] if the untransformation fails.
+    /// Returns [`Bc1Error`] if the detransformation fails.
     ///
     /// # Examples
     ///
     /// ```ignore
-    /// use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
-    /// use dxt_lossless_transform_common::color_565::YCoCgVariant;
+    /// use dxt_lossless_transform_bc1_api::{Bc1ManualTransformBuilder, YCoCgVariant};
     ///
     /// let transformed_data = vec![0u8; 8]; // 1 transformed BC1 block
     /// let mut output = vec![0u8; 8];
     ///
-    /// Bc1ManualTransformBuilder::new()
+    /// let builder = Bc1ManualTransformBuilder::new()
     ///     .decorrelation_mode(YCoCgVariant::Variant1)
-    ///     .split_colour_endpoints(true)
-    ///     .build_and_untransform(&transformed_data, &mut output)?;
+    ///     .split_colour_endpoints(true);
+    ///
+    /// builder.detransform(&transformed_data, &mut output)?;
     /// ```
-    pub fn build_and_untransform(self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
-        let stable_transform_settings = self.build();
-        let stable_detransform_settings: Bc1DetransformSettings = stable_transform_settings.into();
-        let internal_detransform_settings = stable_detransform_settings.into();
-        untransform_bc1_with_settings_safe(input, output, internal_detransform_settings)
+    pub fn detransform(&self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
+        let transform_settings = Bc1TransformSettings {
+            decorrelation_mode: self
+                .decorrelation_mode
+                .unwrap_or(YCoCgVariant::Variant1)
+                .to_internal_variant(),
+            split_colour_endpoints: self.split_colour_endpoints.unwrap_or(true),
+        };
+        let detransform_settings: Bc1DetransformSettings = transform_settings.into();
+        untransform_bc1_with_settings_safe(input, output, detransform_settings)
             .map_err(Bc1Error::from)
     }
 }
@@ -149,26 +154,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_manual_transform_builder() {
-        let settings = Bc1ManualTransformBuilder::new()
-            .decorrelation_mode(YCoCgVariant::None)
-            .split_colour_endpoints(false)
-            .build();
-
-        assert_eq!(settings.decorrelation_mode, YCoCgVariant::None);
-        assert!(!settings.split_colour_endpoints);
-    }
-
-    #[test]
-    fn test_manual_transform_builder_defaults() {
-        let settings = Bc1ManualTransformBuilder::new().build();
-
-        assert_eq!(settings.decorrelation_mode, YCoCgVariant::Variant1);
-        assert!(settings.split_colour_endpoints);
-    }
-
-    #[test]
-    fn test_manual_transform_builder_build_and_transform() {
+    fn test_manual_transform_builder_transform() {
         // Create minimal BC1 block data (8 bytes per block)
         let bc1_data = [
             0x00, 0xF8, // Color0: Red in RGB565 (0xF800)
@@ -177,19 +163,20 @@ mod tests {
         ];
         let mut output = [0u8; 8];
 
-        let result = Bc1ManualTransformBuilder::new()
+        let builder = Bc1ManualTransformBuilder::new()
             .decorrelation_mode(YCoCgVariant::Variant1)
-            .split_colour_endpoints(true)
-            .build_and_transform(&bc1_data, &mut output);
+            .split_colour_endpoints(true);
+
+        let result = builder.transform(&bc1_data, &mut output);
 
         assert!(
             result.is_ok(),
-            "build_and_transform should not fail with valid BC1 data"
+            "transform should not fail with valid BC1 data"
         );
     }
 
     #[test]
-    fn test_manual_transform_builder_build_and_untransform() {
+    fn test_manual_transform_builder_round_trip() {
         // First transform some data
         let bc1_data = [
             0x00, 0xF8, // Color0: Red in RGB565 (0xF800)
@@ -204,23 +191,23 @@ mod tests {
             .split_colour_endpoints(true);
 
         // Transform
-        let transform_result = builder.build_and_transform(&bc1_data, &mut transformed);
+        let transform_result = builder.transform(&bc1_data, &mut transformed);
         assert!(
             transform_result.is_ok(),
             "Transform should not fail with valid BC1 data"
         );
 
-        // Untransform with same settings
-        let untransform_result = builder.build_and_untransform(&transformed, &mut restored);
+        // Detransform with same settings
+        let detransform_result = builder.detransform(&transformed, &mut restored);
         assert!(
-            untransform_result.is_ok(),
-            "Untransform should not fail with valid transformed data"
+            detransform_result.is_ok(),
+            "Detransform should not fail with valid transformed data"
         );
 
         // Verify round-trip
         assert_eq!(
             bc1_data, restored,
-            "Round-trip transform/untransform should restore original data"
+            "Round-trip transform/detransform should restore original data"
         );
     }
 }

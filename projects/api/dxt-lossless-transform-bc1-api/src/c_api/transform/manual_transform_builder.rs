@@ -264,10 +264,7 @@ pub unsafe extern "C" fn dltbc1_TransformSettingsBuilder_Transform(
     let builder_inner = unsafe { get_settings_builder_mut(builder) };
 
     // Perform the transformation using the builder's method
-    match builder_inner
-        .builder
-        .build_and_transform(input_slice, output_slice)
-    {
+    match builder_inner.builder.transform(input_slice, output_slice) {
         Ok(()) => Dltbc1Result::success(),
         Err(e) => e.into(),
     }
@@ -331,10 +328,7 @@ pub unsafe extern "C" fn dltbc1_TransformSettingsBuilder_Untransform(
     let builder_inner = unsafe { get_settings_builder_mut(builder) };
 
     // Perform the untransformation using the builder's method
-    match builder_inner
-        .builder
-        .build_and_untransform(input_slice, output_slice)
-    {
+    match builder_inner.builder.detransform(input_slice, output_slice) {
         Ok(()) => Dltbc1Result::success(),
         Err(e) => e.into(),
     }

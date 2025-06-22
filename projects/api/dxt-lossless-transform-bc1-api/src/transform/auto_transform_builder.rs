@@ -54,7 +54,7 @@ impl Bc1AutoTransformBuilder {
     /// Build the estimate settings and transform BC1 data in one operation.
     ///
     /// This is a convenience method that combines building the settings and calling
-    /// [`transform_bc1_auto`] in a single operation.
+    /// [`dxt_lossless_transform_bc1::transform_bc1_auto_safe`] in a single operation.
     ///
     /// # Parameters
     /// - `input`: The BC1 data to transform

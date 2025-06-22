@@ -68,7 +68,7 @@ impl Bc1ManualTransformBuilder {
     /// Build the transform settings and transform BC1 data in one operation.
     ///
     /// This is a convenience method that combines building the settings and calling
-    /// [`transform_bc1_with_settings`] in a single operation.
+    /// [`dxt_lossless_transform_bc1::transform_bc1_with_settings_safe`] in a single operation.
     ///
     /// # Parameters
     /// - `input`: The BC1 data to transform
@@ -102,7 +102,7 @@ impl Bc1ManualTransformBuilder {
     /// Build the transform settings and untransform BC1 data in one operation.
     ///
     /// This is a convenience method that combines building the settings and calling
-    /// [`untransform_bc1_with_settings`] in a single operation.
+    /// [`dxt_lossless_transform_bc1::untransform_bc1_with_settings_safe`] in a single operation.
     ///
     /// # Parameters
     /// - `input`: The transformed BC1 data to untransform

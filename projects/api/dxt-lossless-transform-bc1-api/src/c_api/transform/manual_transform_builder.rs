@@ -6,9 +6,7 @@
 //! to remain compatible across library versions.
 //!
 //! For users requiring maximum performance and willing to accept potential breaking
-//! changes, see the [`transform_with_settings`] module for ABI-unstable alternatives.
-//!
-//! [`transform_with_settings`]: super::unstable::transform_with_settings
+//! changes, see the core crate functions directly.
 
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
 use core::{ptr, slice};

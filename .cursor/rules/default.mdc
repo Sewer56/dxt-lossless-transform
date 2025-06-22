@@ -16,6 +16,8 @@ This is a high-performance Rust library for lossless DXT texture compression wit
 - Always use `cargo fmt` for code formatting
 - Run `cargo clippy` and fix all warnings before submitting code
 - Use proper rustdoc format with elements in brackets like [`Color565`] instead of `Color565`
+- Run `cargo doc` to detect any broken intra-doc links.
+- Test changes with `cargo test --all-features` on the workspace please. Changes in one project may break another.
 - Maintain original code order (including assembly sections) and all comments intact unless explicitly permitted
 
 ### Variable Names & Structure
@@ -58,4 +60,3 @@ This is a high-performance Rust library for lossless DXT texture compression wit
 ## Compilation
 
 When building the `dxt-lossless-transform-cli` project, enable all features except for `nightly`, unless asked.
-Test changes with `cargo test --all-features`, on the whole workspace when performing changes.

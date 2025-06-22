@@ -10,7 +10,9 @@ use crate::traits::file_format::FileFormatHandler;
 use dxt_lossless_transform_api_common::embed::EmbeddableTransformDetails;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_bc1::{Bc1DetransformDetails, Bc1TransformDetails};
-use dxt_lossless_transform_bc1_api::{determine_optimal_transform, transform_bc1_slice};
+use dxt_lossless_transform_bc1_api::{
+    determine_optimal_transform, transform_bc1_slice, Bc1EstimateOptionsBuilder,
+};
 use lightweight_mmap::handles::{ReadOnlyFileHandle, ReadWriteFileHandle};
 use lightweight_mmap::mmap::{ReadOnlyMmap, ReadWriteMmap};
 use std::fs;
@@ -175,7 +177,11 @@ where
         unsafe { std::slice::from_raw_parts(source_mapping.data().add(data_offset), data_size) };
 
     // Determine optimal transform settings
-    let optimal_details = determine_optimal_transform(bc1_data, estimator, use_all_modes)
+    let options = Bc1EstimateOptionsBuilder::new()
+        .use_all_decorrelation_modes(use_all_modes)
+        .build(estimator);
+
+    let optimal_details = determine_optimal_transform(bc1_data, options)
         .map_err(|e| FileFormatError::Transform(format!("Optimization failed: {e:?}")))?;
 
     // Now transform the file using the optimal settings

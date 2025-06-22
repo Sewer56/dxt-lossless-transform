@@ -53,7 +53,7 @@ This finds the optimal transform parameters for your data.
 
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-use dxt_lossless_transform_bc1_api::{determine_optimal_transform, transform_bc1_allocating};
+use dxt_lossless_transform_bc1_api::{determine_optimal_transform, transform_bc1_allocating, Bc1EstimateOptionsBuilder};
 use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 use dxt_lossless_transform_api_common::allocate::allocate_cache_line_aligned;
 
@@ -63,7 +63,10 @@ let mut bc1_buffer = allocate_cache_line_aligned(8 * 500)?; // 500 BC1 blocks
 
 // Automatically determine the best transform parameters
 let estimator = LosslessTransformUtilsSizeEstimation::new();
-let optimal_options = determine_optimal_transform(bc1_buffer.as_slice(), estimator, false)?;
+let options = Bc1EstimateOptionsBuilder::new()
+    .use_all_decorrelation_modes(false)
+    .build(estimator);
+let optimal_options = determine_optimal_transform(bc1_buffer.as_slice(), options)?;
 
 // Apply the optimal transform with automatic allocation
 let transformed = transform_bc1_allocating(bc1_buffer.as_slice(), optimal_options)?;
@@ -137,16 +140,26 @@ Choose between speed and quality:
 
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-# use dxt_lossless_transform_bc1_api::determine_optimal_transform;
+# use dxt_lossless_transform_bc1_api::{determine_optimal_transform, Bc1EstimateOptionsBuilder};
 # use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 # let data = vec![0u8; 8 * 100];
 # let estimator = LosslessTransformUtilsSizeEstimation::new();
 // Fast mode: ~2x faster, tests common configurations
-let fast_options = determine_optimal_transform(&data, estimator, false)?;
+let fast_options = {
+    let options = Bc1EstimateOptionsBuilder::new()
+        .use_all_decorrelation_modes(false)
+        .build(estimator);
+    determine_optimal_transform(&data, options)?
+};
 
 // Thorough mode: tests all decorrelation modes for best compression (gains are minimal)
 # let estimator = LosslessTransformUtilsSizeEstimation::new();
-let thorough_options = determine_optimal_transform(&data, estimator, true)?;
+let thorough_options = {
+    let options = Bc1EstimateOptionsBuilder::new()
+        .use_all_decorrelation_modes(true)
+        .build(estimator);
+    determine_optimal_transform(&data, options)?
+};
 # Ok(())
 # }
 ```
@@ -177,7 +190,7 @@ let result = transform_bc1_allocating(&input, options)?;
 
 ```rust
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-use dxt_lossless_transform_bc1_api::{determine_optimal_transform, transform_bc1_allocating};
+use dxt_lossless_transform_bc1_api::{determine_optimal_transform, transform_bc1_allocating, Bc1EstimateOptionsBuilder};
 # use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 # fn compress_with_zstd(data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
 #     Ok(data.to_vec()) // Simulate compression
@@ -186,7 +199,10 @@ use dxt_lossless_transform_bc1_api::{determine_optimal_transform, transform_bc1_
 fn compress_bc1_texture(bc1_data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     // Step 1: Find optimal transform
     let estimator = LosslessTransformUtilsSizeEstimation::new();
-    let transform_options = determine_optimal_transform(bc1_data, estimator, false)?;
+    let options = Bc1EstimateOptionsBuilder::new()
+        .use_all_decorrelation_modes(false)
+        .build(estimator);
+    let transform_options = determine_optimal_transform(bc1_data, options)?;
     
     // Step 2: Apply transform
     let transformed = transform_bc1_allocating(bc1_data, transform_options)?;

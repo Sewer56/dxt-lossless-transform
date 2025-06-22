@@ -9,7 +9,7 @@
 use crate::Bc1Error;
 use crate::c_api::Dltbc1TransformDetails;
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
-use crate::determine_optimal_transform::determine_optimal_transform;
+use crate::determine_optimal_transform::builder::Bc1EstimateOptionsBuilder;
 use core::slice;
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 
@@ -73,8 +73,12 @@ pub unsafe extern "C" fn dltbc1_unstable_determine_optimal(
     // Use the provided estimator
     let estimator_ref = unsafe { &*estimator };
 
-    // Determine optimal transform
-    match determine_optimal_transform(data_slice, estimator_ref, settings.use_all_modes) {
+    // Build options and determine optimal transform
+    let options = Bc1EstimateOptionsBuilder::new()
+        .use_all_decorrelation_modes(settings.use_all_modes)
+        .build(estimator_ref);
+
+    match crate::determine_optimal_transform::determine_optimal_transform(data_slice, options) {
         Ok(optimal_details) => {
             // Write the optimal details to the output pointer
             unsafe {

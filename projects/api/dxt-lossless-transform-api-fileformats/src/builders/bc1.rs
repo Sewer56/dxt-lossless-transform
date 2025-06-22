@@ -143,7 +143,7 @@ impl<T: SizeEstimationOperations> Bc1FileFormatEstimateBuilder<T> {
         T::Error: core::fmt::Debug,
     {
         let options = self.inner.build(self.estimator);
-        dxt_lossless_transform_bc1_api::determine_optimal_transform_with_options(data, options)
+        dxt_lossless_transform_bc1_api::determine_optimal_transform(data, options)
     }
 
     /// Determine optimal transform parameters for a file.
@@ -207,11 +207,10 @@ impl<T: SizeEstimationOperations> Bc1FileFormatEstimateBuilder<T> {
         };
 
         // Determine optimal transform settings
-        let use_all_modes = false; // Default value - would need better introspection
-        let optimal_details = determine_optimal_transform(bc1_data, self.estimator, use_all_modes)
-            .map_err(|e| {
-                crate::error::FileFormatError::Transform(format!("Optimization failed: {e:?}"))
-            })?;
+        let options = self.inner.build(self.estimator);
+        let optimal_details = determine_optimal_transform(bc1_data, options).map_err(|e| {
+            crate::error::FileFormatError::Transform(format!("Optimization failed: {e:?}"))
+        })?;
 
         // Convert to embeddable details
         let embeddable_details =
@@ -241,8 +240,9 @@ impl<T: SizeEstimationOperations> Bc1FileFormatEstimateBuilder<T> {
     where
         T::Error: core::fmt::Debug,
     {
-        // Extract use_all_modes setting from the inner builder
-        let use_all_modes = false; // Default value - would need better introspection
+        // Get use_all_modes setting from the inner builder
+        // Since the builder doesn't expose this, we'll use the default of false for now
+        let use_all_modes = false; // TODO: Add introspection to builder or change API
 
         super::super::api::transform_bc1_file_with_optimal::<H, T>(
             input_path,

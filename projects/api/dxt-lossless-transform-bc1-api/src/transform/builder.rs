@@ -1,6 +1,6 @@
 //! Builder pattern implementation for BC1 transform options.
 
-use crate::determine_optimal_transform::determine_optimal_transform;
+use crate::determine_optimal_transform::builder::Bc1EstimateOptionsBuilder;
 use crate::error::Bc1Error;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
@@ -66,7 +66,10 @@ impl Bc1TransformOptionsBuilder {
         T: SizeEstimationOperations,
         T::Error: core::fmt::Debug,
     {
-        determine_optimal_transform(data, estimator, use_all_modes)
+        let options = Bc1EstimateOptionsBuilder::new()
+            .use_all_decorrelation_modes(use_all_modes)
+            .build(estimator);
+        crate::determine_optimal_transform::determine_optimal_transform(data, options)
     }
 }
 

@@ -282,6 +282,7 @@ where
             FAST_TEST_ORDER
         };
 
+        #[allow(clippy::needless_range_loop)]
         for norm_idx in 0..NUM_NORMALIZE {
             for &(decorrelation_mode, split_colours) in test_order {
                 // Get the current mode we're testing.

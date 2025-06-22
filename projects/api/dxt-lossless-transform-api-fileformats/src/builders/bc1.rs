@@ -7,6 +7,7 @@
 use crate::error::FileFormatResult;
 use crate::formats::bc1::EmbeddableBc1Details;
 use crate::traits::file_format::FileFormatHandler;
+use dxt_lossless_transform_api_common::embed::EmbeddableTransformDetails;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_bc1::{Bc1DetransformDetails, Bc1TransformDetails};
 use dxt_lossless_transform_bc1_api::{Bc1EstimateOptionsBuilder, Bc1TransformOptionsBuilder};
@@ -24,6 +25,8 @@ pub trait Bc1TransformFileFormatExt {
 
     /// Transform a single file with the configured settings.
     ///
+    /// Transform details are automatically stored in the file header.
+    ///
     /// # Parameters
     ///
     /// - `input_path`: Path to the input file
@@ -36,24 +39,6 @@ pub trait Bc1TransformFileFormatExt {
         self,
         input_path: &Path,
         output_path: &Path,
-    ) -> FileFormatResult<()>;
-
-    /// Transform a single file with the configured settings, storing details in the header.
-    ///
-    /// # Parameters
-    ///
-    /// - `input_path`: Path to the input file
-    /// - `output_path`: Path to the output file
-    /// - `store_in_header`: Whether to store transform details in the file header
-    ///
-    /// # Returns
-    ///
-    /// [`Ok(())`] on success, or a [`FileFormatError`] on failure.
-    fn transform_file_with_header<H: FileFormatHandler>(
-        self,
-        input_path: &Path,
-        output_path: &Path,
-        store_in_header: bool,
     ) -> FileFormatResult<()>;
 }
 
@@ -68,22 +53,89 @@ impl Bc1TransformFileFormatExt for Bc1TransformOptionsBuilder {
         input_path: &Path,
         output_path: &Path,
     ) -> FileFormatResult<()> {
-        self.transform_file_with_header::<H>(input_path, output_path, true)
-    }
+        use lightweight_mmap::handles::{ReadOnlyFileHandle, ReadWriteFileHandle};
+        use lightweight_mmap::mmap::{ReadOnlyMmap, ReadWriteMmap};
+        use std::fs;
+        use std::ptr::copy_nonoverlapping;
 
-    fn transform_file_with_header<H: FileFormatHandler>(
-        self,
-        input_path: &Path,
-        output_path: &Path,
-        store_in_header: bool,
-    ) -> FileFormatResult<()> {
-        let details = self.build();
-        crate::api::transform_bc1_file_with_details::<H>(
-            input_path,
-            output_path,
-            details,
-            store_in_header,
+        // Open and map the input file
+        let source_handle = ReadOnlyFileHandle::open(input_path.to_str().ok_or_else(|| {
+            crate::error::FileFormatError::InvalidFileData("Invalid input path".to_string())
+        })?)
+        .map_err(|e| crate::error::FileFormatError::MemoryMapping(e.to_string()))?;
+
+        let source_size = source_handle
+            .size()
+            .map_err(|e| crate::error::FileFormatError::MemoryMapping(e.to_string()))?
+            as usize;
+
+        let source_mapping = ReadOnlyMmap::new(&source_handle, 0, source_size)
+            .map_err(|e| crate::error::FileFormatError::MemoryMapping(e.to_string()))?;
+
+        // Detect and validate file format
+        let file_info = H::detect_format(unsafe {
+            std::slice::from_raw_parts(source_mapping.data(), source_mapping.len())
+        })
+        .ok_or_else(|| {
+            crate::error::FileFormatError::FormatNotDetected(
+                input_path.to_string_lossy().to_string(),
+            )
+        })?;
+
+        let data_offset = H::get_data_offset(&file_info);
+
+        // Create output directory if needed
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent).map_err(crate::error::FileFormatError::Io)?;
+        }
+
+        // Create output file
+        let target_handle = ReadWriteFileHandle::create_preallocated(
+            output_path.to_str().ok_or_else(|| {
+                crate::error::FileFormatError::InvalidFileData("Invalid output path".to_string())
+            })?,
+            source_size as i64,
         )
+        .map_err(|e| crate::error::FileFormatError::MemoryMapping(e.to_string()))?;
+
+        let target_mapping = ReadWriteMmap::new(&target_handle, 0, source_size)
+            .map_err(|e| crate::error::FileFormatError::MemoryMapping(e.to_string()))?;
+
+        // Copy headers
+        unsafe {
+            copy_nonoverlapping(source_mapping.data(), target_mapping.data(), data_offset);
+        }
+
+        // Store transform details in header (always enabled)
+        let embeddable_details = self.build_embeddable();
+        let header = embeddable_details.to_header();
+        unsafe {
+            H::embed_transform_header(target_mapping.data(), header)
+                .map_err(|e| crate::error::FileFormatError::Embed(e.into()))?;
+        }
+
+        // Transform the data section using the builder's memory-to-memory method
+        let data_size = source_size - data_offset;
+        if data_size % 8 != 0 {
+            return Err(crate::error::FileFormatError::InvalidFileData(
+                "BC1 data size must be multiple of 8 bytes".to_string(),
+            ));
+        }
+
+        let input_slice = unsafe {
+            std::slice::from_raw_parts(source_mapping.data().add(data_offset), data_size)
+        };
+        let output_slice = unsafe {
+            std::slice::from_raw_parts_mut(target_mapping.data().add(data_offset), data_size)
+        };
+
+        // Use the builder's transform method instead of standalone function
+        self.transform_slice(input_slice, output_slice)
+            .map_err(|e| {
+                crate::error::FileFormatError::Transform(format!("BC1 transform failed: {e:?}"))
+            })?;
+
+        Ok(())
     }
 }
 
@@ -113,7 +165,8 @@ pub trait Bc1EstimateFileFormatExt<T: SizeEstimationOperations> {
     /// Transform a file with automatically determined optimal settings.
     ///
     /// This determines the optimal transform settings for the file and then applies
-    /// the transformation in a single operation.
+    /// the transformation in a single operation. Transform details are automatically
+    /// stored in the file header.
     ///
     /// # Parameters
     ///
@@ -128,30 +181,6 @@ pub trait Bc1EstimateFileFormatExt<T: SizeEstimationOperations> {
         self,
         input_path: &Path,
         output_path: &Path,
-    ) -> FileFormatResult<TransformResult>
-    where
-        T::Error: core::fmt::Debug;
-
-    /// Transform a file with automatically determined optimal settings and control header storage.
-    ///
-    /// This determines the optimal transform settings for the file and then applies
-    /// the transformation in a single operation.
-    ///
-    /// # Parameters
-    ///
-    /// - `input_path`: Path to the input file
-    /// - `output_path`: Path to the output file
-    /// - `store_in_header`: Whether to store transform details in the file header
-    ///
-    /// # Returns
-    ///
-    /// [`Ok(TransformResult)`] on success containing the details that were used,
-    /// or a [`FileFormatError`] on failure.
-    fn transform_file_with_optimal_and_header<H: FileFormatHandler>(
-        self,
-        input_path: &Path,
-        output_path: &Path,
-        store_in_header: bool,
     ) -> FileFormatResult<TransformResult>
     where
         T::Error: core::fmt::Debug;
@@ -254,25 +283,11 @@ impl<T: SizeEstimationOperations> Bc1EstimateFileFormatExt<T>
     where
         T::Error: core::fmt::Debug,
     {
-        self.transform_file_with_optimal_and_header::<H>(input_path, output_path, true)
-    }
-
-    fn transform_file_with_optimal_and_header<H: FileFormatHandler>(
-        self,
-        input_path: &Path,
-        output_path: &Path,
-        store_in_header: bool,
-    ) -> FileFormatResult<TransformResult>
-    where
-        T::Error: core::fmt::Debug,
-    {
-        // Now we can access the use_all_decorrelation_modes directly
         crate::api::transform_bc1_file_with_optimal::<H, T>(
             input_path,
             output_path,
             self.estimator,
             self.use_all_decorrelation_modes,
-            store_in_header,
         )
     }
 }

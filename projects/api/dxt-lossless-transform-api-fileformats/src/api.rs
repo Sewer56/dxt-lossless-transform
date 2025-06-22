@@ -21,15 +21,14 @@ use std::ptr::copy_nonoverlapping;
 
 /// Transform a BC1 file using the provided transform details.
 ///
-/// This function transforms a BC1 file using the provided transform details,
-/// with optional storage of the transform parameters in the file header.
+/// This function transforms a BC1 file using the provided transform details.
+/// Transform parameters are automatically stored in the file header.
 ///
 /// # Parameters
 ///
 /// - `input_path`: Path to the input file
 /// - `output_path`: Path to the output file  
 /// - `details`: Transform details to use
-/// - `store_in_header`: Whether to store transform details in the header
 ///
 /// # Returns
 ///
@@ -38,7 +37,6 @@ pub fn transform_bc1_file_with_details<H: FileFormatHandler>(
     input_path: &Path,
     output_path: &Path,
     details: Bc1TransformDetails,
-    store_in_header: bool,
 ) -> FileFormatResult<()> {
     // Open and map the input file
     let source_handle = ReadOnlyFileHandle::open(
@@ -85,14 +83,12 @@ pub fn transform_bc1_file_with_details<H: FileFormatHandler>(
         copy_nonoverlapping(source_mapping.data(), target_mapping.data(), data_offset);
     }
 
-    // Optionally store transform details in header
-    if store_in_header {
-        let embeddable_details = EmbeddableBc1Details::from(Bc1DetransformDetails::from(details));
-        let header = embeddable_details.to_header();
-        unsafe {
-            H::embed_transform_header(target_mapping.data(), header)
-                .map_err(|e| FileFormatError::Embed(e.into()))?;
-        }
+    // Store transform details in header (always enabled)
+    let embeddable_details = EmbeddableBc1Details::from(Bc1DetransformDetails::from(details));
+    let header = embeddable_details.to_header();
+    unsafe {
+        H::embed_transform_header(target_mapping.data(), header)
+            .map_err(|e| FileFormatError::Embed(e.into()))?;
     }
 
     // Transform the data section
@@ -118,7 +114,8 @@ pub fn transform_bc1_file_with_details<H: FileFormatHandler>(
 /// Transform a BC1 file with automatically determined optimal settings.
 ///
 /// This function determines the optimal transform settings for the file and then applies
-/// the transformation in a single operation.
+/// the transformation in a single operation. Transform details are automatically stored
+/// in the file header.
 ///
 /// # Parameters
 ///
@@ -126,7 +123,6 @@ pub fn transform_bc1_file_with_details<H: FileFormatHandler>(
 /// - `output_path`: Path to the output file
 /// - `estimator`: Size estimation operations to use
 /// - `use_all_modes`: Whether to use all decorrelation modes for optimization
-/// - `store_in_header`: Whether to store transform details in the header
 ///
 /// # Returns
 ///
@@ -137,7 +133,6 @@ pub fn transform_bc1_file_with_optimal<H: FileFormatHandler, T: SizeEstimationOp
     output_path: &Path,
     estimator: T,
     use_all_modes: bool,
-    store_in_header: bool,
 ) -> FileFormatResult<crate::builders::bc1::TransformResult>
 where
     T::Error: core::fmt::Debug,
@@ -185,12 +180,7 @@ where
         .map_err(|e| FileFormatError::Transform(format!("Optimization failed: {e:?}")))?;
 
     // Now transform the file using the optimal settings
-    transform_bc1_file_with_details::<H>(
-        input_path,
-        output_path,
-        optimal_details,
-        store_in_header,
-    )?;
+    transform_bc1_file_with_details::<H>(input_path, output_path, optimal_details)?;
 
     // Return the result
     let embeddable_details =

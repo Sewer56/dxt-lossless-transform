@@ -17,8 +17,10 @@ This is a high-performance Rust library for lossless DXT texture compression wit
 - Run `cargo clippy` and fix all warnings before submitting code
 - Use proper rustdoc format with elements in brackets like [`Color565`] instead of `Color565`
 - Run `cargo doc` to detect any broken intra-doc links.
-- Test changes with `cargo test --all-features` on the workspace please. Changes in one project may break another.
+- Test changes with `cargo test`.
 - Maintain original code order (including assembly sections) and all comments intact unless explicitly permitted
+
+Always run binaries with `--all-features`, and on the workspace, as changes to one file may break another.
 
 ### Variable Names & Structure
 

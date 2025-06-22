@@ -165,3 +165,40 @@ impl YCoCgVariant {
         }
     }
 }
+
+impl From<u8> for YCoCgVariant {
+    /// Convert from u8 representation used in C APIs.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: The u8 value where 0=None, 1=Variant1, 2=Variant2, 3=Variant3
+    ///
+    /// # Returns
+    ///
+    /// The corresponding variant, defaulting to Variant1 for invalid values.
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::None,
+            1 => Self::Variant1,
+            2 => Self::Variant2,
+            3 => Self::Variant3,
+            _ => Self::Variant1, // Default fallback for invalid values
+        }
+    }
+}
+
+impl From<YCoCgVariant> for u8 {
+    /// Convert to u8 representation used in C APIs.
+    ///
+    /// # Returns
+    ///
+    /// The u8 value where 0=None, 1=Variant1, 2=Variant2, 3=Variant3.
+    fn from(variant: YCoCgVariant) -> Self {
+        match variant {
+            YCoCgVariant::None => 0,
+            YCoCgVariant::Variant1 => 1,
+            YCoCgVariant::Variant2 => 2,
+            YCoCgVariant::Variant3 => 3,
+        }
+    }
+}

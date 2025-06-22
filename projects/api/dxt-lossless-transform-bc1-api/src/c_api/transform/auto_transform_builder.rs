@@ -202,21 +202,7 @@ pub unsafe extern "C" fn dltbc1_EstimateSettingsBuilder_BuildAndTransform(
 
         // Convert core transform details to API transform details
         let api_transform_details = Dltbc1TransformSettings {
-            decorrelation_mode: match transform_details.decorrelation_mode {
-                0 => dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant::None,
-                1 => {
-                    dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant::Variant1
-                }
-                2 => {
-                    dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant::Variant2
-                }
-                3 => {
-                    dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant::Variant3
-                }
-                _ => {
-                    dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant::Variant1
-                } // Default fallback
-            },
+            decorrelation_mode: transform_details.decorrelation_mode.into(),
             split_colour_endpoints: transform_details.split_colour_endpoints,
         };
 

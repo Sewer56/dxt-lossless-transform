@@ -127,7 +127,9 @@ impl From<crate::Bc1TransformSettings> for Dltbc1TransformSettings {
 /// - `data_len`: Length of input data in bytes (must be divisible by 8)
 /// - `output`: Pointer to output buffer where transformed data will be written
 /// - `output_len`: Length of output buffer in bytes (must be at least `data_len`)
-/// - `estimator`: The size estimator to use for compression estimation
+/// - `estimator`: The size estimator to use for finding the best possible transform.
+///   This will test different transform configurations and choose the one that results
+///   in the smallest estimated compressed size according to this estimator.
 /// - `settings`: Settings controlling the optimization process
 /// - `out_details`: Pointer where transform details will be written on success
 ///

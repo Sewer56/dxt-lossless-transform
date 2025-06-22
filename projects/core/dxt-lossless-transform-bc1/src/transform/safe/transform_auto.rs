@@ -38,7 +38,8 @@ pub enum Bc1AutoTransformError<T> {
 ///
 /// - `input`: The BC1 data to transform
 /// - `output`: The output buffer to write transformed data to
-/// - `options`: The pre-configured estimation options
+/// - `options`: The pre-configured estimation options containing the size estimator
+///   used to find the best possible transform by testing different configurations
 ///
 /// # Returns
 ///
@@ -77,9 +78,9 @@ pub enum Bc1AutoTransformError<T> {
 /// let mut output = vec![0u8; bc1_data.len()];
 /// let estimator = LosslessTransformUtilsSizeEstimation::new();
 ///
-/// let _transform_details = Bc1AutoTransformBuilder::new()
+/// let _transform_details = Bc1AutoTransformBuilder::new(estimator)
 ///     .use_all_decorrelation_modes(false)
-///     .build_and_transform(&bc1_data, &mut output, estimator).unwrap();
+///     .transform(&bc1_data, &mut output).unwrap();
 /// ```
 pub fn transform_bc1_auto<T>(
     input: &[u8],

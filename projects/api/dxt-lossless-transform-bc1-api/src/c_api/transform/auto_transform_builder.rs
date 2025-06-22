@@ -141,7 +141,9 @@ pub unsafe extern "C" fn dltbc1_EstimateSettingsBuilder_SetUseAllDecorrelationMo
 /// - `data_len`: Length of input data in bytes (must be divisible by 8)
 /// - `output`: Pointer to output buffer where transformed data will be written
 /// - `output_len`: Length of output buffer in bytes (must be at least `data_len`)
-/// - `estimator`: The size estimator to use for compression estimation
+/// - `estimator`: The size estimator to use for finding the best possible transform.
+///   This will test different transform configurations and choose the one that results
+///   in the smallest estimated compressed size according to this estimator.
 /// - `settings_builder`: The transform settings builder where transform details will be stored
 ///
 /// # Returns

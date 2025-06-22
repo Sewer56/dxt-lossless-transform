@@ -3,7 +3,7 @@
 //! This module provides high-level builders for BC1 texture transformation:
 //!
 //! ## Automatic Optimization
-//! - [`Bc1AutoTransformBuilder`] - Automatically optimizes transform settings using a size estimator
+//! - [`Bc1AutoTransformBuilder`] - Automatically finds the best transform settings by testing different configurations and choosing the one that results in the smallest estimated compressed size
 //!
 //! ## Manual Configuration  
 //! - [`Bc1ManualTransformBuilder`] - Allows precise control over transform parameters

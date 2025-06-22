@@ -28,7 +28,9 @@ pub struct Bc1EstimateSettings<T>
 where
     T: SizeEstimationOperations,
 {
-    /// A trait-based size estimator that provides size estimation operations.
+    /// A trait-based size estimator used to find the best possible transform by testing
+    /// different configurations and choosing the one that results in the smallest estimated
+    /// compressed size.
     ///
     /// # Remarks
     ///

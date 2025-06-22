@@ -12,16 +12,33 @@ use dxt_lossless_transform_bc1::{Bc1EstimateSettings, transform_bc1_auto_safe};
 /// manual tuning.
 ///
 /// For manual control over transform parameters, use [`crate::Bc1ManualTransformBuilder`].
-#[derive(Debug, Clone, Copy)]
-pub struct Bc1AutoTransformBuilder {
-    use_all_decorrelation_modes: Option<bool>,
+pub struct Bc1AutoTransformBuilder<T>
+where
+    T: SizeEstimationOperations,
+{
+    settings: Bc1EstimateSettings<T>,
 }
 
-impl Bc1AutoTransformBuilder {
-    /// Create a new automatic transform builder.
-    pub fn new() -> Self {
+impl<T> Bc1AutoTransformBuilder<T>
+where
+    T: SizeEstimationOperations,
+{
+    /// Create a new automatic transform builder with the provided estimator.
+    ///
+    /// The estimator should have its compression level and other parameters already configured.
+    /// This allows for more flexible usage patterns where different estimators can have
+    /// completely different configuration approaches.
+    ///
+    /// # Parameters
+    /// - `estimator`: The size estimator to use for finding the best possible transform.
+    ///   This will test different transform configurations and choose the one that results
+    ///   in the smallest estimated compressed size according to this estimator.
+    pub fn new(estimator: T) -> Self {
         Self {
-            use_all_decorrelation_modes: None,
+            settings: Bc1EstimateSettings {
+                size_estimator: estimator,
+                use_all_decorrelation_modes: false, // Default value
+            },
         }
     }
 
@@ -35,20 +52,19 @@ impl Bc1AutoTransformBuilder {
     /// For better compression gains, it's recommended to use a compression level on the
     /// estimator (e.g., ZStandard estimator) closer to your final compression level instead.
     pub fn use_all_decorrelation_modes(mut self, use_all: bool) -> Self {
-        self.use_all_decorrelation_modes = Some(use_all);
+        self.settings.use_all_decorrelation_modes = use_all;
         self
     }
 
     /// Transform BC1 data with automatically optimized settings and return a builder for detransformation.
     ///
-    /// This method determines the best transform settings using the provided estimator,
+    /// This method determines the best transform settings using the configured estimator,
     /// applies the transformation to the input data, and returns a pre-configured
     /// [`Bc1ManualTransformBuilder`] that can be used to detransform the data later.
     ///
     /// # Parameters
     /// - `input`: The BC1 data to transform
     /// - `output`: The output buffer where transformed data will be written
-    /// - `estimator`: The size estimator to use for optimization
     ///
     /// # Returns
     /// A [`Bc1ManualTransformBuilder`] configured with the optimal settings used for transformation.
@@ -67,30 +83,24 @@ impl Bc1AutoTransformBuilder {
     /// let mut restored = vec![0u8; 8];
     ///
     /// // Transform with optimal settings and get builder for detransformation
-    /// let detransform_builder = Bc1AutoTransformBuilder::new()
+    /// let detransform_builder = Bc1AutoTransformBuilder::new(my_estimator)
     ///     .use_all_decorrelation_modes(false)
-    ///     .transform(&bc1_data, &mut transformed, my_estimator)?;
+    ///     .transform(&bc1_data, &mut transformed)?;
     ///
     /// // Later, detransform using the returned builder
     /// detransform_builder.detransform(&transformed, &mut restored)?;
     /// ```
-    pub fn transform<T>(
+    pub fn transform(
         self,
         input: &[u8],
         output: &mut [u8],
-        estimator: T,
     ) -> Result<Bc1ManualTransformBuilder, Bc1Error<T::Error>>
     where
-        T: SizeEstimationOperations,
         T::Error: core::fmt::Debug,
     {
-        // Build internal settings and find optimal transform
-        let settings = Bc1EstimateSettings {
-            size_estimator: estimator,
-            use_all_decorrelation_modes: self.use_all_decorrelation_modes.unwrap_or(false),
-        };
+        // Use the configured settings directly
         let optimal_settings =
-            transform_bc1_auto_safe(input, output, settings).map_err(Bc1Error::from)?;
+            transform_bc1_auto_safe(input, output, self.settings).map_err(Bc1Error::from)?;
 
         // Return a manual builder configured with these optimal settings
         Ok(Bc1ManualTransformBuilder::new()
@@ -98,12 +108,6 @@ impl Bc1AutoTransformBuilder {
                 optimal_settings.decorrelation_mode,
             ))
             .split_colour_endpoints(optimal_settings.split_colour_endpoints))
-    }
-}
-
-impl Default for Bc1AutoTransformBuilder {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -144,9 +148,9 @@ mod tests {
         ];
         let mut transformed = [0u8; 8];
 
-        let result = Bc1AutoTransformBuilder::new()
+        let result = Bc1AutoTransformBuilder::new(DummyEstimator)
             .use_all_decorrelation_modes(false)
-            .transform(&bc1_data, &mut transformed, DummyEstimator);
+            .transform(&bc1_data, &mut transformed);
 
         assert!(
             result.is_ok(),
@@ -158,5 +162,16 @@ mod tests {
         let mut restored = [0u8; 8];
         let detransform_result = detransform_builder.detransform(&transformed, &mut restored);
         assert!(detransform_result.is_ok(), "detransform should succeed");
+    }
+
+    #[test]
+    fn test_auto_transform_builder_construction() {
+        // Test that builder can be constructed with an estimator
+        let _builder = Bc1AutoTransformBuilder::new(DummyEstimator);
+
+        // Test builder method chaining
+        let _builder_with_options = Bc1AutoTransformBuilder::new(DummyEstimator)
+            .use_all_decorrelation_modes(true)
+            .use_all_decorrelation_modes(false);
     }
 }

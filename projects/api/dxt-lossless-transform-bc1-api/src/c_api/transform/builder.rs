@@ -29,6 +29,11 @@ pub unsafe extern "C" fn dltbc1_TransformContext_SetDecorrelationMode(
 
 /// Set whether to split colour endpoints for the context.
 ///
+/// This setting controls whether BC1 texture color endpoints are separated during processing,
+/// which can improve compression efficiency for many textures.
+///
+/// **File Size**: This setting reduces file size around 78% of the time.
+///
 /// # Parameters
 /// - `context`: The BC1 context to modify
 /// - `split`: Whether to split colour endpoints

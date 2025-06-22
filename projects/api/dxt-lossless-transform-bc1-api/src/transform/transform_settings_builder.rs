@@ -38,6 +38,15 @@ impl Bc1TransformSettingsBuilder {
     }
 
     /// Set whether to split colour endpoints.
+    ///
+    /// This setting controls whether BC1 texture color endpoints are separated during processing,
+    /// which can improve compression efficiency for many textures.
+    ///
+    /// **File Size**: This setting reduces file size around 78% of the time.
+    ///
+    /// For automatic optimization, consider using [`transform_bc1_auto`] instead.
+    ///
+    /// [`transform_bc1_auto`]: crate::transform_bc1_auto
     pub fn split_colour_endpoints(mut self, split: bool) -> Self {
         self.split_colour_endpoints = Some(split);
         self

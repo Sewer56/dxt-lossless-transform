@@ -16,6 +16,11 @@ pub struct Bc1TransformSettings {
     pub decorrelation_mode: YCoCgVariant,
 
     /// Whether or not the colour endpoints are to be split or not.
+    ///
+    /// This setting controls whether BC1 texture color endpoints are separated during processing,
+    /// which can improve compression efficiency for many textures.
+    ///
+    /// **File Size**: This setting reduces file size around 78% of the time.
     pub split_colour_endpoints: bool,
 }
 
@@ -29,6 +34,11 @@ pub struct Bc1DetransformSettings {
     pub decorrelation_mode: YCoCgVariant,
 
     /// Whether or not the colour endpoints are to be split or not.
+    ///
+    /// This setting controls whether BC1 texture color endpoints are separated during processing,
+    /// which can improve compression efficiency for many textures.
+    ///
+    /// **File Size**: This setting reduces file size around 78% of the time.
     pub split_colour_endpoints: bool,
 }
 

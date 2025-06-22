@@ -331,7 +331,6 @@ pub struct TransformResult {
 mod tests {
     use super::*;
     use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
-    use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 
     #[test]
     fn test_bc1_transform_extension() {
@@ -348,20 +347,5 @@ mod tests {
             YCoCgVariant::Variant1.to_internal_variant()
         );
         assert!(embeddable.0.split_colour_endpoints);
-    }
-
-    #[test]
-    fn test_bc1_estimate_extension() {
-        let estimator = LosslessTransformUtilsSizeEstimation::new();
-        let builder = Bc1EstimateOptionsBuilder::new()
-            .with_estimator(estimator)
-            .use_all_decorrelation_modes(true);
-
-        // Test that the builder can be created and configured
-        // Actual functionality tests will need real data
-        let bc1_data = vec![0u8; 8]; // Minimal BC1 block
-
-        // We can't test the actual determination without real data,
-        // but we can verify the API compiles correctly
     }
 }

@@ -11,6 +11,9 @@ use crate::error::TransformError;
 use argh::FromArgs;
 use benchmark::handle_benchmark_command;
 use calc_compression_stats::handle_compression_stats_command;
+use dxt_lossless_transform_bc1::experimental::transform_bc1_auto_with_normalization;
+use dxt_lossless_transform_bc1::transform_bc1_auto;
+use dxt_lossless_transform_bc1::Bc1EstimateOptions;
 use dxt_lossless_transform_bc1::Bc1TransformSettings;
 use roundtrip::handle_roundtrip_command;
 use std::path::PathBuf;
@@ -245,10 +248,6 @@ where
     T: dxt_lossless_transform_api_common::estimate::SizeEstimationOperations,
     T::Error: core::fmt::Debug,
 {
-    use dxt_lossless_transform_bc1::{
-        experimental::normalize_blocks::transform::transform_with_best_options_and_normalization,
-        transform_with_best_options, Bc1EstimateOptions, Bc1TransformSettings,
-    };
     use dxt_lossless_transform_common::allocate::allocate_align_64;
 
     let transform_options = Bc1EstimateOptions {
@@ -264,7 +263,7 @@ where
     unsafe {
         if experimental_normalize {
             // Use experimental API with normalization support
-            let experimental_details = transform_with_best_options_and_normalization(
+            let experimental_details = transform_bc1_auto_with_normalization(
                 data_ptr,
                 output_ptr,
                 len_bytes,
@@ -281,7 +280,7 @@ where
             })
         } else {
             // Use standard API without normalization
-            transform_with_best_options(data_ptr, output_ptr, len_bytes, transform_options)
+            transform_bc1_auto(data_ptr, output_ptr, len_bytes, transform_options)
                 .map_err(|e| TransformError::Debug(format!("API recommendation failed: {e:?}")))
         }
     }

@@ -51,9 +51,9 @@ pub(crate) mod with_split_colour;
 pub(crate) mod with_split_colour_and_recorr;
 
 // Re-export all public items from submodules
-pub use operations::{transform_bc1_with_settings, untransform_bc1_with_settings};
-pub use optimization::{transform_bc1_auto, Bc1EstimateOptions, DetermineBestTransformError};
-pub use settings::{Bc1DetransformSettings, Bc1TransformSettings};
+pub use operations::*;
+pub use optimization::*;
+pub use settings::*;
 
 #[cfg(test)]
 mod tests {

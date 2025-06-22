@@ -149,7 +149,11 @@ mod tests {
     #[rstest]
     #[case(u32_unroll_2, "u32 unroll_2", 4)]
     #[case(u32_unroll_4, "u32 unroll_4", 8)]
-    fn test_portable32_unaligned(#[case] permute_fn: StandardTransformFn, #[case] impl_name: &str, #[case] max_blocks: usize) {
+    fn test_portable32_unaligned(
+        #[case] permute_fn: StandardTransformFn,
+        #[case] impl_name: &str,
+        #[case] max_blocks: usize,
+    ) {
         run_standard_transform_unaligned_test(permute_fn, max_blocks, impl_name);
     }
 }

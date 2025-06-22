@@ -1,6 +1,6 @@
 #![no_main]
 
-// This fuzz test validates the BC1 normalizer by checking that the normalized blocks decode 
+// This fuzz test validates the BC1 normalizer by checking that the normalized blocks decode
 // to the same pixels as the original blocks.
 
 use dxt_lossless_transform_bc1::{experimental::normalize_blocks::*, util::decode_bc1_block};
@@ -16,54 +16,55 @@ pub struct Bc1Block {
 fuzz_target!(|block: Bc1Block| {
     // Get a slice to the BC1 block data
     let bc1_block = &block.bytes;
-    
+
     // Save the original block for later comparison
     let original_decoded = unsafe { decode_bc1_block(bc1_block.as_ptr()) };
-    
+
     // Create a buffer for the normalized block
     let mut normalized_block = [0u8; 8];
-    
+
     // Normalize the block (with ColorNormalizationMode::Color0Only)
     unsafe {
         normalize_blocks(
             bc1_block.as_ptr(),
             normalized_block.as_mut_ptr(),
             8, // Size of BC1 block in bytes
-            ColorNormalizationMode::Color0Only
+            ColorNormalizationMode::Color0Only,
         );
     }
-    
+
     // Decode the normalized block
     let normalized_decoded = unsafe { decode_bc1_block(normalized_block.as_ptr()) };
-    
+
     // Compare the two decoded blocks - they should produce the same visual output
     assert_eq!(
-        original_decoded, 
+        original_decoded,
         normalized_decoded,
         "Normalized block (with ColorNormalizationMode::Color0Only) doesn't decode to the same pixels as the original block\n\
          Original block: {bc1_block:?}\n\
          Normalized block: {normalized_block:?}",
     );
-    
+
     // Also test normalization with ColorNormalizationMode::ReplicateColor
     let mut normalized_block_repeated = [0u8; 8];
-    
+
     // Normalize the block (with ColorNormalizationMode::ReplicateColor)
     unsafe {
         normalize_blocks(
             bc1_block.as_ptr(),
             normalized_block_repeated.as_mut_ptr(),
             8, // Size of BC1 block in bytes
-            ColorNormalizationMode::ReplicateColor
+            ColorNormalizationMode::ReplicateColor,
         );
     }
-    
+
     // Decode the normalized block
-    let normalized_repeated_decoded = unsafe { decode_bc1_block(normalized_block_repeated.as_ptr()) };
-    
+    let normalized_repeated_decoded =
+        unsafe { decode_bc1_block(normalized_block_repeated.as_ptr()) };
+
     // Compare with original - visual appearance should still be the same
     assert_eq!(
-        original_decoded, 
+        original_decoded,
         normalized_repeated_decoded,
         "Normalized block (with ColorNormalizationMode::ReplicateColor) doesn't decode to the same pixels as the original block\n\
          Original block: {bc1_block:?}\n\

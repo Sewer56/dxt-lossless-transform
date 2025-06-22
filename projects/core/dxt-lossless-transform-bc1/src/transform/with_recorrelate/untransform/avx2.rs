@@ -157,7 +157,7 @@ mod tests {
         if !has_avx2() {
             return;
         }
-        
+
         run_with_recorrelate_untransform_unaligned_test(
             function,
             decorr_variant,

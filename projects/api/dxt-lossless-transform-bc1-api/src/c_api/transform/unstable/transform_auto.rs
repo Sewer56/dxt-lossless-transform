@@ -3,7 +3,7 @@
 //! **⚠️ ABI Instability Warning**: All functions in this module accept ABI-unstable
 //! structures which may change between versions without major version bumps.
 //! For production use, prefer the ABI-stable builder patterns in
-//! [`super::super::estimate_settings_builder`].
+//! [`super::super::auto_transform_builder`].
 //!
 //! This module provides ABI-unstable functions for transforming BC1 data
 //! using automatically determined optimal settings.
@@ -69,7 +69,7 @@ pub struct Dltbc1AutoTransformSettings {
 ///
 /// **Prefer the ABI-stable builder:** This function provides direct access but may have
 /// breaking changes. Consider using
-/// [`super::super::auto_transform_builder::dltbc1_AutoTransformBuilder_build_and_transform_with_zstd_estimator`]
+/// [`super::super::auto_transform_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform`]
 /// which provides ABI stability and the same functionality.
 ///
 /// # Recommended Alternative

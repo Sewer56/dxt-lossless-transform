@@ -8,7 +8,7 @@
 //! For users requiring maximum performance and willing to accept potential breaking
 //! changes, see the [`transform_with_settings`] module for ABI-unstable alternatives.
 //!
-//! [`transform_with_settings`]: super::transform_with_settings
+//! [`transform_with_settings`]: super::unstable::transform_with_settings
 
 use crate::Bc1Error;
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
@@ -131,9 +131,9 @@ pub unsafe extern "C" fn dltbc1_clone_TransformSettingsBuilder(
 /// it's recommended to use a compression level on the estimator (e.g., ZStandard estimator)
 /// closer to your final compression level instead.
 ///
-/// For automatic optimization, consider using [`super::auto_transform_builder::dltbc1_AutoTransformBuilder_build_and_transform_with_zstd_estimator`] instead.
+/// For automatic optimization, consider using [`super::auto_transform_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform`] instead.
 ///
-/// [`super::auto_transform_builder::dltbc1_AutoTransformBuilder_build_and_transform_with_zstd_estimator`]: super::auto_transform_builder::dltbc1_AutoTransformBuilder_build_and_transform_with_zstd_estimator
+/// [`super::auto_transform_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform`]: super::auto_transform_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform
 ///
 /// # Parameters
 /// - `builder`: The BC1 settings builder to modify
@@ -161,9 +161,9 @@ pub unsafe extern "C" fn dltbc1_TransformSettingsBuilder_SetDecorrelationMode(
 ///
 /// **File Size**: This setting reduces file size around 78% of the time.
 ///
-/// For automatic optimization, consider using [`super::auto_transform_builder::dltbc1_AutoTransformBuilder_build_and_transform_with_zstd_estimator`] instead.
+/// For automatic optimization, consider using [`super::auto_transform_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform`] instead.
 ///
-/// [`super::auto_transform_builder::dltbc1_AutoTransformBuilder_build_and_transform_with_zstd_estimator`]: super::auto_transform_builder::dltbc1_AutoTransformBuilder_build_and_transform_with_zstd_estimator
+/// [`super::auto_transform_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform`]: super::auto_transform_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform
 ///
 /// # Parameters
 /// - `builder`: The BC1 settings builder to modify

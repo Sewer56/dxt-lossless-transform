@@ -3,7 +3,7 @@
 //! **⚠️ ABI Instability Warning**: All functions in this module accept ABI-unstable
 //! structures which may change between versions without major version bumps.
 //! For production use, prefer the ABI-stable builder patterns in
-//! [`super::super::transform_settings_builder`].
+//! [`super::super::manual_transform_builder`].
 //!
 //! This module provides ABI-unstable functions for transforming and
 //! untransforming BC1 data using specific transform settings.
@@ -41,7 +41,7 @@ use core::slice;
 ///
 /// **Prefer the ABI-stable builder:** This function provides direct access but may have
 /// breaking changes. Consider using
-/// [`super::super::manual_transform_builder::dltbc1_ManualTransformBuilder_build_and_transform`]
+/// [`super::super::manual_transform_builder::dltbc1_TransformSettingsBuilder_Transform`]
 /// which provides ABI stability and convenient configuration methods.
 ///
 /// # Recommended Alternative
@@ -131,7 +131,7 @@ pub unsafe extern "C" fn dltbc1_unstable_transform(
 ///
 /// **Prefer the ABI-stable builder:** This function provides direct access but may have
 /// breaking changes. Consider using
-/// [`super::super::manual_transform_builder::dltbc1_ManualTransformBuilder_build_and_untransform`]
+/// [`super::super::manual_transform_builder::dltbc1_TransformSettingsBuilder_Untransform`]
 /// which provides ABI stability.
 ///
 /// # Recommended Alternative

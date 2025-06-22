@@ -58,3 +58,4 @@ This is a high-performance Rust library for lossless DXT texture compression wit
 ## Compilation
 
 When building the `dxt-lossless-transform-cli` project, enable all features except for `nightly`, unless asked.
+Test changes with `cargo test --all-features`, on the whole workspace when doing refactors.

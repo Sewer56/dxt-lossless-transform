@@ -1,7 +1,9 @@
 //! Builder pattern implementation for BC1 estimate settings.
 
+use crate::Bc1Error;
+use crate::transform::transform_bc1_auto;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
-use dxt_lossless_transform_bc1::Bc1EstimateSettings;
+use dxt_lossless_transform_bc1::{Bc1EstimateSettings, Bc1TransformSettings};
 
 /// Builder for BC1 estimate settings with convenient configuration methods.
 #[derive(Debug, Clone, Copy)]
@@ -40,6 +42,35 @@ impl Bc1EstimateSettingsBuilder {
             size_estimator,
             use_all_decorrelation_modes: self.use_all_decorrelation_modes.unwrap_or(false),
         }
+    }
+
+    /// Build the estimate settings and transform BC1 data in one operation.
+    ///
+    /// This is a convenience method that combines building the settings and calling
+    /// [`transform_bc1_auto`] in a single operation.
+    ///
+    /// # Parameters
+    /// - `input`: The BC1 data to transform
+    /// - `output`: The output buffer where transformed data will be written  
+    /// - `size_estimator`: The size estimator to use for optimization
+    ///
+    /// # Returns
+    /// The transform details on success, or an error on failure.
+    ///
+    /// # Errors
+    /// Returns [`Bc1Error`] if the transformation fails.
+    pub fn build_and_transform<T>(
+        self,
+        input: &[u8],
+        output: &mut [u8],
+        size_estimator: T,
+    ) -> Result<Bc1TransformSettings, Bc1Error<T::Error>>
+    where
+        T: SizeEstimationOperations,
+        T::Error: core::fmt::Debug,
+    {
+        let settings = self.build(size_estimator);
+        transform_bc1_auto(input, output, settings)
     }
 }
 
@@ -83,5 +114,25 @@ mod tests {
             .build(DummyEstimator);
 
         assert!(settings.use_all_decorrelation_modes);
+    }
+
+    #[test]
+    fn test_estimate_settings_builder_build_and_transform() {
+        // Create minimal BC1 block data (8 bytes per block)
+        let bc1_data = [
+            0x00, 0xF8, // Color0: Red in RGB565 (0xF800)
+            0x00, 0x00, // Color1: Black (0x0000)
+            0x00, 0x00, 0x00, 0x00, // Indices: all pointing to Color0
+        ];
+        let mut output = [0u8; 8];
+
+        let result = Bc1EstimateSettingsBuilder::new()
+            .use_all_decorrelation_modes(false)
+            .build_and_transform(&bc1_data, &mut output, DummyEstimator);
+
+        assert!(
+            result.is_ok(),
+            "build_and_transform should not fail with valid BC1 data"
+        );
     }
 }

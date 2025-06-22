@@ -7,19 +7,17 @@
 //! - Utility functions
 
 // Individual modules for different functionality
-pub mod auto_transform;
 pub mod estimate_settings_builder;
+pub mod transform_auto;
 pub mod transform_settings_builder;
 pub mod transform_with_settings;
-pub mod untransform_with_settings;
 pub mod util;
 
 // Re-export the main functions at the module level for convenience
-pub use auto_transform::transform_bc1_auto;
 pub use estimate_settings_builder::Bc1EstimateSettingsBuilder;
+pub use transform_auto::transform_bc1_auto;
 pub use transform_settings_builder::Bc1TransformSettingsBuilder;
-pub use transform_with_settings::transform_bc1_with_settings;
-pub use untransform_with_settings::untransform_bc1_with_settings;
+pub use transform_with_settings::{transform_bc1_with_settings, untransform_bc1_with_settings};
 
 // Re-export utility functions
 pub use util::{Decoded4x4Block, decode_bc1_block, decode_bc1_block_from_slice};

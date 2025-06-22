@@ -86,10 +86,10 @@
 //!
 //! // Create transform context and options builder
 //! Dltbc1TransformContext* context = dltbc1_new_TransformContext();
-//! Dltbc1EstimateSettingsBuilder* builder = dltbc1_new_EstimateOptionsBuilder();
+//! Dltbc1EstimateSettingsBuilder* builder = dltbc1_new_EstimateSettingsBuilder();
 //!
 //! // Configure analysis (optional - false is default for faster analysis)
-//! dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(builder, false);
+//! dltbc1_EstimateSettingsBuilder_SetUseAllDecorrelationModes(builder, false);
 //!
 //! // Your size estimator (implementation depends on your compression library)
 //! DltSizeEstimator estimator = {
@@ -100,7 +100,7 @@
 //! };
 //!
 //! // Analyze data and determine best transform options
-//! Dltbc1Result result = dltbc1_EstimateOptionsBuilder_BuildAndTransform(
+//! Dltbc1Result result = dltbc1_EstimateSettingsBuilder_BuildAndTransform(
 //!     builder, bc1_data, sizeof(bc1_data), transformed_data, sizeof(transformed_data), &estimator, context);
 //!
 //! if (result.error_code == 0) {
@@ -113,7 +113,7 @@
 //! }
 //!
 //! // Clean up
-//! dltbc1_free_EstimateOptionsBuilder(builder);
+//! dltbc1_free_EstimateSettingsBuilder(builder);
 //! dltbc1_free_TransformContext(context);
 //! ```
 //!
@@ -148,10 +148,10 @@
 //!
 //! Analyze your data to determine the best transform settings:
 //!
-//! - **`dltbc1_new_EstimateOptionsBuilder()`** - Create a builder for analysis settings
-//! - **`dltbc1_EstimateOptionsBuilder_SetUseAllDecorrelationModes(builder, use_all)`** - Configure analysis thoroughness
-//! - **`dltbc1_EstimateOptionsBuilder_BuildAndTransform(builder, data, data_len, output, output_len, estimator, context)`** - Analyze data, determine best settings, and apply transformation in one operation
-//! - **`dltbc1_free_EstimateOptionsBuilder(builder)`** - Free the builder
+//! - **`dltbc1_new_EstimateSettingsBuilder()`** - Create a builder for analysis settings
+//! - **`dltbc1_EstimateSettingsBuilder_SetUseAllDecorrelationModes(builder, use_all)`** - Configure analysis thoroughness
+//! - **`dltbc1_EstimateSettingsBuilder_BuildAndTransform(builder, data, data_len, output, output_len, estimator, context)`** - Analyze data, determine best settings, and apply transformation in one operation
+//! - **`dltbc1_free_EstimateSettingsBuilder(builder)`** - Free the builder
 //!
 //! ## ABI-Unstable Functions
 //!
@@ -174,9 +174,13 @@
 //!
 //! For detailed documentation of all C API functions, see the [C API documentation](https://docs.rs/dxt-lossless-transform-bc1-api/latest/dxt_lossless_transform_bc1_api/c_api/index.html) (requires `c-exports` feature).
 
-mod auto_transform;
+// Module declarations - mirrors the structure of the non-C API
 pub mod error;
-pub mod transform;
+pub mod estimate_settings_builder;
+pub mod transform_auto;
+pub mod transform_context;
+pub mod transform_settings_builder;
+pub mod transform_with_settings;
 
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 use dxt_lossless_transform_bc1::{Bc1DetransformSettings, Bc1TransformSettings};
@@ -187,7 +191,7 @@ use dxt_lossless_transform_bc1::{Bc1DetransformSettings, Bc1TransformSettings};
 /// to have stable ABI layout for C interoperability.
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
-pub struct Dltbc1TransformDetails {
+pub struct Dltbc1TransformSettings {
     /// The decorrelation mode that was used to decorrelate the colors.
     pub decorrelation_mode: YCoCgVariant,
     /// Whether color endpoints are split.
@@ -200,14 +204,14 @@ pub struct Dltbc1TransformDetails {
 /// to have stable ABI layout for C interoperability.
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
-pub struct Dltbc1DetransformDetails {
+pub struct Dltbc1DetransformSettings {
     /// The decorrelation mode that was used to decorrelate the colors.
     pub decorrelation_mode: YCoCgVariant,
     /// Whether color endpoints are split.
     pub split_colour_endpoints: bool,
 }
 
-impl Default for Dltbc1TransformDetails {
+impl Default for Dltbc1TransformSettings {
     fn default() -> Self {
         Self {
             decorrelation_mode: YCoCgVariant::Variant1,
@@ -216,7 +220,7 @@ impl Default for Dltbc1TransformDetails {
     }
 }
 
-impl Default for Dltbc1DetransformDetails {
+impl Default for Dltbc1DetransformSettings {
     fn default() -> Self {
         Self {
             decorrelation_mode: YCoCgVariant::Variant1,
@@ -226,7 +230,7 @@ impl Default for Dltbc1DetransformDetails {
 }
 
 // Conversion implementations
-impl From<Bc1TransformSettings> for Dltbc1TransformDetails {
+impl From<Bc1TransformSettings> for Dltbc1TransformSettings {
     fn from(details: Bc1TransformSettings) -> Self {
         Self {
             decorrelation_mode: YCoCgVariant::from_internal_variant(details.decorrelation_mode),
@@ -235,8 +239,8 @@ impl From<Bc1TransformSettings> for Dltbc1TransformDetails {
     }
 }
 
-impl From<Dltbc1TransformDetails> for Bc1TransformSettings {
-    fn from(details: Dltbc1TransformDetails) -> Self {
+impl From<Dltbc1TransformSettings> for Bc1TransformSettings {
+    fn from(details: Dltbc1TransformSettings) -> Self {
         Self {
             decorrelation_mode: details.decorrelation_mode.to_internal_variant(),
             split_colour_endpoints: details.split_colour_endpoints,
@@ -244,7 +248,7 @@ impl From<Dltbc1TransformDetails> for Bc1TransformSettings {
     }
 }
 
-impl From<Bc1DetransformSettings> for Dltbc1DetransformDetails {
+impl From<Bc1DetransformSettings> for Dltbc1DetransformSettings {
     fn from(details: Bc1DetransformSettings) -> Self {
         Self {
             decorrelation_mode: YCoCgVariant::from_internal_variant(details.decorrelation_mode),
@@ -253,8 +257,8 @@ impl From<Bc1DetransformSettings> for Dltbc1DetransformDetails {
     }
 }
 
-impl From<Dltbc1DetransformDetails> for Bc1DetransformSettings {
-    fn from(details: Dltbc1DetransformDetails) -> Self {
+impl From<Dltbc1DetransformSettings> for Bc1DetransformSettings {
+    fn from(details: Dltbc1DetransformSettings) -> Self {
         Self {
             decorrelation_mode: details.decorrelation_mode.to_internal_variant(),
             split_colour_endpoints: details.split_colour_endpoints,

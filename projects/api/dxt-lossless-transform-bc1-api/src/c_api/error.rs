@@ -21,8 +21,8 @@ pub enum Dltbc1ErrorCode {
     NullDataPointer = 5,
     /// Null pointer provided for DltSizeEstimator parameter
     NullEstimatorPointer = 6,
-    /// Null pointer provided for Dltbc1TransformDetails parameter
-    NullTransformDetailsPointer = 7,
+    /// Null pointer provided for Dltbc1TransformSettings parameter
+    NullTransformSettingsPointer = 7,
     /// Null pointer provided for input parameter
     NullInputPointer = 8,
     /// Null pointer provided for output buffer parameter
@@ -103,8 +103,8 @@ pub unsafe extern "C" fn dltbc1_error_message(error_code: Dltbc1ErrorCode) -> *c
         Dltbc1ErrorCode::NullEstimatorPointer => {
             c"Null pointer provided for DltSizeEstimator parameter".as_ptr() as *const c_char
         }
-        Dltbc1ErrorCode::NullTransformDetailsPointer => {
-            c"Null pointer provided for Dltbc1TransformDetails parameter".as_ptr() as *const c_char
+        Dltbc1ErrorCode::NullTransformSettingsPointer => {
+            c"Null pointer provided for Dltbc1TransformSettings parameter".as_ptr() as *const c_char
         }
         Dltbc1ErrorCode::NullInputPointer => {
             c"Null pointer provided for input parameter".as_ptr() as *const c_char

@@ -14,11 +14,10 @@ pub(crate) mod transforms;
 pub mod bench;
 #[cfg(feature = "experimental")]
 pub mod experimental;
-pub mod transform;
 pub mod util;
 
-// Re-export main types and functions from transform module
-pub use transform::{
+// Re-export main types and functions from transforms module
+pub use transforms::{
     transform_bc1_with_settings, transform_with_best_options, untransform_bc1_with_settings,
     Bc1DetransformSettings, Bc1EstimateOptions, Bc1TransformSettings, DetermineBestTransformError,
 };

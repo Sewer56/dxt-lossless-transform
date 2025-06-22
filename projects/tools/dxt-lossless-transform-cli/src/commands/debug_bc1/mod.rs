@@ -247,8 +247,7 @@ where
 {
     use dxt_lossless_transform_bc1::{
         experimental::normalize_blocks::transform::transform_with_best_options_and_normalization,
-        transform::{transform_with_best_options, Bc1EstimateOptions},
-        Bc1TransformSettings,
+        transform_with_best_options, Bc1EstimateOptions, Bc1TransformSettings,
     };
     use dxt_lossless_transform_common::allocate::allocate_align_64;
 

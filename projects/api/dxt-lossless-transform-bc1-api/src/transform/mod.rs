@@ -8,8 +8,8 @@ pub mod builder;
 use crate::error::Bc1Error;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_bc1::{
-    Bc1TransformSettings,
-    transform::{Bc1EstimateOptions, DetermineBestTransformError, transform_with_best_options},
+    Bc1EstimateOptions, Bc1TransformSettings, DetermineBestTransformError,
+    transform_with_best_options,
 };
 
 /// Transform BC1 data using automatically determined optimal settings.

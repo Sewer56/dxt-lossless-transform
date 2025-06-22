@@ -15,12 +15,15 @@
 //! - 1/12th of the compression speed in fast mode (3 [`ColorNormalizationMode`] * 2 [`YCoCgVariant`] * 2 (split_colours))
 //! - 1/24th of the compression speed in comprehensive mode (3 [`ColorNormalizationMode`] * 4 [`YCoCgVariant`] * 2 (split_colours))
 //! - Uses 3x the memory of input size when no normalization is needed, 6x when normalization is required
+//!
+//! [`YCoCgVariant`]: dxt_lossless_transform_common::color_565::YCoCgVariant
 
-use crate::transform::{
-    transform_with_best_options, Bc1EstimateOptions, Bc1TransformSettings,
-    DetermineBestTransformError, COMPREHENSIVE_TEST_ORDER, FAST_TEST_ORDER,
-};
+use crate::transforms::settings::{COMPREHENSIVE_TEST_ORDER, FAST_TEST_ORDER};
 use crate::transforms::standard::{transform, transform_with_separate_pointers};
+use crate::transforms::{
+    transform_with_best_options, Bc1EstimateOptions, Bc1TransformSettings,
+    DetermineBestTransformError,
+};
 use core::mem::size_of;
 use core::slice;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
@@ -194,6 +197,8 @@ pub unsafe fn transform_bc1_with_normalize_blocks(
 /// - 1/12th of the compression speed in fast mode (3 [`ColorNormalizationMode`] * 2 [`YCoCgVariant`] * 2 (split_colours))
 /// - 1/24th of the compression speed in comprehensive mode (3 [`ColorNormalizationMode`] * 4 [`YCoCgVariant`] * 2 (split_colours))
 /// - Uses 3x the memory of input size when no normalization is needed, 6x when normalization is required
+///
+/// [`YCoCgVariant`]: dxt_lossless_transform_common::color_565::YCoCgVariant
 ///
 /// ## Performance Optimization
 ///

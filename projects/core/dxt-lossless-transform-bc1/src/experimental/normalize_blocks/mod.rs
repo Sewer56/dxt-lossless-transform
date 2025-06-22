@@ -90,8 +90,10 @@ use crate::{Bc1DetransformSettings, Bc1TransformSettings, YCoCgVariant};
 
 /// The information about the BC1 transform that was just performed with experimental normalization support.
 /// Each item transformed via [`transform_bc1_with_normalize_blocks`] will produce an instance of this struct.
-/// To undo the transform, you'll need to pass [`Bc1DetransformDetails`] to [`crate::untransform_bc1_with_settings`],
+/// To undo the transform, you'll need to pass [`Bc1DetransformSettings`] to [`crate::untransform_bc1_with_settings`],
 /// which can be obtained from this struct using the `into` method.
+///
+/// [`Bc1DetransformSettings`]: crate::Bc1DetransformSettings
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Bc1TransformDetailsWithNormalization {
     /// The color normalization mode that was used to normalize the data.

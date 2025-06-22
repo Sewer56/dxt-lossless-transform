@@ -222,11 +222,7 @@ pub unsafe extern "C" fn dltbc1_EstimateSettingsBuilder_BuildAndTransform(
 
         // Update the builder with the transform details
         builder_inner.builder = Bc1ManualTransformBuilder::new()
-            .decorrelation_mode(
-                api_transform_details
-                    .decorrelation_mode
-                    .to_internal_variant(),
-            )
+            .decorrelation_mode(api_transform_details.decorrelation_mode)
             .split_colour_endpoints(api_transform_details.split_colour_endpoints);
     }
 

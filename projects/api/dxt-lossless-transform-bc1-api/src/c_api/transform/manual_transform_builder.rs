@@ -147,7 +147,7 @@ pub unsafe extern "C" fn dltbc1_TransformSettingsBuilder_SetDecorrelationMode(
     }
 
     let inner = unsafe { get_settings_builder_mut(builder) };
-    inner.builder = inner.builder.decorrelation_mode(mode.to_internal_variant());
+    inner.builder = inner.builder.decorrelation_mode(mode);
 }
 
 /// Set whether to split colour endpoints for the builder.

@@ -1,10 +1,9 @@
 //! Builder pattern implementation for BC1 automatic transform optimization.
 
+use super::{Bc1EstimateSettings, Bc1TransformSettings};
 use crate::Bc1Error;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
-use dxt_lossless_transform_bc1::{
-    Bc1EstimateSettings, Bc1TransformSettings, transform_bc1_auto_safe,
-};
+use dxt_lossless_transform_bc1::transform_bc1_auto_safe;
 
 /// Automatic BC1 transform optimization builder.
 ///
@@ -76,10 +75,17 @@ impl Bc1AutoTransformBuilder {
         T: SizeEstimationOperations,
         T::Error: core::fmt::Debug,
     {
-        let settings = self.build(size_estimator);
+        let stable_settings = self.build(size_estimator);
+
+        // Convert stable settings to internal for the core function
+        let internal_settings = stable_settings.into();
 
         // Call the core crate's safe wrapper function
-        transform_bc1_auto_safe(input, output, settings).map_err(Bc1Error::from)
+        let internal_result =
+            transform_bc1_auto_safe(input, output, internal_settings).map_err(Bc1Error::from)?;
+
+        // Convert internal result back to stable
+        Ok(internal_result.into())
     }
 }
 

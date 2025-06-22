@@ -1,10 +1,10 @@
 //! Builder pattern implementation for BC1 manual transform configuration.
 
+use super::{Bc1DetransformSettings, Bc1TransformSettings, YCoCgVariant};
 use crate::Bc1Error;
 use dxt_lossless_transform_bc1::{
-    Bc1TransformSettings, transform_bc1_with_settings_safe, untransform_bc1_with_settings_safe,
+    transform_bc1_with_settings_safe, untransform_bc1_with_settings_safe,
 };
-use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
 /// Manual BC1 transform configuration builder.
 ///
@@ -95,8 +95,9 @@ impl Bc1ManualTransformBuilder {
     ///     .build_and_transform(&bc1_data, &mut output)?;
     /// ```
     pub fn build_and_transform(self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
-        let settings = self.build();
-        transform_bc1_with_settings_safe(input, output, settings).map_err(Bc1Error::from)
+        let stable_settings = self.build();
+        let internal_settings = stable_settings.into();
+        transform_bc1_with_settings_safe(input, output, internal_settings).map_err(Bc1Error::from)
     }
 
     /// Build the transform settings and untransform BC1 data in one operation.
@@ -129,9 +130,10 @@ impl Bc1ManualTransformBuilder {
     ///     .build_and_untransform(&transformed_data, &mut output)?;
     /// ```
     pub fn build_and_untransform(self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
-        let settings = self.build();
-        let detransform_settings = settings.into();
-        untransform_bc1_with_settings_safe(input, output, detransform_settings)
+        let stable_transform_settings = self.build();
+        let stable_detransform_settings: Bc1DetransformSettings = stable_transform_settings.into();
+        let internal_detransform_settings = stable_detransform_settings.into();
+        untransform_bc1_with_settings_safe(input, output, internal_detransform_settings)
             .map_err(Bc1Error::from)
     }
 }

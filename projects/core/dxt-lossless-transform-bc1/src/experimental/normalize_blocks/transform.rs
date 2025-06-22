@@ -419,7 +419,6 @@ mod tests {
     use super::*;
     use crate::test_prelude::*;
     use crate::{untransform_bc1_with_settings, Bc1DetransformSettings};
-    use dxt_lossless_transform_api_common::estimate::DataType;
     use dxt_lossless_transform_common::allocate::allocate_align_64;
 
     /// Test roundtrip transform→untransform for all combinations of Bc1TransformDetailsWithNormalization
@@ -480,28 +479,7 @@ mod tests {
         ];
         let mut output_buffer = [0u8; 8];
 
-        // Create a simple dummy estimator
-        struct DummyEstimator;
-
-        impl SizeEstimationOperations for DummyEstimator {
-            type Error = &'static str;
-
-            fn max_compressed_size(&self, _len_bytes: usize) -> Result<usize, Self::Error> {
-                Ok(0) // No buffer needed for dummy estimator
-            }
-
-            unsafe fn estimate_compressed_size(
-                &self,
-                _input_ptr: *const u8,
-                len_bytes: usize,
-                _data_type: DataType,
-                _output_ptr: *mut u8,
-                _output_len: usize,
-            ) -> Result<usize, Self::Error> {
-                Ok(len_bytes) // Just return the input length
-            }
-        }
-
+        // Use the dummy estimator from test_prelude
         let transform_options = Bc1EstimateSettings {
             size_estimator: DummyEstimator,
             use_all_decorrelation_modes: false,

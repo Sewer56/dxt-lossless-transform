@@ -153,18 +153,19 @@
 //! - **`dltbc1_EstimateSettingsBuilder_BuildAndTransform(builder, data, data_len, output, output_len, estimator, settings_builder)`** - Analyze data, determine best settings, and apply transformation in one operation
 //! - **`dltbc1_free_EstimateSettingsBuilder(builder)`** - Free the builder
 //!
-//! ## ABI-Unstable Functions
+//! ## ABI-Unstable Functions (Advanced Users)
 //!
-//! Functions prefixed with `dltbc1_unstable_*` that accept transform details directly. These provide maximum performance by avoiding context overhead but may break between versions if structures change.
+//! ⚠️ **For advanced users only**: Functions prefixed with `dltbc1_unstable_*` accept transform details directly. These provide maximum performance by avoiding builder overhead but may break between versions if structures change. **Production code should use the ABI-stable builder patterns above.**
 //!
-//! ### Direct Transform Operations
+//! The unstable functions are available in the [`transform::unstable`] module and require explicit import. They include:
 //!
-//! - **`dltbc1_unstable_transform(input, input_len, output, output_len, details)`** - Transform BC1 data with explicit settings
-//! - **`dltbc1_unstable_untransform(input, input_len, output, output_len, details)`** - Restore BC1 data with explicit settings
+//! - **`dltbc1_unstable_transform(...)`** - Transform BC1 data with explicit settings (ABI-unstable)
+//! - **`dltbc1_unstable_untransform(...)`** - Restore BC1 data with explicit settings (ABI-unstable)  
+//! - **`dltbc1_unstable_transform_auto(...)`** - Analyze data, determine best settings, and apply transformation in one operation (ABI-unstable)
 //!
-//! ### Direct Options Analysis
+//! See the [`transform::unstable`] module documentation for details and migration guidance.
 //!
-//! - **`dltbc1_unstable_transform_auto(data, data_len, output, output_len, estimator, settings, out_details)`** - Analyze data, determine best settings, and apply transformation in one operation
+//! [`transform::unstable`]: transform/unstable/index.html
 //!
 //! ## Error Handling
 //!

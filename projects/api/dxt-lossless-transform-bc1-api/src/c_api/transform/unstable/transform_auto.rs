@@ -1,22 +1,24 @@
-//! BC1 automatic transform operations for C API.
+//! BC1 automatic transform operations for C API (ABI-unstable).
+//!
+//! **⚠️ ABI Instability Warning**: All functions in this module accept ABI-unstable
+//! structures which may change between versions without major version bumps.
+//! For production use, prefer the ABI-stable builder patterns in
+//! [`super::super::estimate_settings_builder`].
 //!
 //! This module provides ABI-unstable functions for transforming BC1 data
 //! using automatically determined optimal settings.
-//!
-//! **ABI Instability Warning**: All functions in this module accept ABI-unstable
-//! structures which may change between versions. For ABI-stable alternatives,
-//! use [`estimate_settings_builder`] functions.
-//!
-//! [`estimate_settings_builder`]: super::estimate_settings_builder
 
 use crate::Bc1Error;
 use crate::c_api::Dltbc1TransformSettings;
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
-use crate::transform::transform_bc1_auto;
+use crate::transform::unstable::transform_bc1_auto;
 use core::slice;
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 
 /// Settings for automatic BC1 transform configuration (ABI-unstable).
+///
+/// **⚠️ ABI Instability Warning**: This struct layout may change between versions.
+/// For ABI-stable alternatives, use the estimate settings builder pattern.
 ///
 /// This struct contains all settings that affect how the optimal transform
 /// is determined and applied. Using a struct allows adding new fields without breaking
@@ -60,15 +62,30 @@ pub struct Dltbc1AutoTransformSettings {
 /// - `out_details` must be a valid pointer for writing [`Dltbc1TransformSettings`]
 /// - The estimator's context and functions must remain valid for the duration of the call
 ///
-/// ## ABI Instability Warning
+/// **⚠️ ABI Instability Warning**: This function accepts and returns ABI-unstable structures
+/// which may change between library versions. For production use,
+/// [`super::super::estimate_settings_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform`]
+/// is strongly recommended as it guarantees better ABI stability across library versions.
 ///
-/// This function accepts and returns ABI-unstable structures which may change between versions.
-/// **For production use, [`dltbc1_EstimateSettingsBuilder_B
-/// uildAndTransform`] is strongly recommended**
-/// as it guarantees better ABI stability across library versions and ensures your code will
-/// continue to work with future library updates without recompilation.
+/// # Recommended Alternative
 ///
-/// [`dltbc1_EstimateSettingsBuilder_BuildAndTransform`]: super::estimate_settings_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform
+/// For production use:
+/// ```c
+/// // Create builders
+/// Dltbc1EstimateSettingsBuilder* estimate_builder = dltbc1_new_EstimateSettingsBuilder();
+/// Dltbc1TransformSettingsBuilder* settings_builder = dltbc1_new_TransformSettingsBuilder();
+///
+/// // Configure estimation (optional)
+/// dltbc1_EstimateSettingsBuilder_SetUseAllDecorrelationModes(estimate_builder, false);
+///
+/// // Analyze and transform in one operation (ABI-stable)
+/// Dltbc1Result result = dltbc1_EstimateSettingsBuilder_BuildAndTransform(
+///     estimate_builder, data, data_len, output, output_len, &estimator, settings_builder);
+///
+/// // Clean up
+/// dltbc1_free_EstimateSettingsBuilder(estimate_builder);
+/// dltbc1_free_TransformSettingsBuilder(settings_builder);
+/// ```
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_unstable_transform_auto(
     data: *const u8,

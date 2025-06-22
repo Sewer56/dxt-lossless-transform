@@ -12,12 +12,7 @@ pub mod c_api;
 // Re-export main functionality at crate root
 pub use error::Bc1Error;
 
-// Re-export transform functions
-pub use transform::{
-    transform_bc1_auto, transform_bc1_with_settings, untransform_bc1_with_settings,
-};
-
-// Re-export builders
+// Re-export BUILDERS FIRST (stable, recommended)
 pub use transform::{Bc1EstimateSettingsBuilder, Bc1TransformSettingsBuilder};
 
 // Re-export core types for convenience
@@ -28,6 +23,12 @@ pub use transform::{
 
 // Re-export utility functions
 pub use transform::{Decoded4x4Block, decode_bc1_block, decode_bc1_block_from_slice};
+
+// Re-export unstable functions for backwards compatibility (but not prominently)
+// Note: These are ABI-unstable and may change between versions
+pub use transform::{
+    transform_bc1_auto, transform_bc1_with_settings, untransform_bc1_with_settings,
+};
 
 // Test utilities
 #[cfg(test)]

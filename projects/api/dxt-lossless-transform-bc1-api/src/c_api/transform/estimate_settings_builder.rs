@@ -153,15 +153,16 @@ pub unsafe extern "C" fn dltbc1_EstimateSettingsBuilder_BuildAndTransform(
     };
 
     // Create settings struct
-    let settings =
-        crate::c_api::transform::transform_auto::Dltbc1AutoTransformSettings { use_all_modes };
+    let settings = crate::c_api::transform::unstable::transform_auto::Dltbc1AutoTransformSettings {
+        use_all_modes,
+    };
 
     // Allocate space for the transform details
     let mut transform_details = Dltbc1TransformSettings::default();
 
     // Call the unstable transform auto function
     let result = unsafe {
-        crate::c_api::transform::transform_auto::dltbc1_unstable_transform_auto(
+        crate::c_api::transform::unstable::transform_auto::dltbc1_unstable_transform_auto(
             data,
             data_len,
             output,

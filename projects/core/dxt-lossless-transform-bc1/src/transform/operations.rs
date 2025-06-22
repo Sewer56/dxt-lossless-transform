@@ -18,7 +18,7 @@ use super::settings::{Bc1DetransformSettings, Bc1TransformSettings};
 /// - `output_ptr`: A pointer to the output data (output BC1 blocks)
 /// - `len`: The length of the input data in bytes (size of `input_ptr`, `output_ptr`)
 /// - `transform_options`: The transform options to use.
-///   Obtained from [`crate::transform_with_best_options`] or
+///   Obtained from [`crate::transform_bc1_auto`] or
 ///   [`Bc1TransformSettings::default`] for less optimal result(s).
 ///
 /// # Safety

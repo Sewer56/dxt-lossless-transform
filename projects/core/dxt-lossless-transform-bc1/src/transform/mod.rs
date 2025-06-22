@@ -23,7 +23,7 @@
 //!
 //! ### Automatic Optimization Functions (Slower but Convenient)  
 //!
-//! Functions like [`transform_with_best_options`] perform brute force testing of different transformations:
+//! Functions like [`transform_bc1_auto`] perform brute force testing of different transformations:
 //!
 //! 1. Transform the data into multiple different formats
 //! 2. Estimate the compressed size using a provided file size estimator function  
@@ -52,22 +52,20 @@ pub(crate) mod with_split_colour_and_recorr;
 
 // Re-export all public items from submodules
 pub use operations::{transform_bc1_with_settings, untransform_bc1_with_settings};
-pub use optimization::{
-    transform_with_best_options, Bc1EstimateOptions, DetermineBestTransformError,
-};
+pub use optimization::{transform_bc1_auto, Bc1EstimateOptions, DetermineBestTransformError};
 pub use settings::{Bc1DetransformSettings, Bc1TransformSettings};
 
 #[cfg(test)]
 mod tests {
     use super::optimization::{
-        transform_with_best_options, Bc1EstimateOptions, DetermineBestTransformError,
+        transform_bc1_auto, Bc1EstimateOptions, DetermineBestTransformError,
     };
     use crate::test_prelude::*;
     use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
 
-    /// Test that transform_with_best_options works correctly
+    /// Test that transform_bc1_auto works correctly
     #[rstest]
-    fn test_transform_with_best_options() {
+    fn test_transform_bc1_auto() {
         // Create minimal BC1 block data (8 bytes per block)
         // This is a simple red block
         let bc1_data = [
@@ -106,7 +104,7 @@ mod tests {
 
         // This should not crash and should produce transformed data
         let result = unsafe {
-            transform_with_best_options(
+            transform_bc1_auto(
                 bc1_data.as_ptr(),
                 output_buffer.as_mut_ptr(),
                 bc1_data.len(),
@@ -120,9 +118,9 @@ mod tests {
         );
     }
 
-    /// Test that transform_with_best_options handles estimation errors properly
+    /// Test that transform_bc1_auto handles estimation errors properly
     #[rstest]
-    fn test_transform_with_best_options_handles_errors() {
+    fn test_transform_bc1_auto_handles_errors() {
         // Create minimal BC1 block data
         let bc1_data = [
             0x00, 0xF8, // Color0: Red in RGB565 (0xF800)
@@ -159,7 +157,7 @@ mod tests {
         };
 
         let result = unsafe {
-            transform_with_best_options(
+            transform_bc1_auto(
                 bc1_data.as_ptr(),
                 output_buffer.as_mut_ptr(),
                 bc1_data.len(),

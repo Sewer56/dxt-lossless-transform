@@ -22,7 +22,7 @@ pub enum DetermineBestTransformError<E> {
     SizeEstimationError(E),
 }
 
-/// The options for [`transform_with_best_options`], regarding how the estimation is done,
+/// The options for [`transform_bc1_auto`], regarding how the estimation is done,
 /// and other related factors.
 pub struct Bc1EstimateOptions<T>
 where
@@ -40,7 +40,7 @@ where
     /// be compressed with.
     ///
     /// Otherwise consider using a slightly lower level of the same compression function, both to
-    /// maximize speed of [`transform_with_best_options`], and to improve decompression speed
+    /// maximize speed of [`transform_bc1_auto`], and to improve decompression speed
     /// by reducing the size of the sliding window (so more data in cache) and increasing minimum
     /// match length.
     pub size_estimator: T,
@@ -124,7 +124,7 @@ where
 /// # Examples
 ///
 /// ```rust,no_run
-/// # use dxt_lossless_transform_bc1::{transform_with_best_options, Bc1EstimateOptions};
+/// # use dxt_lossless_transform_bc1::{transform_bc1_auto, Bc1EstimateOptions};
 /// # use dxt_lossless_transform_api_common::estimate::{SizeEstimationOperations, DataType};
 ///
 /// // Define a compression estimator implementation
@@ -161,7 +161,7 @@ where
 ///
 /// // Transform with optimal settings (unsafe due to raw pointers)
 /// let transform_details = unsafe {
-///     transform_with_best_options(
+///     transform_bc1_auto(
 ///         bc1_data.as_ptr(),
 ///         output_buffer.as_mut_ptr(),
 ///         bc1_data.len(),
@@ -192,7 +192,7 @@ where
 /// - Memory allocation uses 64-byte alignment for optimal SIMD performance
 ///
 /// [YCoCgVariant]: dxt_lossless_transform_common::color_565::YCoCgVariant
-pub unsafe fn transform_with_best_options<T>(
+pub unsafe fn transform_bc1_auto<T>(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,

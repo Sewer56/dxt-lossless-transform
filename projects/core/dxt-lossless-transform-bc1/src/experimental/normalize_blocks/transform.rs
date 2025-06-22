@@ -21,8 +21,7 @@
 use crate::transform::settings::{COMPREHENSIVE_TEST_ORDER, FAST_TEST_ORDER};
 use crate::transform::standard::{transform, transform_with_separate_pointers};
 use crate::transform::{
-    transform_with_best_options, Bc1EstimateOptions, Bc1TransformSettings,
-    DetermineBestTransformError,
+    transform_bc1_auto, Bc1EstimateOptions, Bc1TransformSettings, DetermineBestTransformError,
 };
 use core::mem::size_of;
 use core::slice;
@@ -45,7 +44,7 @@ use crate::experimental::Bc1TransformDetailsWithNormalization;
 /// - `work_ptr`: A pointer to a work buffer (used by function)
 /// - `len`: The length of the input data in bytes (size of `input_ptr`, `output_ptr` and half size of `work_ptr`)
 /// - `transform_options`: The transform options to use.
-///   Obtained from [`transform_with_best_options_and_normalization`] or
+///   Obtained from [`transform_bc1_auto_with_normalization`] or
 ///   [`Bc1TransformDetailsWithNormalization::default`] for less optimal result(s).
 ///
 /// # Remarks
@@ -222,7 +221,7 @@ pub unsafe fn transform_bc1_with_normalize_blocks(
 /// - `output_ptr` must be valid for writes of `len` bytes
 /// - `len` must be divisible by 8
 /// - It is recommended that `input_ptr` and `output_ptr` are at least 16-byte aligned (recommended 32-byte align)
-pub unsafe fn transform_with_best_options_and_normalization<T>(
+pub unsafe fn transform_bc1_auto_with_normalization<T>(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
@@ -326,8 +325,7 @@ where
         drop(normalize_buffers);
 
         // Use the regular transform function since no normalization is needed
-        let regular_result =
-            transform_with_best_options(input_ptr, output_ptr, len, transform_options)?;
+        let regular_result = transform_bc1_auto(input_ptr, output_ptr, len, transform_options)?;
 
         // Convert regular result to normalization result using From trait
         Ok(regular_result.into())
@@ -470,9 +468,9 @@ mod tests {
         }
     }
 
-    /// Test that transform_with_best_options_and_normalization doesn't crash with minimal BC1 data
+    /// Test that transform_bc1_auto_with_normalization doesn't crash with minimal BC1 data
     #[test]
-    fn test_transform_with_best_options_and_normalization_does_not_crash() {
+    fn test_transform_bc1_auto_with_normalization_does_not_crash() {
         // Create minimal BC1 block data (8 bytes per block)
         // This is a simple red block
         let bc1_data = [
@@ -511,7 +509,7 @@ mod tests {
 
         // This should not crash
         let result = unsafe {
-            transform_with_best_options_and_normalization(
+            transform_bc1_auto_with_normalization(
                 bc1_data.as_ptr(),
                 output_buffer.as_mut_ptr(),
                 bc1_data.len(),

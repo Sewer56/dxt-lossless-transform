@@ -9,7 +9,7 @@ use crate::error::Bc1Error;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_bc1::{
     Bc1EstimateOptions, Bc1TransformSettings, DetermineBestTransformError,
-    transform_with_best_options,
+    transform_bc1_auto as core_transform_bc1_auto,
 };
 
 /// Transform BC1 data using automatically determined optimal settings.
@@ -74,17 +74,15 @@ where
     }
 
     // Safety: We've validated the input length and output buffer size
-    unsafe {
-        transform_with_best_options(input.as_ptr(), output.as_mut_ptr(), input.len(), options)
-    }
-    .map_err(|e| match e {
-        DetermineBestTransformError::AllocateError(alloc_err) => {
-            Bc1Error::AllocationFailed(alloc_err)
-        }
-        DetermineBestTransformError::SizeEstimationError(err) => {
-            Bc1Error::SizeEstimationFailed(err)
-        }
-    })
+    unsafe { core_transform_bc1_auto(input.as_ptr(), output.as_mut_ptr(), input.len(), options) }
+        .map_err(|e| match e {
+            DetermineBestTransformError::AllocateError(alloc_err) => {
+                Bc1Error::AllocationFailed(alloc_err)
+            }
+            DetermineBestTransformError::SizeEstimationError(err) => {
+                Bc1Error::SizeEstimationFailed(err)
+            }
+        })
 }
 
 #[cfg(test)]

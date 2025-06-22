@@ -1,7 +1,7 @@
 //! BC1 Transform Operations
 //!
-//! This module provides the core transformation and optimization functionality for BC1
-//! (DXT1) compressed texture data to achieve optimal compression ratios.
+//! This module provides the core transformation functionality for BC1 (DXT1) compressed
+//! texture data to achieve optimal compression ratios.
 //!
 //! ## Overview
 //!
@@ -40,9 +40,9 @@
 //! Otherwise for levels 10 and above, use `dxt-lossless-transform-zstd` instead.
 
 // Module structure
-pub(crate) mod operations;
-pub(crate) mod optimization;
 pub(crate) mod settings;
+pub(crate) mod transform_auto;
+pub(crate) mod transform_with_settings;
 
 // Transform module implementations
 pub(crate) mod standard;
@@ -51,13 +51,13 @@ pub(crate) mod with_split_colour;
 pub(crate) mod with_split_colour_and_recorr;
 
 // Re-export all public items from submodules
-pub use operations::*;
-pub use optimization::*;
 pub use settings::*;
+pub use transform_auto::*;
+pub use transform_with_settings::*;
 
 #[cfg(test)]
 mod tests {
-    use super::optimization::{
+    use super::transform_auto::{
         transform_bc1_auto, Bc1EstimateSettings, DetermineBestTransformError,
     };
     use crate::test_prelude::*;

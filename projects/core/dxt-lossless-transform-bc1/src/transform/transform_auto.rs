@@ -7,8 +7,8 @@ use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_common::allocate::{allocate_align_64, AllocateError};
 use thiserror::Error;
 
-use super::operations::transform_bc1_with_settings;
 use super::settings::{Bc1TransformSettings, COMPREHENSIVE_TEST_ORDER, FAST_TEST_ORDER};
+use super::transform_with_settings::transform_bc1_with_settings;
 
 /// An error that happened during transform determination.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]

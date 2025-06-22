@@ -1,7 +1,13 @@
 //! BC1 transform settings builder for C API.
 //!
-//! This module provides functions to configure BC1 transform settings through a builder pattern
-//! that operates on the transform context.
+//! This module provides ABI-stable functions to configure BC1 transform settings through
+//! a builder pattern that operates on the transform context. These functions offer a
+//! stable interface that is guaranteed to remain compatible across library versions.
+//!
+//! For users requiring maximum performance and willing to accept potential breaking
+//! changes, see the [`transform_with_settings`] module for ABI-unstable alternatives.
+//!
+//! [`transform_with_settings`]: super::transform_with_settings
 
 use crate::Bc1Error;
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
@@ -21,6 +27,8 @@ use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 /// closer to your final compression level instead.
 ///
 /// For automatic optimization, consider using [`dltbc1_EstimateSettingsBuilder_BuildAndTransform`] instead.
+///
+/// [`dltbc1_EstimateSettingsBuilder_BuildAndTransform`]: super::estimate_settings_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform
 ///
 /// # Parameters
 /// - `context`: The BC1 context to modify
@@ -49,6 +57,8 @@ pub unsafe extern "C" fn dltbc1_TransformContext_SetDecorrelationMode(
 /// **File Size**: This setting reduces file size around 78% of the time.
 ///
 /// For automatic optimization, consider using [`dltbc1_EstimateSettingsBuilder_BuildAndTransform`] instead.
+///
+/// [`dltbc1_EstimateSettingsBuilder_BuildAndTransform`]: super::estimate_settings_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform
 ///
 /// # Parameters
 /// - `context`: The BC1 context to modify

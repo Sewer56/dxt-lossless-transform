@@ -1,7 +1,13 @@
 //! BC1 automatic transform operations for C API.
 //!
-//! This module provides both ABI-stable and ABI-unstable functions for transforming BC1 data
+//! This module provides ABI-unstable functions for transforming BC1 data
 //! using automatically determined optimal settings.
+//!
+//! **ABI Instability Warning**: All functions in this module accept ABI-unstable
+//! structures which may change between versions. For ABI-stable alternatives,
+//! use [`estimate_settings_builder`] functions.
+//!
+//! [`estimate_settings_builder`]: super::estimate_settings_builder
 
 use crate::Bc1Error;
 use crate::c_api::Dltbc1TransformSettings;
@@ -57,11 +63,12 @@ pub struct Dltbc1AutoTransformSettings {
 /// ## ABI Instability Warning
 ///
 /// This function accepts and returns ABI-unstable structures which may change between versions.
-/// **For production use, [`dltbc1_EstimateSettingsBuilder_BuildAndTransform`] is strongly recommended**
+/// **For production use, [`dltbc1_EstimateSettingsBuilder_B
+/// uildAndTransform`] is strongly recommended**
 /// as it guarantees better ABI stability across library versions and ensures your code will
 /// continue to work with future library updates without recompilation.
 ///
-/// [`dltbc1_EstimateSettingsBuilder_BuildAndTransform`]: crate::c_api::estimate_settings_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform
+/// [`dltbc1_EstimateSettingsBuilder_BuildAndTransform`]: super::estimate_settings_builder::dltbc1_EstimateSettingsBuilder_BuildAndTransform
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_unstable_transform_auto(
     data: *const u8,

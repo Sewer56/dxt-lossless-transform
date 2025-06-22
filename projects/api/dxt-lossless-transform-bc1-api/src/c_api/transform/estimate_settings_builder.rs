@@ -1,6 +1,6 @@
 //! BC1 estimate settings builder for C API.
 //!
-//! This module provides both ABI-stable and ABI-unstable functions for configuring BC1 estimate settings
+//! This module provides ABI-stable functions for configuring BC1 estimate settings
 //! in a convenient builder pattern.
 
 use crate::c_api::Dltbc1TransformSettings;

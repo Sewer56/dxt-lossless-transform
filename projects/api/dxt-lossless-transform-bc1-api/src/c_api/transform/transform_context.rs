@@ -1,7 +1,9 @@
 //! Transform context management for BC1 C API.
 //!
-//! This module provides an opaque transform context type that stores BC1 transform
-//! configuration. The context is per-thread and must be explicitly freed.
+//! This module provides ABI-stable functions for managing an opaque transform context
+//! that stores BC1 transform configuration. The context is per-thread and must be
+//! explicitly freed. These functions offer a stable interface that is guaranteed
+//! to remain compatible across library versions.
 
 use core::ptr;
 

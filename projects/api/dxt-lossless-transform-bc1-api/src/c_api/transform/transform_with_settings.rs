@@ -1,7 +1,13 @@
 //! BC1 transform operations with explicit settings for C API.
 //!
-//! This module provides both ABI-stable and ABI-unstable functions for transforming and
+//! This module provides ABI-unstable functions for transforming and
 //! untransforming BC1 data using specific transform settings.
+//!
+//! **ABI Instability Warning**: All functions in this module accept ABI-unstable
+//! structures which may change between versions. For ABI-stable alternatives,
+//! use the builder pattern functions in [`transform_settings_builder`].
+//!
+//! [`transform_settings_builder`]: super::transform_settings_builder
 
 use crate::Bc1Error;
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
@@ -19,6 +25,8 @@ use core::slice;
 /// This function accepts ABI-unstable structures which may change between versions.
 /// Use [`dltbc1_TransformContext_Transform`] for ABI stability.
 ///
+/// [`dltbc1_TransformContext_Transform`]: super::transform_settings_builder::dltbc1_TransformContext_Transform
+///
 /// # Parameters
 /// - `input`: Pointer to BC1 data to transform
 /// - `input_len`: Length of input data in bytes (must be divisible by 8)
@@ -32,8 +40,6 @@ use core::slice;
 /// # Safety
 /// - `input` must be valid for reads of `input_len` bytes
 /// - `output` must be valid for writes of `output_len` bytes
-///
-/// [`dltbc1_TransformContext_Transform`]: crate::c_api::transform_settings_builder::dltbc1_TransformContext_Transform
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_unstable_transform(
     input: *const u8,
@@ -87,6 +93,8 @@ pub unsafe extern "C" fn dltbc1_unstable_transform(
 /// This function accepts ABI-unstable structures which may change between versions.
 /// Use [`dltbc1_TransformContext_Untransform`] for ABI stability.
 ///
+/// [`dltbc1_TransformContext_Untransform`]: super::transform_settings_builder::dltbc1_TransformContext_Untransform
+///
 /// # Parameters
 /// - `input`: Pointer to transformed BC1 data to untransform
 /// - `input_len`: Length of input data in bytes (must be divisible by 8)
@@ -101,8 +109,6 @@ pub unsafe extern "C" fn dltbc1_unstable_transform(
 /// - `input` must be valid for reads of `input_len` bytes
 /// - `output` must be valid for writes of `output_len` bytes
 /// - The detransform settings must match the settings used for the original transformation
-///
-/// [`dltbc1_TransformContext_Untransform`]: crate::c_api::transform_settings_builder::dltbc1_TransformContext_Untransform
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_unstable_untransform(
     input: *const u8,

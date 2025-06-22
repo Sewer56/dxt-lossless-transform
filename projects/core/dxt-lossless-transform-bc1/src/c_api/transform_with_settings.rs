@@ -37,8 +37,7 @@ impl From<Dltbc1TransformSettings> for crate::Bc1TransformSettings {
 
 impl From<Dltbc1DetransformSettings> for crate::Bc1DetransformSettings {
     fn from(settings: Dltbc1DetransformSettings) -> Self {
-        // Convert to Bc1TransformSettings first, then to Bc1DetransformSettings
-        let transform_settings = crate::Bc1TransformSettings {
+        crate::Bc1TransformSettings {
             split_colour_endpoints: settings.split_colour_endpoints,
             decorrelation_mode: match settings.decorrelation_mode {
                 0 => YCoCgVariant::None,
@@ -47,8 +46,7 @@ impl From<Dltbc1DetransformSettings> for crate::Bc1DetransformSettings {
                 3 => YCoCgVariant::Variant3,
                 _ => YCoCgVariant::None, // Default fallback
             },
-        };
-        transform_settings.into()
+        }
     }
 }
 

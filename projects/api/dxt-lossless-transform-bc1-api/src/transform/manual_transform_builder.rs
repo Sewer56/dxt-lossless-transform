@@ -137,7 +137,7 @@ impl Bc1ManualTransformBuilder {
                 .to_internal_variant(),
             split_colour_endpoints: self.split_colour_endpoints.unwrap_or(true),
         };
-        let detransform_settings: Bc1DetransformSettings = transform_settings.into();
+        let detransform_settings: Bc1DetransformSettings = transform_settings;
         untransform_bc1_with_settings_safe(input, output, detransform_settings)
             .map_err(Bc1Error::from)
     }

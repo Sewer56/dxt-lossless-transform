@@ -327,7 +327,7 @@ unsafe fn process_scenario(
             decompressed_data.as_ptr(),
             final_output.as_mut_ptr(),
             len_bytes,
-            transform_details.into(),
+            transform_details,
         );
     }
 
@@ -350,7 +350,7 @@ unsafe fn process_scenario(
                 decompressed_data.as_ptr(),
                 final_output.as_mut_ptr(),
                 len_bytes,
-                transform_details.into(),
+                transform_details,
             );
         }
     });

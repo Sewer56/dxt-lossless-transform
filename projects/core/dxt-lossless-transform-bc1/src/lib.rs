@@ -8,7 +8,7 @@
 )]
 #![warn(missing_docs)]
 
-pub(crate) mod transforms;
+pub(crate) mod transform;
 
 #[cfg(feature = "bench")]
 pub mod bench;
@@ -16,8 +16,8 @@ pub mod bench;
 pub mod experimental;
 pub mod util;
 
-// Re-export main types and functions from transforms module
-pub use transforms::{
+// Re-export main types and functions from transform module
+pub use transform::{
     transform_bc1_with_settings, transform_with_best_options, untransform_bc1_with_settings,
     Bc1DetransformSettings, Bc1EstimateOptions, Bc1TransformSettings, DetermineBestTransformError,
 };

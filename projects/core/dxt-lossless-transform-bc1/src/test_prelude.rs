@@ -130,7 +130,7 @@ pub(crate) fn run_standard_transform_roundtrip_test(
 
         unsafe {
             transform_fn(input.as_ptr(), transformed.as_mut_ptr(), len);
-            crate::transforms::standard::untransform(
+            crate::transform::standard::untransform(
                 transformed.as_ptr(),
                 reconstructed.as_mut_ptr(),
                 len,
@@ -155,7 +155,7 @@ pub(crate) fn run_with_decorrelate_transform_roundtrip_test(
     max_blocks: usize,
     impl_name: &str,
 ) {
-    use crate::transforms::with_recorrelate::untransform::untransform_with_recorrelate;
+    use crate::transform::with_recorrelate::untransform::untransform_with_recorrelate;
 
     for num_blocks in 1..=max_blocks {
         let input = generate_bc1_test_data(num_blocks);
@@ -197,7 +197,7 @@ pub(crate) fn run_split_colour_transform_roundtrip_test(
     max_blocks: usize,
     impl_name: &str,
 ) {
-    use crate::transforms::with_split_colour::untransform::untransform_with_split_colour;
+    use crate::transform::with_split_colour::untransform::untransform_with_split_colour;
 
     for num_blocks in 1..=max_blocks {
         let input = generate_bc1_test_data(num_blocks);
@@ -245,7 +245,7 @@ pub(crate) fn run_split_colour_with_decorr_transform_roundtrip_test(
     max_blocks: usize,
     impl_name: &str,
 ) {
-    use crate::transforms::with_split_colour_and_recorr::untransform::untransform_with_split_colour_and_recorr;
+    use crate::transform::with_split_colour_and_recorr::untransform::untransform_with_split_colour_and_recorr;
 
     for num_blocks in 1..=max_blocks {
         let input = generate_bc1_test_data(num_blocks);
@@ -366,7 +366,7 @@ pub(crate) fn run_standard_untransform_unaligned_test(
         // Transform using the reference path
         let mut transformed = allocate_align_64(original.len());
         unsafe {
-            crate::transforms::standard::transform(
+            crate::transform::standard::transform(
                 original.as_ptr(),
                 transformed.as_mut_ptr(),
                 original.len(),

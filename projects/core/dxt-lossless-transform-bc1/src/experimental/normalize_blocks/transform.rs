@@ -18,9 +18,9 @@
 //!
 //! [`YCoCgVariant`]: dxt_lossless_transform_common::color_565::YCoCgVariant
 
-use crate::transforms::settings::{COMPREHENSIVE_TEST_ORDER, FAST_TEST_ORDER};
-use crate::transforms::standard::{transform, transform_with_separate_pointers};
-use crate::transforms::{
+use crate::transform::settings::{COMPREHENSIVE_TEST_ORDER, FAST_TEST_ORDER};
+use crate::transform::standard::{transform, transform_with_separate_pointers};
+use crate::transform::{
     transform_with_best_options, Bc1EstimateOptions, Bc1TransformSettings,
     DetermineBestTransformError,
 };

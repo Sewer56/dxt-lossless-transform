@@ -15,7 +15,7 @@
 //!
 //! ## Features
 //!
-//! - **File format aware builders**: Wrap existing stable builders with file format handling capabilities
+//! - **Extension traits**: Add file format capabilities to existing stable builders
 //! - **File operations**: Transform entire files with automatic header handling
 //! - **Batch processing**: Directory-level operations similar to the CLI tool
 //! - **Extensible design**: Support for new file formats and transform types
@@ -27,16 +27,17 @@
 //!
 //! ```ignore
 //! use dxt_lossless_transform_api_fileformats::{
-//!     builders::Bc1FileFormatTransformBuilder,
+//!     builders::Bc1TransformFileFormatExt,
 //!     traits::FileFormatHandler,
 //! };
+//! use dxt_lossless_transform_bc1_api::Bc1TransformOptionsBuilder;
 //! use dxt_lossless_transform_common::color_565::YCoCgVariant;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! let result = Bc1FileFormatTransformBuilder::new()
+//! // Use the extension trait to add file format capabilities
+//! let result = Bc1TransformOptionsBuilder::new()
 //!     .decorrelation_mode(YCoCgVariant::Variant1)
 //!     .split_colour_endpoints(true)
-//!     .with_file_format_support()
 //!     .transform_file::<DdsHandler>(input_path, output_path)?;
 //! # Ok(())
 //! # }
@@ -45,14 +46,20 @@
 //! ### Builder API - Determine Optimal Settings
 //!
 //! ```ignore
-//! use dxt_lossless_transform_api_fileformats::builders::Bc1FileFormatEstimateBuilder;
+//! use dxt_lossless_transform_api_fileformats::builders::{
+//!     Bc1EstimateFileFormatExt,
+//!     Bc1EstimateOptionsBuilderExt,
+//! };
+//! use dxt_lossless_transform_bc1_api::Bc1EstimateOptionsBuilder;
 //! use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let estimator = LosslessTransformUtilsSizeEstimation::new();
-//! let optimal_details = Bc1FileFormatEstimateBuilder::new(estimator)
+//!
+//! // Use extension traits to add file format capabilities
+//! let optimal_details = Bc1EstimateOptionsBuilder::new()
+//!     .with_estimator(estimator)
 //!     .use_all_decorrelation_modes(false)
-//!     .with_file_format_support()
 //!     .determine_optimal_for_file::<DdsHandler>(input_path)?;
 //! # Ok(())
 //! # }

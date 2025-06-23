@@ -3,36 +3,9 @@
 //! This module provides ABI-stable functions for configuring BC1 auto transform builder
 //! in a convenient builder pattern that mirrors the Rust API structure.
 
-use crate::c_api::Dltbc1TransformSettings;
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
 use crate::c_api::transform::manual_transform_builder::Dltbc1ManualTransformBuilder;
-use crate::transform::Bc1ManualTransformBuilder;
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
-use dxt_lossless_transform_bc1::c_api::transform_auto::{
-    Dltbc1AutoTransformSettings as CoreAutoTransformSettings, Dltbc1ErrorCode as CoreErrorCode,
-    Dltbc1Result as CoreResult, Dltbc1TransformSettings as CoreTransformSettings,
-};
-
-// Conversion from core's Dltbc1Result to API's Dltbc1Result
-impl From<CoreResult> for Dltbc1Result {
-    fn from(core_result: CoreResult) -> Self {
-        let api_error_code = match core_result.error_code {
-            CoreErrorCode::Success => Dltbc1ErrorCode::Success,
-            CoreErrorCode::NullDataPointer => Dltbc1ErrorCode::NullDataPointer,
-            CoreErrorCode::NullOutputBufferPointer => Dltbc1ErrorCode::NullOutputBufferPointer,
-            CoreErrorCode::NullEstimatorPointer => Dltbc1ErrorCode::NullEstimatorPointer,
-            CoreErrorCode::NullTransformSettingsPointer => {
-                Dltbc1ErrorCode::NullTransformSettingsPointer
-            }
-            CoreErrorCode::InvalidDataLength => Dltbc1ErrorCode::InvalidLength,
-            CoreErrorCode::OutputBufferTooSmall => Dltbc1ErrorCode::OutputBufferTooSmall,
-            CoreErrorCode::SizeEstimationError => Dltbc1ErrorCode::SizeEstimationFailed,
-            CoreErrorCode::TransformationError => Dltbc1ErrorCode::AllocationFailed, // Map to closest available
-        };
-
-        Self::from_error_code(api_error_code)
-    }
-}
 
 /// Internal structure holding the actual builder data.
 pub struct Dltbc1AutoTransformBuilderImpl {
@@ -235,61 +208,42 @@ pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_Transform(
 
     // Get settings from builder
     let builder_impl = unsafe { &*(builder as *const Dltbc1AutoTransformBuilderImpl) };
-    let estimator = builder_impl.estimator;
+    let estimator = unsafe { &*builder_impl.estimator };
     let use_all_modes = builder_impl.use_all_decorrelation_modes;
 
-    // Create settings struct
-    let settings = CoreAutoTransformSettings { use_all_modes };
+    // Create input and output slices
+    let input_slice = unsafe { core::slice::from_raw_parts(data, data_len) };
+    let output_slice = unsafe { core::slice::from_raw_parts_mut(output, output_len) };
 
-    // Allocate space for the transform details
-    let mut transform_details = CoreTransformSettings::default();
+    // Use the Rust API's Bc1AutoTransformBuilder
+    let rust_auto_builder = crate::transform::Bc1AutoTransformBuilder::new(estimator)
+        .use_all_decorrelation_modes(use_all_modes);
 
-    // Call the core transform auto function
-    let result = unsafe {
-        dxt_lossless_transform_bc1::c_api::transform_auto::dltbc1core_transform_auto(
-            data,
-            data_len,
-            output,
-            output_len,
-            estimator,
-            settings,
-            &mut transform_details as *mut CoreTransformSettings,
-        )
-    };
+    // Transform using the Rust API
+    match rust_auto_builder.transform(input_slice, output_slice) {
+        Ok(manual_builder) => {
+            // Create the C API wrapper for the manual builder
+            let inner = Box::new(
+                crate::c_api::transform::manual_transform_builder::Dltbc1ManualTransformBuilderInner {
+                    builder: manual_builder,
+                },
+            );
 
-    // Convert the core result to API result
-    let api_result = Dltbc1Result::from(result);
+            // Write the result to the output pointer
+            unsafe {
+                *out_manual_builder = Box::into_raw(inner) as *mut Dltbc1ManualTransformBuilder;
+            }
 
-    // If successful, create and return a configured manual builder
-    if api_result.is_success() {
-        // Convert core transform details to API transform details
-        let api_transform_details = Dltbc1TransformSettings {
-            decorrelation_mode: transform_details.decorrelation_mode.into(),
-            split_colour_endpoints: transform_details.split_colour_endpoints,
-        };
-
-        // Create a new manual builder with the optimal settings
-        let manual_builder = Bc1ManualTransformBuilder::new()
-            .decorrelation_mode(api_transform_details.decorrelation_mode)
-            .split_colour_endpoints(api_transform_details.split_colour_endpoints);
-
-        // Create the C API wrapper
-        let inner = Box::new(
-            crate::c_api::transform::manual_transform_builder::Dltbc1ManualTransformBuilderInner {
-                builder: manual_builder,
-            },
-        );
-
-        // Write the result to the output pointer
-        unsafe {
-            *out_manual_builder = Box::into_raw(inner) as *mut Dltbc1ManualTransformBuilder;
+            Dltbc1Result::success()
         }
-    } else {
-        // On failure, ensure the output pointer is null
-        unsafe {
-            *out_manual_builder = core::ptr::null_mut();
+        Err(error) => {
+            // On failure, ensure the output pointer is null
+            unsafe {
+                *out_manual_builder = core::ptr::null_mut();
+            }
+
+            // Convert the Rust API error to C API result using the existing From implementation
+            error.into()
         }
     }
-
-    api_result
 }

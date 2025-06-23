@@ -184,7 +184,7 @@ pub fn transform_bc1_with_settings(
 /// builder.transform(&bc1_data, &mut transformed)?;
 ///
 /// // Untransform to restore original data  
-/// builder.detransform(&transformed, &mut restored)?;
+/// builder.untransform(&transformed, &mut restored)?;
 /// # assert_eq!(bc1_data, restored); // Verify round-trip works
 /// # Ok(())
 /// # }

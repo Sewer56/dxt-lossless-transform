@@ -378,20 +378,17 @@ mod tests {
                 let message_ptr = dltbc1_error_message(error_code);
                 assert!(
                     !message_ptr.is_null(),
-                    "Error message pointer is null for {:?}",
-                    error_code
+                    "Error message pointer is null for {error_code:?}"
                 );
 
                 let c_str = CStr::from_ptr(message_ptr);
-                let message = c_str.to_str().expect(&format!(
-                    "Error message is not valid UTF-8 for {:?}",
-                    error_code
-                ));
+                let message = c_str.to_str().unwrap_or_else(|_| {
+                    panic!("Error message is not valid UTF-8 for {error_code:?}")
+                });
 
                 assert!(
                     !message.is_empty(),
-                    "Error message is empty for {:?}",
-                    error_code
+                    "Error message is empty for {error_code:?}",
                 );
             }
         }

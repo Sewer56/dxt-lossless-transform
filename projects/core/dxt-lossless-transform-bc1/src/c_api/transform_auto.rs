@@ -195,9 +195,7 @@ pub unsafe extern "C" fn dltbc1core_transform_auto(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dxt_lossless_transform_api_common::{
-        c_api::size_estimation::DltSizeEstimator, estimate::DataType,
-    };
+    use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
     use std::{ffi::c_void, ptr};
 
     /// Test helper: Create a dummy size estimator for testing
@@ -380,7 +378,7 @@ mod tests {
     #[test]
     fn test_dltbc1core_transform_auto_invalid_length() {
         let estimator = create_dummy_estimator();
-        let test_data = vec![0u8; 15]; // Not divisible by 8
+        let test_data = [0u8; 15]; // Not divisible by 8
         let mut output = vec![0u8; 15];
         let mut out_details = Dltbc1TransformSettings::default();
         let settings = Dltbc1AutoTransformSettings {
@@ -505,7 +503,7 @@ mod tests {
         };
 
         let rust_settings: crate::Bc1TransformSettings = settings.into();
-        assert_eq!(rust_settings.split_colour_endpoints, true);
+        assert!(rust_settings.split_colour_endpoints);
         assert_eq!(rust_settings.decorrelation_mode, YCoCgVariant::Variant1);
     }
 
@@ -517,7 +515,7 @@ mod tests {
         };
 
         let c_settings: Dltbc1TransformSettings = rust_settings.into();
-        assert_eq!(c_settings.split_colour_endpoints, false);
+        assert!(!c_settings.split_colour_endpoints);
         assert_eq!(c_settings.decorrelation_mode, 2); // Variant2
     }
 }

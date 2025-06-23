@@ -238,7 +238,7 @@ mod tests {
 
     #[test]
     fn test_dltbc1core_transform_invalid_length() {
-        let test_data = vec![0u8; 15]; // Not divisible by 8
+        let test_data = [0u8; 15]; // Not divisible by 8
         let mut output = vec![0u8; 15];
         let details = Dltbc1TransformSettings {
             split_colour_endpoints: false,
@@ -394,9 +394,7 @@ mod tests {
                     assert_eq!(
                         transform_result.error_code,
                         Dltbc1ErrorCode::Success,
-                        "Transform failed for decorr_mode {}, split_colours {}",
-                        decorr_mode,
-                        split_colours
+                        "Transform failed for decorr_mode {decorr_mode}, split_colours {split_colours}"
                     );
 
                     // Untransform
@@ -410,16 +408,13 @@ mod tests {
                     assert_eq!(
                         untransform_result.error_code,
                         Dltbc1ErrorCode::Success,
-                        "Untransform failed for decorr_mode {}, split_colours {}",
-                        decorr_mode,
-                        split_colours
+                        "Untransform failed for decorr_mode {decorr_mode}, split_colours {split_colours}"
                     );
 
                     // Should restore original data
                     assert_eq!(
                         restored, test_data,
-                        "Round-trip failed for decorr_mode {}, split_colours {}",
-                        decorr_mode, split_colours
+                        "Round-trip failed for decorr_mode {decorr_mode}, split_colours {split_colours}"
                     );
                 }
             }
@@ -434,7 +429,7 @@ mod tests {
         };
 
         let rust_settings: crate::Bc1DetransformSettings = settings.into();
-        assert_eq!(rust_settings.split_colour_endpoints, true);
+        assert!(rust_settings.split_colour_endpoints);
         assert_eq!(rust_settings.decorrelation_mode, YCoCgVariant::Variant2);
     }
 

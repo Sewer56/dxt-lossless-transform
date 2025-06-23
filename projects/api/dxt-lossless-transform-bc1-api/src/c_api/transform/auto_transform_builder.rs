@@ -502,7 +502,7 @@ mod tests {
     #[test]
     fn test_dltbc1_auto_transform_builder_transform_invalid_length() {
         let estimator = create_dummy_estimator();
-        let test_data = vec![0u8; 15]; // Not divisible by 8
+        let test_data = [0u8; 15]; // Not divisible by 8
         let mut output = vec![0u8; 15];
         let mut manual_builder: *mut Dltbc1ManualTransformBuilder = ptr::null_mut();
 

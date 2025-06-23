@@ -16,16 +16,14 @@ use dxt_lossless_transform_bc1::{
 /// For automatic optimization, use [`crate::Bc1AutoTransformBuilder`].
 #[derive(Debug, Clone, Copy)]
 pub struct Bc1ManualTransformBuilder {
-    decorrelation_mode: Option<YCoCgVariant>,
-    split_colour_endpoints: Option<bool>,
+    settings: Bc1TransformSettings,
 }
 
 impl Bc1ManualTransformBuilder {
     /// Create a new manual transform builder.
     pub fn new() -> Self {
         Self {
-            decorrelation_mode: None,
-            split_colour_endpoints: None,
+            settings: Bc1TransformSettings::default(),
         }
     }
 
@@ -41,7 +39,7 @@ impl Bc1ManualTransformBuilder {
     ///
     /// For automatic optimization, consider using [`crate::Bc1AutoTransformBuilder`] instead.
     pub fn decorrelation_mode(mut self, mode: YCoCgVariant) -> Self {
-        self.decorrelation_mode = Some(mode);
+        self.settings.decorrelation_mode = mode.to_internal_variant();
         self
     }
 
@@ -54,7 +52,7 @@ impl Bc1ManualTransformBuilder {
     ///
     /// For automatic optimization, consider using [`crate::Bc1AutoTransformBuilder`] instead.
     pub fn split_colour_endpoints(mut self, split: bool) -> Self {
-        self.split_colour_endpoints = Some(split);
+        self.settings.split_colour_endpoints = split;
         self
     }
 
@@ -95,14 +93,7 @@ impl Bc1ManualTransformBuilder {
     /// # }
     /// ```
     pub fn transform(&self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
-        let settings = Bc1TransformSettings {
-            decorrelation_mode: self
-                .decorrelation_mode
-                .unwrap_or(YCoCgVariant::Variant1)
-                .to_internal_variant(),
-            split_colour_endpoints: self.split_colour_endpoints.unwrap_or(true),
-        };
-        transform_bc1_with_settings_safe(input, output, settings).map_err(Bc1Error::from)
+        transform_bc1_with_settings_safe(input, output, self.settings).map_err(Bc1Error::from)
     }
 
     /// Detransform BC1 data using the configured settings.
@@ -139,14 +130,7 @@ impl Bc1ManualTransformBuilder {
     /// # }
     /// ```
     pub fn detransform(&self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
-        let transform_settings = Bc1TransformSettings {
-            decorrelation_mode: self
-                .decorrelation_mode
-                .unwrap_or(YCoCgVariant::Variant1)
-                .to_internal_variant(),
-            split_colour_endpoints: self.split_colour_endpoints.unwrap_or(true),
-        };
-        let detransform_settings: Bc1DetransformSettings = transform_settings;
+        let detransform_settings: Bc1DetransformSettings = self.settings;
         untransform_bc1_with_settings_safe(input, output, detransform_settings)
             .map_err(Bc1Error::from)
     }

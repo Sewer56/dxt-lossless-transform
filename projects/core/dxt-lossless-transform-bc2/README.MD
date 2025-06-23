@@ -77,7 +77,7 @@ BC1 where `c0 <= c1` is unsupported; it leads to undefined behaviour on some GPU
 There isn't much more we can do for BC2, so we stop here:
 
 - For fully transparent blocks, the `alphas` have the value `0`. Since they are in their own isolated section,
-we can't really improve the compression there.
+  we can't really improve the compression there.
 
 ### Decorrelating Colours
 

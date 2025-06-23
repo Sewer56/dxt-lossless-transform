@@ -230,7 +230,7 @@ fn create_c_size_estimator(ltu: Box<LosslessTransformUtilsSizeEstimation>) -> Dl
 /// Example using LTU with BC1 transform API.
 ///
 /// This example demonstrates how to use the LTU size estimator with the BC1
-/// determine optimal transform function.
+/// determine optimal transform function from a C perspective.
 ///
 /// ```ignore
 /// // Create an LTU size estimator

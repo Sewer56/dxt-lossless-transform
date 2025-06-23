@@ -74,21 +74,30 @@ where
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```
     /// use dxt_lossless_transform_bc1_api::Bc1AutoTransformBuilder;
-    /// use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
+    /// use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
+    /// # use dxt_lossless_transform_bc1_api::Bc1Error;
+    /// # use dxt_lossless_transform_ltu::LosslessTransformUtilsError;
     ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
     /// let mut transformed = vec![0u8; 8];
     /// let mut restored = vec![0u8; 8];
     ///
+    /// // Create LTU estimator for fast size estimation
+    /// let estimator = LosslessTransformUtilsSizeEstimation::new();
+    ///
     /// // Transform with optimal settings and get builder for detransformation
-    /// let detransform_builder = Bc1AutoTransformBuilder::new(my_estimator)
+    /// let detransform_builder = Bc1AutoTransformBuilder::new(estimator)
     ///     .use_all_decorrelation_modes(false)
     ///     .transform(&bc1_data, &mut transformed)?;
     ///
     /// // Later, detransform using the returned builder
     /// detransform_builder.detransform(&transformed, &mut restored)?;
+    /// # assert_eq!(bc1_data, restored); // Verify round-trip works
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn transform(
         self,

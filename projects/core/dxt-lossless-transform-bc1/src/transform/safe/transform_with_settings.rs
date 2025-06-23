@@ -48,11 +48,13 @@ pub enum Bc1ValidationError {
 ///
 /// # Examples
 ///
-/// ```ignore
-/// use dxt_lossless_transform_bc1::transform::safe::transform_bc1_with_settings;
-/// use dxt_lossless_transform_bc1::{Bc1TransformSettings};
+/// ```
+/// use dxt_lossless_transform_bc1::transform_bc1_with_settings_safe;
+/// use dxt_lossless_transform_bc1::Bc1TransformSettings;
 /// use dxt_lossless_transform_common::color_565::YCoCgVariant;
+/// # use dxt_lossless_transform_bc1::Bc1ValidationError;
 ///
+/// # fn main() -> Result<(), Bc1ValidationError> {
 /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
 /// let mut output = vec![0u8; bc1_data.len()];
 ///
@@ -61,22 +63,27 @@ pub enum Bc1ValidationError {
 ///     split_colour_endpoints: true,
 /// };
 ///
-/// transform_bc1_with_settings(&bc1_data, &mut output, settings).unwrap();
+/// transform_bc1_with_settings_safe(&bc1_data, &mut output, settings)?;
+/// # Ok(())
+/// # }
 /// ```
 ///
 /// # Recommended Stable Alternative
 ///
-/// ```ignore
-/// use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
-/// use dxt_lossless_transform_bc1_api::YCoCgVariant;
+/// ```
+/// use dxt_lossless_transform_bc1_api::{Bc1ManualTransformBuilder, YCoCgVariant};
+/// # use dxt_lossless_transform_bc1_api::Bc1Error;
 ///
+/// # fn main() -> Result<(), Bc1Error> {
 /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
 /// let mut output = vec![0u8; bc1_data.len()];
 ///
 /// Bc1ManualTransformBuilder::new()
 ///     .decorrelation_mode(YCoCgVariant::Variant1)
 ///     .split_colour_endpoints(true)
-///     .build_and_transform(&bc1_data, &mut output).unwrap();
+///     .transform(&bc1_data, &mut output)?;
+/// # Ok(())
+/// # }
 /// ```
 pub fn transform_bc1_with_settings(
     input: &[u8],
@@ -127,13 +134,15 @@ pub fn transform_bc1_with_settings(
 ///
 /// # Examples
 ///
-/// ```ignore
-/// use dxt_lossless_transform_bc1::transform::safe::{
-///     transform_bc1_with_settings, untransform_bc1_with_settings
+/// ```
+/// use dxt_lossless_transform_bc1::{
+///     transform_bc1_with_settings_safe, untransform_bc1_with_settings_safe
 /// };
 /// use dxt_lossless_transform_bc1::{Bc1TransformSettings, Bc1DetransformSettings};
 /// use dxt_lossless_transform_common::color_565::YCoCgVariant;
+/// # use dxt_lossless_transform_bc1::Bc1ValidationError;
 ///
+/// # fn main() -> Result<(), Bc1ValidationError> {
 /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
 /// let mut transformed = vec![0u8; bc1_data.len()];
 /// let mut restored = vec![0u8; bc1_data.len()];
@@ -144,21 +153,25 @@ pub fn transform_bc1_with_settings(
 /// };
 ///
 /// // Transform the data
-/// transform_bc1_with_settings(&bc1_data, &mut transformed, transform_settings).unwrap();
+/// transform_bc1_with_settings_safe(&bc1_data, &mut transformed, transform_settings)?;
 ///
 /// // Convert transform settings to detransform settings
 /// let detransform_settings: Bc1DetransformSettings = transform_settings.into();
 ///
 /// // Untransform to restore original data
-/// untransform_bc1_with_settings(&transformed, &mut restored, detransform_settings).unwrap();
+/// untransform_bc1_with_settings_safe(&transformed, &mut restored, detransform_settings)?;
+/// # assert_eq!(bc1_data, restored); // Verify round-trip works
+/// # Ok(())
+/// # }
 /// ```
 ///
 /// # Recommended Stable Alternative
 ///
-/// ```ignore
-/// use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
-/// use dxt_lossless_transform_bc1_api::YCoCgVariant;
+/// ```
+/// use dxt_lossless_transform_bc1_api::{Bc1ManualTransformBuilder, YCoCgVariant};
+/// # use dxt_lossless_transform_bc1_api::Bc1Error;
 ///
+/// # fn main() -> Result<(), Bc1Error> {
 /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
 /// let mut transformed = vec![0u8; bc1_data.len()];
 /// let mut restored = vec![0u8; bc1_data.len()];
@@ -168,10 +181,13 @@ pub fn transform_bc1_with_settings(
 ///     .split_colour_endpoints(true);
 ///
 /// // Transform the data
-/// builder.build_and_transform(&bc1_data, &mut transformed).unwrap();
+/// builder.transform(&bc1_data, &mut transformed)?;
 ///
 /// // Untransform to restore original data  
-/// builder.build_and_untransform(&transformed, &mut restored).unwrap();
+/// builder.detransform(&transformed, &mut restored)?;
+/// # assert_eq!(bc1_data, restored); // Verify round-trip works
+/// # Ok(())
+/// # }
 /// ```
 pub fn untransform_bc1_with_settings(
     input: &[u8],

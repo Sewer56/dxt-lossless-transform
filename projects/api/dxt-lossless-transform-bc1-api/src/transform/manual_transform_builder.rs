@@ -72,9 +72,11 @@ impl Bc1ManualTransformBuilder {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```
     /// use dxt_lossless_transform_bc1_api::{Bc1ManualTransformBuilder, YCoCgVariant};
+    /// # use dxt_lossless_transform_bc1_api::Bc1Error;
     ///
+    /// # fn main() -> Result<(), Bc1Error> {
     /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
     /// let mut transformed = vec![0u8; 8];
     /// let mut restored = vec![0u8; 8];
@@ -88,6 +90,9 @@ impl Bc1ManualTransformBuilder {
     ///
     /// // Later, detransform with the same builder
     /// builder.detransform(&transformed, &mut restored)?;
+    /// # assert_eq!(bc1_data, restored); // Verify round-trip works
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn transform(&self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
         let settings = Bc1TransformSettings {
@@ -117,9 +122,11 @@ impl Bc1ManualTransformBuilder {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```
     /// use dxt_lossless_transform_bc1_api::{Bc1ManualTransformBuilder, YCoCgVariant};
+    /// # use dxt_lossless_transform_bc1_api::Bc1Error;
     ///
+    /// # fn main() -> Result<(), Bc1Error> {
     /// let transformed_data = vec![0u8; 8]; // 1 transformed BC1 block
     /// let mut output = vec![0u8; 8];
     ///
@@ -128,6 +135,8 @@ impl Bc1ManualTransformBuilder {
     ///     .split_colour_endpoints(true);
     ///
     /// builder.detransform(&transformed_data, &mut output)?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn detransform(&self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
         let transform_settings = Bc1TransformSettings {

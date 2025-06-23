@@ -52,11 +52,14 @@ pub enum Bc1AutoTransformError<T> {
 ///
 /// # Examples
 ///
-/// ```ignore
-/// use dxt_lossless_transform_bc1::transform::safe::transform_bc1_auto;
+/// ```
+/// use dxt_lossless_transform_bc1::transform_bc1_auto_safe;
 /// use dxt_lossless_transform_bc1::Bc1EstimateSettings;
 /// use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
+/// # use dxt_lossless_transform_bc1::Bc1AutoTransformError;
+/// # use dxt_lossless_transform_ltu::LosslessTransformUtilsError;
 ///
+/// # fn main() -> Result<(), Bc1AutoTransformError<LosslessTransformUtilsError>> {
 /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
 /// let mut output = vec![0u8; bc1_data.len()];
 /// let estimator = LosslessTransformUtilsSizeEstimation::new();
@@ -65,22 +68,29 @@ pub enum Bc1AutoTransformError<T> {
 ///     use_all_decorrelation_modes: false,
 /// };
 ///
-/// let _transform_details = transform_bc1_auto(&bc1_data, &mut output, options).unwrap();
+/// let _transform_details = transform_bc1_auto_safe(&bc1_data, &mut output, options)?;
+/// # Ok(())
+/// # }
 /// ```
 ///
 /// # Recommended Stable Alternative
 ///
-/// ```ignore
+/// ```
 /// use dxt_lossless_transform_bc1_api::Bc1AutoTransformBuilder;
 /// use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
+/// # use dxt_lossless_transform_bc1_api::Bc1Error;
+/// # use dxt_lossless_transform_ltu::LosslessTransformUtilsError;
 ///
+/// # fn main() -> Result<(), Bc1Error<LosslessTransformUtilsError>> {
 /// let bc1_data = vec![0u8; 8]; // 1 BC1 block
 /// let mut output = vec![0u8; bc1_data.len()];
 /// let estimator = LosslessTransformUtilsSizeEstimation::new();
 ///
 /// let _transform_details = Bc1AutoTransformBuilder::new(estimator)
 ///     .use_all_decorrelation_modes(false)
-///     .transform(&bc1_data, &mut output).unwrap();
+///     .transform(&bc1_data, &mut output)?;
+/// # Ok(())
+/// # }
 /// ```
 pub fn transform_bc1_auto<T>(
     input: &[u8],

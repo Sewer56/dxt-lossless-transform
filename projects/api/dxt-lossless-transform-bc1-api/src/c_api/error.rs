@@ -34,6 +34,8 @@ pub enum Dltbc1ErrorCode {
     NullManualTransformBuilderPointer = 10,
     /// Null pointer provided for Dltbc1EstimateSettingsBuilder parameter
     NullBuilderPointer = 11,
+    /// Null pointer provided for manual builder output parameter
+    NullManualBuilderOutputPointer = 12,
 }
 
 /// C-compatible Result type for BC1 operations.
@@ -162,6 +164,9 @@ pub unsafe extern "C" fn dltbc1_error_message(error_code: Dltbc1ErrorCode) -> *c
         Dltbc1ErrorCode::NullBuilderPointer => {
             c"Null pointer provided for Dltbc1EstimateSettingsBuilder parameter".as_ptr()
                 as *const c_char
+        }
+        Dltbc1ErrorCode::NullManualBuilderOutputPointer => {
+            c"Null pointer provided for manual builder output parameter".as_ptr() as *const c_char
         }
     }
 }

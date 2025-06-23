@@ -203,7 +203,7 @@ pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_Transform(
         return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullOutputBufferPointer);
     }
     if out_manual_builder.is_null() {
-        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullOutputBufferPointer);
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullManualBuilderOutputPointer);
     }
 
     // Get settings from builder

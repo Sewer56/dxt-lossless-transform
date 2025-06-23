@@ -79,21 +79,21 @@
 //! 3. Apply one of the three normalization cases based on the block properties
 //! 4. Write the normalized block to the output
 
-pub mod determine_optimal_transform;
 /// See [`super`] for the exact details.
 pub mod normalize;
 pub mod transform;
 
-pub use determine_optimal_transform::*;
 pub use normalize::*;
 pub use transform::*;
 
-use crate::{Bc1DetransformDetails, Bc1TransformDetails, YCoCgVariant};
+use crate::{Bc1DetransformSettings, Bc1TransformSettings, YCoCgVariant};
 
 /// The information about the BC1 transform that was just performed with experimental normalization support.
 /// Each item transformed via [`transform_bc1_with_normalize_blocks`] will produce an instance of this struct.
-/// To undo the transform, you'll need to pass [`Bc1DetransformDetails`] to [`crate::untransform_bc1`],
+/// To undo the transform, you'll need to pass [`Bc1DetransformSettings`] to [`crate::untransform_bc1_with_settings`],
 /// which can be obtained from this struct using the `into` method.
+///
+/// [`Bc1DetransformSettings`]: crate::Bc1DetransformSettings
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Bc1TransformDetailsWithNormalization {
     /// The color normalization mode that was used to normalize the data.
@@ -103,10 +103,15 @@ pub struct Bc1TransformDetailsWithNormalization {
     pub decorrelation_mode: YCoCgVariant,
 
     /// Whether or not the colour endpoints are to be split or not.
+    ///
+    /// This setting controls whether BC1 texture color endpoints are separated during processing,
+    /// which can improve compression efficiency for many textures.
+    ///
+    /// **File Size**: This setting reduces file size around 78% of the time.
     pub split_colour_endpoints: bool,
 }
 
-impl From<Bc1TransformDetailsWithNormalization> for Bc1DetransformDetails {
+impl From<Bc1TransformDetailsWithNormalization> for Bc1DetransformSettings {
     fn from(transform_details: Bc1TransformDetailsWithNormalization) -> Self {
         Self {
             decorrelation_mode: transform_details.decorrelation_mode,
@@ -126,8 +131,8 @@ impl Default for Bc1TransformDetailsWithNormalization {
     }
 }
 
-impl From<Bc1TransformDetails> for Bc1TransformDetailsWithNormalization {
-    fn from(transform_details: Bc1TransformDetails) -> Self {
+impl From<Bc1TransformSettings> for Bc1TransformDetailsWithNormalization {
+    fn from(transform_details: Bc1TransformSettings) -> Self {
         Self {
             color_normalization_mode: ColorNormalizationMode::None,
             decorrelation_mode: transform_details.decorrelation_mode,

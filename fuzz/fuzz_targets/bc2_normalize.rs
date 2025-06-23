@@ -1,9 +1,12 @@
 #![no_main]
 
-// This fuzz test validates the BC2 normalizer by checking that the normalized blocks decode 
+// This fuzz test validates the BC2 normalizer by checking that the normalized blocks decode
 // to the same pixels as the original blocks.
 
-use dxt_lossless_transform_bc2::{experimental::normalize_blocks::normalize::{normalize_blocks, ColorNormalizationMode}, util::decode_bc2_block};
+use dxt_lossless_transform_bc2::{
+    experimental::normalize_blocks::normalize::{normalize_blocks, ColorNormalizationMode},
+    util::decode_bc2_block,
+};
 use dxt_lossless_transform_common::color_565::Color565;
 use libfuzzer_sys::{arbitrary, fuzz_target};
 
@@ -26,13 +29,13 @@ fuzz_target!(|block: Bc2Block| {
 
     // Get a slice to the BC2 block data
     let bc2_block = &block.bytes;
-    
+
     // Save the original block for later comparison
     let original_decoded = unsafe { decode_bc2_block(bc2_block.as_ptr()) };
-    
+
     // Create a buffer for the normalized block
     let mut normalized_block = [0u8; 16];
-    
+
     // Normalize the block (with ColorNormalizationMode::Color0Only)
     unsafe {
         normalize_blocks(
@@ -42,22 +45,22 @@ fuzz_target!(|block: Bc2Block| {
             ColorNormalizationMode::Color0Only,
         );
     }
-    
+
     // Decode the normalized block
     let normalized_decoded = unsafe { decode_bc2_block(normalized_block.as_ptr()) };
-    
+
     // Compare the two decoded blocks - they should produce the same visual output
     assert_eq!(
-        original_decoded, 
+        original_decoded,
         normalized_decoded,
         "Normalized block (with ColorNormalizationMode::Color0Only) doesn't decode to the same pixels as the original block\n\
          Original block: {bc2_block:?}\n\
          Normalized block: {normalized_block:?}",
     );
-    
+
     // Also test normalization with ColorNormalizationMode::ReplicateColor
     let mut normalized_block_repeated = [0u8; 16];
-    
+
     // Normalize the block (with ColorNormalizationMode::ReplicateColor)
     unsafe {
         normalize_blocks(
@@ -67,13 +70,14 @@ fuzz_target!(|block: Bc2Block| {
             ColorNormalizationMode::ReplicateColor,
         );
     }
-    
+
     // Decode the normalized block
-    let normalized_repeated_decoded = unsafe { decode_bc2_block(normalized_block_repeated.as_ptr()) };
-    
+    let normalized_repeated_decoded =
+        unsafe { decode_bc2_block(normalized_block_repeated.as_ptr()) };
+
     // Compare with original - visual appearance should still be the same
     assert_eq!(
-        original_decoded, 
+        original_decoded,
         normalized_repeated_decoded,
         "Normalized block (with ColorNormalizationMode::ReplicateColor) doesn't decode to the same pixels as the original block\n\
          Original block: {bc2_block:?}\n\

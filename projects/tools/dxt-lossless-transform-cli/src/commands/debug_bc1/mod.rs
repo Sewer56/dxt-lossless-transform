@@ -11,8 +11,10 @@ use crate::error::TransformError;
 use argh::FromArgs;
 use benchmark::handle_benchmark_command;
 use calc_compression_stats::handle_compression_stats_command;
-use core::ptr::null_mut;
-use dxt_lossless_transform_bc1::Bc1TransformDetails;
+use dxt_lossless_transform_bc1::experimental::transform_bc1_auto_with_normalization;
+use dxt_lossless_transform_bc1::transform_bc1_auto;
+use dxt_lossless_transform_bc1::Bc1EstimateSettings;
+use dxt_lossless_transform_bc1::Bc1TransformSettings;
 use roundtrip::handle_roundtrip_command;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -71,7 +73,8 @@ pub struct CompressionStatsCmd {
     #[argh(switch)]
     pub experimental_normalize: bool,
 
-    /// test all decorrelation modes instead of just Variant1 and None (slower but more thorough)
+    /// test all decorrelation modes instead of just Variant1 and None
+    /// (typical gains <0.1%; consider using estimator level closer to final compression level instead)
     #[argh(switch)]
     pub use_all_decorrelation_modes: bool,
 }
@@ -112,7 +115,8 @@ pub struct BenchmarkCmd {
     #[argh(switch)]
     pub experimental_normalize: bool,
 
-    /// test all decorrelation modes instead of just Variant1 and None (slower but more thorough)
+    /// test all decorrelation modes instead of just Variant1 and None
+    /// (typical gains <0.1%; consider using estimator level closer to final compression level instead)
     #[argh(switch)]
     pub use_all_decorrelation_modes: bool,
 }
@@ -145,7 +149,8 @@ pub struct BenchmarkDetermineBestCmd {
     #[argh(switch)]
     pub experimental_normalize: bool,
 
-    /// test all decorrelation modes instead of just Variant1 and None (slower but more thorough)
+    /// test all decorrelation modes instead of just Variant1 and None
+    /// (typical gains <0.1%; consider using estimator level closer to final compression level instead)
     #[argh(switch)]
     pub use_all_decorrelation_modes: bool,
 }
@@ -241,27 +246,29 @@ pub unsafe fn determine_best_transform_details_with_custom_estimator<T>(
     size_estimator: T,
     experimental_normalize: bool,
     use_all_decorrelation_modes: bool,
-) -> Result<dxt_lossless_transform_bc1::Bc1TransformDetails, TransformError>
+) -> Result<dxt_lossless_transform_bc1::Bc1TransformSettings, TransformError>
 where
     T: dxt_lossless_transform_api_common::estimate::SizeEstimationOperations,
     T::Error: core::fmt::Debug,
 {
-    use dxt_lossless_transform_bc1::{
-        determine_optimal_transform::{determine_best_transform_details, Bc1EstimateOptions},
-        experimental::normalize_blocks::determine_optimal_transform::determine_best_transform_details_with_normalization,
-        Bc1TransformDetails,
-    };
+    use dxt_lossless_transform_common::allocate::allocate_align_64;
 
-    let transform_options = Bc1EstimateOptions {
+    let transform_options = Bc1EstimateSettings {
         size_estimator,
         use_all_decorrelation_modes,
     };
 
+    // Allocate output buffer for the transformed data
+    let mut output_buffer = allocate_align_64(len_bytes)
+        .map_err(|e| TransformError::Debug(format!("Failed to allocate output buffer: {e:?}")))?;
+    let output_ptr = output_buffer.as_mut_ptr();
+
     unsafe {
         if experimental_normalize {
             // Use experimental API with normalization support
-            let experimental_details = determine_best_transform_details_with_normalization(
+            let experimental_details = transform_bc1_auto_with_normalization(
                 data_ptr,
+                output_ptr,
                 len_bytes,
                 transform_options,
             )
@@ -270,13 +277,13 @@ where
             })?;
 
             // Convert to standard struct for compatibility
-            Ok(Bc1TransformDetails {
+            Ok(Bc1TransformSettings {
                 decorrelation_mode: experimental_details.decorrelation_mode,
                 split_colour_endpoints: experimental_details.split_colour_endpoints,
             })
         } else {
             // Use standard API without normalization
-            determine_best_transform_details(data_ptr, len_bytes, null_mut(), transform_options)
+            transform_bc1_auto(data_ptr, output_ptr, len_bytes, transform_options)
                 .map_err(|e| TransformError::Debug(format!("API recommendation failed: {e:?}")))
         }
     }
@@ -304,7 +311,7 @@ pub unsafe fn determine_best_transform_details_with_estimator(
     compression_algorithm: CompressionAlgorithm,
     experimental_normalize: bool,
     use_all_decorrelation_modes: bool,
-) -> Result<Bc1TransformDetails, TransformError> {
+) -> Result<Bc1TransformSettings, TransformError> {
     let size_estimator = create_size_estimator(compression_algorithm, compression_level)?;
     determine_best_transform_details_with_custom_estimator(
         data_ptr,
@@ -339,7 +346,7 @@ pub unsafe fn determine_best_transform_details_with_estimator_cached(
     experimental_normalize: bool,
     use_all_decorrelation_modes: bool,
     cache: &Mutex<CompressionSizeCache>,
-) -> Result<dxt_lossless_transform_bc1::Bc1TransformDetails, TransformError> {
+) -> Result<dxt_lossless_transform_bc1::Bc1TransformSettings, TransformError> {
     // Create a cached estimator that combines the algorithm estimator with caching
     let cached_estimator = CachedSizeEstimator::new(
         estimate_compression_algorithm,

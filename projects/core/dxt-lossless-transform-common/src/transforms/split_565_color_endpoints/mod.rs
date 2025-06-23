@@ -3,9 +3,11 @@
 //! Each BC1 texture has 2 colour endpoints, `color0` and `color1`.
 //! It is sometimes beneficial to separate these, i.e. store them separately.
 //!
+//! **File Size**: This technique reduces file size around 78% of the time.
+//!
 //! Take our optimized layout from earlier:
 //!
-//! ```text
+//! ```ignore
 //! +-------+-------+-------+
 //! |C0  C1 |C0  C1 |C0  C1 |
 //! +-------+-------+-------+
@@ -13,7 +15,7 @@
 //!
 //! We can split the colour endpoints
 //!
-//! ```text
+//! ```ignore
 //! +-------+-------+ +-------+-------+
 //! |C0  C0 |C0  C0 | |C1  C1 |C1  C1 |
 //! +-------+-------+ +-------+-------+

@@ -1,6 +1,6 @@
 use crate::util::*;
 use argh::FromArgs;
-use dxt_lossless_transform_bc1::Bc1TransformDetails;
+use dxt_lossless_transform_bc1::Bc1TransformSettings;
 use dxt_lossless_transform_dds::dds::DdsFormat;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{path::PathBuf, time::Instant};
@@ -63,11 +63,11 @@ pub unsafe fn transform_format(
 ) {
     // DDS Integration
     if format == DdsFormat::BC1 {
-        dxt_lossless_transform_bc1::transform_bc1(
+        dxt_lossless_transform_bc1::transform_bc1_with_settings(
             input_ptr,
             output_ptr,
             len,
-            Bc1TransformDetails::default(),
+            Bc1TransformSettings::default(),
         );
     } else {
         panic!(

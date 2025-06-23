@@ -20,7 +20,9 @@ use crate::{
     DdsFilter,
 };
 use core::time::Duration;
-use dxt_lossless_transform_bc1::{transform_bc1, untransform_bc1, Bc1TransformDetails};
+use dxt_lossless_transform_bc1::{
+    transform_bc1_with_settings, untransform_bc1_with_settings, Bc1TransformSettings,
+};
 use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};
 use dxt_lossless_transform_dds::dds::DdsFormat;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -207,28 +209,28 @@ fn process_file(
                     ),
                     (
                         "NoSplit/None",
-                        Bc1TransformDetails {
+                        Bc1TransformSettings {
                             decorrelation_mode: YCoCgVariant::None,
                             split_colour_endpoints: false,
                         },
                     ),
                     (
                         "NoSplit/YCoCg1",
-                        Bc1TransformDetails {
+                        Bc1TransformSettings {
                             decorrelation_mode: YCoCgVariant::Variant1,
                             split_colour_endpoints: false,
                         },
                     ),
                     (
                         "Split/None",
-                        Bc1TransformDetails {
+                        Bc1TransformSettings {
                             decorrelation_mode: YCoCgVariant::None,
                             split_colour_endpoints: true,
                         },
                     ),
                     (
                         "Split/YCoCg1",
-                        Bc1TransformDetails {
+                        Bc1TransformSettings {
                             decorrelation_mode: YCoCgVariant::Variant1,
                             split_colour_endpoints: true,
                         },
@@ -276,7 +278,7 @@ unsafe fn process_scenario(
     data_ptr: *const u8,
     len_bytes: usize,
     scenario_name: &str,
-    transform_details: Bc1TransformDetails,
+    transform_details: Bc1TransformSettings,
     config: &BenchmarkConfig,
     caches: &CacheRefs,
 ) -> Result<Option<BenchmarkScenarioResult>, TransformError> {
@@ -284,7 +286,7 @@ unsafe fn process_scenario(
     let mut transformed_data = allocate_align_64(len_bytes)?;
 
     // Transform the original data
-    transform_bc1(
+    transform_bc1_with_settings(
         data_ptr,
         transformed_data.as_mut_ptr(),
         len_bytes,
@@ -321,11 +323,11 @@ unsafe fn process_scenario(
         )?;
 
         // Detransform
-        untransform_bc1(
+        untransform_bc1_with_settings(
             decompressed_data.as_ptr(),
             final_output.as_mut_ptr(),
             len_bytes,
-            transform_details.into(),
+            transform_details,
         );
     }
 
@@ -344,11 +346,11 @@ unsafe fn process_scenario(
     // Benchmark detransform
     let (_, detransform_time) = benchmark_common::measure_time(|| {
         for _ in 0..config.iterations {
-            untransform_bc1(
+            untransform_bc1_with_settings(
                 decompressed_data.as_ptr(),
                 final_output.as_mut_ptr(),
                 len_bytes,
-                transform_details.into(),
+                transform_details,
             );
         }
     });

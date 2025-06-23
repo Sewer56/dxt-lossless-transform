@@ -8,11 +8,10 @@
 pub use rstest::rstest;
 
 // Core functionality from this crate
-pub use crate::{transform_bc1, Bc1TransformDetails};
+pub use crate::{transform_bc1_with_settings, Bc1TransformSettings};
 
-// Experimental features commonly tested
-#[cfg(feature = "experimental")]
-pub use crate::experimental::normalize_blocks::*;
+// Common types from dxt_lossless_transform_api_common
+pub use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
 
 // Common types from dxt_lossless_transform_common
 pub use dxt_lossless_transform_common::color_565::YCoCgVariant;
@@ -26,6 +25,31 @@ pub use safe_allocator_api::RawAlloc;
 
 // Re-export super for convenience in test modules
 pub use super::*;
+
+/// A simple dummy estimator for testing purposes.
+///
+/// This estimator doesn't perform actual compression estimation but provides
+/// a predictable implementation for testing API behavior.
+pub struct DummyEstimator;
+
+impl SizeEstimationOperations for DummyEstimator {
+    type Error = &'static str;
+
+    fn max_compressed_size(&self, _len_bytes: usize) -> Result<usize, Self::Error> {
+        Ok(0) // No buffer needed for dummy estimator
+    }
+
+    unsafe fn estimate_compressed_size(
+        &self,
+        _input_ptr: *const u8,
+        len_bytes: usize,
+        _data_type: DataType,
+        _output_ptr: *mut u8,
+        _output_len: usize,
+    ) -> Result<usize, Self::Error> {
+        Ok(len_bytes) // Just return the input length
+    }
+}
 
 /// Helper to assert implementation results match reference implementation
 pub(crate) fn assert_implementation_matches_reference(
@@ -130,7 +154,7 @@ pub(crate) fn run_standard_transform_roundtrip_test(
 
         unsafe {
             transform_fn(input.as_ptr(), transformed.as_mut_ptr(), len);
-            crate::transforms::standard::untransform(
+            crate::transform::standard::untransform(
                 transformed.as_ptr(),
                 reconstructed.as_mut_ptr(),
                 len,
@@ -155,7 +179,7 @@ pub(crate) fn run_with_decorrelate_transform_roundtrip_test(
     max_blocks: usize,
     impl_name: &str,
 ) {
-    use crate::transforms::with_recorrelate::untransform::untransform_with_recorrelate;
+    use crate::transform::with_recorrelate::untransform::untransform_with_recorrelate;
 
     for num_blocks in 1..=max_blocks {
         let input = generate_bc1_test_data(num_blocks);
@@ -197,7 +221,7 @@ pub(crate) fn run_split_colour_transform_roundtrip_test(
     max_blocks: usize,
     impl_name: &str,
 ) {
-    use crate::transforms::with_split_colour::untransform::untransform_with_split_colour;
+    use crate::transform::with_split_colour::untransform::untransform_with_split_colour;
 
     for num_blocks in 1..=max_blocks {
         let input = generate_bc1_test_data(num_blocks);
@@ -245,7 +269,7 @@ pub(crate) fn run_split_colour_with_decorr_transform_roundtrip_test(
     max_blocks: usize,
     impl_name: &str,
 ) {
-    use crate::transforms::with_split_colour_and_recorr::untransform::untransform_with_split_colour_and_recorr;
+    use crate::transform::with_split_colour_and_recorr::untransform::untransform_with_split_colour_and_recorr;
 
     for num_blocks in 1..=max_blocks {
         let input = generate_bc1_test_data(num_blocks);
@@ -315,11 +339,11 @@ pub(crate) fn run_with_recorrelate_untransform_unaligned_test(
         // Transform using standard implementation
         let mut transformed = allocate_align_64(original.len());
         unsafe {
-            transform_bc1(
+            transform_bc1_with_settings(
                 original.as_ptr(),
                 transformed.as_mut_ptr(),
                 original.len(),
-                Bc1TransformDetails {
+                Bc1TransformSettings {
                     decorrelation_mode: decorr_variant,
                     split_colour_endpoints: false,
                 },
@@ -366,7 +390,7 @@ pub(crate) fn run_standard_untransform_unaligned_test(
         // Transform using the reference path
         let mut transformed = allocate_align_64(original.len());
         unsafe {
-            crate::transforms::standard::transform(
+            crate::transform::standard::transform(
                 original.as_ptr(),
                 transformed.as_mut_ptr(),
                 original.len(),
@@ -410,11 +434,11 @@ pub(crate) fn run_with_split_colour_untransform_unaligned_test(
         // Transform using standard implementation
         let mut transformed = allocate_align_64(original.len());
         unsafe {
-            transform_bc1(
+            transform_bc1_with_settings(
                 original.as_ptr(),
                 transformed.as_mut_ptr(),
                 original.len(),
-                Bc1TransformDetails {
+                Bc1TransformSettings {
                     decorrelation_mode: YCoCgVariant::None,
                     split_colour_endpoints: true,
                 },
@@ -464,11 +488,11 @@ pub(crate) fn run_with_split_colour_and_recorr_untransform_unaligned_test(
         // Transform using standard implementation
         let mut transformed = allocate_align_64(original.len());
         unsafe {
-            transform_bc1(
+            transform_bc1_with_settings(
                 original.as_ptr(),
                 transformed.as_mut_ptr(),
                 original.len(),
-                Bc1TransformDetails {
+                Bc1TransformSettings {
                     decorrelation_mode: decorr_variant,
                     split_colour_endpoints: true,
                 },

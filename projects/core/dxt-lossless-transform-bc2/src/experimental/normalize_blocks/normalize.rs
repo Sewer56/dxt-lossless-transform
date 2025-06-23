@@ -1,4 +1,3 @@
-
 use crate::util::decode_bc2_block;
 use core::ptr::{copy_nonoverlapping, eq, null_mut, read_unaligned};
 use derive_enum_all_values::AllValues;
@@ -42,8 +41,8 @@ pub unsafe fn normalize_blocks(
     debug_assert!(len % 16 == 0);
     // Assert that buffers either don't overlap or are identical (in-place transformation)
     debug_assert!(
-        eq(input_ptr, output_ptr as *const u8) || 
-        input_ptr.add(len) <= output_ptr || 
+        eq(input_ptr, output_ptr as *const u8) ||
+        input_ptr.add(len) <= output_ptr ||
         output_ptr.add(len) <= input_ptr as *mut u8,
         "normalize_blocks: overlapping buffers are not supported (must be either completely separate or identical)"
     );
@@ -67,7 +66,8 @@ pub unsafe fn normalize_blocks(
         match block_case {
             BlockCase::SolidColorRoundtrippable => {
                 // Copy alpha values (first 8 bytes) unchanged
-                (dst_block_ptr as *mut u64).write_unaligned(read_unaligned(src_block_ptr as *const u64));
+                (dst_block_ptr as *mut u64)
+                    .write_unaligned(read_unaligned(src_block_ptr as *const u64));
 
                 // Write normalized color data (bytes 8-15)
                 write_normalized_solid_color_block(
@@ -79,8 +79,10 @@ pub unsafe fn normalize_blocks(
             }
             BlockCase::CannotNormalize => {
                 // Cannot normalize, copy source block as-is
-                (dst_block_ptr as *mut u64).write_unaligned(read_unaligned(src_block_ptr as *const u64));
-                (dst_block_ptr.add(8) as *mut u64).write_unaligned(read_unaligned(src_block_ptr.add(8) as *const u64));
+                (dst_block_ptr as *mut u64)
+                    .write_unaligned(read_unaligned(src_block_ptr as *const u64));
+                (dst_block_ptr.add(8) as *mut u64)
+                    .write_unaligned(read_unaligned(src_block_ptr.add(8) as *const u64));
             }
         }
 
@@ -200,14 +202,13 @@ pub unsafe fn normalize_blocks_all_modes(
             // Allow case where input_ptr == out_ptr (in-place transform)
             eq(input_ptr, out_ptr as *const u8) ||
             // Otherwise no partial overlap
-            input_ptr.add(len) <= out_ptr || 
+            input_ptr.add(len) <= out_ptr ||
             out_ptr.add(len) <= input_ptr as *mut _
         }),
         "normalize_blocks_all_modes: overlapping buffers are not supported (must be either completely separate or identical)"
     );
 
-    let mut dst_block_ptrs =
-        [null_mut::<u8>(); ColorNormalizationMode::all_values().len()];
+    let mut dst_block_ptrs = [null_mut::<u8>(); ColorNormalizationMode::all_values().len()];
 
     // Initialize destination pointers
     for (c_idx, dst_ptr) in dst_block_ptrs.iter_mut().enumerate() {
@@ -223,7 +224,8 @@ pub unsafe fn normalize_blocks_all_modes(
                     let dst_block_ptr = dst_block_ptrs[x];
 
                     // Copy alpha values (first 8 bytes) unchanged
-                    (dst_block_ptr as *mut u64).write_unaligned(read_unaligned(src_block_ptr as *const u64));
+                    (dst_block_ptr as *mut u64)
+                        .write_unaligned(read_unaligned(src_block_ptr as *const u64));
 
                     // Write normalized color data (bytes 8-15)
                     write_normalized_solid_color_block(
@@ -243,8 +245,10 @@ pub unsafe fn normalize_blocks_all_modes(
                     let dst_block_ptr = dst_block_ptrs[x];
 
                     // Cannot normalize, copy source block as-is for all modes
-                    (dst_block_ptr as *mut u64).write_unaligned(read_unaligned(src_block_ptr as *const u64));
-                    (dst_block_ptr.add(8) as *mut u64).write_unaligned(read_unaligned(src_block_ptr.add(8) as *const u64));
+                    (dst_block_ptr as *mut u64)
+                        .write_unaligned(read_unaligned(src_block_ptr as *const u64));
+                    (dst_block_ptr.add(8) as *mut u64)
+                        .write_unaligned(read_unaligned(src_block_ptr.add(8) as *const u64));
 
                     // Advance this mode's destination pointer
                     dst_block_ptrs[x] = dst_block_ptr.add(16);
@@ -291,7 +295,8 @@ unsafe fn write_normalized_solid_color_block(
     // Write Color1 = 0 or repeat
     match color_mode {
         ColorNormalizationMode::None => {
-            (dst_block_ptr.add(8) as *mut u64).write_unaligned(read_unaligned(src_block_ptr.add(8) as *const u64));
+            (dst_block_ptr.add(8) as *mut u64)
+                .write_unaligned(read_unaligned(src_block_ptr.add(8) as *const u64));
         }
         ColorNormalizationMode::Color0Only => {
             // Write Color0 (the solid color)
@@ -434,7 +439,7 @@ pub unsafe fn normalize_split_blocks_in_place(
                         // Write Color0 (the solid color)
                         *curr_colors_ptr = color_bytes[0];
                         *curr_colors_ptr.add(1) = color_bytes[1];
-                        
+
                         // Write Color1 = 0
                         *curr_colors_ptr.add(2) = 0;
                         *curr_colors_ptr.add(3) = 0;
@@ -473,8 +478,8 @@ pub unsafe fn normalize_split_blocks_in_place(
 #[cfg(test)]
 #[allow(clippy::needless_range_loop)]
 mod tests {
-    use rstest::rstest;
     use super::*;
+    use rstest::rstest;
 
     /// Test normalizing a solid color block with uniform alpha
     #[rstest]
@@ -723,7 +728,7 @@ mod tests {
         source[25] = red565[1]; // Color0 (high byte)
         source[26] = blue565[0]; // Color1 (low byte)
         source[27] = blue565[1]; // Color1 (high byte)
-        // Mix of indices pointing to both colors
+                                 // Mix of indices pointing to both colors
         source[28] = 0b00010001; // 00010001 (alternating indices)
         source[29] = 0b00010001;
         source[30] = 0b00010001;
@@ -864,29 +869,37 @@ mod tests {
         block[13] = 0x00;
         block[14] = 0x00;
         block[15] = 0x00;
-        
+
         // Create a copy for the expected result
         let mut expected = [0u8; 16];
-        
+
         // Normalize to a separate buffer to get the expected result
         unsafe {
-            normalize_blocks(block.as_ptr(), expected.as_mut_ptr(), block.len(), color_mode);
+            normalize_blocks(
+                block.as_ptr(),
+                expected.as_mut_ptr(),
+                block.len(),
+                color_mode,
+            );
         }
-        
+
         // Now perform in-place transformation
         unsafe {
             normalize_blocks(block.as_ptr(), block.as_mut_ptr(), block.len(), color_mode);
         }
-        
+
         // The in-place transformation should produce the same result as the separate buffer transformation
-        assert_eq!(block, expected, "In-place transformation result does not match expected result");
+        assert_eq!(
+            block, expected,
+            "In-place transformation result does not match expected result"
+        );
     }
 
     #[test]
     fn can_normalize_split_blocks_in_place() {
         // Create test data with three solid color blocks
         let mut test_alpha = [0u8; 24]; // 3 blocks * 8 bytes per block for alpha
-        let mut test_colors = [0u8; 12]; // 3 blocks * 4 bytes per block for colors  
+        let mut test_colors = [0u8; 12]; // 3 blocks * 4 bytes per block for colors
         let mut test_indices = [0u8; 12]; // 3 blocks * 4 bytes per block for indices
 
         // Set up alpha values (uniform alpha for all pixels in each block)
@@ -904,7 +917,7 @@ mod tests {
         test_colors[5] = 0xF8; // color0 (high byte)
         test_colors[6] = 0x00; // color1 (low byte)
         test_colors[7] = 0xF8; // color1 (high byte)
-        
+
         // Block #2 (should remain untouched)
         test_colors[8] = 0x00; // color0 (low byte)
         test_colors[9] = 0xF8; // color0 (high byte)
@@ -921,7 +934,13 @@ mod tests {
 
         // Call normalize_split_blocks_in_place for the first 2 blocks only
         unsafe {
-            normalize_split_blocks_in_place(alpha_ptr, colors_ptr, indices_ptr, 2, ColorNormalizationMode::Color0Only);
+            normalize_split_blocks_in_place(
+                alpha_ptr,
+                colors_ptr,
+                indices_ptr,
+                2,
+                ColorNormalizationMode::Color0Only,
+            );
         }
 
         // First block should be normalized (Color0 = red, Color1 = 0, indices = 0)
@@ -929,31 +948,31 @@ mod tests {
         assert_eq!(test_colors[1], 0xF8);
         assert_eq!(test_colors[2], 0x00);
         assert_eq!(test_colors[3], 0x00);
-        
+
         // Second block should also be normalized
         assert_eq!(test_colors[4], 0x00);
         assert_eq!(test_colors[5], 0xF8);
         assert_eq!(test_colors[6], 0x00);
         assert_eq!(test_colors[7], 0x00);
-        
+
         // Third block should remain untouched
         assert_eq!(test_colors[8], 0x00);
         assert_eq!(test_colors[9], 0xF8);
         assert_eq!(test_colors[10], 0x00);
         assert_eq!(test_colors[11], 0xF8);
-        
+
         // First block indices should be zeros
         assert_eq!(test_indices[0], 0x00);
         assert_eq!(test_indices[1], 0x00);
         assert_eq!(test_indices[2], 0x00);
         assert_eq!(test_indices[3], 0x00);
-        
+
         // Second block indices should also be zeros
         assert_eq!(test_indices[4], 0x00);
         assert_eq!(test_indices[5], 0x00);
         assert_eq!(test_indices[6], 0x00);
         assert_eq!(test_indices[7], 0x00);
-        
+
         // Third block indices should remain untouched
         assert_eq!(test_indices[8], 0xAA);
         assert_eq!(test_indices[9], 0xAA);
@@ -982,13 +1001,13 @@ mod tests {
         test_colors[1] = 0xF8; // color0 (high byte)
         test_colors[2] = 0x00; // color1 (low byte)
         test_colors[3] = 0xF8; // color1 (high byte)
-        
+
         // Block #1
         test_colors[4] = 0x00; // color0 (low byte)
         test_colors[5] = 0xF8; // color0 (high byte)
         test_colors[6] = 0x00; // color1 (low byte)
         test_colors[7] = 0xF8; // color1 (high byte)
-        
+
         // Block #2 (should remain untouched)
         test_colors[8] = 0x00; // color0 (low byte)
         test_colors[9] = 0xF8; // color0 (high byte)
@@ -1005,7 +1024,13 @@ mod tests {
 
         // Call normalize_split_blocks_in_place using ReplicateColor mode for the first 2 blocks only
         unsafe {
-            normalize_split_blocks_in_place(alpha_ptr, colors_ptr, indices_ptr, 2, ColorNormalizationMode::ReplicateColor);
+            normalize_split_blocks_in_place(
+                alpha_ptr,
+                colors_ptr,
+                indices_ptr,
+                2,
+                ColorNormalizationMode::ReplicateColor,
+            );
         }
 
         // First block should be normalized (Color0 = red, Color1 = red (replicated), indices = 0)
@@ -1013,31 +1038,31 @@ mod tests {
         assert_eq!(test_colors[1], 0xF8);
         assert_eq!(test_colors[2], 0x00); // Color1 should be the same as Color0 for ReplicateColor
         assert_eq!(test_colors[3], 0xF8); // Color1 should be the same as Color0 for ReplicateColor
-        
+
         // Second block should also be normalized
         assert_eq!(test_colors[4], 0x00);
         assert_eq!(test_colors[5], 0xF8);
         assert_eq!(test_colors[6], 0x00); // Color1 should be the same as Color0 for ReplicateColor
         assert_eq!(test_colors[7], 0xF8); // Color1 should be the same as Color0 for ReplicateColor
-        
+
         // Third block should remain untouched
         assert_eq!(test_colors[8], 0x00);
         assert_eq!(test_colors[9], 0xF8);
         assert_eq!(test_colors[10], 0x00);
         assert_eq!(test_colors[11], 0xF8);
-        
+
         // First block indices should be zeros
         assert_eq!(test_indices[0], 0x00);
         assert_eq!(test_indices[1], 0x00);
         assert_eq!(test_indices[2], 0x00);
         assert_eq!(test_indices[3], 0x00);
-        
+
         // Second block indices should also be zeros
         assert_eq!(test_indices[4], 0x00);
         assert_eq!(test_indices[5], 0x00);
         assert_eq!(test_indices[6], 0x00);
         assert_eq!(test_indices[7], 0x00);
-        
+
         // Third block indices should remain untouched
         assert_eq!(test_indices[8], 0x55);
         assert_eq!(test_indices[9], 0x55);

@@ -13,8 +13,6 @@ This is a high-performance Rust library for lossless DXT texture compression wit
 
 ### Rust Formatting
 
-- Always use `cargo fmt` for code formatting
-- Run `cargo clippy` and fix all warnings before submitting code
 - Use proper rustdoc format with elements in brackets like [`Color565`] instead of `Color565`
 - Maintain original code order (including assembly sections) and all comments intact unless explicitly permitted
 
@@ -27,7 +25,8 @@ This is a high-performance Rust library for lossless DXT texture compression wit
 ### Import and Dependency Preferences
 
 - Prefer `core` over `std` when possible for better no_std compatibility
-- Prefer adding explicit `use` statements instead of fully qualified paths, unless the code is inside a feature block that blocks/enables compilation
+- Prefer using short names and `use` statements at the top of the file.
+- Only place `use` statements inside a function if that function has conditional compilation flags like `cfg`.
 
 ## Documentation Standards
 
@@ -58,3 +57,15 @@ This is a high-performance Rust library for lossless DXT texture compression wit
 ## Compilation
 
 When building the `dxt-lossless-transform-cli` project, enable all features except for `nightly`, unless asked.
+
+## Post-Change Verification
+
+**CRITICAL: After making any code changes, ALWAYS perform these verification steps in order:**
+
+1. **Run Tests**: Execute `cargo test --all-features` to ensure all functionality works correctly
+2. **Check Lints**: Run `cargo clippy --workspace --all-features -- -D warnings` to catch any warnings or issues
+3. **Verify Documentation**: Run `cargo doc --workspace --all-features` to check for documentation errors
+4. **Fix Documentation Links**: For any broken doc links, use the proper format: `` [`function_name`]: crate::function_name `` (e.g., `` [`dltbc1_free_ManualTransformBuilder`]: crate::dltbc1_free_ManualTransformBuilder ``)
+5. **Format Code**: Run `cargo fmt --all` as the final step to ensure consistent formatting
+
+These steps are mandatory and must be completed successfully before considering any change complete.

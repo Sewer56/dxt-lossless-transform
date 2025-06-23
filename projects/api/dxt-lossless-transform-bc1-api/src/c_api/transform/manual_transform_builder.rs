@@ -8,7 +8,10 @@
 //! For users requiring maximum performance and willing to accept potential breaking
 //! changes, see the core crate functions directly.
 
-use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
+use crate::{
+    c_api::error::{Dltbc1ErrorCode, Dltbc1Result},
+    transform::Bc1ManualTransformBuilder,
+};
 use core::{ptr, slice};
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 
@@ -27,26 +30,27 @@ use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 ///
 /// The builder is NOT thread-safe and should not be shared between threads.
 /// Each thread should create its own builder.
-#[repr(C)]
+///
+/// # cbindgen Opaque Type Rule
+/// Per cbindgen documentation (https://github.com/mozilla/cbindgen/blob/master/docs.md):
+/// "If a type is determined to have a guaranteed layout, a full definition will be emitted in the header.
+/// If the type doesn't have a guaranteed layout, only a forward declaration will be emitted. This may be
+/// fine if the type is intended to be passed around opaquely and by reference."
+///
+/// This struct intentionally lacks `#[repr(C)]` to ensure it generates as an opaque forward declaration.
 pub struct Dltbc1ManualTransformBuilder {
-    // Private field to ensure it's opaque
-    _private: [u8; 0],
+    pub(crate) builder: Bc1ManualTransformBuilder,
 }
 
-/// Internal representation of the manual transform builder
-pub(crate) struct Dltbc1ManualTransformBuilderInner {
-    pub(crate) builder: crate::transform::Bc1ManualTransformBuilder,
-}
-
-/// Get mutable access to the inner manual transform builder.
+/// Get mutable access to the manual transform builder.
 ///
 /// # Safety
 /// - `builder` must be a valid pointer to a [`Dltbc1ManualTransformBuilder`]
 pub(crate) unsafe fn get_manual_builder_mut(
     builder: *mut Dltbc1ManualTransformBuilder,
-) -> &'static mut Dltbc1ManualTransformBuilderInner {
+) -> &'static mut Dltbc1ManualTransformBuilder {
     debug_assert!(!builder.is_null());
-    unsafe { &mut *(builder as *mut Dltbc1ManualTransformBuilderInner) }
+    unsafe { &mut *builder }
 }
 
 // =============================================================================
@@ -64,11 +68,11 @@ pub(crate) unsafe fn get_manual_builder_mut(
 /// This function corresponds to [`crate::Bc1ManualTransformBuilder::new`] in the Rust API.
 #[unsafe(no_mangle)]
 pub extern "C" fn dltbc1_new_ManualTransformBuilder() -> *mut Dltbc1ManualTransformBuilder {
-    let inner = Box::new(Dltbc1ManualTransformBuilderInner {
+    let inner = Box::new(Dltbc1ManualTransformBuilder {
         builder: crate::transform::Bc1ManualTransformBuilder::new(),
     });
 
-    Box::into_raw(inner) as *mut Dltbc1ManualTransformBuilder
+    Box::into_raw(inner)
 }
 
 /// Free a BC1 manual transform builder.
@@ -83,9 +87,7 @@ pub unsafe extern "C" fn dltbc1_free_ManualTransformBuilder(
 ) {
     if !builder.is_null() {
         unsafe {
-            drop(Box::from_raw(
-                builder as *mut Dltbc1ManualTransformBuilderInner,
-            ));
+            drop(Box::from_raw(builder));
         }
     }
 }
@@ -108,12 +110,12 @@ pub unsafe extern "C" fn dltbc1_clone_ManualTransformBuilder(
         return ptr::null_mut();
     }
 
-    let inner = unsafe { &*(builder as *const Dltbc1ManualTransformBuilderInner) };
-    let cloned = Box::new(Dltbc1ManualTransformBuilderInner {
+    let inner = unsafe { &*builder };
+    let cloned = Box::new(Dltbc1ManualTransformBuilder {
         builder: inner.builder,
     });
 
-    Box::into_raw(cloned) as *mut Dltbc1ManualTransformBuilder
+    Box::into_raw(cloned)
 }
 
 // =============================================================================

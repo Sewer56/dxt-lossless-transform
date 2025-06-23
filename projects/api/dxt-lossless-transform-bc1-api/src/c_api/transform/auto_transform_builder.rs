@@ -7,14 +7,6 @@ use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
 use crate::c_api::transform::manual_transform_builder::Dltbc1ManualTransformBuilder;
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 
-/// Internal structure holding the actual builder data.
-pub struct Dltbc1AutoTransformBuilderImpl {
-    /// Whether to use all decorrelation modes during optimization
-    pub use_all_decorrelation_modes: bool,
-    /// The size estimator to use
-    pub estimator: *const DltSizeEstimator,
-}
-
 /// Opaque handle for BC1 auto transform builder.
 ///
 /// This builder allows configuring options for BC1 transformation with automatic optimization.
@@ -31,9 +23,17 @@ pub struct Dltbc1AutoTransformBuilderImpl {
 ///
 /// # Remarks
 /// This type corresponds to [`crate::Bc1AutoTransformBuilder`] in the Rust API.
-#[repr(C)]
+///
+/// # cbindgen Opaque Type Rule
+/// Per cbindgen documentation (https://github.com/mozilla/cbindgen/blob/master/docs.md):
+/// "If a type is determined to have a guaranteed layout, a full definition will be emitted in the header.
+/// If the type doesn't have a guaranteed layout, only a forward declaration will be emitted. This may be
+/// fine if the type is intended to be passed around opaquely and by reference."
+///
+/// This struct intentionally lacks `#[repr(C)]` to ensure it generates as an opaque forward declaration.
 pub struct Dltbc1AutoTransformBuilder {
-    _private: [u8; 0],
+    estimator: DltSizeEstimator,
+    use_all_decorrelation_modes: bool,
 }
 
 /// Create a new BC1 auto transform builder with the provided estimator.
@@ -66,12 +66,15 @@ pub unsafe extern "C" fn dltbc1_new_AutoTransformBuilder(
         return core::ptr::null_mut();
     }
 
-    let builder_impl = Box::new(Dltbc1AutoTransformBuilderImpl {
+    // Copy the estimator (DltSizeEstimator is copyable - function pointers and raw pointers are Copy)
+    let estimator_copy = unsafe { core::ptr::read(estimator) };
+
+    let builder_impl = Box::new(Dltbc1AutoTransformBuilder {
+        estimator: estimator_copy,
         use_all_decorrelation_modes: false,
-        estimator,
     });
 
-    Box::into_raw(builder_impl) as *mut Dltbc1AutoTransformBuilder
+    Box::into_raw(builder_impl)
 }
 
 /// Free a BC1 auto transform builder.
@@ -86,9 +89,7 @@ pub unsafe extern "C" fn dltbc1_free_AutoTransformBuilder(
 ) {
     if !builder.is_null() {
         unsafe {
-            drop(Box::from_raw(
-                builder as *mut Dltbc1AutoTransformBuilderImpl,
-            ));
+            drop(Box::from_raw(builder));
         }
     }
 }
@@ -124,7 +125,7 @@ pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_SetUseAllDecorrelationModes
         return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullBuilderPointer);
     }
 
-    let builder_impl = unsafe { &mut *(builder as *mut Dltbc1AutoTransformBuilderImpl) };
+    let builder_impl = unsafe { &mut *builder };
     builder_impl.use_all_decorrelation_modes = use_all;
     Dltbc1Result::success()
 }
@@ -207,31 +208,29 @@ pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_Transform(
     }
 
     // Get settings from builder
-    let builder_impl = unsafe { &*(builder as *const Dltbc1AutoTransformBuilderImpl) };
-    let estimator = unsafe { &*builder_impl.estimator };
-    let use_all_modes = builder_impl.use_all_decorrelation_modes;
+    let builder_impl = unsafe { &*builder };
 
     // Create input and output slices
     let input_slice = unsafe { core::slice::from_raw_parts(data, data_len) };
     let output_slice = unsafe { core::slice::from_raw_parts_mut(output, output_len) };
 
-    // Use the Rust API's Bc1AutoTransformBuilder
-    let rust_auto_builder = crate::transform::Bc1AutoTransformBuilder::new(estimator)
-        .use_all_decorrelation_modes(use_all_modes);
+    // Create the Rust API builder with the stored configuration
+    let rust_auto_builder = crate::transform::Bc1AutoTransformBuilder::new(&builder_impl.estimator)
+        .use_all_decorrelation_modes(builder_impl.use_all_decorrelation_modes);
 
     // Transform using the Rust API
     match rust_auto_builder.transform(input_slice, output_slice) {
         Ok(manual_builder) => {
             // Create the C API wrapper for the manual builder
             let inner = Box::new(
-                crate::c_api::transform::manual_transform_builder::Dltbc1ManualTransformBuilderInner {
+                crate::c_api::transform::manual_transform_builder::Dltbc1ManualTransformBuilder {
                     builder: manual_builder,
                 },
             );
 
             // Write the result to the output pointer
             unsafe {
-                *out_manual_builder = Box::into_raw(inner) as *mut Dltbc1ManualTransformBuilder;
+                *out_manual_builder = Box::into_raw(inner);
             }
 
             Dltbc1Result::success()

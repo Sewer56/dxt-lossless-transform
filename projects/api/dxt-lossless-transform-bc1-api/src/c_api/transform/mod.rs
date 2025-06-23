@@ -14,7 +14,9 @@
 //! ### Auto Transform Builder  
 //! - [`auto_transform_builder::Dltbc1AutoTransformBuilder`] - Direct equivalent of Rust's [`crate::Bc1AutoTransformBuilder`]
 //! - Automatically finds optimal transform settings using a size estimator
-//! - `dltbc1_AutoTransformBuilder_Transform` returns a configured manual builder (like Rust API)
+//! - [`dltbc1_AutoTransformBuilder_Transform`] returns a configured manual builder (like Rust API)
+//!
+//! [`dltbc1_AutoTransformBuilder_Transform`]: crate::c_api::transform::auto_transform_builder::dltbc1_AutoTransformBuilder_Transform
 //!
 //! ## Usage Patterns
 //!

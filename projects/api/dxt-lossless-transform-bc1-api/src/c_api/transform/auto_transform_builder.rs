@@ -159,7 +159,7 @@ pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_SetUseAllDecorrelationModes
 /// Transform BC1 data using automatically determined optimal settings and return a configured manual builder.
 ///
 /// This function determines optimal transform settings using the configured estimator,
-/// applies the transformation to the input data, and returns a pre-configured
+/// applies the transformation to the input data, and outputs a pre-configured
 /// manual transform builder for untransformation.
 ///
 /// # Parameters
@@ -168,16 +168,17 @@ pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_SetUseAllDecorrelationModes
 /// - `data_len`: Length of input data in bytes (must be divisible by 8)
 /// - `output`: Pointer to output buffer where transformed data will be written
 /// - `output_len`: Length of output buffer in bytes (must be at least `data_len`)
+/// - `out_manual_builder`: Output pointer where the configured manual builder will be written.
+///   The returned builder must be freed with [`dltbc1_free_ManualTransformBuilder`].
 ///
 /// # Returns
-/// A pointer to a newly allocated [`Dltbc1ManualTransformBuilder`] configured with the optimal settings,
-/// or null if the operation fails. The returned builder must be freed with
-/// `dltbc1_free_ManualTransformBuilder`.
+/// A [`Dltbc1Result`] indicating success or containing an error code.
 ///
 /// # Safety
 /// - `builder` must be a valid pointer to a [`Dltbc1AutoTransformBuilder`]
 /// - `data` must be valid for reads of `data_len` bytes
 /// - `output` must be valid for writes of `output_len` bytes
+/// - `out_manual_builder` must be a valid pointer to write the result
 /// - The estimator associated with the builder must remain valid for the duration of the call
 ///
 /// # Examples
@@ -188,14 +189,14 @@ pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_SetUseAllDecorrelationModes
 /// dltbc1_AutoTransformBuilder_SetUseAllDecorrelationModes(auto_builder, false);
 ///
 /// // Transform and get configured manual builder
-/// Dltbc1ManualTransformBuilder* manual_builder =
-///     dltbc1_AutoTransformBuilder_Transform(
-///         auto_builder, bc1_data, sizeof(bc1_data),
-///         transformed_data, sizeof(transformed_data));
+/// Dltbc1ManualTransformBuilder* manual_builder = NULL;
+/// Dltbc1Result result = dltbc1_AutoTransformBuilder_Transform(
+///     auto_builder, bc1_data, sizeof(bc1_data),
+///     transformed_data, sizeof(transformed_data), &manual_builder);
 ///
-/// if (manual_builder != NULL) {
+/// if (result.error_code == DLTBC1_SUCCESS) {
 ///     // Later, untransform using the returned manual builder
-///     Dltbc1Result result = dltbc1_ManualTransformBuilder_Untransform(
+///     Dltbc1Result untransform_result = dltbc1_ManualTransformBuilder_Untransform(
 ///         transformed_data, sizeof(transformed_data),
 ///         restored_data, sizeof(restored_data), manual_builder);
 ///
@@ -207,6 +208,8 @@ pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_SetUseAllDecorrelationModes
 ///
 /// # Remarks
 /// This function corresponds to [`crate::Bc1AutoTransformBuilder::transform`] in the Rust API.
+///
+/// [`dltbc1_free_ManualTransformBuilder`]: crate::c_api::transform::manual_transform_builder::dltbc1_free_ManualTransformBuilder
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_Transform(
     builder: *mut Dltbc1AutoTransformBuilder,
@@ -214,10 +217,20 @@ pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_Transform(
     data_len: usize,
     output: *mut u8,
     output_len: usize,
-) -> *mut Dltbc1ManualTransformBuilder {
+    out_manual_builder: *mut *mut Dltbc1ManualTransformBuilder,
+) -> Dltbc1Result {
     // Validate required pointers
-    if builder.is_null() || data.is_null() || output.is_null() {
-        return core::ptr::null_mut();
+    if builder.is_null() {
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullBuilderPointer);
+    }
+    if data.is_null() {
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullDataPointer);
+    }
+    if output.is_null() {
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullOutputBufferPointer);
+    }
+    if out_manual_builder.is_null() {
+        return Dltbc1Result::from_error_code(Dltbc1ErrorCode::NullOutputBufferPointer);
     }
 
     // Get settings from builder
@@ -244,8 +257,11 @@ pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_Transform(
         )
     };
 
+    // Convert the core result to API result
+    let api_result = Dltbc1Result::from(result);
+
     // If successful, create and return a configured manual builder
-    if result.is_success() {
+    if api_result.is_success() {
         // Convert core transform details to API transform details
         let api_transform_details = Dltbc1TransformSettings {
             decorrelation_mode: transform_details.decorrelation_mode.into(),
@@ -264,8 +280,16 @@ pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_Transform(
             },
         );
 
-        Box::into_raw(inner) as *mut Dltbc1ManualTransformBuilder
+        // Write the result to the output pointer
+        unsafe {
+            *out_manual_builder = Box::into_raw(inner) as *mut Dltbc1ManualTransformBuilder;
+        }
     } else {
-        core::ptr::null_mut()
+        // On failure, ensure the output pointer is null
+        unsafe {
+            *out_manual_builder = core::ptr::null_mut();
+        }
     }
+
+    api_result
 }

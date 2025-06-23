@@ -130,7 +130,9 @@ pub unsafe extern "C" fn dltbc1_clone_ManualTransformBuilder(
 /// it's recommended to use a compression level on the estimator (e.g., ZStandard estimator)
 /// closer to your final compression level instead.
 ///
-/// For automatic optimization, consider using `dltbc1_AutoTransformBuilder_Transform` instead.
+/// For automatic optimization, consider using [`dltbc1_AutoTransformBuilder_Transform`] instead.
+///
+/// [`dltbc1_AutoTransformBuilder_Transform`]: crate::c_api::transform::auto_transform_builder::dltbc1_AutoTransformBuilder_Transform
 ///
 /// # Parameters
 /// - `builder`: The BC1 manual builder to modify
@@ -161,7 +163,9 @@ pub unsafe extern "C" fn dltbc1_ManualTransformBuilder_SetDecorrelationMode(
 ///
 /// **File Size**: This setting reduces file size around 78% of the time.
 ///
-/// For automatic optimization, consider using `dltbc1_AutoTransformBuilder_Transform` instead.
+/// For automatic optimization, consider using [`dltbc1_AutoTransformBuilder_Transform`] instead.
+///
+/// [`dltbc1_AutoTransformBuilder_Transform`]: crate::c_api::transform::auto_transform_builder::dltbc1_AutoTransformBuilder_Transform
 ///
 /// # Parameters
 /// - `builder`: The BC1 manual builder to modify

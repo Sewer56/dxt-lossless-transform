@@ -30,7 +30,7 @@ pub struct Dltbc1TransformSettings {
     /// Whether to split colour endpoints
     pub split_colour_endpoints: bool,
     /// Decorrelation mode to use
-    pub decorrelation_mode: u8, // Maps to YCoCgVariant
+    pub decorrelation_mode: YCoCgVariant,
 }
 
 /// Error codes for BC1 operations.
@@ -103,12 +103,7 @@ impl From<crate::Bc1TransformSettings> for Dltbc1TransformSettings {
     fn from(settings: crate::Bc1TransformSettings) -> Self {
         Self {
             split_colour_endpoints: settings.split_colour_endpoints,
-            decorrelation_mode: match settings.decorrelation_mode {
-                YCoCgVariant::None => 0,
-                YCoCgVariant::Variant1 => 1,
-                YCoCgVariant::Variant2 => 2,
-                YCoCgVariant::Variant3 => 3,
-            },
+            decorrelation_mode: settings.decorrelation_mode,
         }
     }
 }
@@ -501,7 +496,7 @@ mod tests {
     fn test_dltbc1_transform_settings_conversion() {
         let settings = Dltbc1TransformSettings {
             split_colour_endpoints: true,
-            decorrelation_mode: 1, // Variant1
+            decorrelation_mode: YCoCgVariant::Variant1,
         };
 
         let rust_settings: crate::Bc1TransformSettings = settings.into();
@@ -518,6 +513,6 @@ mod tests {
 
         let c_settings: Dltbc1TransformSettings = rust_settings.into();
         assert!(!c_settings.split_colour_endpoints);
-        assert_eq!(c_settings.decorrelation_mode, 2); // Variant2
+        assert_eq!(c_settings.decorrelation_mode, YCoCgVariant::Variant2);
     }
 }

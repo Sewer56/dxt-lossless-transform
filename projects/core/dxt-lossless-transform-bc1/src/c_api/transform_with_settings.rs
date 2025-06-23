@@ -17,20 +17,14 @@ pub struct Dltbc1DetransformSettings {
     /// Whether colour endpoints were split during transform
     pub split_colour_endpoints: bool,
     /// Decorrelation mode used during transform
-    pub decorrelation_mode: u8, // Maps to YCoCgVariant
+    pub decorrelation_mode: YCoCgVariant,
 }
 
 impl From<Dltbc1TransformSettings> for crate::Bc1TransformSettings {
     fn from(settings: Dltbc1TransformSettings) -> Self {
         Self {
             split_colour_endpoints: settings.split_colour_endpoints,
-            decorrelation_mode: match settings.decorrelation_mode {
-                0 => YCoCgVariant::None,
-                1 => YCoCgVariant::Variant1,
-                2 => YCoCgVariant::Variant2,
-                3 => YCoCgVariant::Variant3,
-                _ => YCoCgVariant::None, // Default fallback
-            },
+            decorrelation_mode: settings.decorrelation_mode,
         }
     }
 }
@@ -39,13 +33,7 @@ impl From<Dltbc1DetransformSettings> for crate::Bc1DetransformSettings {
     fn from(settings: Dltbc1DetransformSettings) -> Self {
         crate::Bc1TransformSettings {
             split_colour_endpoints: settings.split_colour_endpoints,
-            decorrelation_mode: match settings.decorrelation_mode {
-                0 => YCoCgVariant::None,
-                1 => YCoCgVariant::Variant1,
-                2 => YCoCgVariant::Variant2,
-                3 => YCoCgVariant::Variant3,
-                _ => YCoCgVariant::None, // Default fallback
-            },
+            decorrelation_mode: settings.decorrelation_mode,
         }
     }
 }
@@ -180,7 +168,7 @@ mod tests {
         let mut output = vec![0u8; test_data.len()];
         let details = Dltbc1TransformSettings {
             split_colour_endpoints: false,
-            decorrelation_mode: 0, // None
+            decorrelation_mode: YCoCgVariant::None,
         };
 
         unsafe {
@@ -202,7 +190,7 @@ mod tests {
         let mut output = vec![0u8; 16];
         let details = Dltbc1TransformSettings {
             split_colour_endpoints: false,
-            decorrelation_mode: 0, // None
+            decorrelation_mode: YCoCgVariant::None,
         };
 
         unsafe {
@@ -219,7 +207,7 @@ mod tests {
         let test_data = create_test_bc1_data();
         let details = Dltbc1TransformSettings {
             split_colour_endpoints: false,
-            decorrelation_mode: 0, // None
+            decorrelation_mode: YCoCgVariant::None,
         };
 
         unsafe {
@@ -242,7 +230,7 @@ mod tests {
         let mut output = vec![0u8; 15];
         let details = Dltbc1TransformSettings {
             split_colour_endpoints: false,
-            decorrelation_mode: 0, // None
+            decorrelation_mode: YCoCgVariant::None,
         };
 
         unsafe {
@@ -265,7 +253,7 @@ mod tests {
         let mut output = vec![0u8; test_data.len() - 1]; // Too small
         let details = Dltbc1TransformSettings {
             split_colour_endpoints: false,
-            decorrelation_mode: 0, // None
+            decorrelation_mode: YCoCgVariant::None,
         };
 
         unsafe {
@@ -289,11 +277,11 @@ mod tests {
         let mut restored = vec![0u8; test_data.len()];
         let details = Dltbc1TransformSettings {
             split_colour_endpoints: false,
-            decorrelation_mode: 0, // None
+            decorrelation_mode: YCoCgVariant::None,
         };
         let detransform_details = Dltbc1DetransformSettings {
             split_colour_endpoints: false,
-            decorrelation_mode: 0, // None
+            decorrelation_mode: YCoCgVariant::None,
         };
 
         unsafe {
@@ -329,7 +317,7 @@ mod tests {
         let mut output = vec![0u8; 16];
         let details = Dltbc1DetransformSettings {
             split_colour_endpoints: false,
-            decorrelation_mode: 0, // None
+            decorrelation_mode: YCoCgVariant::None,
         };
 
         unsafe {
@@ -346,7 +334,7 @@ mod tests {
         let test_data = create_test_bc1_data();
         let details = Dltbc1DetransformSettings {
             split_colour_endpoints: false,
-            decorrelation_mode: 0, // None
+            decorrelation_mode: YCoCgVariant::None,
         };
 
         unsafe {
@@ -368,7 +356,12 @@ mod tests {
         let test_data = create_test_bc1_data();
 
         // Test different decorrelation modes
-        for decorr_mode in 0..=3u8 {
+        for decorr_mode in [
+            YCoCgVariant::None,
+            YCoCgVariant::Variant1,
+            YCoCgVariant::Variant2,
+            YCoCgVariant::Variant3,
+        ] {
             for split_colours in [false, true] {
                 let transform_settings = Dltbc1TransformSettings {
                     split_colour_endpoints: split_colours,
@@ -394,7 +387,7 @@ mod tests {
                     assert_eq!(
                         transform_result.error_code,
                         Dltbc1ErrorCode::Success,
-                        "Transform failed for decorr_mode {decorr_mode}, split_colours {split_colours}"
+                        "Transform failed for decorr_mode {decorr_mode:?}, split_colours {split_colours}"
                     );
 
                     // Untransform
@@ -408,13 +401,13 @@ mod tests {
                     assert_eq!(
                         untransform_result.error_code,
                         Dltbc1ErrorCode::Success,
-                        "Untransform failed for decorr_mode {decorr_mode}, split_colours {split_colours}"
+                        "Untransform failed for decorr_mode {decorr_mode:?}, split_colours {split_colours}"
                     );
 
                     // Should restore original data
                     assert_eq!(
                         restored, test_data,
-                        "Round-trip failed for decorr_mode {decorr_mode}, split_colours {split_colours}"
+                        "Round-trip failed for decorr_mode {decorr_mode:?}, split_colours {split_colours}"
                     );
                 }
             }
@@ -425,7 +418,7 @@ mod tests {
     fn test_dltbc1_detransform_settings_conversion() {
         let settings = Dltbc1DetransformSettings {
             split_colour_endpoints: true,
-            decorrelation_mode: 2, // Variant2
+            decorrelation_mode: YCoCgVariant::Variant2,
         };
 
         let rust_settings: crate::Bc1DetransformSettings = settings.into();
@@ -434,15 +427,14 @@ mod tests {
     }
 
     #[test]
-    fn test_transform_settings_conversion_with_invalid_decorrelation_mode() {
+    fn test_transform_settings_conversion() {
         let settings = Dltbc1TransformSettings {
             split_colour_endpoints: false,
-            decorrelation_mode: 99, // Invalid mode
+            decorrelation_mode: YCoCgVariant::Variant3,
         };
 
         let rust_settings: crate::Bc1TransformSettings = settings.into();
-        // Should default to None for invalid values
-        assert_eq!(rust_settings.decorrelation_mode, YCoCgVariant::None);
+        assert_eq!(rust_settings.decorrelation_mode, YCoCgVariant::Variant3);
     }
 
     #[test]

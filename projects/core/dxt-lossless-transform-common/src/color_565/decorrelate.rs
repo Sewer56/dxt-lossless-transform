@@ -69,16 +69,23 @@ use derive_enum_all_values::AllValues;
 /// The variants differ only in how the transformed bits are arranged within the [`Color565`] format.
 /// On real files, the compression differences are negligible. These variants exist primarily for
 /// brute-forcing the absolute best possible compression result in specific scenarios.
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, AllValues, Hash)]
 pub enum YCoCgVariant {
-    /// Variant 1: Standard bit arrangement
-    Variant1,
-    /// Variant 2: Alternative bit arrangement with low bit placed at top
-    Variant2,
-    /// Variant 3: Alternative bit arrangement with low bit at bottom
-    Variant3,
     /// None: No transformation (original RGB values preserved)
-    None,
+    None = 0,
+    /// Variant 1: Standard bit arrangement
+    Variant1 = 1,
+    /// Variant 2: Alternative bit arrangement with low bit placed at top
+    Variant2 = 2,
+    /// Variant 3: Alternative bit arrangement with low bit at bottom
+    Variant3 = 3,
+}
+
+impl Default for YCoCgVariant {
+    fn default() -> Self {
+        Self::None
+    }
 }
 
 impl Color565 {

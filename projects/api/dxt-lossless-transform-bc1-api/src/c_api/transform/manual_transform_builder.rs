@@ -350,3 +350,491 @@ pub unsafe extern "C" fn dltbc1_ManualTransformBuilder_Untransform(
         Err(e) => e.into(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
+    use std::ptr;
+
+    /// Helper function to create sample BC1 test data (2 blocks = 16 bytes)
+    fn create_test_bc1_data() -> Vec<u8> {
+        vec![
+            // Block 1: 8 bytes
+            0x00, 0x01, 0x02, 0x03, // colors
+            0x80, 0x81, 0x82, 0x83, // indices
+            // Block 2: 8 bytes
+            0x04, 0x05, 0x06, 0x07, // colors
+            0x84, 0x85, 0x86, 0x87, // indices
+        ]
+    }
+
+    #[test]
+    fn test_dltbc1_new_manual_transform_builder() {
+        let builder = dltbc1_new_ManualTransformBuilder();
+        assert!(!builder.is_null());
+
+        // Clean up
+        unsafe {
+            dltbc1_free_ManualTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_free_manual_transform_builder_null_pointer() {
+        // Should not crash when freeing null pointer
+        unsafe {
+            dltbc1_free_ManualTransformBuilder(ptr::null_mut());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_clone_manual_transform_builder() {
+        let original = dltbc1_new_ManualTransformBuilder();
+        assert!(!original.is_null());
+
+        unsafe {
+            // Configure the original builder
+            dltbc1_ManualTransformBuilder_SetDecorrelationMode(original, YCoCgVariant::Variant1);
+            dltbc1_ManualTransformBuilder_SetSplitColourEndpoints(original, true);
+
+            // Clone the builder
+            let cloned = dltbc1_clone_ManualTransformBuilder(original);
+            assert!(!cloned.is_null());
+
+            // Both builders should work independently
+            let test_data = create_test_bc1_data();
+            let mut output1 = vec![0u8; test_data.len()];
+            let mut output2 = vec![0u8; test_data.len()];
+
+            let result1 = dltbc1_ManualTransformBuilder_Transform(
+                test_data.as_ptr(),
+                test_data.len(),
+                output1.as_mut_ptr(),
+                output1.len(),
+                original,
+            );
+            assert_eq!(result1.error_code, Dltbc1ErrorCode::Success);
+
+            let result2 = dltbc1_ManualTransformBuilder_Transform(
+                test_data.as_ptr(),
+                test_data.len(),
+                output2.as_mut_ptr(),
+                output2.len(),
+                cloned,
+            );
+            assert_eq!(result2.error_code, Dltbc1ErrorCode::Success);
+
+            // Outputs should be identical since both builders have same settings
+            assert_eq!(output1, output2);
+
+            // Clean up
+            dltbc1_free_ManualTransformBuilder(original);
+            dltbc1_free_ManualTransformBuilder(cloned);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_clone_manual_transform_builder_null_pointer() {
+        unsafe {
+            let cloned = dltbc1_clone_ManualTransformBuilder(ptr::null());
+            assert!(cloned.is_null());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_set_decorrelation_mode() {
+        let builder = dltbc1_new_ManualTransformBuilder();
+        assert!(!builder.is_null());
+
+        unsafe {
+            // Should not crash with valid builder
+            dltbc1_ManualTransformBuilder_SetDecorrelationMode(builder, YCoCgVariant::Variant1);
+            dltbc1_ManualTransformBuilder_SetDecorrelationMode(builder, YCoCgVariant::Variant2);
+            dltbc1_ManualTransformBuilder_SetDecorrelationMode(builder, YCoCgVariant::Variant3);
+            dltbc1_ManualTransformBuilder_SetDecorrelationMode(builder, YCoCgVariant::None);
+
+            dltbc1_free_ManualTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_set_decorrelation_mode_null_pointer() {
+        unsafe {
+            // Should not crash with null pointer
+            dltbc1_ManualTransformBuilder_SetDecorrelationMode(
+                ptr::null_mut(),
+                YCoCgVariant::Variant1,
+            );
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_set_split_colour_endpoints() {
+        let builder = dltbc1_new_ManualTransformBuilder();
+        assert!(!builder.is_null());
+
+        unsafe {
+            // Should not crash with valid builder
+            dltbc1_ManualTransformBuilder_SetSplitColourEndpoints(builder, true);
+            dltbc1_ManualTransformBuilder_SetSplitColourEndpoints(builder, false);
+
+            dltbc1_free_ManualTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_set_split_colour_endpoints_null_pointer() {
+        unsafe {
+            // Should not crash with null pointer
+            dltbc1_ManualTransformBuilder_SetSplitColourEndpoints(ptr::null_mut(), true);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_reset_to_defaults() {
+        let builder = dltbc1_new_ManualTransformBuilder();
+        assert!(!builder.is_null());
+
+        unsafe {
+            // Configure with non-default settings
+            dltbc1_ManualTransformBuilder_SetDecorrelationMode(builder, YCoCgVariant::Variant1);
+            dltbc1_ManualTransformBuilder_SetSplitColourEndpoints(builder, true);
+
+            // Reset to defaults
+            dltbc1_ManualTransformBuilder_ResetToDefaults(builder);
+
+            // Should still be usable after reset
+            let test_data = create_test_bc1_data();
+            let mut output = vec![0u8; test_data.len()];
+
+            let result = dltbc1_ManualTransformBuilder_Transform(
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                builder,
+            );
+            assert_eq!(result.error_code, Dltbc1ErrorCode::Success);
+
+            dltbc1_free_ManualTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_reset_to_defaults_null_pointer() {
+        unsafe {
+            // Should not crash with null pointer
+            dltbc1_ManualTransformBuilder_ResetToDefaults(ptr::null_mut());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_transform_basic() {
+        let builder = dltbc1_new_ManualTransformBuilder();
+        assert!(!builder.is_null());
+
+        let test_data = create_test_bc1_data();
+        let mut output = vec![0u8; test_data.len()];
+
+        unsafe {
+            let result = dltbc1_ManualTransformBuilder_Transform(
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                builder,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::Success);
+            assert!(result.is_success());
+
+            dltbc1_free_ManualTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_transform_null_input() {
+        let builder = dltbc1_new_ManualTransformBuilder();
+        assert!(!builder.is_null());
+
+        let mut output = vec![0u8; 16];
+
+        unsafe {
+            let result = dltbc1_ManualTransformBuilder_Transform(
+                ptr::null(),
+                16,
+                output.as_mut_ptr(),
+                output.len(),
+                builder,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::NullDataPointer);
+            assert!(!result.is_success());
+
+            dltbc1_free_ManualTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_transform_null_output() {
+        let builder = dltbc1_new_ManualTransformBuilder();
+        assert!(!builder.is_null());
+
+        let test_data = create_test_bc1_data();
+
+        unsafe {
+            let result = dltbc1_ManualTransformBuilder_Transform(
+                test_data.as_ptr(),
+                test_data.len(),
+                ptr::null_mut(),
+                16,
+                builder,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::NullOutputBufferPointer);
+            assert!(!result.is_success());
+
+            dltbc1_free_ManualTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_transform_null_builder() {
+        let test_data = create_test_bc1_data();
+        let mut output = vec![0u8; test_data.len()];
+
+        unsafe {
+            let result = dltbc1_ManualTransformBuilder_Transform(
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                ptr::null_mut(),
+            );
+
+            assert_eq!(
+                result.error_code,
+                Dltbc1ErrorCode::NullManualTransformBuilderPointer
+            );
+            assert!(!result.is_success());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_transform_invalid_length() {
+        let builder = dltbc1_new_ManualTransformBuilder();
+        assert!(!builder.is_null());
+
+        let test_data = [0u8; 15]; // Not divisible by 8
+        let mut output = vec![0u8; 15];
+
+        unsafe {
+            let result = dltbc1_ManualTransformBuilder_Transform(
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                builder,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::InvalidLength);
+            assert!(!result.is_success());
+
+            dltbc1_free_ManualTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_transform_output_too_small() {
+        let builder = dltbc1_new_ManualTransformBuilder();
+        assert!(!builder.is_null());
+
+        let test_data = create_test_bc1_data();
+        let mut output = vec![0u8; test_data.len() - 1]; // Too small
+
+        unsafe {
+            let result = dltbc1_ManualTransformBuilder_Transform(
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                builder,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::OutputBufferTooSmall);
+            assert!(!result.is_success());
+
+            dltbc1_free_ManualTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_untransform_basic() {
+        let builder = dltbc1_new_ManualTransformBuilder();
+        assert!(!builder.is_null());
+
+        let test_data = create_test_bc1_data();
+        let mut transformed = vec![0u8; test_data.len()];
+        let mut restored = vec![0u8; test_data.len()];
+
+        unsafe {
+            // Transform
+            let result1 = dltbc1_ManualTransformBuilder_Transform(
+                test_data.as_ptr(),
+                test_data.len(),
+                transformed.as_mut_ptr(),
+                transformed.len(),
+                builder,
+            );
+            assert_eq!(result1.error_code, Dltbc1ErrorCode::Success);
+
+            // Untransform
+            let result2 = dltbc1_ManualTransformBuilder_Untransform(
+                transformed.as_ptr(),
+                transformed.len(),
+                restored.as_mut_ptr(),
+                restored.len(),
+                builder,
+            );
+            assert_eq!(result2.error_code, Dltbc1ErrorCode::Success);
+            assert!(result2.is_success());
+
+            // Should restore original data
+            assert_eq!(restored, test_data);
+
+            dltbc1_free_ManualTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_untransform_null_input() {
+        let builder = dltbc1_new_ManualTransformBuilder();
+        assert!(!builder.is_null());
+
+        let mut output = vec![0u8; 16];
+
+        unsafe {
+            let result = dltbc1_ManualTransformBuilder_Untransform(
+                ptr::null(),
+                16,
+                output.as_mut_ptr(),
+                output.len(),
+                builder,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::NullDataPointer);
+            assert!(!result.is_success());
+
+            dltbc1_free_ManualTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_untransform_null_output() {
+        let builder = dltbc1_new_ManualTransformBuilder();
+        assert!(!builder.is_null());
+
+        let test_data = create_test_bc1_data();
+
+        unsafe {
+            let result = dltbc1_ManualTransformBuilder_Untransform(
+                test_data.as_ptr(),
+                test_data.len(),
+                ptr::null_mut(),
+                16,
+                builder,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::NullOutputBufferPointer);
+            assert!(!result.is_success());
+
+            dltbc1_free_ManualTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_untransform_null_builder() {
+        let test_data = create_test_bc1_data();
+        let mut output = vec![0u8; test_data.len()];
+
+        unsafe {
+            let result = dltbc1_ManualTransformBuilder_Untransform(
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                ptr::null_mut(),
+            );
+
+            assert_eq!(
+                result.error_code,
+                Dltbc1ErrorCode::NullManualTransformBuilderPointer
+            );
+            assert!(!result.is_success());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_manual_transform_builder_round_trip_with_settings() {
+        let builder = dltbc1_new_ManualTransformBuilder();
+        assert!(!builder.is_null());
+
+        let test_data = create_test_bc1_data();
+
+        unsafe {
+            // Test different decorrelation modes
+            for variant in [
+                YCoCgVariant::None,
+                YCoCgVariant::Variant1,
+                YCoCgVariant::Variant2,
+                YCoCgVariant::Variant3,
+            ] {
+                for split_colours in [false, true] {
+                    // Configure builder
+                    dltbc1_ManualTransformBuilder_SetDecorrelationMode(builder, variant);
+                    dltbc1_ManualTransformBuilder_SetSplitColourEndpoints(builder, split_colours);
+
+                    let mut transformed = vec![0u8; test_data.len()];
+                    let mut restored = vec![0u8; test_data.len()];
+
+                    // Transform
+                    let result1 = dltbc1_ManualTransformBuilder_Transform(
+                        test_data.as_ptr(),
+                        test_data.len(),
+                        transformed.as_mut_ptr(),
+                        transformed.len(),
+                        builder,
+                    );
+                    assert_eq!(
+                        result1.error_code,
+                        Dltbc1ErrorCode::Success,
+                        "Transform failed for variant {variant:?}, split_colours {split_colours}",
+                    );
+
+                    // Untransform
+                    let result2 = dltbc1_ManualTransformBuilder_Untransform(
+                        transformed.as_ptr(),
+                        transformed.len(),
+                        restored.as_mut_ptr(),
+                        restored.len(),
+                        builder,
+                    );
+                    assert_eq!(
+                        result2.error_code,
+                        Dltbc1ErrorCode::Success,
+                        "Untransform failed for variant {variant:?}, split_colours {split_colours}",
+                    );
+
+                    // Should restore original data
+                    assert_eq!(
+                        restored, test_data,
+                        "Round-trip failed for variant {variant:?}, split_colours {split_colours}",
+                    );
+                }
+            }
+
+            dltbc1_free_ManualTransformBuilder(builder);
+        }
+    }
+}

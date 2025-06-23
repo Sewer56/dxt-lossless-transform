@@ -191,3 +191,333 @@ pub unsafe extern "C" fn dltbc1core_transform_auto(
         Err(e) => e.into(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dxt_lossless_transform_api_common::{
+        c_api::size_estimation::DltSizeEstimator, estimate::DataType,
+    };
+    use std::{ffi::c_void, ptr};
+
+    /// Test helper: Create a dummy size estimator for testing
+    fn create_dummy_estimator() -> DltSizeEstimator {
+        unsafe extern "C" fn dummy_max_compressed_size(
+            _context: *mut c_void,
+            len_bytes: usize,
+            out_size: *mut usize,
+        ) -> u32 {
+            unsafe {
+                *out_size = len_bytes; // Just return input size
+            }
+            0 // Success
+        }
+
+        unsafe extern "C" fn dummy_estimate_compressed_size(
+            _context: *mut c_void,
+            _input_ptr: *const u8,
+            len_bytes: usize,
+            _data_type: u8,
+            _output_ptr: *mut u8,
+            _output_len: usize,
+            out_size: *mut usize,
+        ) -> u32 {
+            unsafe {
+                *out_size = len_bytes; // Just return input size
+            }
+            0 // Success
+        }
+
+        DltSizeEstimator {
+            context: ptr::null_mut(),
+            max_compressed_size: dummy_max_compressed_size,
+            estimate_compressed_size: dummy_estimate_compressed_size,
+            supports_data_type_differentiation: false,
+        }
+    }
+
+    /// Helper function to create sample BC1 test data (2 blocks = 16 bytes)
+    fn create_test_bc1_data() -> Vec<u8> {
+        vec![
+            // Block 1: 8 bytes
+            0x00, 0x01, 0x02, 0x03, // colors
+            0x80, 0x81, 0x82, 0x83, // indices
+            // Block 2: 8 bytes
+            0x04, 0x05, 0x06, 0x07, // colors
+            0x84, 0x85, 0x86, 0x87, // indices
+        ]
+    }
+
+    #[test]
+    fn test_dltbc1core_transform_auto_basic() {
+        let estimator = create_dummy_estimator();
+        let test_data = create_test_bc1_data();
+        let mut output = vec![0u8; test_data.len()];
+        let mut out_details = Dltbc1TransformSettings::default();
+        let settings = Dltbc1AutoTransformSettings {
+            use_all_modes: false,
+        };
+
+        unsafe {
+            let result = dltbc1core_transform_auto(
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                &estimator,
+                settings,
+                &mut out_details,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::Success);
+            assert!(result.is_success());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1core_transform_auto_null_data() {
+        let estimator = create_dummy_estimator();
+        let mut output = vec![0u8; 16];
+        let mut out_details = Dltbc1TransformSettings::default();
+        let settings = Dltbc1AutoTransformSettings {
+            use_all_modes: false,
+        };
+
+        unsafe {
+            let result = dltbc1core_transform_auto(
+                ptr::null(),
+                16,
+                output.as_mut_ptr(),
+                output.len(),
+                &estimator,
+                settings,
+                &mut out_details,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::NullDataPointer);
+            assert!(!result.is_success());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1core_transform_auto_null_output() {
+        let estimator = create_dummy_estimator();
+        let test_data = create_test_bc1_data();
+        let mut out_details = Dltbc1TransformSettings::default();
+        let settings = Dltbc1AutoTransformSettings {
+            use_all_modes: false,
+        };
+
+        unsafe {
+            let result = dltbc1core_transform_auto(
+                test_data.as_ptr(),
+                test_data.len(),
+                ptr::null_mut(),
+                16,
+                &estimator,
+                settings,
+                &mut out_details,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::NullOutputBufferPointer);
+            assert!(!result.is_success());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1core_transform_auto_null_estimator() {
+        let test_data = create_test_bc1_data();
+        let mut output = vec![0u8; test_data.len()];
+        let mut out_details = Dltbc1TransformSettings::default();
+        let settings = Dltbc1AutoTransformSettings {
+            use_all_modes: false,
+        };
+
+        unsafe {
+            let result = dltbc1core_transform_auto(
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                ptr::null(),
+                settings,
+                &mut out_details,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::NullEstimatorPointer);
+            assert!(!result.is_success());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1core_transform_auto_null_out_details() {
+        let estimator = create_dummy_estimator();
+        let test_data = create_test_bc1_data();
+        let mut output = vec![0u8; test_data.len()];
+        let settings = Dltbc1AutoTransformSettings {
+            use_all_modes: false,
+        };
+
+        unsafe {
+            let result = dltbc1core_transform_auto(
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                &estimator,
+                settings,
+                ptr::null_mut(),
+            );
+
+            assert_eq!(
+                result.error_code,
+                Dltbc1ErrorCode::NullTransformSettingsPointer
+            );
+            assert!(!result.is_success());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1core_transform_auto_invalid_length() {
+        let estimator = create_dummy_estimator();
+        let test_data = vec![0u8; 15]; // Not divisible by 8
+        let mut output = vec![0u8; 15];
+        let mut out_details = Dltbc1TransformSettings::default();
+        let settings = Dltbc1AutoTransformSettings {
+            use_all_modes: false,
+        };
+
+        unsafe {
+            let result = dltbc1core_transform_auto(
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                &estimator,
+                settings,
+                &mut out_details,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::InvalidDataLength);
+            assert!(!result.is_success());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1core_transform_auto_output_too_small() {
+        let estimator = create_dummy_estimator();
+        let test_data = create_test_bc1_data();
+        let mut output = vec![0u8; test_data.len() - 1]; // Too small
+        let mut out_details = Dltbc1TransformSettings::default();
+        let settings = Dltbc1AutoTransformSettings {
+            use_all_modes: false,
+        };
+
+        unsafe {
+            let result = dltbc1core_transform_auto(
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                &estimator,
+                settings,
+                &mut out_details,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::OutputBufferTooSmall);
+            assert!(!result.is_success());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1core_transform_auto_different_modes() {
+        let estimator = create_dummy_estimator();
+        let test_data = create_test_bc1_data();
+
+        // Test with use_all_modes = false
+        {
+            let mut output = vec![0u8; test_data.len()];
+            let mut out_details = Dltbc1TransformSettings::default();
+            let settings = Dltbc1AutoTransformSettings {
+                use_all_modes: false,
+            };
+
+            unsafe {
+                let result = dltbc1core_transform_auto(
+                    test_data.as_ptr(),
+                    test_data.len(),
+                    output.as_mut_ptr(),
+                    output.len(),
+                    &estimator,
+                    settings,
+                    &mut out_details,
+                );
+
+                assert_eq!(result.error_code, Dltbc1ErrorCode::Success);
+                assert!(result.is_success());
+            }
+        }
+
+        // Test with use_all_modes = true
+        {
+            let mut output = vec![0u8; test_data.len()];
+            let mut out_details = Dltbc1TransformSettings::default();
+            let settings = Dltbc1AutoTransformSettings {
+                use_all_modes: true,
+            };
+
+            unsafe {
+                let result = dltbc1core_transform_auto(
+                    test_data.as_ptr(),
+                    test_data.len(),
+                    output.as_mut_ptr(),
+                    output.len(),
+                    &estimator,
+                    settings,
+                    &mut out_details,
+                );
+
+                assert_eq!(result.error_code, Dltbc1ErrorCode::Success);
+                assert!(result.is_success());
+            }
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_result_success() {
+        let result = Dltbc1Result::success();
+        assert_eq!(result.error_code, Dltbc1ErrorCode::Success);
+        assert!(result.is_success());
+    }
+
+    #[test]
+    fn test_dltbc1_result_from_error_code() {
+        let result = Dltbc1Result::from_error_code(Dltbc1ErrorCode::InvalidDataLength);
+        assert_eq!(result.error_code, Dltbc1ErrorCode::InvalidDataLength);
+        assert!(!result.is_success());
+    }
+
+    #[test]
+    fn test_dltbc1_transform_settings_conversion() {
+        let settings = Dltbc1TransformSettings {
+            split_colour_endpoints: true,
+            decorrelation_mode: 1, // Variant1
+        };
+
+        let rust_settings: crate::Bc1TransformSettings = settings.into();
+        assert_eq!(rust_settings.split_colour_endpoints, true);
+        assert_eq!(rust_settings.decorrelation_mode, YCoCgVariant::Variant1);
+    }
+
+    #[test]
+    fn test_dltbc1_transform_settings_from_rust() {
+        let rust_settings = crate::Bc1TransformSettings {
+            split_colour_endpoints: false,
+            decorrelation_mode: YCoCgVariant::Variant2,
+        };
+
+        let c_settings: Dltbc1TransformSettings = rust_settings.into();
+        assert_eq!(c_settings.split_colour_endpoints, false);
+        assert_eq!(c_settings.decorrelation_mode, 2); // Variant2
+    }
+}

@@ -170,3 +170,260 @@ pub unsafe extern "C" fn dltbc1_error_message(error_code: Dltbc1ErrorCode) -> *c
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core::ffi::CStr;
+
+    #[test]
+    fn test_dltbc1_error_message_success() {
+        unsafe {
+            let message_ptr = dltbc1_error_message(Dltbc1ErrorCode::Success);
+            assert!(!message_ptr.is_null());
+
+            let c_str = CStr::from_ptr(message_ptr);
+            let message = c_str.to_str().unwrap();
+            assert_eq!(message, "Success");
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_error_message_invalid_length() {
+        unsafe {
+            let message_ptr = dltbc1_error_message(Dltbc1ErrorCode::InvalidLength);
+            assert!(!message_ptr.is_null());
+
+            let c_str = CStr::from_ptr(message_ptr);
+            let message = c_str.to_str().unwrap();
+            assert_eq!(
+                message,
+                "Invalid input length: Length must be divisible by 8 (BC1 block size)"
+            );
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_error_message_output_buffer_too_small() {
+        unsafe {
+            let message_ptr = dltbc1_error_message(Dltbc1ErrorCode::OutputBufferTooSmall);
+            assert!(!message_ptr.is_null());
+
+            let c_str = CStr::from_ptr(message_ptr);
+            let message = c_str.to_str().unwrap();
+            assert_eq!(message, "Output buffer too small for the operation");
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_error_message_allocation_failed() {
+        unsafe {
+            let message_ptr = dltbc1_error_message(Dltbc1ErrorCode::AllocationFailed);
+            assert!(!message_ptr.is_null());
+
+            let c_str = CStr::from_ptr(message_ptr);
+            let message = c_str.to_str().unwrap();
+            assert_eq!(message, "Memory allocation failed");
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_error_message_size_estimation_failed() {
+        unsafe {
+            let message_ptr = dltbc1_error_message(Dltbc1ErrorCode::SizeEstimationFailed);
+            assert!(!message_ptr.is_null());
+
+            let c_str = CStr::from_ptr(message_ptr);
+            let message = c_str.to_str().unwrap();
+            assert_eq!(
+                message,
+                "Size estimation failed during transform optimization"
+            );
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_error_message_null_data_pointer() {
+        unsafe {
+            let message_ptr = dltbc1_error_message(Dltbc1ErrorCode::NullDataPointer);
+            assert!(!message_ptr.is_null());
+
+            let c_str = CStr::from_ptr(message_ptr);
+            let message = c_str.to_str().unwrap();
+            assert_eq!(message, "Null pointer provided for data parameter");
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_error_message_null_estimator_pointer() {
+        unsafe {
+            let message_ptr = dltbc1_error_message(Dltbc1ErrorCode::NullEstimatorPointer);
+            assert!(!message_ptr.is_null());
+
+            let c_str = CStr::from_ptr(message_ptr);
+            let message = c_str.to_str().unwrap();
+            assert_eq!(
+                message,
+                "Null pointer provided for DltSizeEstimator parameter"
+            );
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_error_message_null_transform_settings_pointer() {
+        unsafe {
+            let message_ptr = dltbc1_error_message(Dltbc1ErrorCode::NullTransformSettingsPointer);
+            assert!(!message_ptr.is_null());
+
+            let c_str = CStr::from_ptr(message_ptr);
+            let message = c_str.to_str().unwrap();
+            assert_eq!(
+                message,
+                "Null pointer provided for Dltbc1TransformSettings parameter"
+            );
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_error_message_null_input_pointer() {
+        unsafe {
+            let message_ptr = dltbc1_error_message(Dltbc1ErrorCode::NullInputPointer);
+            assert!(!message_ptr.is_null());
+
+            let c_str = CStr::from_ptr(message_ptr);
+            let message = c_str.to_str().unwrap();
+            assert_eq!(message, "Null pointer provided for input parameter");
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_error_message_null_output_buffer_pointer() {
+        unsafe {
+            let message_ptr = dltbc1_error_message(Dltbc1ErrorCode::NullOutputBufferPointer);
+            assert!(!message_ptr.is_null());
+
+            let c_str = CStr::from_ptr(message_ptr);
+            let message = c_str.to_str().unwrap();
+            assert_eq!(message, "Null pointer provided for output parameter");
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_error_message_null_manual_transform_builder_pointer() {
+        unsafe {
+            let message_ptr =
+                dltbc1_error_message(Dltbc1ErrorCode::NullManualTransformBuilderPointer);
+            assert!(!message_ptr.is_null());
+
+            let c_str = CStr::from_ptr(message_ptr);
+            let message = c_str.to_str().unwrap();
+            assert_eq!(
+                message,
+                "Null pointer provided for Dltbc1ManualTransformBuilder parameter"
+            );
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_error_message_null_builder_pointer() {
+        unsafe {
+            let message_ptr = dltbc1_error_message(Dltbc1ErrorCode::NullBuilderPointer);
+            assert!(!message_ptr.is_null());
+
+            let c_str = CStr::from_ptr(message_ptr);
+            let message = c_str.to_str().unwrap();
+            assert_eq!(
+                message,
+                "Null pointer provided for Dltbc1EstimateSettingsBuilder parameter"
+            );
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_error_message_null_manual_builder_output_pointer() {
+        unsafe {
+            let message_ptr = dltbc1_error_message(Dltbc1ErrorCode::NullManualBuilderOutputPointer);
+            assert!(!message_ptr.is_null());
+
+            let c_str = CStr::from_ptr(message_ptr);
+            let message = c_str.to_str().unwrap();
+            assert_eq!(
+                message,
+                "Null pointer provided for manual builder output parameter"
+            );
+        }
+    }
+
+    /// Test that all error message strings are null-terminated and valid UTF-8
+    #[test]
+    fn test_all_error_messages_are_valid() {
+        let error_codes = [
+            Dltbc1ErrorCode::Success,
+            Dltbc1ErrorCode::InvalidLength,
+            Dltbc1ErrorCode::OutputBufferTooSmall,
+            Dltbc1ErrorCode::AllocationFailed,
+            Dltbc1ErrorCode::SizeEstimationFailed,
+            Dltbc1ErrorCode::NullDataPointer,
+            Dltbc1ErrorCode::NullEstimatorPointer,
+            Dltbc1ErrorCode::NullTransformSettingsPointer,
+            Dltbc1ErrorCode::NullInputPointer,
+            Dltbc1ErrorCode::NullOutputBufferPointer,
+            Dltbc1ErrorCode::NullManualTransformBuilderPointer,
+            Dltbc1ErrorCode::NullBuilderPointer,
+            Dltbc1ErrorCode::NullManualBuilderOutputPointer,
+        ];
+
+        for &error_code in &error_codes {
+            unsafe {
+                let message_ptr = dltbc1_error_message(error_code);
+                assert!(
+                    !message_ptr.is_null(),
+                    "Error message pointer is null for {:?}",
+                    error_code
+                );
+
+                let c_str = CStr::from_ptr(message_ptr);
+                let message = c_str.to_str().expect(&format!(
+                    "Error message is not valid UTF-8 for {:?}",
+                    error_code
+                ));
+
+                assert!(
+                    !message.is_empty(),
+                    "Error message is empty for {:?}",
+                    error_code
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_result_success() {
+        let result = Dltbc1Result::success();
+        assert_eq!(result.error_code, Dltbc1ErrorCode::Success);
+        assert!(result.is_success());
+    }
+
+    #[test]
+    fn test_dltbc1_result_from_error_code() {
+        let result = Dltbc1Result::from_error_code(Dltbc1ErrorCode::InvalidLength);
+        assert_eq!(result.error_code, Dltbc1ErrorCode::InvalidLength);
+        assert!(!result.is_success());
+    }
+
+    #[test]
+    fn test_dltbc1_result_from_bc1_error() {
+        let bc1_error: Bc1Error<&'static str> = Bc1Error::InvalidLength(24);
+        let result: Dltbc1Result = bc1_error.into();
+        assert_eq!(result.error_code, Dltbc1ErrorCode::InvalidLength);
+        assert!(!result.is_success());
+    }
+
+    #[test]
+    fn test_dltbc1_result_from_validation_error() {
+        let validation_error = Bc1ValidationError::InvalidLength(24);
+        let result: Dltbc1Result = validation_error.into();
+        assert_eq!(result.error_code, Dltbc1ErrorCode::InvalidLength);
+        assert!(!result.is_success());
+    }
+}

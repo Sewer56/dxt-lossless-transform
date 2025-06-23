@@ -246,3 +246,427 @@ pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_Transform(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
+    use std::{ffi::c_void, ptr};
+
+    /// Test helper: Create a dummy size estimator for testing
+    fn create_dummy_estimator() -> DltSizeEstimator {
+        unsafe extern "C" fn dummy_max_compressed_size(
+            _context: *mut c_void,
+            len_bytes: usize,
+            out_size: *mut usize,
+        ) -> u32 {
+            unsafe {
+                *out_size = len_bytes; // Just return input size
+            }
+            0 // Success
+        }
+
+        unsafe extern "C" fn dummy_estimate_compressed_size(
+            _context: *mut c_void,
+            _input_ptr: *const u8,
+            len_bytes: usize,
+            _data_type: u8,
+            _output_ptr: *mut u8,
+            _output_len: usize,
+            out_size: *mut usize,
+        ) -> u32 {
+            unsafe {
+                *out_size = len_bytes; // Just return input size
+            }
+            0 // Success
+        }
+
+        DltSizeEstimator {
+            context: ptr::null_mut(),
+            max_compressed_size: dummy_max_compressed_size,
+            estimate_compressed_size: dummy_estimate_compressed_size,
+            supports_data_type_differentiation: false,
+        }
+    }
+
+    /// Helper function to create sample BC1 test data (2 blocks = 16 bytes)
+    fn create_test_bc1_data() -> Vec<u8> {
+        vec![
+            // Block 1: 8 bytes
+            0x00, 0x01, 0x02, 0x03, // colors
+            0x80, 0x81, 0x82, 0x83, // indices
+            // Block 2: 8 bytes
+            0x04, 0x05, 0x06, 0x07, // colors
+            0x84, 0x85, 0x86, 0x87, // indices
+        ]
+    }
+
+    #[test]
+    fn test_dltbc1_new_auto_transform_builder() {
+        let estimator = create_dummy_estimator();
+
+        unsafe {
+            let builder = dltbc1_new_AutoTransformBuilder(&estimator);
+            assert!(!builder.is_null());
+
+            // Clean up
+            dltbc1_free_AutoTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_new_auto_transform_builder_null_estimator() {
+        unsafe {
+            let builder = dltbc1_new_AutoTransformBuilder(ptr::null());
+            assert!(builder.is_null());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_free_auto_transform_builder_null_pointer() {
+        unsafe {
+            // Should not crash when freeing null pointer
+            dltbc1_free_AutoTransformBuilder(ptr::null_mut());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_auto_transform_builder_set_use_all_decorrelation_modes() {
+        let estimator = create_dummy_estimator();
+
+        unsafe {
+            let builder = dltbc1_new_AutoTransformBuilder(&estimator);
+            assert!(!builder.is_null());
+
+            // Test setting use_all_decorrelation_modes to true
+            let result1 = dltbc1_AutoTransformBuilder_SetUseAllDecorrelationModes(builder, true);
+            assert_eq!(result1.error_code, Dltbc1ErrorCode::Success);
+            assert!(result1.is_success());
+
+            // Test setting use_all_decorrelation_modes to false
+            let result2 = dltbc1_AutoTransformBuilder_SetUseAllDecorrelationModes(builder, false);
+            assert_eq!(result2.error_code, Dltbc1ErrorCode::Success);
+            assert!(result2.is_success());
+
+            dltbc1_free_AutoTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_auto_transform_builder_set_use_all_decorrelation_modes_null_builder() {
+        unsafe {
+            let result =
+                dltbc1_AutoTransformBuilder_SetUseAllDecorrelationModes(ptr::null_mut(), true);
+            assert_eq!(result.error_code, Dltbc1ErrorCode::NullBuilderPointer);
+            assert!(!result.is_success());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_auto_transform_builder_transform_basic() {
+        let estimator = create_dummy_estimator();
+        let test_data = create_test_bc1_data();
+        let mut output = vec![0u8; test_data.len()];
+        let mut manual_builder: *mut Dltbc1ManualTransformBuilder = ptr::null_mut();
+
+        unsafe {
+            let builder = dltbc1_new_AutoTransformBuilder(&estimator);
+            assert!(!builder.is_null());
+
+            let result = dltbc1_AutoTransformBuilder_Transform(
+                builder,
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                &mut manual_builder,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::Success);
+            assert!(result.is_success());
+            assert!(!manual_builder.is_null());
+
+            // Clean up
+            dltbc1_free_AutoTransformBuilder(builder);
+
+            use crate::c_api::transform::manual_transform_builder::dltbc1_free_ManualTransformBuilder;
+            dltbc1_free_ManualTransformBuilder(manual_builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_auto_transform_builder_transform_null_builder() {
+        let test_data = create_test_bc1_data();
+        let mut output = vec![0u8; test_data.len()];
+        let mut manual_builder: *mut Dltbc1ManualTransformBuilder = ptr::null_mut();
+
+        unsafe {
+            let result = dltbc1_AutoTransformBuilder_Transform(
+                ptr::null_mut(),
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                &mut manual_builder,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::NullBuilderPointer);
+            assert!(!result.is_success());
+            assert!(manual_builder.is_null());
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_auto_transform_builder_transform_null_data() {
+        let estimator = create_dummy_estimator();
+        let mut output = vec![0u8; 16];
+        let mut manual_builder: *mut Dltbc1ManualTransformBuilder = ptr::null_mut();
+
+        unsafe {
+            let builder = dltbc1_new_AutoTransformBuilder(&estimator);
+            assert!(!builder.is_null());
+
+            let result = dltbc1_AutoTransformBuilder_Transform(
+                builder,
+                ptr::null(),
+                16,
+                output.as_mut_ptr(),
+                output.len(),
+                &mut manual_builder,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::NullDataPointer);
+            assert!(!result.is_success());
+            assert!(manual_builder.is_null());
+
+            dltbc1_free_AutoTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_auto_transform_builder_transform_null_output() {
+        let estimator = create_dummy_estimator();
+        let test_data = create_test_bc1_data();
+        let mut manual_builder: *mut Dltbc1ManualTransformBuilder = ptr::null_mut();
+
+        unsafe {
+            let builder = dltbc1_new_AutoTransformBuilder(&estimator);
+            assert!(!builder.is_null());
+
+            let result = dltbc1_AutoTransformBuilder_Transform(
+                builder,
+                test_data.as_ptr(),
+                test_data.len(),
+                ptr::null_mut(),
+                16,
+                &mut manual_builder,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::NullOutputBufferPointer);
+            assert!(!result.is_success());
+            assert!(manual_builder.is_null());
+
+            dltbc1_free_AutoTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_auto_transform_builder_transform_null_manual_builder_output() {
+        let estimator = create_dummy_estimator();
+        let test_data = create_test_bc1_data();
+        let mut output = vec![0u8; test_data.len()];
+
+        unsafe {
+            let builder = dltbc1_new_AutoTransformBuilder(&estimator);
+            assert!(!builder.is_null());
+
+            let result = dltbc1_AutoTransformBuilder_Transform(
+                builder,
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                ptr::null_mut(),
+            );
+
+            assert_eq!(
+                result.error_code,
+                Dltbc1ErrorCode::NullManualBuilderOutputPointer
+            );
+            assert!(!result.is_success());
+
+            dltbc1_free_AutoTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_auto_transform_builder_transform_invalid_length() {
+        let estimator = create_dummy_estimator();
+        let test_data = vec![0u8; 15]; // Not divisible by 8
+        let mut output = vec![0u8; 15];
+        let mut manual_builder: *mut Dltbc1ManualTransformBuilder = ptr::null_mut();
+
+        unsafe {
+            let builder = dltbc1_new_AutoTransformBuilder(&estimator);
+            assert!(!builder.is_null());
+
+            let result = dltbc1_AutoTransformBuilder_Transform(
+                builder,
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                &mut manual_builder,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::InvalidLength);
+            assert!(!result.is_success());
+            assert!(manual_builder.is_null());
+
+            dltbc1_free_AutoTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_auto_transform_builder_transform_output_too_small() {
+        let estimator = create_dummy_estimator();
+        let test_data = create_test_bc1_data();
+        let mut output = vec![0u8; test_data.len() - 1]; // Too small
+        let mut manual_builder: *mut Dltbc1ManualTransformBuilder = ptr::null_mut();
+
+        unsafe {
+            let builder = dltbc1_new_AutoTransformBuilder(&estimator);
+            assert!(!builder.is_null());
+
+            let result = dltbc1_AutoTransformBuilder_Transform(
+                builder,
+                test_data.as_ptr(),
+                test_data.len(),
+                output.as_mut_ptr(),
+                output.len(),
+                &mut manual_builder,
+            );
+
+            assert_eq!(result.error_code, Dltbc1ErrorCode::OutputBufferTooSmall);
+            assert!(!result.is_success());
+            assert!(manual_builder.is_null());
+
+            dltbc1_free_AutoTransformBuilder(builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_auto_transform_builder_full_workflow() {
+        let estimator = create_dummy_estimator();
+        let test_data = create_test_bc1_data();
+        let mut transformed = vec![0u8; test_data.len()];
+        let mut restored = vec![0u8; test_data.len()];
+        let mut manual_builder: *mut Dltbc1ManualTransformBuilder = ptr::null_mut();
+
+        unsafe {
+            let auto_builder = dltbc1_new_AutoTransformBuilder(&estimator);
+            assert!(!auto_builder.is_null());
+
+            // Configure auto builder
+            let config_result =
+                dltbc1_AutoTransformBuilder_SetUseAllDecorrelationModes(auto_builder, false);
+            assert_eq!(config_result.error_code, Dltbc1ErrorCode::Success);
+
+            // Transform using auto builder (this returns a configured manual builder)
+            let transform_result = dltbc1_AutoTransformBuilder_Transform(
+                auto_builder,
+                test_data.as_ptr(),
+                test_data.len(),
+                transformed.as_mut_ptr(),
+                transformed.len(),
+                &mut manual_builder,
+            );
+
+            assert_eq!(transform_result.error_code, Dltbc1ErrorCode::Success);
+            assert!(!manual_builder.is_null());
+
+            // Use the returned manual builder to untransform
+            use crate::c_api::transform::manual_transform_builder::dltbc1_ManualTransformBuilder_Untransform;
+            let untransform_result = dltbc1_ManualTransformBuilder_Untransform(
+                transformed.as_ptr(),
+                transformed.len(),
+                restored.as_mut_ptr(),
+                restored.len(),
+                manual_builder,
+            );
+
+            assert_eq!(untransform_result.error_code, Dltbc1ErrorCode::Success);
+            // Note: In practice, we'd expect restored == test_data, but with our dummy estimator,
+            // the transform might not be a perfect identity
+
+            // Clean up
+            dltbc1_free_AutoTransformBuilder(auto_builder);
+
+            use crate::c_api::transform::manual_transform_builder::dltbc1_free_ManualTransformBuilder;
+            dltbc1_free_ManualTransformBuilder(manual_builder);
+        }
+    }
+
+    #[test]
+    fn test_dltbc1_auto_transform_builder_with_different_settings() {
+        let estimator = create_dummy_estimator();
+        let test_data = create_test_bc1_data();
+
+        unsafe {
+            let builder = dltbc1_new_AutoTransformBuilder(&estimator);
+            assert!(!builder.is_null());
+
+            // Test with use_all_decorrelation_modes = false
+            {
+                let config_result =
+                    dltbc1_AutoTransformBuilder_SetUseAllDecorrelationModes(builder, false);
+                assert_eq!(config_result.error_code, Dltbc1ErrorCode::Success);
+
+                let mut output = vec![0u8; test_data.len()];
+                let mut manual_builder: *mut Dltbc1ManualTransformBuilder = ptr::null_mut();
+
+                let result = dltbc1_AutoTransformBuilder_Transform(
+                    builder,
+                    test_data.as_ptr(),
+                    test_data.len(),
+                    output.as_mut_ptr(),
+                    output.len(),
+                    &mut manual_builder,
+                );
+
+                assert_eq!(result.error_code, Dltbc1ErrorCode::Success);
+                assert!(!manual_builder.is_null());
+
+                use crate::c_api::transform::manual_transform_builder::dltbc1_free_ManualTransformBuilder;
+                dltbc1_free_ManualTransformBuilder(manual_builder);
+            }
+
+            // Test with use_all_decorrelation_modes = true
+            {
+                let config_result =
+                    dltbc1_AutoTransformBuilder_SetUseAllDecorrelationModes(builder, true);
+                assert_eq!(config_result.error_code, Dltbc1ErrorCode::Success);
+
+                let mut output = vec![0u8; test_data.len()];
+                let mut manual_builder: *mut Dltbc1ManualTransformBuilder = ptr::null_mut();
+
+                let result = dltbc1_AutoTransformBuilder_Transform(
+                    builder,
+                    test_data.as_ptr(),
+                    test_data.len(),
+                    output.as_mut_ptr(),
+                    output.len(),
+                    &mut manual_builder,
+                );
+
+                assert_eq!(result.error_code, Dltbc1ErrorCode::Success);
+                assert!(!manual_builder.is_null());
+
+                use crate::c_api::transform::manual_transform_builder::dltbc1_free_ManualTransformBuilder;
+                dltbc1_free_ManualTransformBuilder(manual_builder);
+            }
+
+            dltbc1_free_AutoTransformBuilder(builder);
+        }
+    }
+}

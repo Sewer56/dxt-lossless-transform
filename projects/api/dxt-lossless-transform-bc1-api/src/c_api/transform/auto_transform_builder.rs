@@ -143,7 +143,8 @@ pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_SetUseAllDecorrelationModes
 /// - `output`: Pointer to output buffer where transformed data will be written
 /// - `output_len`: Length of output buffer in bytes (must be at least `data_len`)
 /// - `out_manual_builder`: Output pointer where the configured manual builder will be written.
-///   The returned builder must be freed with [`dltbc1_free_ManualTransformBuilder`].
+///   On success, this will be set to a valid pointer that must be freed with [`dltbc1_free_ManualTransformBuilder`].
+///   On error, this will be set to null.
 ///
 /// # Returns
 /// A [`Dltbc1Result`] indicating success or containing an error code.

@@ -131,7 +131,9 @@ impl From<crate::Bc1TransformSettings> for Dltbc1TransformSettings {
 ///   This will test different transform configurations and choose the one that results
 ///   in the smallest estimated compressed size according to this estimator.
 /// - `settings`: Settings controlling the optimization process
-/// - `out_details`: Pointer where transform details will be written on success
+/// - `out_details`: Pointer where transform details will be written.
+///   On success, this will be set to the transform settings used.
+///   On error, the value is undefined.
 ///
 /// # Returns
 /// A [`Dltbc1Result`] indicating success or containing an error.

@@ -8,7 +8,9 @@ use core::{ffi::c_void, fmt::Display};
 /// # Parameters
 /// - `context`: User-provided context (can be null)
 /// - `len_bytes`: Length of the input data in bytes
-/// - `out_size`: Output parameter for the maximum compressed size
+/// - `out_size`: Output parameter for the maximum compressed size.
+///   On success, this will be set to the estimated maximum size.
+///   On error, the value is undefined.
 ///
 /// # Returns
 /// 0 on success, non-zero error code on failure
@@ -24,7 +26,9 @@ pub type DltMaxCompressedSizeFn =
 /// - `data_type`: The type of data being compressed (see DataType enum values)
 /// - `output_ptr`: Pre-allocated output buffer for compression
 /// - `output_len`: Length of the pre-allocated output buffer
-/// - `out_size`: Output parameter for the estimated compressed size
+/// - `out_size`: Output parameter for the estimated compressed size.
+///   On success, this will be set to the estimated size.
+///   On error, the value is undefined.
 ///
 /// # Returns
 /// 0 on success, non-zero error code on failure

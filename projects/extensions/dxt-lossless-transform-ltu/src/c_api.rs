@@ -237,7 +237,7 @@ fn create_c_size_estimator(ltu: Box<LosslessTransformUtilsSizeEstimation>) -> Dl
 /// let ltu_estimator = unsafe { dltltu_new_size_estimator() };
 ///
 /// // Use it with BC1 API
-/// let bc1_settings_builder = unsafe { dltbc1_new_TransformSettingsBuilder() };
+/// let bc1_settings_builder = unsafe { dltbc1_new_ManualTransformBuilder() };
 /// let bc1_estimate_builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
 ///
 /// // Your BC1 texture data (8 bytes per BC1 block)
@@ -264,7 +264,7 @@ fn create_c_size_estimator(ltu: Box<LosslessTransformUtilsSizeEstimation>) -> Dl
 /// unsafe {
 ///     dltltu_free_size_estimator(ltu_estimator);
 ///     dltbc1_free_EstimateOptionsBuilder(bc1_estimate_builder);
-///     dltbc1_free_TransformSettingsBuilder(bc1_settings_builder);
+///     dltbc1_free_ManualTransformBuilder(bc1_settings_builder);
 /// }
 /// ```
 #[cfg(test)]

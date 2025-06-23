@@ -30,8 +30,8 @@ pub enum Dltbc1ErrorCode {
     NullInputPointer = 8,
     /// Null pointer provided for output buffer parameter
     NullOutputBufferPointer = 9,
-    /// Null pointer provided for Dltbc1TransformSettingsBuilder parameter
-    NullTransformSettingsBuilderPointer = 10,
+    /// Null pointer provided for Dltbc1ManualTransformBuilder parameter
+    NullManualTransformBuilderPointer = 10,
     /// Null pointer provided for Dltbc1EstimateSettingsBuilder parameter
     NullBuilderPointer = 11,
 }
@@ -155,8 +155,8 @@ pub unsafe extern "C" fn dltbc1_error_message(error_code: Dltbc1ErrorCode) -> *c
         Dltbc1ErrorCode::NullOutputBufferPointer => {
             c"Null pointer provided for output parameter".as_ptr() as *const c_char
         }
-        Dltbc1ErrorCode::NullTransformSettingsBuilderPointer => {
-            c"Null pointer provided for Dltbc1TransformSettingsBuilder parameter".as_ptr()
+        Dltbc1ErrorCode::NullManualTransformBuilderPointer => {
+            c"Null pointer provided for Dltbc1ManualTransformBuilder parameter".as_ptr()
                 as *const c_char
         }
         Dltbc1ErrorCode::NullBuilderPointer => {

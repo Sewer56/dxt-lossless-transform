@@ -56,11 +56,11 @@ where
         self
     }
 
-    /// Transform BC1 data with automatically optimized settings and return a builder for detransformation.
+    /// Transform BC1 data with automatically optimized settings and return a builder for untransformation.
     ///
     /// This method determines the best transform settings using the configured estimator,
     /// applies the transformation to the input data, and returns a pre-configured
-    /// [`Bc1ManualTransformBuilder`] that can be used to detransform the data later.
+    /// [`Bc1ManualTransformBuilder`] that can be used to untransform the data later.
     ///
     /// # Parameters
     /// - `input`: The BC1 data to transform
@@ -88,13 +88,13 @@ where
     /// // Create LTU estimator for fast size estimation
     /// let estimator = LosslessTransformUtilsSizeEstimation::new();
     ///
-    /// // Transform with optimal settings and get builder for detransformation
-    /// let detransform_builder = Bc1AutoTransformBuilder::new(estimator)
+    /// // Transform with optimal settings and get builder for untransformation
+    /// let untransform_builder = Bc1AutoTransformBuilder::new(estimator)
     ///     .use_all_decorrelation_modes(false)
     ///     .transform(&bc1_data, &mut transformed)?;
     ///
-    /// // Later, detransform using the returned builder
-    /// detransform_builder.detransform(&transformed, &mut restored)?;
+    /// // Later, untransform using the returned builder
+    /// untransform_builder.untransform(&transformed, &mut restored)?;
     /// # assert_eq!(bc1_data, restored); // Verify round-trip works
     /// # Ok(())
     /// # }
@@ -166,11 +166,11 @@ mod tests {
             "transform should not fail with valid BC1 data"
         );
 
-        // Verify we can use the returned builder for detransformation
-        let detransform_builder = result.unwrap();
+        // Verify we can use the returned builder for untransformation
+        let untransform_builder = result.unwrap();
         let mut restored = [0u8; 8];
-        let detransform_result = detransform_builder.detransform(&transformed, &mut restored);
-        assert!(detransform_result.is_ok(), "detransform should succeed");
+        let untransform_result = untransform_builder.untransform(&transformed, &mut restored);
+        assert!(untransform_result.is_ok(), "untransform should succeed");
     }
 
     #[test]

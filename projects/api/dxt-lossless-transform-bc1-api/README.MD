@@ -34,7 +34,7 @@ let mut output_buffer = allocate_cache_line_aligned(8 * 500)?;
 
 // Transform with automatically optimized settings
 let estimator = LosslessTransformUtilsSizeEstimation::new();
-let detransform_builder = Bc1AutoTransformBuilder::new(estimator)
+let untransform_builder = Bc1AutoTransformBuilder::new(estimator)
     .use_all_decorrelation_modes(false) // Fast mode
     .transform(bc1_buffer.as_slice(), output_buffer.as_mut_slice())?;
 
@@ -69,14 +69,14 @@ they should be used for final publishing only alongside other brute force option
 
 - [`Bc1AutoTransformBuilder::transform`] - Transform BC1 data with automatically optimized settings
 - [`Bc1ManualTransformBuilder::transform`] - Transform BC1 data using configured settings
-- [`Bc1ManualTransformBuilder::detransform`] - Detransform BC1 data using configured settings
+- [`Bc1ManualTransformBuilder::untransform`] - Untransform BC1 data using configured settings
 
 ### Automatic Optimization
 
 - [`Bc1AutoTransformBuilder`] - Builder pattern for automatic optimization settings
   - `new(estimator)` - Create a new automatic transform builder with the provided estimator
   - `use_all_decorrelation_modes(bool)` - Configure thoroughness vs speed tradeoff
-  - `transform(input, output)` - Transform data with optimal settings and return a configured manual builder for detransformation
+  - `transform(input, output)` - Transform data with optimal settings and return a configured manual builder for untransformation
 
 ### Manual Configuration
 
@@ -85,7 +85,7 @@ they should be used for final publishing only alongside other brute force option
   - `decorrelation_mode(YCoCgVariant)` - Set the decorrelation mode
   - `split_colour_endpoints(bool)` - Set whether to split color endpoints
   - `transform(input, output)` - Transform BC1 data using configured settings
-  - `detransform(input, output)` - Detransform BC1 data using configured settings
+  - `untransform(input, output)` - Untransform BC1 data using configured settings
 
 ### Core Types
 
@@ -134,7 +134,7 @@ let builder = Bc1ManualTransformBuilder::new()
 builder.transform(&bc1_data, &mut transformed)?;
 
 // Later, after decompression, restore original data
-builder.detransform(&transformed, &mut restored)?;
+builder.untransform(&transformed, &mut restored)?;
 
 // Restored data should match original
 assert_eq!(bc1_data, restored);
@@ -177,14 +177,14 @@ Choose between speed and quality:
 let estimator = LosslessTransformUtilsSizeEstimation::new();
 
 // Fast mode: ~2x faster, tests common configurations
-let fast_detransform_builder = Bc1AutoTransformBuilder::new(estimator)
+let fast_untransform_builder = Bc1AutoTransformBuilder::new(estimator)
     .use_all_decorrelation_modes(false)
     .transform(&data, &mut output_fast)?;
 
 // Thorough mode: tests all decorrelation modes for best compression
 // (typical gains are <0.1%; consider using estimator level closer to final compression level instead)
 let estimator2 = LosslessTransformUtilsSizeEstimation::new();
-let thorough_detransform_builder = Bc1AutoTransformBuilder::new(estimator2)
+let thorough_untransform_builder = Bc1AutoTransformBuilder::new(estimator2)
     .use_all_decorrelation_modes(true)
     .transform(&data, &mut output_thorough)?;
 # Ok(())
@@ -207,7 +207,7 @@ let estimator = LosslessTransformUtilsSizeEstimation::new();
 match Bc1AutoTransformBuilder::new(estimator)
     .use_all_decorrelation_modes(false)
     .transform(&input, &mut output) {
-    Ok(detransform_builder) => println!("Transform successful"),
+    Ok(untransform_builder) => println!("Transform successful"),
     Err(Bc1Error::InvalidLength(len)) => {
         eprintln!("Invalid input: {} bytes (must be divisible by 8)", len);
     }

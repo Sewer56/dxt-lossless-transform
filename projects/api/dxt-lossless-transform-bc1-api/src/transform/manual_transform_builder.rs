@@ -86,8 +86,8 @@ impl Bc1ManualTransformBuilder {
     /// // Transform
     /// builder.transform(&bc1_data, &mut transformed)?;
     ///
-    /// // Later, detransform with the same builder
-    /// builder.detransform(&transformed, &mut restored)?;
+    /// // Later, untransform with the same builder
+    /// builder.untransform(&transformed, &mut restored)?;
     /// # assert_eq!(bc1_data, restored); // Verify round-trip works
     /// # Ok(())
     /// # }
@@ -96,20 +96,20 @@ impl Bc1ManualTransformBuilder {
         transform_bc1_with_settings_safe(input, output, self.settings).map_err(Bc1Error::from)
     }
 
-    /// Detransform BC1 data using the configured settings.
+    /// Untransform BC1 data using the configured settings.
     ///
     /// This method reverses the transformation applied by [`transform`](Self::transform),
     /// using the same configuration that was used for the original transformation.
     ///
     /// # Parameters
-    /// - `input`: The transformed BC1 data to detransform
+    /// - `input`: The transformed BC1 data to untransform
     /// - `output`: The output buffer where original BC1 data will be written
     ///
     /// # Returns
     /// Ok(()) on success, or an error on failure.
     ///
     /// # Errors
-    /// Returns [`Bc1Error`] if the detransformation fails.
+    /// Returns [`Bc1Error`] if the untransformation fails.
     ///
     /// # Examples
     ///
@@ -125,11 +125,11 @@ impl Bc1ManualTransformBuilder {
     ///     .decorrelation_mode(YCoCgVariant::Variant1)
     ///     .split_colour_endpoints(true);
     ///
-    /// builder.detransform(&transformed_data, &mut output)?;
+    /// builder.untransform(&transformed_data, &mut output)?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn detransform(&self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
+    pub fn untransform(&self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
         let detransform_settings: Bc1DetransformSettings = self.settings;
         untransform_bc1_with_settings_safe(input, output, detransform_settings)
             .map_err(Bc1Error::from)
@@ -191,7 +191,7 @@ mod tests {
         );
 
         // Detransform with same settings
-        let detransform_result = builder.detransform(&transformed, &mut restored);
+        let detransform_result = builder.untransform(&transformed, &mut restored);
         assert!(
             detransform_result.is_ok(),
             "Detransform should not fail with valid transformed data"

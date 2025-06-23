@@ -31,7 +31,8 @@ Always run binaries with `--all-features`, and on the workspace, as changes to o
 ### Import and Dependency Preferences
 
 - Prefer `core` over `std` when possible for better no_std compatibility
-- Prefer adding explicit `use` statements instead of fully qualified paths, unless the code is inside a feature block that blocks/enables compilation
+- Prefer using short names and `use` statements at the top of the file.
+- Only place `use` statements inside a function if that function has conditional compilation flags like `cfg`.
 
 ## Documentation Standards
 

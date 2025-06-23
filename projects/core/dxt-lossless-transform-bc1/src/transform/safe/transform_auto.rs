@@ -99,7 +99,6 @@ pub fn transform_bc1_auto<T>(
 ) -> Result<Bc1TransformSettings, Bc1AutoTransformError<T::Error>>
 where
     T: SizeEstimationOperations,
-    T::Error: core::fmt::Debug,
 {
     // Validate input length
     if input.len() % 8 != 0 {

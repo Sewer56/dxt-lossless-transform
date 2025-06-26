@@ -6,7 +6,6 @@ use crate::traits::FileFormatHandler;
 use core::slice;
 use lightweight_mmap::handles::*;
 use lightweight_mmap::mmap::*;
-use std::fs;
 use std::path::Path;
 
 /// Transform a file using a specific handler and transform bundle.
@@ -18,7 +17,7 @@ use std::path::Path;
 ///
 /// * `handler` - The file format handler to use
 /// * `input_path` - Path to the input file
-/// * `output_path` - Path to the output file (will be created)
+/// * `output_path` - Path to the output file (will be created). The output directory must exist.
 /// * `bundle` - The transform bundle containing BCx builders
 ///
 /// # Returns
@@ -34,11 +33,6 @@ pub fn transform_file_bundle<H: FileFormatHandler>(
     let input_handle = ReadOnlyFileHandle::open(input_path.to_str().unwrap())?;
     let input_size = input_handle.size()? as usize;
     let input_mapping = ReadOnlyMmap::new(&input_handle, 0, input_size)?;
-
-    // Create output file first
-    if let Some(parent) = output_path.parent() {
-        fs::create_dir_all(parent)?;
-    }
 
     let output_handle =
         ReadWriteFileHandle::create_preallocated(output_path.to_str().unwrap(), input_size as i64)?;
@@ -65,7 +59,7 @@ pub fn transform_file_bundle<H: FileFormatHandler>(
 ///
 /// * `handler` - The file format handler to use
 /// * `input_path` - Path to the input file
-/// * `output_path` - Path to the output file (will be created)
+/// * `output_path` - Path to the output file (will be created). The output directory must exist.
 ///
 /// # Returns
 ///
@@ -79,11 +73,6 @@ pub fn untransform_file_with<H: FileFormatHandler>(
     let input_handle = ReadOnlyFileHandle::open(input_path.to_str().unwrap())?;
     let input_size = input_handle.size()? as usize;
     let input_mapping = ReadOnlyMmap::new(&input_handle, 0, input_size)?;
-
-    // Create output file first
-    if let Some(parent) = output_path.parent() {
-        fs::create_dir_all(parent)?;
-    }
 
     let output_handle =
         ReadWriteFileHandle::create_preallocated(output_path.to_str().unwrap(), input_size as i64)?;

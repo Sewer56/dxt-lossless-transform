@@ -57,6 +57,32 @@ pub unsafe fn parse_dds(ptr: *const u8, len: usize) -> Option<DdsInfo> {
         return None;
     }
 
+    parse_dds_ignore_magic(ptr, len)
+}
+
+/// Attempts to parse a DDS file format ignoring the magic header validation.
+///
+/// This function is used for transformed files where the original DDS magic
+/// has been overwritten with transform details. It assumes the input has a
+/// valid DDS structure except for the magic header.
+///
+/// # Safety
+///
+/// - `ptr` must be valid for reads of `len` bytes
+/// - `len` must accurately represent the length of the file
+/// - The data should have a valid DDS structure (except for the magic header)
+///
+/// # Return
+///
+/// `None` if the length is insufficient to read the headers or format is unknown.
+/// Otherwise, a [`DdsInfo`] with the format and data offset.
+#[inline]
+pub unsafe fn parse_dds_ignore_magic(ptr: *const u8, len: usize) -> Option<DdsInfo> {
+    // Check minimum length for DDS header
+    if len < DDS_HEADER_SIZE {
+        return None;
+    }
+
     let fourcc = (ptr.add(FOURCC_OFFSET) as *const u32).read();
 
     let (format, data_offset) = if fourcc == FOURCC_DX10 {
@@ -128,6 +154,33 @@ mod tests {
     }
 
     #[rstest]
+    #[case(FOURCC_DXT1, DdsFormat::BC1)]
+    #[case(FOURCC_DXT2, DdsFormat::BC2)]
+    #[case(FOURCC_DXT3, DdsFormat::BC2)]
+    #[case(FOURCC_DXT4, DdsFormat::BC3)]
+    #[case(FOURCC_DXT5, DdsFormat::BC3)]
+    fn can_parse_legacy_formats_ignore_magic(
+        #[case] fourcc: u32,
+        #[case] expected_format: DdsFormat,
+    ) {
+        let mut data = vec![0u8; 0x80];
+
+        unsafe {
+            // Set invalid magic header (simulating transform header)
+            (data.as_mut_ptr().add(0) as *mut u32).write_unaligned(0xDEADBEEF);
+            (data.as_mut_ptr().add(FOURCC_OFFSET) as *mut u32).write_unaligned(fourcc);
+        }
+
+        // Regular parse_dds should fail
+        assert!(unsafe { parse_dds(data.as_ptr(), data.len()) }.is_none());
+
+        // parse_dds_ignore_magic should succeed
+        let info = unsafe { parse_dds_ignore_magic(data.as_ptr(), data.len()) }.unwrap();
+        assert_eq!(info.format, expected_format);
+        assert_eq!(info.data_offset, 0x80);
+    }
+
+    #[rstest]
     #[case(DXGI_FORMAT_BC1_TYPELESS, DdsFormat::BC1)]
     #[case(DXGI_FORMAT_BC1_UNORM, DdsFormat::BC1)]
     #[case(DXGI_FORMAT_BC1_UNORM_SRGB, DdsFormat::BC1)]
@@ -150,6 +203,41 @@ mod tests {
         }
 
         let info = unsafe { parse_dds(data.as_ptr(), data.len()) }.unwrap();
+        assert_eq!(info.format, expected_format);
+        assert_eq!(info.data_offset, 0x94);
+    }
+
+    #[rstest]
+    #[case(DXGI_FORMAT_BC1_TYPELESS, DdsFormat::BC1)]
+    #[case(DXGI_FORMAT_BC1_UNORM, DdsFormat::BC1)]
+    #[case(DXGI_FORMAT_BC1_UNORM_SRGB, DdsFormat::BC1)]
+    #[case(DXGI_FORMAT_BC2_TYPELESS, DdsFormat::BC2)]
+    #[case(DXGI_FORMAT_BC2_UNORM, DdsFormat::BC2)]
+    #[case(DXGI_FORMAT_BC2_UNORM_SRGB, DdsFormat::BC2)]
+    #[case(DXGI_FORMAT_BC3_TYPELESS, DdsFormat::BC3)]
+    #[case(DXGI_FORMAT_BC3_UNORM, DdsFormat::BC3)]
+    #[case(DXGI_FORMAT_BC3_UNORM_SRGB, DdsFormat::BC3)]
+    #[case(DXGI_FORMAT_BC7_TYPELESS, DdsFormat::BC7)]
+    #[case(DXGI_FORMAT_BC7_UNORM, DdsFormat::BC7)]
+    #[case(DXGI_FORMAT_BC7_UNORM_SRGB, DdsFormat::BC7)]
+    fn can_parse_dx10_formats_ignore_magic(
+        #[case] dxgi_format: u32,
+        #[case] expected_format: DdsFormat,
+    ) {
+        let mut data = vec![0u8; 0x94];
+
+        unsafe {
+            // Set invalid magic header (simulating transform header)
+            (data.as_mut_ptr().add(0) as *mut u32).write_unaligned(0xDEADBEEF);
+            (data.as_mut_ptr().add(FOURCC_OFFSET) as *mut u32).write_unaligned(FOURCC_DX10);
+            (data.as_mut_ptr().add(DX10_FORMAT_OFFSET) as *mut u32).write_unaligned(dxgi_format);
+        }
+
+        // Regular parse_dds should fail
+        assert!(unsafe { parse_dds(data.as_ptr(), data.len()) }.is_none());
+
+        // parse_dds_ignore_magic should succeed
+        let info = unsafe { parse_dds_ignore_magic(data.as_ptr(), data.len()) }.unwrap();
         assert_eq!(info.format, expected_format);
         assert_eq!(info.data_offset, 0x94);
     }
@@ -190,5 +278,19 @@ mod tests {
             (data.as_mut_ptr().add(FOURCC_OFFSET) as *mut u32).write_unaligned(FOURCC_DX10);
         }
         assert!(unsafe { parse_dds(data.as_ptr(), data.len()) }.is_none());
+    }
+
+    #[test]
+    fn parse_dds_ignore_magic_handles_short_data() {
+        // Too short for legacy header
+        let data = [0u8; 0x7F];
+        assert!(unsafe { parse_dds_ignore_magic(data.as_ptr(), data.len()) }.is_none());
+
+        // Too short for DX10 header
+        let mut data = vec![0u8; 0x80];
+        unsafe {
+            (data.as_mut_ptr().add(FOURCC_OFFSET) as *mut u32).write_unaligned(FOURCC_DX10);
+        }
+        assert!(unsafe { parse_dds_ignore_magic(data.as_ptr(), data.len()) }.is_none());
     }
 }

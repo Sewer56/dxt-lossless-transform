@@ -22,6 +22,9 @@ std = []
 # Compiles the public C API for the crate.
 c-exports = []
 
+[dependencies]
+dxt-lossless-transform-file-formats-api = { path = "../../api/dxt-lossless-transform-file-formats-api" }
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dev-dependencies]
 criterion = "0.5.1"

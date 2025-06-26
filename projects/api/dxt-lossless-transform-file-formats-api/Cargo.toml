@@ -1,0 +1,53 @@
+[package]
+name = "dxt-lossless-transform-file-formats-api"
+version = "0.1.0"
+edition = "2021"
+description = "High-level API for transform-aware file format handling for dxt-lossless-transform"
+repository.workspace = true
+license-file.workspace = true
+include = ["src/**/*"]
+readme = "README.md"
+
+[lib]
+bench = false
+
+[features]
+default = ["std", "file_io"]
+std = [
+    "thiserror/std",
+    "dxt-lossless-transform-bc1-api/std",
+    "dxt-lossless-transform-bc2-api/std",
+    "dxt-lossless-transform-bc3-api/std",
+    "dxt-lossless-transform-bc7-api/std",
+    "dxt-lossless-transform-api-common/std"
+]
+file_io = ["std", "lightweight-mmap"]
+
+[dependencies]
+# Core dependencies
+dxt-lossless-transform-bc1-api = { path = "../dxt-lossless-transform-bc1-api", default-features = false }
+dxt-lossless-transform-bc2-api = { path = "../dxt-lossless-transform-bc2-api", default-features = false }
+dxt-lossless-transform-bc3-api = { path = "../dxt-lossless-transform-bc3-api", default-features = false }
+dxt-lossless-transform-bc7-api = { path = "../dxt-lossless-transform-bc7-api", default-features = false }
+dxt-lossless-transform-api-common = { path = "../dxt-lossless-transform-api-common", default-features = false }
+
+# Core transform crates for untransform operations
+dxt-lossless-transform-bc1 = { path = "../../core/dxt-lossless-transform-bc1" }
+dxt-lossless-transform-bc2 = { path = "../../core/dxt-lossless-transform-bc2" }
+dxt-lossless-transform-bc3 = { path = "../../core/dxt-lossless-transform-bc3" }
+dxt-lossless-transform-bc7 = { path = "../../core/dxt-lossless-transform-bc7" }
+
+# Common utilities
+dxt-lossless-transform-common = { path = "../../core/dxt-lossless-transform-common" }
+
+# External dependencies
+bitfield = { version = "0.19.1", default-features = false }
+thiserror = { version = "2.0", default-features = false }
+
+# Optional dependencies for file I/O
+lightweight-mmap = { version = "0.6.0", optional = true }
+
+[dev-dependencies]
+rstest = "0.25"
+tempfile = "3.8"
+dxt-lossless-transform-dds = { path = "../../extensions/dxt-lossless-transform-dds" } 

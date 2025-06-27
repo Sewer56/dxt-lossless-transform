@@ -4,6 +4,17 @@
 //! duplicate imports across the codebase.
 #![allow(unused_imports)]
 
+// External crate declaration for no_std compatibility
+extern crate alloc;
+#[cfg(feature = "std")]
+extern crate std;
+
+// Re-export commonly used alloc types for tests
+pub use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
+
+// Re-export std items for tests that need them
+pub use std::is_x86_feature_detected;
+
 // External crates commonly used in tests
 pub use rstest::rstest;
 

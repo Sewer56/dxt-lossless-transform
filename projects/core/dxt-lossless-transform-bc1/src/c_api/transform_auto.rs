@@ -192,6 +192,7 @@ pub unsafe extern "C" fn dltbc1core_transform_auto(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_prelude::*;
     use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
     use std::{ffi::c_void, ptr};
 

@@ -4,6 +4,7 @@
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
+use std::is_x86_feature_detected;
 
 use crate::transforms::standard::untransform::portable::u32_detransform_with_separate_pointers;
 

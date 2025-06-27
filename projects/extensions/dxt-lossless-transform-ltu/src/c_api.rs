@@ -43,6 +43,7 @@
 //! [`dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal`]: https://docs.rs/dxt-lossless-transform-bc1-api/latest/dxt_lossless_transform_bc1_api/c_api/determine_optimal_transform/fn.dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal.html
 
 use crate::{EstimationSettings, LosslessTransformUtilsSizeEstimation};
+use alloc::boxed::Box;
 use core::ffi::c_void;
 
 // Note: DltSizeEstimator is defined in dxt-lossless-transform-api-common

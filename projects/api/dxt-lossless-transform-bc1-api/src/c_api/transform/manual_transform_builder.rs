@@ -12,6 +12,7 @@ use crate::{
     c_api::error::{Dltbc1ErrorCode, Dltbc1Result},
     transform::Bc1ManualTransformBuilder,
 };
+use alloc::boxed::Box;
 use core::{ptr, slice};
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 
@@ -354,8 +355,7 @@ pub unsafe extern "C" fn dltbc1_ManualTransformBuilder_Untransform(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
-    use std::ptr;
+    use crate::test_prelude::*;
 
     /// Helper function to create sample BC1 test data (2 blocks = 16 bytes)
     fn create_test_bc1_data() -> Vec<u8> {

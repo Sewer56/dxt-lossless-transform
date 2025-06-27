@@ -1,5 +1,5 @@
 #![doc = include_str!(concat!("../", core::env!("CARGO_PKG_README")))]
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 // Not yet in stable today, but will be in 1.89.0
 #![allow(stable_features)]
 #![cfg_attr(
@@ -7,6 +7,12 @@
     feature(stdarch_x86_avx512)
 )]
 #![warn(missing_docs)]
+
+#[cfg(feature = "std")]
+extern crate std;
+
+#[cfg(test)]
+pub mod test_prelude;
 
 pub(crate) mod transform;
 
@@ -21,10 +27,6 @@ pub use transform::*;
 
 // Re-export YCoCgVariant for convenience
 pub use dxt_lossless_transform_common::color_565::YCoCgVariant;
-
-/// Common test prelude for avoiding duplicate imports in test modules
-#[cfg(test)]
-pub mod test_prelude;
 
 /// C API exports
 #[cfg(feature = "c-exports")]

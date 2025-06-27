@@ -1,5 +1,12 @@
 #![doc = include_str!("../README.MD")]
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
+extern crate alloc;
+#[cfg(feature = "std")]
+extern crate std;
+
+#[cfg(test)]
+pub mod test_prelude;
+
 pub mod dds;
 
 // Re-export the DDS handler for convenient access

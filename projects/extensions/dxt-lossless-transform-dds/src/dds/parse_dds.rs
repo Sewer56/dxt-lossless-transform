@@ -132,7 +132,7 @@ pub unsafe fn parse_dds_ignore_magic(ptr: *const u8, len: usize) -> Option<DdsIn
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rstest::rstest;
+    use crate::test_prelude::*;
 
     #[rstest]
     #[case(FOURCC_DXT1, DdsFormat::BC1)]

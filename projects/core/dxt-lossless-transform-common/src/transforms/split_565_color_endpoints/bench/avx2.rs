@@ -225,11 +225,11 @@ pub(crate) unsafe fn avx2_shuf_impl_unroll_2(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_prelude::*;
     use crate::transforms::split_565_color_endpoints::tests::{
         assert_implementation_matches_reference, generate_test_data,
         transform_with_reference_implementation,
     };
-    use rstest::rstest;
 
     // Define the function pointer type
     type TransformFn = unsafe fn(*const u8, *mut u8, usize);

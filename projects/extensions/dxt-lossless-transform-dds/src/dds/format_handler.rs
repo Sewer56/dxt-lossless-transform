@@ -4,11 +4,12 @@ use super::{
     constants::DDS_MAGIC,
     parse_dds::{parse_dds, parse_dds_ignore_magic, DdsFormat},
 };
+use alloc::string::ToString;
 use dxt_lossless_transform_file_formats_api::{
     bundle::{Bc1TransformBuilderExt, TransformBundle},
     embed::{EmbeddableTransformDetails, TransformHeader},
     error::{FileFormatError, FileFormatResult},
-    formats::{EmbeddableBc1Details, EmbeddableBc2Details, EmbeddableBc3Details},
+    formats::EmbeddableBc1Details,
     traits::{FileFormatDetection, FileFormatHandler},
 };
 
@@ -138,16 +139,16 @@ mod tests {
         let handler = DdsHandler;
 
         // Valid DDS data
-        let mut valid_dds = vec![0u8; 128];
+        let mut valid_dds = [0u8; 128];
         valid_dds[0..4].copy_from_slice(&DDS_MAGIC.to_le_bytes());
-        assert!(handler.can_handle(&valid_dds));
+        assert!(handler.can_handle(&valid_dds[..]));
 
         // Invalid data
-        let invalid_data = vec![0u8; 128];
-        assert!(!handler.can_handle(&invalid_data));
+        let invalid_data = [0u8; 128];
+        assert!(!handler.can_handle(&invalid_data[..]));
 
         // Too small
-        let too_small = vec![0u8; 10];
-        assert!(!handler.can_handle(&too_small));
+        let too_small = [0u8; 10];
+        assert!(!handler.can_handle(&too_small[..]));
     }
 }

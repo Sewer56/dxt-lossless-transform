@@ -96,7 +96,7 @@ impl FileFormatHandler for DdsHandler {
         output.copy_from_slice(input);
 
         // Restore DDS magic
-        output[0..4].copy_from_slice(&DDS_MAGIC.to_le_bytes());
+        output[0..4].copy_from_slice(&DDS_MAGIC.to_ne_bytes());
 
         // Validate restored DDS and get info
         let info = unsafe { parse_dds(output.as_ptr(), output.len()) }.ok_or_else(|| {
@@ -140,7 +140,7 @@ mod tests {
 
         // Valid DDS data
         let mut valid_dds = [0u8; 128];
-        valid_dds[0..4].copy_from_slice(&DDS_MAGIC.to_le_bytes());
+        valid_dds[0..4].copy_from_slice(&DDS_MAGIC.to_ne_bytes());
         assert!(handler.can_handle(&valid_dds[..]));
 
         // Invalid data

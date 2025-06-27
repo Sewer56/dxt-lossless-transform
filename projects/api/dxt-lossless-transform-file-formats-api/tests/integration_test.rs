@@ -6,10 +6,13 @@ use dxt_lossless_transform_file_formats_api::{
 };
 
 fn create_test_dds_bc1() -> Vec<u8> {
+    const DDS_MAGIC: u32 = 0x44445320_u32.to_be();
     let mut data = vec![0u8; 0x80 + 8]; // DDS header + 1 BC1 block
 
     // DDS magic
-    data[0..4].copy_from_slice(&0x20534444u32.to_le_bytes()); // 'DDS '
+    unsafe {
+        (data.as_mut_ptr().add(0) as *mut u32).write_unaligned(DDS_MAGIC);
+    }
 
     // Set FOURCC to DXT1
     data[0x54..0x58].copy_from_slice(b"DXT1");

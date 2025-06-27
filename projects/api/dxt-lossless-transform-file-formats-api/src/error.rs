@@ -80,20 +80,20 @@ pub enum FileFormatError {
     UntransformFailed(String),
 
     /// File I/O error
-    #[cfg(feature = "file_io")]
+    #[cfg(feature = "file-io")]
     #[error("File I/O error: {0}")]
     FileIo(#[from] FileIoError),
 }
 
 // Direct From implementations for cleaner error handling
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "file-io"))]
 impl From<std::io::Error> for FileFormatError {
     fn from(e: std::io::Error) -> Self {
         Self::FileIo(FileIoError::Std(e))
     }
 }
 
-#[cfg(feature = "lightweight-mmap")]
+#[cfg(all(feature = "lightweight-mmap", feature = "file-io"))]
 impl From<lightweight_mmap::handles::HandleOpenError> for FileFormatError {
     fn from(e: lightweight_mmap::handles::HandleOpenError) -> Self {
         Self::FileIo(FileIoError::LightweightMmap(
@@ -102,7 +102,7 @@ impl From<lightweight_mmap::handles::HandleOpenError> for FileFormatError {
     }
 }
 
-#[cfg(feature = "lightweight-mmap")]
+#[cfg(all(feature = "lightweight-mmap", feature = "file-io"))]
 impl From<lightweight_mmap::mmap::MmapError> for FileFormatError {
     fn from(e: lightweight_mmap::mmap::MmapError) -> Self {
         Self::FileIo(FileIoError::LightweightMmap(

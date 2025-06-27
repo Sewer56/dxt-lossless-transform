@@ -12,7 +12,7 @@ readme = "README.md"
 bench = false
 
 [features]
-default = ["std", "file_io"]
+default = ["std", "file-io"]
 std = [
     "thiserror/std",
     "dxt-lossless-transform-bc1-api/std",
@@ -21,7 +21,7 @@ std = [
     "dxt-lossless-transform-bc7-api/std",
     "dxt-lossless-transform-api-common/std"
 ]
-file_io = [
+file-io = [
     "std",
     "lightweight-mmap",
     # Use the 'Path' based APIs.

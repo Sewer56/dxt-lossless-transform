@@ -39,7 +39,7 @@ pub mod error;
 pub mod formats;
 pub mod traits;
 
-#[cfg(feature = "file_io")]
+#[cfg(feature = "file-io")]
 pub mod file_io;
 
 // Re-export key types

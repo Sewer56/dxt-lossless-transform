@@ -16,10 +16,10 @@ nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-bc2/nig
 libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
 rgbcx-sys = "1.1.3"
 bcdec_rs = "0.2.0"
-dxt-lossless-transform-bc1 = { path = "../projects/core/dxt-lossless-transform-bc1", features = ["experimental"] }
-dxt-lossless-transform-bc2 = { path = "../projects/core/dxt-lossless-transform-bc2", features = ["experimental"] }
-dxt-lossless-transform-bc3 = { path = "../projects/core/dxt-lossless-transform-bc3", features = ["experimental"] }
-dxt-lossless-transform-common = { path = "../projects/core/dxt-lossless-transform-common" }
+dxt-lossless-transform-bc1 = { workspace = true, features = ["experimental"], default-features = true }
+dxt-lossless-transform-bc2 = { workspace = true, features = ["experimental"], default-features = true }
+dxt-lossless-transform-bc3 = { workspace = true, features = ["experimental"], default-features = true }
+dxt-lossless-transform-common = { workspace = true, default-features = true }
 
 [[bin]]
 name = "bc1_decode"

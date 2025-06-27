@@ -24,11 +24,11 @@ nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/
 c-exports = ["dxt-lossless-transform-api-common/c-exports", "dxt-lossless-transform-bc1/c-exports"]
 
 [dependencies]
-dxt-lossless-transform-bc1 = { path = "../../core/dxt-lossless-transform-bc1" }
-dxt-lossless-transform-api-common = { path = "../dxt-lossless-transform-api-common" }
-dxt-lossless-transform-common = { path = "../../core/dxt-lossless-transform-common" }
+dxt-lossless-transform-bc1 = { workspace = true, default-features = true }
+dxt-lossless-transform-api-common = { workspace = true, default-features = true }
+dxt-lossless-transform-common = { workspace = true, default-features = true }
 safe-allocator-api = "0.4.0"
 thiserror = "2.0.12"
 
 [dev-dependencies]
-dxt-lossless-transform-ltu = { path = "../../extensions/dxt-lossless-transform-ltu" }
+dxt-lossless-transform-ltu = { workspace = true, default-features = true }

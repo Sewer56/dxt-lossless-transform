@@ -16,5 +16,6 @@ pub use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
 pub use std::{ffi::c_void, is_x86_feature_detected, ptr};
 
 // External crates commonly used in API tests
+#[cfg(feature = "c-exports")]
 pub use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 pub use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;

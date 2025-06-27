@@ -15,7 +15,11 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = ["std"]
-std = ["multiversion/std"] # Enables runtime checks in multiversion
+std = [
+    "multiversion/std",  # Enables runtime checks in multiversion
+    "thiserror/std",
+    "safe-allocator-api/std",
+]
 # See README.md for more information on using Profile-Guided Optimization.
 pgo = []
 # Use CPU features selected at compile time.
@@ -27,8 +31,8 @@ bench = []
 
 [dependencies]
 multiversion = { version = "0.8.0", default-features = false }
-thiserror = "2.0.12"
-safe-allocator-api = "0.4.0"
+thiserror = { version = "2.0.12", default-features = false }
+safe-allocator-api = { version = "0.4.0", default-features = false }
 derive-enum-all-values = "0.2.1"
 
 [target.'cfg(any(target_arch = "x86_64", target_arch = "x86"))'.dependencies]

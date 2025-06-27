@@ -5,6 +5,7 @@
 
 use crate::c_api::error::{Dltbc1ErrorCode, Dltbc1Result};
 use crate::c_api::transform::manual_transform_builder::Dltbc1ManualTransformBuilder;
+use alloc::boxed::Box;
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
 
 /// Opaque handle for BC1 auto transform builder.
@@ -251,8 +252,7 @@ pub unsafe extern "C" fn dltbc1_AutoTransformBuilder_Transform(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
-    use std::{ffi::c_void, ptr};
+    use crate::test_prelude::*;
 
     /// Test helper: Create a dummy size estimator for testing
     fn create_dummy_estimator() -> DltSizeEstimator {

@@ -114,8 +114,8 @@ pub(crate) unsafe fn avx512_impl_unroll2(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_prelude::*;
     use crate::transforms::split_565_color_endpoints::tests::*;
-    use rstest::rstest;
 
     #[rstest]
     #[case(avx512_impl_unroll2, "avx512_impl_unroll2")]

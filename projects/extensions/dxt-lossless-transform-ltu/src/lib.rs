@@ -1,6 +1,13 @@
 #![doc = include_str!(concat!("../", core::env!("CARGO_PKG_README")))]
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![warn(missing_docs)]
+
+extern crate alloc;
+#[cfg(feature = "std")]
+extern crate std;
+
+#[cfg(test)]
+pub mod test_prelude;
 
 #[cfg(feature = "c-exports")]
 pub mod c_api;

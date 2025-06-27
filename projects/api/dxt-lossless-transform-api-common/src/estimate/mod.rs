@@ -4,6 +4,8 @@
 //! of data, which can be used for optimization algorithms that need to compare
 //! compression ratios without performing full compression.
 
+use alloc::boxed::Box;
+
 /// Enum representing the type of data being estimated for compressed size.
 ///
 /// # Remarks

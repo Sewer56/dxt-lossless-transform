@@ -1,9 +1,13 @@
 #![doc = include_str!("../README.MD")]
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![warn(missing_docs)]
 
+extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
+
+#[cfg(test)]
+pub mod test_prelude;
 
 pub mod allocate;
 pub mod estimate;

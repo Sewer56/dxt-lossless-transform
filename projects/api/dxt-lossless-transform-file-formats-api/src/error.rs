@@ -1,6 +1,7 @@
 //! Error types for file format operations.
 
 use crate::embed::EmbedError;
+use alloc::{format, string::String};
 use thiserror::Error;
 
 /// Result type for file format operations

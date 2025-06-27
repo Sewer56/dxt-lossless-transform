@@ -5,6 +5,7 @@ use crate::embed::{EmbeddableTransformDetails, TransformHeader};
 use crate::error::{FileFormatError, FileFormatResult};
 use crate::formats::EmbeddableBc1Details;
 use crate::traits::FileFormatHandler;
+use alloc::string::ToString;
 
 /// Transform a slice using the specified format handler and transform bundle.
 ///

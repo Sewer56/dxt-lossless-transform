@@ -12,16 +12,19 @@
 //!
 //! # Example
 //!
-//! ```ignore
-//! use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_bundle};
+//! ```
+//! use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_bundle, FileFormatResult};
 //! use dxt_lossless_transform_dds::DdsHandler;
 //!
-//! // Create a bundle with auto settings for all formats
-//! let bundle = TransformBundle::auto_all();
+//! fn example_file_transform(input: &[u8]) -> FileFormatResult<Vec<u8>> {
+//!     // Create a bundle with default settings for all formats
+//!     let bundle = TransformBundle::default_all();
 //!
-//! // Transform a DDS file in memory
-//! let mut output = vec![0u8; input.len()];
-//! transform_slice_bundle(&DdsHandler, &input, &mut output, &bundle)?;
+//!     // Transform a DDS file in memory
+//!     let mut output = vec![0u8; input.len()];
+//!     transform_slice_bundle(&DdsHandler, input, &mut output, &bundle)?;
+//!     Ok(output)
+//! }
 //! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]

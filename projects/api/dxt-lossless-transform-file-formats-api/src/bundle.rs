@@ -3,8 +3,6 @@
 use core::marker::PhantomData;
 use dxt_lossless_transform_bc1::Bc1TransformSettings;
 use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
-use dxt_lossless_transform_bc2::BC2TransformDetails;
-use dxt_lossless_transform_bc3::BC3TransformDetails;
 // BC7 API not yet available
 // use dxt_lossless_transform_bc7_api::{Bc7AutoTransformBuilder, Bc7ManualTransformBuilder};
 

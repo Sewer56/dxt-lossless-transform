@@ -3,7 +3,7 @@
 use crate::bundle::TransformBundle;
 use crate::embed::{EmbeddableTransformDetails, TransformHeader};
 use crate::error::{FileFormatError, FileFormatResult};
-use crate::formats::{EmbeddableBc1Details, EmbeddableBc2Details, EmbeddableBc3Details};
+use crate::formats::EmbeddableBc1Details;
 use crate::traits::FileFormatHandler;
 
 /// Transform a slice using the specified format handler and transform bundle.
@@ -22,13 +22,17 @@ use crate::traits::FileFormatHandler;
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```
 /// use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_bundle};
 /// use dxt_lossless_transform_dds::DdsHandler;
+/// use dxt_lossless_transform_file_formats_api::FileFormatResult;
 ///
-/// let bundle = TransformBundle::default_all();
-/// let mut output = vec![0u8; input.len()];
-/// transform_slice_bundle(&DdsHandler, &input, &mut output, &bundle)?;
+/// fn example_transform(input: &[u8]) -> FileFormatResult<Vec<u8>> {
+///     let bundle = TransformBundle::default_all();
+///     let mut output = vec![0u8; input.len()];
+///     transform_slice_bundle(&DdsHandler, input, &mut output, &bundle)?;
+///     Ok(output)
+/// }
 /// ```
 pub fn transform_slice_bundle<H: FileFormatHandler>(
     handler: &H,
@@ -60,12 +64,15 @@ pub fn transform_slice_bundle<H: FileFormatHandler>(
 ///
 /// # Example
 ///
-/// ```ignore
-/// use dxt_lossless_transform_file_formats_api::untransform_slice_with;
+/// ```
+/// use dxt_lossless_transform_file_formats_api::{untransform_slice_with, FileFormatResult};
 /// use dxt_lossless_transform_dds::DdsHandler;
 ///
-/// let mut output = vec![0u8; input.len()];
-/// untransform_slice_with(&DdsHandler, &input, &mut output)?;
+/// fn example_untransform(input: &[u8]) -> FileFormatResult<Vec<u8>> {
+///     let mut output = vec![0u8; input.len()];
+///     untransform_slice_with(&DdsHandler, input, &mut output)?;
+///     Ok(output)
+/// }
 /// ```
 pub fn untransform_slice_with<H: FileFormatHandler>(
     handler: &H,
@@ -94,15 +101,19 @@ pub fn untransform_slice_with<H: FileFormatHandler>(
 ///
 /// # Example
 ///
-/// ```ignore
-/// use dxt_lossless_transform_file_formats_api::{TransformHeader, dispatch_untransform};
-/// use dxt_lossless_transform_file_formats_api::embed::TransformFormat;
+/// ```
+/// use dxt_lossless_transform_file_formats_api::{api::dispatch_untransform, FileFormatResult};
+/// use dxt_lossless_transform_file_formats_api::embed::{TransformHeader, TransformFormat};
 ///
-/// // Read header from file
-/// let header = unsafe { TransformHeader::read_from_ptr(file_data.as_ptr()) };
-///
-/// // Dispatch to appropriate untransform
-/// dispatch_untransform(header, &mut texture_data[data_offset..])?;
+/// fn example_dispatch(file_data: &[u8], data_offset: usize) -> FileFormatResult<Vec<u8>> {
+///     // Read header from file
+///     let header = unsafe { TransformHeader::read_from_ptr(file_data.as_ptr()) };
+///     
+///     let mut texture_data = file_data[data_offset..].to_vec();
+///     // Dispatch to appropriate untransform
+///     dispatch_untransform(header, &mut texture_data)?;
+///     Ok(texture_data)
+/// }
 /// ```
 pub fn dispatch_untransform(
     header: TransformHeader,

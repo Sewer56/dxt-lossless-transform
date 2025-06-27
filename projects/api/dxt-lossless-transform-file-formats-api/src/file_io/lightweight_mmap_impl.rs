@@ -30,12 +30,11 @@ pub fn transform_file_bundle<H: FileFormatHandler>(
     bundle: &TransformBundle,
 ) -> FileFormatResult<()> {
     // Open input file
-    let input_handle = ReadOnlyFileHandle::open(input_path.to_str().unwrap())?;
+    let input_handle = ReadOnlyFileHandle::open(input_path)?;
     let input_size = input_handle.size()? as usize;
     let input_mapping = ReadOnlyMmap::new(&input_handle, 0, input_size)?;
 
-    let output_handle =
-        ReadWriteFileHandle::create_preallocated(output_path.to_str().unwrap(), input_size as i64)?;
+    let output_handle = ReadWriteFileHandle::create_preallocated(output_path, input_size as i64)?;
 
     let output_mapping = ReadWriteMmap::new(&output_handle, 0, input_size)?;
 
@@ -70,12 +69,11 @@ pub fn untransform_file_with<H: FileFormatHandler>(
     output_path: &Path,
 ) -> FileFormatResult<()> {
     // Open input file
-    let input_handle = ReadOnlyFileHandle::open(input_path.to_str().unwrap())?;
+    let input_handle = ReadOnlyFileHandle::open(input_path)?;
     let input_size = input_handle.size()? as usize;
     let input_mapping = ReadOnlyMmap::new(&input_handle, 0, input_size)?;
 
-    let output_handle =
-        ReadWriteFileHandle::create_preallocated(output_path.to_str().unwrap(), input_size as i64)?;
+    let output_handle = ReadWriteFileHandle::create_preallocated(output_path, input_size as i64)?;
 
     let output_mapping = ReadWriteMmap::new(&output_handle, 0, input_size)?;
 

@@ -15,7 +15,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 bincode = "2.0.1"
 
 # Internal common crate for conversion functions
-dxt-lossless-transform-common = { workspace = true, default-features = true }
+dxt-lossless-transform-common = { workspace = true, default-features = false }
 
 # Provides aligned memory allocation
 safe-allocator-api = "0.4.0"

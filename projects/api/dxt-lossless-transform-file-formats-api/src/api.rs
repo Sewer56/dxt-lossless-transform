@@ -26,7 +26,7 @@ use crate::traits::FileFormatHandler;
 /// use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_bundle};
 /// use dxt_lossless_transform_dds::DdsHandler;
 ///
-/// let bundle = TransformBundle::auto_all();
+/// let bundle = TransformBundle::default_all();
 /// let mut output = vec![0u8; input.len()];
 /// transform_slice_bundle(&DdsHandler, &input, &mut output, &bundle)?;
 /// ```
@@ -131,42 +131,12 @@ pub fn dispatch_untransform(
             }
         }
         TransformFormat::Bc2 => {
-            let _details = EmbeddableBc2Details::unpack(header.format_data())?;
-
-            // BC2 untransform using unsafe API
-            if texture_data.len() % 16 != 0 {
-                return Err(FileFormatError::InvalidFileData(
-                    "BC2 data must be 16-byte aligned".to_string(),
-                ));
-            }
-
-            unsafe {
-                dxt_lossless_transform_bc2::untransform_bc2(
-                    texture_data.as_ptr(),
-                    texture_data.as_mut_ptr(),
-                    texture_data.len(),
-                    dxt_lossless_transform_bc2::BC2TransformDetails {},
-                );
-            }
+            // BC2 not yet implemented
+            return Err(FileFormatError::UnsupportedFormat("BC2"));
         }
         TransformFormat::Bc3 => {
-            let _details = EmbeddableBc3Details::unpack(header.format_data())?;
-
-            // BC3 untransform using unsafe API
-            if texture_data.len() % 16 != 0 {
-                return Err(FileFormatError::InvalidFileData(
-                    "BC3 data must be 16-byte aligned".to_string(),
-                ));
-            }
-
-            unsafe {
-                dxt_lossless_transform_bc3::untransform_bc3(
-                    texture_data.as_ptr(),
-                    texture_data.as_mut_ptr(),
-                    texture_data.len(),
-                    dxt_lossless_transform_bc3::BC3TransformDetails {},
-                );
-            }
+            // BC3 not yet implemented
+            return Err(FileFormatError::UnsupportedFormat("BC3"));
         }
         TransformFormat::Bc7 => {
             // BC7 not yet implemented

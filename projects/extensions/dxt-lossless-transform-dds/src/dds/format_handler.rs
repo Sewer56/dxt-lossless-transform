@@ -14,8 +14,9 @@ use dxt_lossless_transform_file_formats_api::{
 
 /// Handler for DDS file format.
 ///
-/// This handler supports BC1/2/3/7 formats within DDS files,
+/// This handler supports BC1/BC2/BC3/BC7 formats within DDS files,
 /// embedding transform details in the 4-byte DDS magic header.
+/// Currently only BC1 supports configurable transform options.
 pub struct DdsHandler;
 
 impl FileFormatHandler for DdsHandler {
@@ -54,28 +55,14 @@ impl FileFormatHandler for DdsHandler {
                 EmbeddableBc1Details::from(details).to_header()
             }
             DdsFormat::BC2 => {
-                let builder = bundle
-                    .bc2
-                    .as_ref()
-                    .ok_or(FileFormatError::NoBuilderForFormat("BC2"))?;
-
-                let _details =
-                    builder.transform_slice(&input[data_offset..], &mut output[data_offset..])?;
-
-                // BC2 has no configurable options
-                EmbeddableBc2Details.to_header()
+                return Err(FileFormatError::UnsupportedFormat(
+                    "BC2 not yet implemented",
+                ));
             }
             DdsFormat::BC3 => {
-                let builder = bundle
-                    .bc3
-                    .as_ref()
-                    .ok_or(FileFormatError::NoBuilderForFormat("BC3"))?;
-
-                let _details =
-                    builder.transform_slice(&input[data_offset..], &mut output[data_offset..])?;
-
-                // BC3 has no configurable options
-                EmbeddableBc3Details.to_header()
+                return Err(FileFormatError::UnsupportedFormat(
+                    "BC3 not yet implemented",
+                ));
             }
             DdsFormat::BC7 => {
                 return Err(FileFormatError::UnsupportedFormat(

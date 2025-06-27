@@ -21,7 +21,12 @@ std = [
     "dxt-lossless-transform-bc7-api/std",
     "dxt-lossless-transform-api-common/std"
 ]
-file_io = ["std", "lightweight-mmap"]
+file_io = [
+    "std",
+    "lightweight-mmap",
+    # Use the 'Path' based APIs.
+    "lightweight-mmap/std",
+]
 
 [dependencies]
 # Core dependencies

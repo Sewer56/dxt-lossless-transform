@@ -1,5 +1,6 @@
 //! Error types for BC1 transform operations.
 
+use alloc::string::String;
 use dxt_lossless_transform_bc1::{
     Bc1AutoTransformError, Bc1ValidationError, DetermineBestTransformError,
 };

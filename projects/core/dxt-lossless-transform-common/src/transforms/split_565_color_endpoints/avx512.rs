@@ -103,8 +103,8 @@ pub(crate) unsafe fn avx512_impl(colors: *const u8, colors_out: *mut u8, colors_
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_prelude::*;
     use crate::transforms::split_565_color_endpoints::tests::*;
-    use rstest::rstest;
 
     #[rstest]
     #[case(avx512_impl, "avx512_impl")]

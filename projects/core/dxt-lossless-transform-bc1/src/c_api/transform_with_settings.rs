@@ -148,6 +148,7 @@ pub unsafe extern "C" fn dltbc1core_untransform(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_prelude::*;
     use std::ptr;
 
     /// Helper function to create sample BC1 test data (2 blocks = 16 bytes)

@@ -106,7 +106,7 @@ pub unsafe fn parse_dds(ptr: *const u8, len: usize) -> Option<DdsInfo> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rstest::rstest;
+    use crate::test_prelude::*;
 
     #[rstest]
     #[case(FOURCC_DXT1, DdsFormat::BC1)]

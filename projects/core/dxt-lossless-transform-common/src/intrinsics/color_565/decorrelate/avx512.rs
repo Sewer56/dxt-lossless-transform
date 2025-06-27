@@ -269,6 +269,7 @@ mod tests {
     use super::*;
     use crate::color_565::Color565;
     use rstest::rstest;
+    use std::is_x86_feature_detected;
 
     /// Test data for all decorrelation variants
     fn get_test_colors() -> [Color565; 32] {

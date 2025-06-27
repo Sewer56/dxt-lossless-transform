@@ -4,6 +4,7 @@
 //! across different SIMD implementation test modules.
 
 use super::portable32;
+use crate::test_prelude::*;
 
 /// Function pointer type for split color endpoints implementations
 pub type TransformFn = unsafe fn(*const u8, *mut u8, usize);

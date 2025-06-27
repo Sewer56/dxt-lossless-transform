@@ -479,7 +479,7 @@ pub unsafe fn normalize_split_blocks_in_place(
 #[allow(clippy::needless_range_loop)]
 mod tests {
     use super::*;
-    use rstest::rstest;
+    use crate::test_prelude::*;
 
     /// Test normalizing a solid color block with uniform alpha
     #[rstest]

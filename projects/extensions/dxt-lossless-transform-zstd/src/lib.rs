@@ -1,9 +1,16 @@
 #![doc = include_str!(concat!("../", core::env!("CARGO_PKG_README")))]
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![warn(missing_docs)]
+
+#[cfg(feature = "std")]
+extern crate std;
 
 extern crate alloc;
 
+#[cfg(test)]
+pub mod test_prelude;
+
+use alloc::string::String;
 use core::{ffi::c_void, slice};
 use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
 use dxt_lossless_transform_common::allocate::AllocateError;
@@ -195,6 +202,7 @@ fn zstd_setcommoncompressparams(cctx: *mut ZSTD_CCtx_s, level: Option<i32>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_prelude::*;
 
     #[test]
     fn estimate_empty_data() {

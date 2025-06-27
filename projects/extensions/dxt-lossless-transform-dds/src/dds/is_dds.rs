@@ -10,6 +10,7 @@ pub fn is_dds(ptr: *const u8, len: usize) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_prelude::*;
     use core::iter::repeat_n;
 
     #[test]

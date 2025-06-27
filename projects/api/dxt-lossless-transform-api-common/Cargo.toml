@@ -12,18 +12,18 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 # Only used for serialization/deserialization of certain data types, which is optional and would not
 # reflect on binary size when unused.
-bincode = "2.0.1"
+bincode = { version = "2.0.1", default-features = false, features = ["alloc", "derive"] }
 
 # Internal common crate for conversion functions
-dxt-lossless-transform-common = { path = "../../core/dxt-lossless-transform-common" }
+dxt-lossless-transform-common = { workspace = true, default-features = false }
 
 # Provides aligned memory allocation
-safe-allocator-api = "0.4.0"
+safe-allocator-api = { version = "0.4.0", default-features = false }
 
 [features]
 default = ["std"]
-# Enable use of standard library, currently a no-op.
-std = []
+# Enable use of standard library.
+std = ["bincode/std", "safe-allocator-api/std", "dxt-lossless-transform-common/std"]
 # Use nightly compiler features
 nightly = ["safe-allocator-api/nightly", "dxt-lossless-transform-common/nightly"]
 # Compiles the public C API for the crate.

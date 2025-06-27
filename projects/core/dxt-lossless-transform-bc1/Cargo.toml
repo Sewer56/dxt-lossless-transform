@@ -15,7 +15,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = ["std"]
-std = ["dxt-lossless-transform-api-common/std", "dxt-lossless-transform-common/std"]
+std = ["dxt-lossless-transform-api-common/std", "dxt-lossless-transform-common/std", "thiserror/std"]
 # See README.md for more information on using Profile-Guided Optimization.
 pgo = []
 # Use CPU features selected at compile time.
@@ -30,19 +30,19 @@ experimental = []
 c-exports = ["dxt-lossless-transform-api-common/c-exports"]
 
 [dependencies]
-dxt-lossless-transform-common = { path = "../dxt-lossless-transform-common" }
-dxt-lossless-transform-api-common = { path = "../../api/dxt-lossless-transform-api-common", default-features = false }
+dxt-lossless-transform-common = { workspace = true, default-features = false }
+dxt-lossless-transform-api-common = { workspace = true, default-features = false }
 likely_stable = "0.1.3"
 derive-enum-all-values = "0.2.1"
-thiserror = "2.0.12"
+thiserror = { version = "2.0.12", default-features = false }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dev-dependencies]
 criterion = "0.5.1"
 rstest = "0.25.0"
 safe-allocator-api = "0.4.0"
-dxt-lossless-transform-bc1-api = { path = "../../api/dxt-lossless-transform-bc1-api" }
-dxt-lossless-transform-ltu = { path = "../../extensions/dxt-lossless-transform-ltu" }
+dxt-lossless-transform-bc1-api = { workspace = true, default-features = true }
+dxt-lossless-transform-ltu = { workspace = true, default-features = true }
 
 [target.'cfg(all(any(target_os = "linux", target_os = "macos"), any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))'.dev-dependencies]
 pprof = { version = "0.14", features = ["flamegraph", "criterion"] }

@@ -34,21 +34,6 @@ pub enum FileIoError {
     Std(#[from] std::io::Error),
 }
 
-// Direct From implementations for cleaner error handling
-#[cfg(feature = "lightweight-mmap")]
-impl From<lightweight_mmap::handles::HandleOpenError> for FileIoError {
-    fn from(e: lightweight_mmap::handles::HandleOpenError) -> Self {
-        Self::LightweightMmap(LightweightMmapError::FileHandle(e))
-    }
-}
-
-#[cfg(feature = "lightweight-mmap")]
-impl From<lightweight_mmap::mmap::MmapError> for FileIoError {
-    fn from(e: lightweight_mmap::mmap::MmapError) -> Self {
-        Self::LightweightMmap(LightweightMmapError::MemoryMapping(e))
-    }
-}
-
 /// Errors that can occur during file format operations
 #[derive(Debug, Error)]
 pub enum FileFormatError {
@@ -86,14 +71,7 @@ pub enum FileFormatError {
     FileIo(#[from] FileIoError),
 }
 
-// Direct From implementations for cleaner error handling
-#[cfg(all(feature = "std", feature = "file-io"))]
-impl From<std::io::Error> for FileFormatError {
-    fn from(e: std::io::Error) -> Self {
-        Self::FileIo(FileIoError::Std(e))
-    }
-}
-
+// Direct From implementations for specific error types used with ? operator
 #[cfg(all(feature = "lightweight-mmap", feature = "file-io"))]
 impl From<lightweight_mmap::handles::HandleOpenError> for FileFormatError {
     fn from(e: lightweight_mmap::handles::HandleOpenError) -> Self {

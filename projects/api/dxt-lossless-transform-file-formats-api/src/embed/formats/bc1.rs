@@ -55,7 +55,7 @@ bitfield! {
 
 impl Bc1TransformHeaderData {
     /// Convert YCoCgVariant to its packed representation
-    fn variant_to_u32(variant: YCoCgVariant) -> u32 {
+    pub(crate) fn variant_to_u32(variant: YCoCgVariant) -> u32 {
         match variant {
             // These are 1:1 mappings at time of writing, so a no-op.
             YCoCgVariant::Variant1 => 0,
@@ -66,7 +66,7 @@ impl Bc1TransformHeaderData {
     }
 
     /// Convert packed representation back to YCoCgVariant
-    fn u32_to_variant(value: u32) -> Result<YCoCgVariant, EmbedError> {
+    pub(crate) fn u32_to_variant(value: u32) -> Result<YCoCgVariant, EmbedError> {
         match value {
             0 => Ok(YCoCgVariant::Variant1),
             1 => Ok(YCoCgVariant::Variant2),
@@ -77,7 +77,7 @@ impl Bc1TransformHeaderData {
     }
 
     /// Create [`Bc1TransformHeaderData`] from [`Bc1TransformSettings`]
-    pub fn from_transform_settings(settings: &Bc1TransformSettings) -> Self {
+    pub(crate) fn from_transform_settings(settings: &Bc1TransformSettings) -> Self {
         let mut header = Self::default();
         header.set_header_version(Bc1HeaderVersion::InitialVersion.to_u32());
         header.set_split_colour_endpoints(settings.split_colour_endpoints);
@@ -87,7 +87,7 @@ impl Bc1TransformHeaderData {
     }
 
     /// Convert [`Bc1TransformHeaderData`] to [`Bc1TransformSettings`]
-    pub fn to_transform_settings(&self) -> Result<Bc1TransformSettings, EmbedError> {
+    pub(crate) fn to_transform_settings(self) -> Result<Bc1TransformSettings, EmbedError> {
         // Validate version (from_u32 will error on invalid version)
         let _version = Bc1HeaderVersion::from_u32(self.header_version())?;
         let decorrelation_mode = Self::u32_to_variant(self.decorrelation_variant())?;
@@ -101,19 +101,7 @@ impl Bc1TransformHeaderData {
 
 /// Wrapper type for BC1 transform settings that can be stored in file headers
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct EmbeddableBc1Details(pub Bc1TransformSettings);
-
-impl From<Bc1TransformSettings> for EmbeddableBc1Details {
-    fn from(settings: Bc1TransformSettings) -> Self {
-        Self(settings)
-    }
-}
-
-impl From<EmbeddableBc1Details> for Bc1TransformSettings {
-    fn from(embeddable: EmbeddableBc1Details) -> Self {
-        embeddable.0
-    }
-}
+pub struct EmbeddableBc1Details(Bc1TransformSettings);
 
 impl EmbeddableTransformDetails for EmbeddableBc1Details {
     const FORMAT: TransformFormat = TransformFormat::Bc1;
@@ -136,6 +124,16 @@ impl EmbeddableBc1Details {
     pub fn to_header(&self) -> crate::embed::TransformHeader {
         crate::embed::TransformHeader::new(Self::FORMAT, self.pack())
     }
+
+    /// Create from core BC1 transform settings (internal use only)
+    pub(crate) fn from_settings(settings: Bc1TransformSettings) -> Self {
+        Self(settings)
+    }
+
+    /// Convert to core BC1 transform settings (internal use only)
+    pub(crate) fn to_settings(self) -> Bc1TransformSettings {
+        self.0
+    }
 }
 
 #[cfg(test)]
@@ -145,11 +143,15 @@ mod tests {
     #[test]
     fn test_roundtrip_all_possible_transform_details() {
         for settings in Bc1TransformSettings::all_combinations() {
-            let embeddable = EmbeddableBc1Details(settings);
+            let embeddable = EmbeddableBc1Details::from_settings(settings);
 
             let packed = embeddable.pack();
             let recovered = EmbeddableBc1Details::unpack(packed).unwrap();
-            assert_eq!(settings, recovered.0, "Failed for settings {settings:?}",);
+            assert_eq!(
+                settings,
+                recovered.to_settings(),
+                "Failed for settings {settings:?}",
+            );
         }
     }
 

@@ -126,7 +126,7 @@ where
                 let details = builder
                     .transform_slice_with_details(input_texture_data, output_texture_data)?;
 
-                crate::embed::EmbeddableBc1Details::from(details).to_header()
+                crate::embed::EmbeddableBc1Details::from_settings(details).to_header()
             }
             TransformFormat::Bc2 | TransformFormat::Bc3 | TransformFormat::Bc7 => {
                 return Err(TransformError::UnknownTransformFormat);
@@ -162,7 +162,7 @@ impl TransformBundle<NoEstimation> {
 #[derive(Debug)]
 pub enum UntransformResult {
     /// BC1 was untransformed with these details
-    Bc1(dxt_lossless_transform_bc1::Bc1TransformSettings),
+    Bc1(crate::embed::EmbeddableBc1Details),
     /// BC2 was untransformed
     Bc2,
     /// BC3 was untransformed

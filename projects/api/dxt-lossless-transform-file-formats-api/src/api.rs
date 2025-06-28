@@ -135,7 +135,7 @@ pub fn dispatch_untransform(
 
     match header.format() {
         TransformFormat::Bc1 => {
-            let details = EmbeddableBc1Details::unpack(header.format_data())?;
+            let details = EmbeddableBc1Details::from_header(header)?;
 
             // BC1 untransform using unsafe API with safe wrapper
             if input_texture_data.len() % 8 != 0 {

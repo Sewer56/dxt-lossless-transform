@@ -24,7 +24,7 @@ pub trait EmbeddableTransformDetails: Sized {
     /// Extract from a complete transform header
     fn from_header(header: TransformHeader) -> Result<Self, EmbedError> {
         if header.format() != Self::FORMAT {
-            return Err(EmbedError::InvalidFormat);
+            return Err(EmbedError::FormatMismatch);
         }
         Self::unpack(header.format_data())
     }

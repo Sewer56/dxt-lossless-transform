@@ -34,7 +34,7 @@ where
     let source_size = get_file_size(&source_handle)? as usize;
     let source_mapping = open_readonly_mmap(&source_handle, source_size)?;
 
-    let dds_info = parse_dds(source_mapping.data(), source_mapping.len());
+    let dds_info = parse_dds(source_mapping.as_slice());
     let (info, format) = check_dds_format(dds_info, filter, &dir_entry.path())?;
 
     let len_bytes = source_size.sub(info.data_offset as usize);

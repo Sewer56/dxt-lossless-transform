@@ -46,8 +46,8 @@ pub enum FileFormatError {
     UnknownFormat,
 
     /// No transform builder provided for the detected format
-    #[error("No transform builder provided for format: {0}")]
-    NoBuilderForFormat(&'static str),
+    #[error("No transform builder provided for format: {0:?}")]
+    NoBuilderForFormat(TransformFormat),
 
     /// Output buffer is too small for the operation
     #[error("Output buffer too small: required {required} bytes, got {actual} bytes")]

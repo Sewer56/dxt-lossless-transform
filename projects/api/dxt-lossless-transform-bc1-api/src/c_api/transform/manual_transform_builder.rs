@@ -33,7 +33,7 @@ use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
 /// Each thread should create its own builder.
 ///
 /// # cbindgen Opaque Type Rule
-/// Per cbindgen documentation (https://github.com/mozilla/cbindgen/blob/master/docs.md):
+/// Per cbindgen documentation (<https://github.com/mozilla/cbindgen/blob/master/docs.md>):
 /// "If a type is determined to have a guaranteed layout, a full definition will be emitted in the header.
 /// If the type doesn't have a guaranteed layout, only a forward declaration will be emitted. This may be
 /// fine if the type is intended to be passed around opaquely and by reference."

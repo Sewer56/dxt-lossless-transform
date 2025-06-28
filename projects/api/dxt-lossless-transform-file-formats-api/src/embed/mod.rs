@@ -3,10 +3,8 @@
 //! common code that's shared between the various file formats.
 //!
 //! When we perform a lossless transform on a file, we need to know how to 'undo' it.
-//! The various transforms have types such as [`Bc1TransformSettings`] which are passed onto the
-//! 'untransform' functions.
-//!
-//! [`Bc1TransformSettings`]: dxt_lossless_transform_bc1::transform::settings::Bc1TransformSettings
+//! The various transforms have types such as `Bc1TransformSettings` (from dxt_lossless_transform_bc1 crate)
+//! which are passed onto the 'untransform' functions.
 //!
 //! # An Example
 //!
@@ -72,6 +70,13 @@ pub use embed_error::EmbedError;
 pub use embeddable_transform_details::EmbeddableTransformDetails;
 pub use transform_format::TransformFormat;
 
+/// Size of the transform header in bytes.
+///
+/// The transform header is always 4 bytes (32 bits) containing:
+/// - 4 bits for transform format type
+/// - 28 bits for format-specific data
+pub const TRANSFORM_HEADER_SIZE: usize = 4;
+
 bitfield! {
     /// Common header structure for all transform formats.
     ///
@@ -109,7 +114,7 @@ impl TransformHeader {
     ///
     /// # Safety
     ///
-    /// - `ptr` must be valid for reads of at least 4 bytes
+    /// - `ptr` must be valid for reads of at least [`TRANSFORM_HEADER_SIZE`] bytes
     pub unsafe fn read_from_ptr(ptr: *const u8) -> Self {
         let value = (ptr as *const u32).read_unaligned();
         Self(u32::from_le(value))
@@ -121,7 +126,7 @@ impl TransformHeader {
     ///
     /// # Safety
     ///
-    /// - `ptr` must be valid for writes of at least 4 bytes
+    /// - `ptr` must be valid for writes of at least [`TRANSFORM_HEADER_SIZE`] bytes
     pub unsafe fn write_to_ptr(&self, ptr: *mut u8) {
         (ptr as *mut u32).write_unaligned(self.0.to_le());
     }
@@ -159,7 +164,7 @@ mod tests {
 
     #[test]
     fn test_header_read_write() {
-        let mut buffer = [0u8; 4];
+        let mut buffer = [0u8; TRANSFORM_HEADER_SIZE];
         let original = TransformHeader::new(TransformFormat::Bc7, 0x12345678);
 
         unsafe {
@@ -171,7 +176,7 @@ mod tests {
 
     #[test]
     fn test_little_endian_byte_order() {
-        let mut buffer = [0u8; 4];
+        let mut buffer = [0u8; TRANSFORM_HEADER_SIZE];
 
         // Create a header with known bit pattern: format=0x3 (BC7), data=0x1234567
         let header = TransformHeader::new(TransformFormat::Bc7, 0x1234567);

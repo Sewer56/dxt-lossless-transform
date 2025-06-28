@@ -94,7 +94,7 @@ fn test_missing_builder() {
     match result {
         Err(e) => {
             let msg = format!("{e:?}");
-            assert!(msg.contains("BC1"), "Error should mention BC1");
+            assert!(msg.contains("Bc1"), "Error should mention Bc1");
         }
         _ => panic!("Should have failed"),
     }

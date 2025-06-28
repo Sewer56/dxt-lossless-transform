@@ -2,7 +2,7 @@
 pub mod constants;
 
 /// Determine if a file is a DDS file.
-pub mod is_dds;
+pub mod likely_dds;
 
 /// Extract the pixel data from a DDS file.  
 pub mod parse_dds;
@@ -11,5 +11,5 @@ pub mod parse_dds;
 #[cfg(feature = "c-exports")]
 pub mod exports;
 
-pub use is_dds::*;
+pub use likely_dds::*;
 pub use parse_dds::*;

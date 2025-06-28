@@ -4,9 +4,8 @@ use crate::dds::{
 };
 use dxt_lossless_transform_file_formats_api::{
     bundle::{Bc1TransformBuilderExt, TransformBundle},
-    embed::{EmbeddableTransformDetails, TransformFormat, TransformHeader, TRANSFORM_HEADER_SIZE},
+    embed::{EmbeddableBc1Details, TransformFormat, TransformHeader, TRANSFORM_HEADER_SIZE},
     error::{FormatHandlerError, TransformResult},
-    formats::EmbeddableBc1Details,
     traits::FileFormatHandler,
 };
 

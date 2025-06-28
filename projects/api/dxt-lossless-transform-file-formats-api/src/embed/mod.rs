@@ -63,12 +63,18 @@ use bitfield::bitfield;
 // Sub-modules
 pub mod embed_error;
 pub mod embeddable_transform_details;
+pub mod formats;
 pub mod transform_format;
 
 // Re-exports for backwards compatibility and convenience
 pub use embed_error::EmbedError;
 pub use embeddable_transform_details::EmbeddableTransformDetails;
 pub use transform_format::TransformFormat;
+
+// Re-export format-specific embeddable details for external extensions
+pub use formats::{
+    EmbeddableBc1Details, EmbeddableBc2Details, EmbeddableBc3Details, EmbeddableBc7Details,
+};
 
 /// Size of the transform header in bytes.
 ///

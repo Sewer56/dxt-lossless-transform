@@ -39,7 +39,6 @@ pub mod api;
 pub mod bundle;
 pub mod embed;
 pub mod error;
-pub mod formats;
 pub mod traits;
 
 #[cfg(feature = "file-io")]

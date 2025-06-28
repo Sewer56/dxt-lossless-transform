@@ -1,9 +1,10 @@
 //! High-level convenience APIs for file format operations.
 
 use crate::bundle::TransformBundle;
-use crate::embed::{EmbeddableTransformDetails, TransformFormat, TransformHeader};
+use crate::embed::{
+    EmbeddableBc1Details, EmbeddableTransformDetails, TransformFormat, TransformHeader,
+};
 use crate::error::{FormatHandlerError, TransformError, TransformResult};
-use crate::formats::EmbeddableBc1Details;
 use crate::traits::FileFormatHandler;
 
 /// Transform a slice using the specified format handler and transform bundle.

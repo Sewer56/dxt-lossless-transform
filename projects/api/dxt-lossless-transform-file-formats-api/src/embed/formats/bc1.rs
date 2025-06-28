@@ -127,6 +127,17 @@ impl EmbeddableTransformDetails for EmbeddableBc1Details {
     }
 }
 
+impl EmbeddableBc1Details {
+    /// Create a [`TransformHeader`] from this embeddable BC1 details.
+    ///
+    /// This is a convenience method for external format handlers.
+    ///
+    /// [`TransformHeader`]: crate::embed::TransformHeader
+    pub fn to_header(&self) -> crate::embed::TransformHeader {
+        crate::embed::TransformHeader::new(Self::FORMAT, self.pack())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

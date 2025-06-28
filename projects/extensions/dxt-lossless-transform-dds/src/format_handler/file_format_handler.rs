@@ -5,7 +5,7 @@ use crate::dds::{
 use dxt_lossless_transform_file_formats_api::{
     bundle::{Bc1TransformBuilderExt, TransformBundle},
     embed::{EmbeddableTransformDetails, TransformFormat, TransformHeader, TRANSFORM_HEADER_SIZE},
-    error::{TransformError, TransformResult},
+    error::{FormatHandlerError, TransformResult},
     formats::EmbeddableBc1Details,
     traits::FileFormatHandler,
 };
@@ -21,14 +21,15 @@ impl FileFormatHandler for DdsHandler {
     ) -> TransformResult<()> {
         // Validate buffer sizes
         if output.len() < input.len() {
-            return Err(TransformError::OutputBufferTooSmall {
+            return Err(FormatHandlerError::OutputBufferTooSmall {
                 required: input.len(),
                 actual: output.len(),
-            });
+            }
+            .into());
         }
 
         // Parse DDS header
-        let info = parse_dds(input).ok_or(TransformError::InvalidInputFileHeader)?;
+        let info = parse_dds(input).ok_or(FormatHandlerError::InvalidInputFileHeader)?;
         let data_offset = info.data_offset as usize;
 
         // Copy headers to output
@@ -40,7 +41,7 @@ impl FileFormatHandler for DdsHandler {
                 let builder = bundle
                     .bc1
                     .as_ref()
-                    .ok_or(TransformError::NoBuilderForFormat(TransformFormat::Bc1))?;
+                    .ok_or(FormatHandlerError::NoBuilderForFormat(TransformFormat::Bc1))?;
 
                 let details = builder.transform_slice_with_details(
                     &input[data_offset..],
@@ -50,16 +51,16 @@ impl FileFormatHandler for DdsHandler {
                 EmbeddableBc1Details::from(details).to_header()
             }
             DdsFormat::BC2 => {
-                return Err(TransformError::FormatNotImplemented(TransformFormat::Bc2));
+                return Err(FormatHandlerError::FormatNotImplemented(TransformFormat::Bc2).into());
             }
             DdsFormat::BC3 => {
-                return Err(TransformError::FormatNotImplemented(TransformFormat::Bc3));
+                return Err(FormatHandlerError::FormatNotImplemented(TransformFormat::Bc3).into());
             }
             DdsFormat::BC7 => {
-                return Err(TransformError::FormatNotImplemented(TransformFormat::Bc7));
+                return Err(FormatHandlerError::FormatNotImplemented(TransformFormat::Bc7).into());
             }
             DdsFormat::Unknown | DdsFormat::NotADds => {
-                return Err(TransformError::UnknownFileFormat);
+                return Err(FormatHandlerError::UnknownFileFormat.into());
             }
         };
 
@@ -78,17 +79,19 @@ impl FileFormatHandler for DdsHandler {
     fn untransform(&self, input: &[u8], output: &mut [u8]) -> TransformResult<()> {
         // Validate buffer sizes
         if input.len() < TRANSFORM_HEADER_SIZE {
-            return Err(TransformError::InputTooShort {
+            return Err(FormatHandlerError::InputTooShort {
                 required: TRANSFORM_HEADER_SIZE,
                 actual: input.len(),
-            });
+            }
+            .into());
         }
 
         if output.len() < input.len() {
-            return Err(TransformError::OutputBufferTooSmall {
+            return Err(FormatHandlerError::OutputBufferTooSmall {
                 required: input.len(),
                 actual: output.len(),
-            });
+            }
+            .into());
         }
 
         // Read transform header from first 4 bytes
@@ -98,11 +101,10 @@ impl FileFormatHandler for DdsHandler {
 
         // Parse header ignoring the magic (which contains transform data)
         let info =
-            parse_dds_ignore_magic(input).ok_or(TransformError::InvalidRestoredFileHeader)?;
-
+            parse_dds_ignore_magic(input).ok_or(FormatHandlerError::InvalidRestoredFileHeader)?;
         let data_offset = info.data_offset as usize;
 
-        // Write DDS magic to output
+        // Restore DDS magic
         output[0..4].copy_from_slice(&DDS_MAGIC.to_ne_bytes());
 
         // Copy the rest of the header (from byte 4 to data_offset)
@@ -125,7 +127,9 @@ mod tests {
     use crate::dds::constants::{DDS_HEADER_SIZE, DDS_MAGIC};
     use crate::test_prelude::*;
     use dxt_lossless_transform_file_formats_api::{
-        embed::TransformFormat, error::TransformError, TransformBundle,
+        embed::TransformFormat,
+        error::{FormatHandlerError, TransformError},
+        TransformBundle,
     };
 
     // Transform/untransform buffer validation tests
@@ -139,7 +143,11 @@ mod tests {
         let result = handler.transform_bundle(&input, &mut small_output, &bundle);
         assert!(result.is_err());
 
-        if let Err(TransformError::OutputBufferTooSmall { required, actual }) = result {
+        if let Err(TransformError::FormatHandler(FormatHandlerError::OutputBufferTooSmall {
+            required,
+            actual,
+        })) = result
+        {
             assert_eq!(required, input.len());
             assert_eq!(actual, input.len() - 1);
         } else {
@@ -156,7 +164,11 @@ mod tests {
         let result = handler.untransform(&input, &mut small_output);
         assert!(result.is_err());
 
-        if let Err(TransformError::OutputBufferTooSmall { required, actual }) = result {
+        if let Err(TransformError::FormatHandler(FormatHandlerError::OutputBufferTooSmall {
+            required,
+            actual,
+        })) = result
+        {
             assert_eq!(required, DDS_HEADER_SIZE);
             assert_eq!(actual, DDS_HEADER_SIZE - 1);
         } else {
@@ -174,7 +186,11 @@ mod tests {
         let result = handler.untransform(&input, &mut output);
         assert!(result.is_err());
 
-        if let Err(TransformError::InputTooShort { required, actual }) = result {
+        if let Err(TransformError::FormatHandler(FormatHandlerError::InputTooShort {
+            required,
+            actual,
+        })) = result
+        {
             assert_eq!(required, TRANSFORM_HEADER_SIZE);
             assert_eq!(actual, TRANSFORM_HEADER_SIZE - 1);
         } else {
@@ -193,7 +209,9 @@ mod tests {
         let result = handler.transform_bundle(&invalid_input, &mut output, &bundle);
         assert!(result.is_err());
 
-        if let Err(TransformError::InvalidInputFileHeader) = result {
+        if let Err(TransformError::FormatHandler(FormatHandlerError::InvalidInputFileHeader)) =
+            result
+        {
             // Expected error
         } else {
             panic!("Expected InvalidInputFileHeader error, got: {:?}", result);
@@ -209,7 +227,9 @@ mod tests {
         let result = handler.untransform(&invalid_transformed, &mut output);
         assert!(result.is_err());
 
-        if let Err(TransformError::InvalidRestoredFileHeader) = result {
+        if let Err(TransformError::FormatHandler(FormatHandlerError::InvalidRestoredFileHeader)) =
+            result
+        {
             // Expected error
         } else {
             panic!(
@@ -242,7 +262,9 @@ mod tests {
         let result = handler.transform_bundle(&input, &mut output, &bundle);
         assert!(result.is_err());
 
-        if let Err(TransformError::NoBuilderForFormat(format)) = result {
+        if let Err(TransformError::FormatHandler(FormatHandlerError::NoBuilderForFormat(format))) =
+            result
+        {
             assert_eq!(format, TransformFormat::Bc1);
         } else {
             panic!("Expected NoBuilderForFormat error, got: {:?}", result);
@@ -261,7 +283,10 @@ mod tests {
         let result = handler.transform_bundle(&bc2_input, &mut output, &bundle);
         assert!(result.is_err());
 
-        if let Err(TransformError::FormatNotImplemented(TransformFormat::Bc2)) = result {
+        if let Err(TransformError::FormatHandler(FormatHandlerError::FormatNotImplemented(
+            TransformFormat::Bc2,
+        ))) = result
+        {
             // Expected
         } else {
             panic!(
@@ -281,7 +306,10 @@ mod tests {
         let result = handler.transform_bundle(&bc3_input, &mut output, &bundle);
         assert!(result.is_err());
 
-        if let Err(TransformError::FormatNotImplemented(TransformFormat::Bc3)) = result {
+        if let Err(TransformError::FormatHandler(FormatHandlerError::FormatNotImplemented(
+            TransformFormat::Bc3,
+        ))) = result
+        {
             // Expected
         } else {
             panic!(
@@ -301,7 +329,10 @@ mod tests {
         let result = handler.transform_bundle(&bc7_input, &mut output, &bundle);
         assert!(result.is_err());
 
-        if let Err(TransformError::FormatNotImplemented(TransformFormat::Bc7)) = result {
+        if let Err(TransformError::FormatHandler(FormatHandlerError::FormatNotImplemented(
+            TransformFormat::Bc7,
+        ))) = result
+        {
             // Expected
         } else {
             panic!(
@@ -321,7 +352,7 @@ mod tests {
         let result = handler.transform_bundle(&unknown_input, &mut output, &bundle);
         assert!(result.is_err());
 
-        if let Err(TransformError::UnknownFileFormat) = result {
+        if let Err(TransformError::FormatHandler(FormatHandlerError::UnknownFileFormat)) = result {
             // Expected
         } else {
             panic!("Expected UnknownFileFormat error, got: {:?}", result);
@@ -337,9 +368,10 @@ mod tests {
 
         // Create valid BC1 DDS with some texture data
         let mut input = create_valid_bc1_dds(DDS_HEADER_SIZE + 64);
+
         // Add some texture data
-        for i in 0..64 {
-            input[DDS_HEADER_SIZE + i] = (i % 256) as u8;
+        for x in 0..64 {
+            input[DDS_HEADER_SIZE + x] = (x % 256) as u8;
         }
 
         let mut transformed = vec![0u8; input.len()];

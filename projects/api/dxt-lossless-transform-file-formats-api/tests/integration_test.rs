@@ -2,7 +2,7 @@
 
 use dxt_lossless_transform_dds::DdsHandler;
 use dxt_lossless_transform_file_formats_api::{
-    traits::FileFormatDetection, transform_slice_bundle, untransform_slice_with, TransformBundle,
+    traits::FileFormatDetection, transform_slice_bundle, untransform_slice, TransformBundle,
 };
 
 fn create_test_dds_bc1() -> Vec<u8> {
@@ -52,8 +52,7 @@ fn test_dds_bc1_transform_roundtrip() {
     );
 
     // Untransform
-    untransform_slice_with(&handler, &transformed, &mut restored)
-        .expect("Untransform should succeed");
+    untransform_slice(&handler, &transformed, &mut restored).expect("Untransform should succeed");
 
     // Verify roundtrip
     assert_eq!(

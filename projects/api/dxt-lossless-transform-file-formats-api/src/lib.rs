@@ -47,7 +47,7 @@ pub mod file_io;
 
 // Re-export key types
 pub use bundle::{TransformBundle, UntransformResult};
-pub use error::{TransformError, TransformResult};
+pub use error::{FormatHandlerError, FormatHandlerResult, TransformError, TransformResult};
 pub use traits::FileFormatHandler;
 
 // Re-export file operation types when file-io feature is enabled
@@ -55,4 +55,4 @@ pub use traits::FileFormatHandler;
 pub use file_io::{FileOperationError, FileOperationResult};
 
 // Re-export convenience functions
-pub use api::{transform_slice_bundle, untransform_slice_with};
+pub use api::{transform_slice_bundle, untransform_slice};

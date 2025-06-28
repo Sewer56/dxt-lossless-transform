@@ -54,29 +54,29 @@ pub fn transform_slice_bundle<H: FileFormatHandler>(
 ///
 /// This will:
 /// 1. Extract transform details from the header
-/// 2. Restore the original file format headers
-/// 3. Apply the reverse transform to the texture data
+/// 2. Restore the original file format header
+/// 3. Dispatch to the appropriate untransform function
 ///
 /// # Parameters
 ///
 /// - `handler`: The file format handler (e.g., DdsHandler)
-/// - `input`: Input buffer containing the transformed file data
+/// - `input`: Input buffer containing transformed data
 /// - `output`: Output buffer (must be same size as input)
 ///
 /// # Example
 ///
 /// ```
-/// use dxt_lossless_transform_file_formats_api::{untransform_slice_with};
+/// use dxt_lossless_transform_file_formats_api::{untransform_slice};
 /// use dxt_lossless_transform_dds::DdsHandler;
 /// use dxt_lossless_transform_file_formats_api::TransformResult;
 ///
 /// fn example_untransform(input: &[u8]) -> TransformResult<Vec<u8>> {
 ///     let mut output = vec![0u8; input.len()];
-///     untransform_slice_with(&DdsHandler, input, &mut output)?;
+///     untransform_slice(&DdsHandler, input, &mut output)?;
 ///     Ok(output)
 /// }
 /// ```
-pub fn untransform_slice_with<H: FileFormatHandler>(
+pub fn untransform_slice<H: FileFormatHandler>(
     handler: &H,
     input: &[u8],
     output: &mut [u8],
@@ -146,15 +146,6 @@ pub fn dispatch_untransform(
                     details.into(),
                 );
             }
-        }
-        TransformFormat::Bc2 => {
-            return Err(TransformError::FormatNotImplemented(TransformFormat::Bc2));
-        }
-        TransformFormat::Bc3 => {
-            return Err(TransformError::FormatNotImplemented(TransformFormat::Bc3));
-        }
-        TransformFormat::Bc7 => {
-            return Err(TransformError::FormatNotImplemented(TransformFormat::Bc7));
         }
         _ => {
             return Err(TransformError::UnknownTransformFormat);

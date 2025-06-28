@@ -102,21 +102,22 @@ impl FileFormatHandler for DdsHandler {
         // Read transform header from first 4 bytes
         let header = unsafe { TransformHeader::read_from_ptr(input.as_ptr()) };
 
-        // Copy entire input to output
-        output[..input.len()].copy_from_slice(input);
-
-        // Restore DDS magic
-        output[0..4].copy_from_slice(&DDS_MAGIC.to_ne_bytes());
-
-        // Validate restored DDS and get info
-        let info = unsafe { parse_dds(output.as_ptr(), output.len()) }
+        // Parse header ignoring the magic (which contains transform data)
+        let info = unsafe { parse_dds_ignore_magic(input.as_ptr(), input.len()) }
             .ok_or(FileFormatError::InvalidRestoredFileHeader)?;
 
         let data_offset = info.data_offset as usize;
 
-        // Dispatch untransform based on header format
+        // Write DDS magic to output
+        output[0..4].copy_from_slice(&DDS_MAGIC.to_ne_bytes());
+
+        // Copy the rest of the header (from byte 4 to data_offset)
+        output[4..data_offset].copy_from_slice(&input[4..data_offset]);
+
+        // Dispatch untransform based on header format using separate input/output texture data
         dxt_lossless_transform_file_formats_api::api::dispatch_untransform(
             header,
+            &input[data_offset..],
             &mut output[data_offset..],
         )?;
 

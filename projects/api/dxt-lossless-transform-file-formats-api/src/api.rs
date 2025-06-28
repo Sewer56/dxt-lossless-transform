@@ -99,14 +99,17 @@ pub fn untransform_slice_with<H: FileFormatHandler>(
 /// # Parameters
 ///
 /// - `header`: The transform header containing format and settings
-/// - `texture_data`: Mutable slice containing the texture data to untransform
+/// - `input_texture_data`: Input slice containing the transformed texture data
+/// - `output_texture_data`: Output slice where the untransformed texture data will be written
 ///
 /// # Safety Requirements
 ///
-/// The texture data must be properly sized for the format:
+/// Both input and output texture data must be properly sized for the format:
 /// - BC1: Must be multiple of 8 bytes
 /// - BC2/BC3: Must be multiple of 16 bytes  
 /// - BC7: Must be multiple of 16 bytes
+///
+/// Input and output buffers must be the same size.
 ///
 /// # Example
 ///
@@ -114,40 +117,50 @@ pub fn untransform_slice_with<H: FileFormatHandler>(
 /// use dxt_lossless_transform_file_formats_api::{dispatch_untransform};
 /// use dxt_lossless_transform_file_formats_api::{TransformHeader, FileFormatResult};
 ///
-/// fn example_dispatch(file_data: &mut [u8], data_offset: usize) -> FileFormatResult<Vec<u8>> {
+/// fn example_dispatch(file_data: &[u8], data_offset: usize) -> FileFormatResult<Vec<u8>> {
 ///     // Extract header from first 4 bytes
 ///     let header = unsafe { TransformHeader::read_from_ptr(file_data.as_ptr()) };
 ///     
 ///     // Restore file format headers (format-specific)
 ///     // ... restore original headers ...
 ///     
-///     let mut texture_data = file_data[data_offset..].to_vec();
+///     let input_texture_data = &file_data[data_offset..];
+///     let mut output_texture_data = vec![0u8; input_texture_data.len()];
+///     
 ///     // Dispatch to appropriate untransform
-///     dispatch_untransform(header, &mut texture_data)?;
-///     Ok(texture_data)
+///     dispatch_untransform(header, input_texture_data, &mut output_texture_data)?;
+///     Ok(output_texture_data)
 /// }
 /// ```
 pub fn dispatch_untransform(
     header: TransformHeader,
-    texture_data: &mut [u8],
+    input_texture_data: &[u8],
+    output_texture_data: &mut [u8],
 ) -> FileFormatResult<()> {
+    if input_texture_data.len() != output_texture_data.len() {
+        return Err(FileFormatError::BufferSizeMismatch {
+            input_len: input_texture_data.len(),
+            output_len: output_texture_data.len(),
+        });
+    }
+
     match header.format() {
         TransformFormat::Bc1 => {
             let details = EmbeddableBc1Details::unpack(header.format_data())?;
 
             // BC1 untransform using unsafe API with safe wrapper
-            if texture_data.len() % 8 != 0 {
+            if input_texture_data.len() % 8 != 0 {
                 return Err(FileFormatError::InvalidDataAlignment {
-                    size: texture_data.len(),
+                    size: input_texture_data.len(),
                     required_divisor: 8,
                 });
             }
 
             unsafe {
                 dxt_lossless_transform_bc1::untransform_bc1_with_settings(
-                    texture_data.as_ptr(),
-                    texture_data.as_mut_ptr(),
-                    texture_data.len(),
+                    input_texture_data.as_ptr(),
+                    output_texture_data.as_mut_ptr(),
+                    input_texture_data.len(),
                     details.into(),
                 );
             }

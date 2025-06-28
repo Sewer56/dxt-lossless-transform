@@ -17,9 +17,6 @@ use safe_allocator_api::allocator_api::*;
 use safe_allocator_api::RawAlloc;
 use thiserror::Error;
 
-// Re-export types from the internal common crate (except AllocateError which we define locally)
-pub use dxt_lossless_transform_common::allocate::FixedRawAllocArray;
-
 /// An error that happened in memory allocation within the library.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[non_exhaustive]

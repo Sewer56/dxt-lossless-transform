@@ -9,25 +9,25 @@ use bitfield::bitfield;
 
 /// Placeholder BC7 detransform details
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Bc7DetransformDetails;
+struct Bc7DetransformDetails;
 
 /// Header version for BC7 format
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
-pub enum Bc7HeaderVersion {
+enum Bc7HeaderVersion {
     /// Initial version
     InitialVersion = 0,
 }
 
 impl Bc7HeaderVersion {
-    pub fn from_u32(value: u32) -> Result<Self, EmbedError> {
+    fn from_u32(value: u32) -> Result<Self, EmbedError> {
         match value {
             0 => Ok(Self::InitialVersion),
             _ => Err(EmbedError::CorruptedEmbeddedData),
         }
     }
 
-    pub fn to_u32(self) -> u32 {
+    fn to_u32(self) -> u32 {
         self as u32
     }
 }
@@ -39,19 +39,19 @@ bitfield! {
     /// - Bits 0-1: Header version (2 bits)
     /// - Bits 2-27: Reserved for BC7 mode masks and settings (26 bits)
     #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
-    pub struct Bc7TransformHeaderData(u32);
+    struct Bc7TransformHeaderData(u32);
     impl Debug;
     u32;
 
     /// Header version (2 bits)
-    pub header_version, set_header_version: 1, 0;
+    header_version, set_header_version: 1, 0;
     /// Reserved bits for future BC7 implementation (26 bits)
-    pub reserved, set_reserved: 27, 2;
+    reserved, set_reserved: 27, 2;
 }
 
 /// Wrapper type for BC7 detransform details that can be stored in file headers
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct EmbeddableBc7Details(pub Bc7DetransformDetails);
+struct EmbeddableBc7Details(Bc7DetransformDetails);
 
 impl From<Bc7DetransformDetails> for EmbeddableBc7Details {
     fn from(details: Bc7DetransformDetails) -> Self {

@@ -1,12 +1,12 @@
 //! BCx format-specific embeddable implementations.
 
-pub(crate) mod bc1;
+mod bc1;
 #[allow(dead_code)]
-pub(crate) mod bc2; // code not ready, placeholder
+mod bc2; // code not ready, placeholder
 #[allow(dead_code)]
-pub(crate) mod bc3; // code not ready, placeholder
+mod bc3; // code not ready, placeholder
 #[allow(dead_code)]
-pub(crate) mod bc7; // code not ready, placeholder
+mod bc7; // code not ready, placeholder
 
 pub(crate) use bc1::EmbeddableBc1Details;
 

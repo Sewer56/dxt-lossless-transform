@@ -23,7 +23,7 @@ impl TransformFormat {
     ///
     /// Returns [`None`] if the value does not correspond to a known transform format.
     /// This allows for forward compatibility when encountering newer format versions.
-    pub fn from_u8(value: u8) -> Option<Self> {
+    pub(super) fn from_u8(value: u8) -> Option<Self> {
         match value & 0x0F {
             // Mask to 4 bits
             0x00 => Some(Self::Bc1),
@@ -35,7 +35,7 @@ impl TransformFormat {
     }
 
     /// Convert to u8 value
-    pub fn to_u8(self) -> u8 {
+    pub(super) fn to_u8(self) -> u8 {
         match self {
             Self::Bc1 => 0x00,
             Self::Bc2 => 0x01,

@@ -11,14 +11,14 @@ use dxt_lossless_transform_common::color_565::YCoCgVariant;
 /// Header version for BC1 format
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
-pub enum Bc1HeaderVersion {
+enum Bc1HeaderVersion {
     /// Initial version - supports split color endpoints and decorrelation variants
     InitialVersion = 0,
 }
 
 impl Bc1HeaderVersion {
     /// Convert from u32 value
-    pub fn from_u32(value: u32) -> Result<Self, EmbedError> {
+    fn from_u32(value: u32) -> Result<Self, EmbedError> {
         match value {
             0 => Ok(Self::InitialVersion),
             _ => Err(EmbedError::CorruptedEmbeddedData),
@@ -26,7 +26,7 @@ impl Bc1HeaderVersion {
     }
 
     /// Convert to u32 value  
-    pub fn to_u32(self) -> u32 {
+    fn to_u32(self) -> u32 {
         self as u32
     }
 }
@@ -40,23 +40,23 @@ bitfield! {
     /// - Bits 3-4: Decorrelation variant (2 bits)
     /// - Bits 5-27: Reserved for future use (23 bits)
     #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
-    pub struct Bc1TransformHeaderData(u32);
+     struct Bc1TransformHeaderData(u32);
     impl Debug;
     u32;
 
     /// Header version (2 bits)
-    pub header_version, set_header_version: 1, 0;
+    header_version, set_header_version: 1, 0;
     /// Whether color endpoints were split (1 bit)
-    pub split_colour_endpoints, set_split_colour_endpoints: 2;
+    split_colour_endpoints, set_split_colour_endpoints: 2;
     /// YCoCg decorrelation variant (0=Variant1, 1=Variant2, 2=Variant3, 3=None) (2 bits)
-    pub decorrelation_variant, set_decorrelation_variant: 4, 3;
+    decorrelation_variant, set_decorrelation_variant: 4, 3;
     /// Reserved bits for future use (23 bits)
-    pub reserved, set_reserved: 27, 5;
+    reserved, set_reserved: 27, 5;
 }
 
 impl Bc1TransformHeaderData {
     /// Convert YCoCgVariant to its packed representation
-    pub(crate) fn variant_to_u32(variant: YCoCgVariant) -> u32 {
+    fn variant_to_u32(variant: YCoCgVariant) -> u32 {
         match variant {
             // These are 1:1 mappings at time of writing, so a no-op.
             YCoCgVariant::Variant1 => 0,
@@ -67,7 +67,7 @@ impl Bc1TransformHeaderData {
     }
 
     /// Convert packed representation back to YCoCgVariant
-    pub(crate) fn u32_to_variant(value: u32) -> Result<YCoCgVariant, EmbedError> {
+    fn u32_to_variant(value: u32) -> Result<YCoCgVariant, EmbedError> {
         match value {
             0 => Ok(YCoCgVariant::Variant1),
             1 => Ok(YCoCgVariant::Variant2),
@@ -78,7 +78,7 @@ impl Bc1TransformHeaderData {
     }
 
     /// Create [`Bc1TransformHeaderData`] from [`Bc1TransformSettings`]
-    pub(crate) fn from_transform_settings(settings: &Bc1TransformSettings) -> Self {
+    fn from_transform_settings(settings: &Bc1TransformSettings) -> Self {
         let mut header = Self::default();
         header.set_header_version(Bc1HeaderVersion::InitialVersion.to_u32());
         header.set_split_colour_endpoints(settings.split_colour_endpoints);
@@ -88,7 +88,7 @@ impl Bc1TransformHeaderData {
     }
 
     /// Convert [`Bc1TransformHeaderData`] to [`Bc1TransformSettings`]
-    pub(crate) fn to_transform_settings(self) -> Result<Bc1TransformSettings, EmbedError> {
+    fn to_transform_settings(self) -> Result<Bc1TransformSettings, EmbedError> {
         // Validate version (from_u32 will error on invalid version)
         let _version = Bc1HeaderVersion::from_u32(self.header_version())?;
         let decorrelation_mode = Self::u32_to_variant(self.decorrelation_variant())?;

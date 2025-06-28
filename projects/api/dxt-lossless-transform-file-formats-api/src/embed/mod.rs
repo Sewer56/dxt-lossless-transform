@@ -61,16 +61,16 @@
 use bitfield::bitfield;
 
 // Sub-modules
-pub(crate) mod embed_error; // Internal error handling only
-pub(crate) mod formats; // Internal format implementations only
-pub mod transform_format; // Public - used by external crates
+mod embed_error; // Internal error handling only
+pub(super) mod formats; // Internal format implementations only
+mod transform_format; // Public - used by external crates
 
 // Public re-exports (used by external crates)
 pub use transform_format::TransformFormat;
 
 // Internal re-exports (used only within file-formats-api crate)
-pub(crate) use embed_error::EmbedError;
-pub(crate) use formats::EmbeddableBc1Details;
+pub(super) use embed_error::EmbedError;
+pub(super) use formats::EmbeddableBc1Details;
 
 /// Size of the transform header in bytes.
 ///
@@ -91,14 +91,14 @@ bitfield! {
     u32;
 
     /// Transform format type (4 bits)
-    pub format_raw, set_format_raw: 3, 0;
+    format_raw, set_format_raw: 3, 0;
     /// Format-specific data (28 bits)
-    pub format_data, set_format_data: 31, 4;
+    format_data, set_format_data: 31, 4;
 }
 
 impl TransformHeader {
     /// Create a new transform header with the given format and data.
-    pub fn new(format: TransformFormat, data: u32) -> Self {
+    fn new(format: TransformFormat, data: u32) -> Self {
         let mut header = Self::default();
         header.set_format_raw(format.to_u8() as u32);
         header.set_format_data(data);
@@ -110,7 +110,7 @@ impl TransformHeader {
     /// Returns [`None`] if the format value in the header is not recognized.
     /// This can happen when reading files created with newer versions that
     /// support additional transform formats.
-    pub fn format(&self) -> Option<TransformFormat> {
+    pub(super) fn format(&self) -> Option<TransformFormat> {
         TransformFormat::from_u8(self.format_raw() as u8)
     }
 

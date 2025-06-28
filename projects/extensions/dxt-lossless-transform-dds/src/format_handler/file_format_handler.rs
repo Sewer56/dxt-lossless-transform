@@ -3,13 +3,32 @@ use crate::dds::{
     parse_dds::{parse_dds, parse_dds_ignore_magic, DdsFormat},
 };
 use dxt_lossless_transform_file_formats_api::{
-    bundle::{Bc1TransformBuilderExt, TransformBundle},
-    embed::{EmbeddableBc1Details, TransformFormat, TransformHeader, TRANSFORM_HEADER_SIZE},
+    bundle::TransformBundle,
+    embed::{TransformFormat, TransformHeader, TRANSFORM_HEADER_SIZE},
     error::{FormatHandlerError, TransformResult},
     traits::FileFormatHandler,
 };
 
 use super::DdsHandler;
+
+/// Convert DdsFormat to TransformFormat for dispatch
+fn dds_format_to_transform_format(
+    format: DdsFormat,
+) -> Result<TransformFormat, FormatHandlerError> {
+    match format {
+        DdsFormat::BC1 => Ok(TransformFormat::Bc1),
+        DdsFormat::BC2 => Err(FormatHandlerError::FormatNotImplemented(
+            TransformFormat::Bc2,
+        )),
+        DdsFormat::BC3 => Err(FormatHandlerError::FormatNotImplemented(
+            TransformFormat::Bc3,
+        )),
+        DdsFormat::BC7 => Err(FormatHandlerError::FormatNotImplemented(
+            TransformFormat::Bc7,
+        )),
+        DdsFormat::Unknown | DdsFormat::NotADds => Err(FormatHandlerError::UnknownFileFormat),
+    }
+}
 
 impl FileFormatHandler for DdsHandler {
     fn transform_bundle(
@@ -34,34 +53,14 @@ impl FileFormatHandler for DdsHandler {
         // Copy headers to output
         output[..data_offset].copy_from_slice(&input[..data_offset]);
 
-        // Transform based on detected format
-        let header = match info.format {
-            DdsFormat::BC1 => {
-                let builder = bundle
-                    .bc1
-                    .as_ref()
-                    .ok_or(FormatHandlerError::NoBuilderForFormat(TransformFormat::Bc1))?;
-
-                let details = builder.transform_slice_with_details(
-                    &input[data_offset..],
-                    &mut output[data_offset..],
-                )?;
-
-                EmbeddableBc1Details::from(details).to_header()
-            }
-            DdsFormat::BC2 => {
-                return Err(FormatHandlerError::FormatNotImplemented(TransformFormat::Bc2).into());
-            }
-            DdsFormat::BC3 => {
-                return Err(FormatHandlerError::FormatNotImplemented(TransformFormat::Bc3).into());
-            }
-            DdsFormat::BC7 => {
-                return Err(FormatHandlerError::FormatNotImplemented(TransformFormat::Bc7).into());
-            }
-            DdsFormat::Unknown | DdsFormat::NotADds => {
-                return Err(FormatHandlerError::UnknownFileFormat.into());
-            }
-        };
+        // Convert DDS format to transform format and dispatch
+        let transform_format = dds_format_to_transform_format(info.format)?;
+        let header = dxt_lossless_transform_file_formats_api::api::dispatch_transform(
+            transform_format,
+            &input[data_offset..],
+            &mut output[data_offset..],
+            bundle,
+        )?;
 
         // Embed transform header (overwrites DDS magic)
         // SAFETY: output.as_mut_ptr() is valid for writes of at least TRANSFORM_HEADER_SIZE bytes because:

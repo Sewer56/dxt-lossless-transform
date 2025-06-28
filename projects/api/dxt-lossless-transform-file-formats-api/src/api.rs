@@ -1,6 +1,6 @@
 //! High-level convenience APIs for file format operations.
 
-use crate::bundle::TransformBundle;
+use crate::bundle::{Bc1TransformBuilderExt, TransformBundle};
 use crate::embed::{
     EmbeddableBc1Details, EmbeddableTransformDetails, TransformFormat, TransformHeader,
 };
@@ -160,4 +160,70 @@ pub fn dispatch_untransform(
     }
 
     Ok(())
+}
+
+/// Dispatch transform operation based on the detected format.
+///
+/// This is a lower-level function that operates directly on texture data,
+/// assuming the file format headers have already been processed.
+///
+/// # Parameters
+///
+/// - `format`: The detected texture format to transform
+/// - `input_texture_data`: Input slice containing the original texture data
+/// - `output_texture_data`: Output slice where the transformed texture data will be written (must be at least the same size as input)
+/// - `bundle`: Bundle containing transform builders for different BCx formats
+///
+/// # Returns
+///
+/// Returns a [`TransformHeader`] containing the transform details that should be embedded in the file.
+///
+/// # Safety Requirements
+///
+/// Both input and output texture data must be properly sized for the format:
+/// - BC1: Must be multiple of 8 bytes
+/// - BC2/BC3: Must be multiple of 16 bytes  
+/// - BC7: Must be multiple of 16 bytes
+///
+/// Output buffer must be at least the same size as the input buffer.
+///
+/// # Example
+///
+/// See: `dxt-lossless-transform-dds` crate.
+pub fn dispatch_transform(
+    format: TransformFormat,
+    input_texture_data: &[u8],
+    output_texture_data: &mut [u8],
+    bundle: &TransformBundle,
+) -> TransformResult<TransformHeader> {
+    if output_texture_data.len() < input_texture_data.len() {
+        return Err(TransformError::FormatHandler(
+            FormatHandlerError::OutputBufferTooSmall {
+                required: input_texture_data.len(),
+                actual: output_texture_data.len(),
+            },
+        ));
+    }
+
+    let header = match format {
+        TransformFormat::Bc1 => {
+            let builder = bundle
+                .bc1
+                .as_ref()
+                .ok_or(FormatHandlerError::NoBuilderForFormat(TransformFormat::Bc1))?;
+
+            let details =
+                builder.transform_slice_with_details(input_texture_data, output_texture_data)?;
+
+            EmbeddableBc1Details::from(details).to_header()
+        }
+        TransformFormat::Bc2 | TransformFormat::Bc3 | TransformFormat::Bc7 => {
+            return Err(TransformError::UnknownTransformFormat);
+        }
+        _ => {
+            return Err(TransformError::UnknownTransformFormat);
+        }
+    };
+
+    Ok(header)
 }

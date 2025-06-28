@@ -1,7 +1,7 @@
 //! Core trait for file format transformation.
 
 use crate::bundle::TransformBundle;
-use crate::error::FileFormatResult;
+use crate::error::TransformResult;
 
 /// Core trait for file format transformation and untransformation.
 ///
@@ -55,7 +55,7 @@ pub trait FileFormatHandler: Send + Sync {
         input: &[u8],
         output: &mut [u8],
         bundle: &TransformBundle,
-    ) -> FileFormatResult<()>;
+    ) -> TransformResult<()>;
 
     /// Untransform the input buffer to output buffer.
     ///
@@ -74,5 +74,5 @@ pub trait FileFormatHandler: Send + Sync {
     /// Ok(()) on success, or an error if:
     /// - The header is invalid or corrupted
     /// - Untransform operation fails
-    fn untransform(&self, input: &[u8], output: &mut [u8]) -> FileFormatResult<()>;
+    fn untransform(&self, input: &[u8], output: &mut [u8]) -> TransformResult<()>;
 }

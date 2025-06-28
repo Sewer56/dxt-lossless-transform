@@ -1,5 +1,7 @@
 //! Transform format enumeration for different DXT compression formats.
 
+use core::hint::unreachable_unchecked;
+
 /// Represents the different transform formats that can be embedded.
 ///
 /// This enum uses 4 bits in the header, allowing for up to 16 different formats.
@@ -61,7 +63,7 @@ impl TransformFormat {
             0x0D => Self::Reserved13,
             0x0E => Self::Reserved14,
             0x0F => Self::Reserved15,
-            _ => unreachable!("Value is masked to 4 bits"),
+            _ => unsafe { unreachable_unchecked() }, // "Value is masked to 4 bits"
         }
     }
 

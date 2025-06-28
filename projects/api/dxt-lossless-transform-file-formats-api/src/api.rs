@@ -2,7 +2,7 @@
 
 use crate::bundle::TransformBundle;
 use crate::embed::{EmbeddableTransformDetails, TransformFormat, TransformHeader};
-use crate::error::{FileFormatError, FileFormatResult};
+use crate::error::{TransformError, TransformResult};
 use crate::formats::EmbeddableBc1Details;
 use crate::traits::FileFormatHandler;
 
@@ -25,9 +25,9 @@ use crate::traits::FileFormatHandler;
 /// ```
 /// use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_bundle};
 /// use dxt_lossless_transform_dds::DdsHandler;
-/// use dxt_lossless_transform_file_formats_api::FileFormatResult;
+/// use dxt_lossless_transform_file_formats_api::TransformResult;
 ///
-/// fn example_transform(input: &[u8]) -> FileFormatResult<Vec<u8>> {
+/// fn example_transform(input: &[u8]) -> TransformResult<Vec<u8>> {
 ///     let bundle = TransformBundle::default_all();
 ///     let mut output = vec![0u8; input.len()];
 ///     transform_slice_bundle(&DdsHandler, input, &mut output, &bundle)?;
@@ -39,9 +39,9 @@ pub fn transform_slice_bundle<H: FileFormatHandler>(
     input: &[u8],
     output: &mut [u8],
     bundle: &TransformBundle,
-) -> FileFormatResult<()> {
+) -> TransformResult<()> {
     if input.len() != output.len() {
-        return Err(FileFormatError::BufferSizeMismatch {
+        return Err(TransformError::BufferSizeMismatch {
             input_len: input.len(),
             output_len: output.len(),
         });
@@ -68,9 +68,9 @@ pub fn transform_slice_bundle<H: FileFormatHandler>(
 /// ```
 /// use dxt_lossless_transform_file_formats_api::{untransform_slice_with};
 /// use dxt_lossless_transform_dds::DdsHandler;
-/// use dxt_lossless_transform_file_formats_api::FileFormatResult;
+/// use dxt_lossless_transform_file_formats_api::TransformResult;
 ///
-/// fn example_untransform(input: &[u8]) -> FileFormatResult<Vec<u8>> {
+/// fn example_untransform(input: &[u8]) -> TransformResult<Vec<u8>> {
 ///     let mut output = vec![0u8; input.len()];
 ///     untransform_slice_with(&DdsHandler, input, &mut output)?;
 ///     Ok(output)
@@ -80,9 +80,9 @@ pub fn untransform_slice_with<H: FileFormatHandler>(
     handler: &H,
     input: &[u8],
     output: &mut [u8],
-) -> FileFormatResult<()> {
+) -> TransformResult<()> {
     if input.len() != output.len() {
-        return Err(FileFormatError::BufferSizeMismatch {
+        return Err(TransformError::BufferSizeMismatch {
             input_len: input.len(),
             output_len: output.len(),
         });
@@ -113,32 +113,14 @@ pub fn untransform_slice_with<H: FileFormatHandler>(
 ///
 /// # Example
 ///
-/// ```ignore
-/// use dxt_lossless_transform_file_formats_api::{dispatch_untransform};
-/// use dxt_lossless_transform_file_formats_api::{TransformHeader, FileFormatResult};
-///
-/// fn example_dispatch(file_data: &[u8], data_offset: usize) -> FileFormatResult<Vec<u8>> {
-///     // Extract header from first 4 bytes
-///     let header = unsafe { TransformHeader::read_from_ptr(file_data.as_ptr()) };
-///     
-///     // Restore file format headers (format-specific)
-///     // ... restore original headers ...
-///     
-///     let input_texture_data = &file_data[data_offset..];
-///     let mut output_texture_data = vec![0u8; input_texture_data.len()];
-///     
-///     // Dispatch to appropriate untransform
-///     dispatch_untransform(header, input_texture_data, &mut output_texture_data)?;
-///     Ok(output_texture_data)
-/// }
-/// ```
+/// See: `dxt-lossless-transform-dds` crate.
 pub fn dispatch_untransform(
     header: TransformHeader,
     input_texture_data: &[u8],
     output_texture_data: &mut [u8],
-) -> FileFormatResult<()> {
+) -> TransformResult<()> {
     if input_texture_data.len() != output_texture_data.len() {
-        return Err(FileFormatError::BufferSizeMismatch {
+        return Err(TransformError::BufferSizeMismatch {
             input_len: input_texture_data.len(),
             output_len: output_texture_data.len(),
         });
@@ -150,7 +132,7 @@ pub fn dispatch_untransform(
 
             // BC1 untransform using unsafe API with safe wrapper
             if input_texture_data.len() % 8 != 0 {
-                return Err(FileFormatError::InvalidDataAlignment {
+                return Err(TransformError::InvalidDataAlignment {
                     size: input_texture_data.len(),
                     required_divisor: 8,
                 });
@@ -166,16 +148,16 @@ pub fn dispatch_untransform(
             }
         }
         TransformFormat::Bc2 => {
-            return Err(FileFormatError::FormatNotImplemented(TransformFormat::Bc2));
+            return Err(TransformError::FormatNotImplemented(TransformFormat::Bc2));
         }
         TransformFormat::Bc3 => {
-            return Err(FileFormatError::FormatNotImplemented(TransformFormat::Bc3));
+            return Err(TransformError::FormatNotImplemented(TransformFormat::Bc3));
         }
         TransformFormat::Bc7 => {
-            return Err(FileFormatError::FormatNotImplemented(TransformFormat::Bc7));
+            return Err(TransformError::FormatNotImplemented(TransformFormat::Bc7));
         }
         _ => {
-            return Err(FileFormatError::UnknownFormat);
+            return Err(TransformError::UnknownTransformFormat);
         }
     }
 

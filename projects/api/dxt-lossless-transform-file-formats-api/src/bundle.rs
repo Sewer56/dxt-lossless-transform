@@ -6,7 +6,7 @@ use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
 // BC7 API not yet available
 // use dxt_lossless_transform_bc7_api::{Bc7AutoTransformBuilder, Bc7ManualTransformBuilder};
 
-use crate::error::FileFormatError;
+use crate::error::TransformError;
 
 /// Bundle of transform builders for different BCx formats.
 ///
@@ -44,7 +44,7 @@ pub trait Bc1TransformBuilderExt {
         &self,
         input: &[u8],
         output: &mut [u8],
-    ) -> Result<Bc1TransformSettings, FileFormatError>;
+    ) -> Result<Bc1TransformSettings, TransformError>;
 }
 
 impl Bc1TransformBuilderExt for Bc1TransformBuilder {
@@ -52,7 +52,7 @@ impl Bc1TransformBuilderExt for Bc1TransformBuilder {
         &self,
         input: &[u8],
         output: &mut [u8],
-    ) -> Result<Bc1TransformSettings, FileFormatError> {
+    ) -> Result<Bc1TransformSettings, TransformError> {
         // Manual builder's transform() method returns a result
         self.transform(input, output)?;
 

@@ -3,6 +3,9 @@
 //! This module provides memory-mapped file operations for transform and untransform operations
 //! using `lightweight-mmap` for better performance.
 
+pub mod error;
+pub use error::*;
+
 #[cfg(feature = "lightweight-mmap")]
 mod lightweight_mmap_impl;
 #[cfg(feature = "lightweight-mmap")]

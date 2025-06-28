@@ -1,7 +1,7 @@
 //! File I/O implementation using lightweight-mmap.
 
 use crate::bundle::TransformBundle;
-use crate::error::FileFormatResult;
+use crate::file_io::FileOperationResult;
 use crate::traits::FileFormatHandler;
 use core::slice;
 use lightweight_mmap::handles::*;
@@ -28,14 +28,12 @@ pub fn transform_file_bundle<H: FileFormatHandler>(
     input_path: &Path,
     output_path: &Path,
     bundle: &TransformBundle,
-) -> FileFormatResult<()> {
+) -> FileOperationResult<()> {
     // Open input file
     let input_handle = ReadOnlyFileHandle::open(input_path)?;
     let input_size = input_handle.size()? as usize;
     let input_mapping = ReadOnlyMmap::new(&input_handle, 0, input_size)?;
-
     let output_handle = ReadWriteFileHandle::create_preallocated(output_path, input_size as i64)?;
-
     let output_mapping = ReadWriteMmap::new(&output_handle, 0, input_size)?;
 
     // Transform directly into the memory-mapped output
@@ -67,7 +65,7 @@ pub fn untransform_file_with<H: FileFormatHandler>(
     handler: &H,
     input_path: &Path,
     output_path: &Path,
-) -> FileFormatResult<()> {
+) -> FileOperationResult<()> {
     // Open input file
     let input_handle = ReadOnlyFileHandle::open(input_path)?;
     let input_size = input_handle.size()? as usize;

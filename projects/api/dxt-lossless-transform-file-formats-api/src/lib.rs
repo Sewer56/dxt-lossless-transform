@@ -13,10 +13,10 @@
 //! # Example
 //!
 //! ```
-//! use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_bundle, FileFormatResult};
+//! use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_bundle, TransformResult};
 //! use dxt_lossless_transform_dds::DdsHandler;
 //!
-//! fn example_file_transform(input: &[u8]) -> FileFormatResult<Vec<u8>> {
+//! fn example_file_transform(input: &[u8]) -> TransformResult<Vec<u8>> {
 //!     // Create a bundle with default settings for all formats
 //!     let bundle = TransformBundle::default_all();
 //!
@@ -47,8 +47,12 @@ pub mod file_io;
 
 // Re-export key types
 pub use bundle::{TransformBundle, UntransformResult};
-pub use error::{FileFormatError, FileFormatResult};
+pub use error::{TransformError, TransformResult};
 pub use traits::FileFormatHandler;
+
+// Re-export file operation types when file-io feature is enabled
+#[cfg(feature = "file-io")]
+pub use file_io::{FileOperationError, FileOperationResult};
 
 // Re-export convenience functions
 pub use api::{transform_slice_bundle, untransform_slice_with};

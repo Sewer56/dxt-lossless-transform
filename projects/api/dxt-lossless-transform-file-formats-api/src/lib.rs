@@ -47,7 +47,7 @@ pub mod traits;
 pub mod file_io;
 
 // Re-export key types
-pub use bundle::{Bc1Builder, TransformBundle, UntransformResult};
+pub use bundle::{Bc1Builder, TransformBundle};
 pub use error::{FormatHandlerError, FormatHandlerResult, TransformError, TransformResult};
 pub use traits::FileFormatHandler;
 

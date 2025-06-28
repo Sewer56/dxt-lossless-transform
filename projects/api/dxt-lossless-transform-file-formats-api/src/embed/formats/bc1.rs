@@ -2,7 +2,8 @@
 //!
 //! This module provides BC1-specific implementations of the file format traits.
 
-use crate::embed::{EmbedError, EmbeddableTransformDetails, TransformFormat};
+use super::EmbeddableTransformDetails;
+use crate::embed::{EmbedError, TransformFormat};
 use bitfield::bitfield;
 use dxt_lossless_transform_bc1::Bc1TransformSettings;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
@@ -99,9 +100,9 @@ impl Bc1TransformHeaderData {
     }
 }
 
-/// Wrapper type for BC1 transform settings that can be stored in file headers
+/// Wrapper type for BC1 transform settings that can be stored in file headers (internal use only)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct EmbeddableBc1Details(Bc1TransformSettings);
+pub(crate) struct EmbeddableBc1Details(Bc1TransformSettings);
 
 impl EmbeddableTransformDetails for EmbeddableBc1Details {
     const FORMAT: TransformFormat = TransformFormat::Bc1;
@@ -116,12 +117,10 @@ impl EmbeddableTransformDetails for EmbeddableBc1Details {
 }
 
 impl EmbeddableBc1Details {
-    /// Create a [`TransformHeader`] from this embeddable BC1 details.
-    ///
-    /// This is a convenience method for external format handlers.
+    /// Create a [`TransformHeader`] from this embeddable BC1 details (internal use only).
     ///
     /// [`TransformHeader`]: crate::embed::TransformHeader
-    pub fn to_header(&self) -> crate::embed::TransformHeader {
+    pub(crate) fn to_header(self) -> crate::embed::TransformHeader {
         crate::embed::TransformHeader::new(Self::FORMAT, self.pack())
     }
 

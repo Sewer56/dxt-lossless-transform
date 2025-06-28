@@ -1,6 +1,7 @@
 //! BC2 format file format support.
 
-use crate::embed::{EmbedError, EmbeddableTransformDetails, TransformFormat};
+use super::EmbeddableTransformDetails;
+use crate::embed::{EmbedError, TransformFormat};
 use bitfield::bitfield;
 
 /// Header version for BC2 format

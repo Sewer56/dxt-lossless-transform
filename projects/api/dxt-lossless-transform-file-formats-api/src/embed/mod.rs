@@ -61,20 +61,16 @@
 use bitfield::bitfield;
 
 // Sub-modules
-pub mod embed_error;
-pub mod embeddable_transform_details;
-pub mod formats;
-pub mod transform_format;
+pub(crate) mod embed_error; // Internal error handling only
+pub(crate) mod formats; // Internal format implementations only
+pub mod transform_format; // Public - used by external crates
 
-// Re-exports for backwards compatibility and convenience
-pub use embed_error::EmbedError;
-pub use embeddable_transform_details::EmbeddableTransformDetails;
+// Public re-exports (used by external crates)
 pub use transform_format::TransformFormat;
 
-// Re-export format-specific embeddable details for external extensions
-pub use formats::{
-    EmbeddableBc1Details, EmbeddableBc2Details, EmbeddableBc3Details, EmbeddableBc7Details,
-};
+// Internal re-exports (used only within file-formats-api crate)
+pub(crate) use embed_error::EmbedError;
+pub(crate) use formats::EmbeddableBc1Details;
 
 /// Size of the transform header in bytes.
 ///

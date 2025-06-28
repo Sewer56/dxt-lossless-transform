@@ -3,7 +3,8 @@
 //! BC7 is not yet fully implemented in the transform library,
 //! so this is a placeholder for future use.
 
-use crate::embed::{EmbedError, EmbeddableTransformDetails, TransformFormat};
+use super::EmbeddableTransformDetails;
+use crate::embed::{EmbedError, TransformFormat};
 use bitfield::bitfield;
 
 /// Placeholder BC7 detransform details

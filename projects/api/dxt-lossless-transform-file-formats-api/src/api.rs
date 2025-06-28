@@ -1,9 +1,8 @@
 //! High-level convenience APIs for file format operations.
 
 use crate::bundle::TransformBundle;
-use crate::embed::{
-    EmbeddableBc1Details, EmbeddableTransformDetails, TransformFormat, TransformHeader,
-};
+use crate::embed::formats::{EmbeddableBc1Details, EmbeddableTransformDetails};
+use crate::embed::{TransformFormat, TransformHeader};
 use crate::error::{FormatHandlerError, TransformError, TransformResult};
 use crate::traits::FileFormatHandler;
 use core::fmt::Debug;

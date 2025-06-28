@@ -9,17 +9,19 @@ use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
 use crate::embed::{TransformFormat, TransformHeader};
 use crate::error::{FormatHandlerError, TransformError, TransformResult};
 
-// Re-export all BCx builder types and common estimators
+// Re-export BC1 builder (used externally)
 pub use bc1::Bc1Builder;
-pub use bc2::Bc2TransformBuilder;
-pub use bc3::Bc3TransformBuilder;
-pub use bc7::Bc7TransformBuilder;
+
+// Import BC2-7 builders for internal use in PhantomData fields
+use bc2::Bc2TransformBuilder;
+use bc3::Bc3TransformBuilder;
+use bc7::Bc7TransformBuilder;
 
 // Submodules for each BCx format
-pub mod bc1;
-pub mod bc2;
-pub mod bc3;
-pub mod bc7;
+pub mod bc1; // BC1 module stays public (Bc1Builder is used externally)
+pub(crate) mod bc2; // BC2-7 modules are private (builders not used externally)
+pub(crate) mod bc3;
+pub(crate) mod bc7;
 
 /// Bundle of transform builders for different BCx formats.
 ///
@@ -156,17 +158,4 @@ impl TransformBundle<NoEstimation> {
             bc7: PhantomData,
         }
     }
-}
-
-/// Result of an untransform operation
-#[derive(Debug)]
-pub enum UntransformResult {
-    /// BC1 was untransformed with these details
-    Bc1(crate::embed::EmbeddableBc1Details),
-    /// BC2 was untransformed
-    Bc2,
-    /// BC3 was untransformed
-    Bc3,
-    /// BC7 was untransformed (placeholder)
-    Bc7,
 }

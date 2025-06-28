@@ -1,11 +1,10 @@
 //! High-level convenience APIs for file format operations.
 
 use crate::bundle::TransformBundle;
-use crate::embed::{EmbeddableTransformDetails, TransformHeader};
+use crate::embed::{EmbeddableTransformDetails, TransformFormat, TransformHeader};
 use crate::error::{FileFormatError, FileFormatResult};
 use crate::formats::EmbeddableBc1Details;
 use crate::traits::FileFormatHandler;
-use alloc::string::ToString;
 
 /// Transform a slice using the specified format handler and transform bundle.
 ///
@@ -42,9 +41,10 @@ pub fn transform_slice_bundle<H: FileFormatHandler>(
     bundle: &TransformBundle,
 ) -> FileFormatResult<()> {
     if input.len() != output.len() {
-        return Err(FileFormatError::InvalidFileData(
-            "Input and output buffers must be the same size".to_string(),
-        ));
+        return Err(FileFormatError::BufferSizeMismatch {
+            input_len: input.len(),
+            output_len: output.len(),
+        });
     }
 
     handler.transform_bundle(input, output, bundle)
@@ -54,20 +54,21 @@ pub fn transform_slice_bundle<H: FileFormatHandler>(
 ///
 /// This will:
 /// 1. Extract transform details from the header
-/// 2. Restore the original file format header
-/// 3. Apply the appropriate untransform based on the detected format
+/// 2. Restore the original file format headers
+/// 3. Apply the reverse transform to the texture data
 ///
 /// # Parameters
 ///
-/// - `handler`: The file format handler
-/// - `input`: Input buffer containing transformed data
+/// - `handler`: The file format handler (e.g., DdsHandler)
+/// - `input`: Input buffer containing the transformed file data
 /// - `output`: Output buffer (must be same size as input)
 ///
 /// # Example
 ///
 /// ```
-/// use dxt_lossless_transform_file_formats_api::{untransform_slice_with, FileFormatResult};
+/// use dxt_lossless_transform_file_formats_api::{untransform_slice_with};
 /// use dxt_lossless_transform_dds::DdsHandler;
+/// use dxt_lossless_transform_file_formats_api::FileFormatResult;
 ///
 /// fn example_untransform(input: &[u8]) -> FileFormatResult<Vec<u8>> {
 ///     let mut output = vec![0u8; input.len()];
@@ -81,34 +82,44 @@ pub fn untransform_slice_with<H: FileFormatHandler>(
     output: &mut [u8],
 ) -> FileFormatResult<()> {
     if input.len() != output.len() {
-        return Err(FileFormatError::InvalidFileData(
-            "Input and output buffers must be the same size".to_string(),
-        ));
+        return Err(FileFormatError::BufferSizeMismatch {
+            input_len: input.len(),
+            output_len: output.len(),
+        });
     }
 
     handler.untransform(input, output)
 }
 
-/// Helper function to dispatch untransform based on header format.
+/// Dispatch untransform operation based on the transform header format.
 ///
-/// This is used internally by format handlers after they extract the header.
-/// It examines the transform format in the header and calls the appropriate
-/// untransform function with the embedded settings.
+/// This is a lower-level function that operates directly on texture data,
+/// assuming the file format headers have already been processed.
 ///
 /// # Parameters
 ///
-/// - `header`: Transform header containing format type and settings
+/// - `header`: The transform header containing format and settings
 /// - `texture_data`: Mutable slice containing the texture data to untransform
+///
+/// # Safety Requirements
+///
+/// The texture data must be properly sized for the format:
+/// - BC1: Must be multiple of 8 bytes
+/// - BC2/BC3: Must be multiple of 16 bytes  
+/// - BC7: Must be multiple of 16 bytes
 ///
 /// # Example
 ///
-/// ```
-/// use dxt_lossless_transform_file_formats_api::{api::dispatch_untransform, FileFormatResult};
-/// use dxt_lossless_transform_file_formats_api::embed::{TransformHeader, TransformFormat};
+/// ```ignore
+/// use dxt_lossless_transform_file_formats_api::{dispatch_untransform};
+/// use dxt_lossless_transform_file_formats_api::{TransformHeader, FileFormatResult};
 ///
-/// fn example_dispatch(file_data: &[u8], data_offset: usize) -> FileFormatResult<Vec<u8>> {
-///     // Read header from file
+/// fn example_dispatch(file_data: &mut [u8], data_offset: usize) -> FileFormatResult<Vec<u8>> {
+///     // Extract header from first 4 bytes
 ///     let header = unsafe { TransformHeader::read_from_ptr(file_data.as_ptr()) };
+///     
+///     // Restore file format headers (format-specific)
+///     // ... restore original headers ...
 ///     
 ///     let mut texture_data = file_data[data_offset..].to_vec();
 ///     // Dispatch to appropriate untransform
@@ -120,17 +131,16 @@ pub fn dispatch_untransform(
     header: TransformHeader,
     texture_data: &mut [u8],
 ) -> FileFormatResult<()> {
-    use crate::embed::TransformFormat;
-
     match header.format() {
         TransformFormat::Bc1 => {
             let details = EmbeddableBc1Details::unpack(header.format_data())?;
 
             // BC1 untransform using unsafe API with safe wrapper
             if texture_data.len() % 8 != 0 {
-                return Err(FileFormatError::InvalidFileData(
-                    "BC1 data must be 8-byte aligned".to_string(),
-                ));
+                return Err(FileFormatError::InvalidDataAlignment {
+                    size: texture_data.len(),
+                    required_divisor: 8,
+                });
             }
 
             unsafe {
@@ -143,21 +153,16 @@ pub fn dispatch_untransform(
             }
         }
         TransformFormat::Bc2 => {
-            // BC2 not yet implemented
-            return Err(FileFormatError::UnsupportedFormat("BC2"));
+            return Err(FileFormatError::FormatNotImplemented(TransformFormat::Bc2));
         }
         TransformFormat::Bc3 => {
-            // BC3 not yet implemented
-            return Err(FileFormatError::UnsupportedFormat("BC3"));
+            return Err(FileFormatError::FormatNotImplemented(TransformFormat::Bc3));
         }
         TransformFormat::Bc7 => {
-            // BC7 not yet implemented
-            return Err(FileFormatError::UnsupportedFormat("BC7"));
+            return Err(FileFormatError::FormatNotImplemented(TransformFormat::Bc7));
         }
         _ => {
-            return Err(FileFormatError::UnsupportedFormat(
-                "Unknown transform format",
-            ));
+            return Err(FileFormatError::UnknownFormat);
         }
     }
 

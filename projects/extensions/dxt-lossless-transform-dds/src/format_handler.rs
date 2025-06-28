@@ -4,10 +4,9 @@ use crate::dds::{
     constants::DDS_MAGIC,
     parse_dds::{parse_dds, parse_dds_ignore_magic, DdsFormat},
 };
-use alloc::string::ToString;
 use dxt_lossless_transform_file_formats_api::{
     bundle::{Bc1TransformBuilderExt, TransformBundle},
-    embed::{EmbeddableTransformDetails, TransformHeader},
+    embed::{EmbeddableTransformDetails, TransformFormat, TransformHeader},
     error::{FileFormatError, FileFormatResult},
     formats::EmbeddableBc1Details,
     traits::{FileFormatDetection, FileFormatHandler, FileFormatUntransformDetection},
@@ -29,15 +28,15 @@ impl FileFormatHandler for DdsHandler {
     ) -> FileFormatResult<()> {
         // Validate buffer sizes
         if output.len() < input.len() {
-            return Err(FileFormatError::InvalidFileData(
-                "Output buffer too small to contain transformed DDS data".to_string(),
-            ));
+            return Err(FileFormatError::OutputBufferTooSmall {
+                required: input.len(),
+                actual: output.len(),
+            });
         }
 
         // Parse DDS header
-        let info = unsafe { parse_dds(input.as_ptr(), input.len()) }.ok_or_else(|| {
-            FileFormatError::InvalidFileData("Could not parse DDS header".to_string())
-        })?;
+        let info = unsafe { parse_dds(input.as_ptr(), input.len()) }
+            .ok_or(FileFormatError::InvalidInputFileHeader)?;
 
         let data_offset = info.data_offset as usize;
 
@@ -60,27 +59,19 @@ impl FileFormatHandler for DdsHandler {
                 EmbeddableBc1Details::from(details).to_header()
             }
             DdsFormat::BC2 => {
-                return Err(FileFormatError::UnsupportedFormat(
-                    "BC2 not yet implemented",
-                ));
+                return Err(FileFormatError::FormatNotImplemented(TransformFormat::Bc2));
             }
             DdsFormat::BC3 => {
-                return Err(FileFormatError::UnsupportedFormat(
-                    "BC3 not yet implemented",
-                ));
+                return Err(FileFormatError::FormatNotImplemented(TransformFormat::Bc3));
             }
             DdsFormat::BC7 => {
-                return Err(FileFormatError::UnsupportedFormat(
-                    "BC7 not yet implemented",
-                ));
+                return Err(FileFormatError::FormatNotImplemented(TransformFormat::Bc7));
             }
             DdsFormat::Unknown => {
-                return Err(FileFormatError::UnsupportedFormat("Unknown DDS format"));
+                return Err(FileFormatError::UnknownFormat);
             }
             DdsFormat::NotADds => {
-                return Err(FileFormatError::InvalidFileData(
-                    "Not a DDS file".to_string(),
-                ));
+                return Err(FileFormatError::InvalidInputFileFormat);
             }
         };
 
@@ -95,15 +86,17 @@ impl FileFormatHandler for DdsHandler {
     fn untransform(&self, input: &[u8], output: &mut [u8]) -> FileFormatResult<()> {
         // Validate buffer sizes
         if input.len() < 4 {
-            return Err(FileFormatError::InvalidFileData(
-                "Input too small to contain transform header".to_string(),
-            ));
+            return Err(FileFormatError::InputTooShort {
+                required: 4,
+                actual: input.len(),
+            });
         }
 
         if output.len() < input.len() {
-            return Err(FileFormatError::InvalidFileData(
-                "Output buffer too small to contain restored DDS data".to_string(),
-            ));
+            return Err(FileFormatError::OutputBufferTooSmall {
+                required: input.len(),
+                actual: output.len(),
+            });
         }
 
         // Read transform header from first 4 bytes
@@ -116,9 +109,8 @@ impl FileFormatHandler for DdsHandler {
         output[0..4].copy_from_slice(&DDS_MAGIC.to_ne_bytes());
 
         // Validate restored DDS and get info
-        let info = unsafe { parse_dds(output.as_ptr(), output.len()) }.ok_or_else(|| {
-            FileFormatError::InvalidFileData("Corrupted DDS data after restore".to_string())
-        })?;
+        let info = unsafe { parse_dds(output.as_ptr(), output.len()) }
+            .ok_or(FileFormatError::InvalidRestoredFileHeader)?;
 
         let data_offset = info.data_offset as usize;
 
@@ -160,7 +152,7 @@ impl FileFormatUntransformDetection for DdsHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloc::{format, vec};
+    use alloc::vec;
     use dxt_lossless_transform_file_formats_api::TransformBundle;
 
     #[test]
@@ -197,9 +189,11 @@ mod tests {
         let result = handler.transform_bundle(&input, &mut small_output, &bundle);
         assert!(result.is_err());
 
-        if let Err(e) = result {
-            let msg = format!("{e:?}");
-            assert!(msg.contains("Output buffer too small"));
+        if let Err(FileFormatError::OutputBufferTooSmall { required, actual }) = result {
+            assert_eq!(required, 128);
+            assert_eq!(actual, 64);
+        } else {
+            panic!("Expected OutputBufferTooSmall error");
         }
     }
 
@@ -213,9 +207,11 @@ mod tests {
         let result = handler.untransform(&tiny_input, &mut output);
         assert!(result.is_err());
 
-        if let Err(e) = result {
-            let msg = format!("{e:?}");
-            assert!(msg.contains("Input too small to contain transform header"));
+        if let Err(FileFormatError::InputTooShort { required, actual }) = result {
+            assert_eq!(required, 4);
+            assert_eq!(actual, 2);
+        } else {
+            panic!("Expected InputTooShort error");
         }
 
         // Test with output buffer too small
@@ -224,9 +220,53 @@ mod tests {
         let result = handler.untransform(&input, &mut small_output);
         assert!(result.is_err());
 
-        if let Err(e) = result {
-            let msg = format!("{e:?}");
-            assert!(msg.contains("Output buffer too small to contain restored DDS data"));
+        if let Err(FileFormatError::OutputBufferTooSmall { required, actual }) = result {
+            assert_eq!(required, 128);
+            assert_eq!(actual, 64);
+        } else {
+            panic!("Expected OutputBufferTooSmall error");
+        }
+    }
+
+    #[test]
+    fn test_invalid_input_file_header_on_transform() {
+        let handler = DdsHandler;
+        let bundle = TransformBundle::default_all();
+
+        // Create invalid DDS data (no magic header)
+        let invalid_input = vec![0u8; 128];
+        let mut output = vec![0u8; 128];
+
+        let result = handler.transform_bundle(&invalid_input, &mut output, &bundle);
+        assert!(result.is_err());
+
+        if let Err(FileFormatError::InvalidInputFileHeader) = result {
+            // Expected error
+        } else {
+            panic!("Expected InvalidInputFileHeader error, got: {:?}", result);
+        }
+    }
+
+    #[test]
+    fn test_invalid_restored_file_header_on_untransform() {
+        let handler = DdsHandler;
+
+        // Create data that's too short for a valid DDS header after magic restoration
+        // DDS requires at least 128 bytes (0x80) for the basic header
+        let invalid_transformed = vec![0u8; 64]; // Too short for DDS header
+
+        let mut output = vec![0u8; 64];
+        let result = handler.untransform(&invalid_transformed, &mut output);
+        assert!(result.is_err());
+
+        if let Err(FileFormatError::InvalidRestoredFileHeader) = result {
+            // Expected error - after restoring the DDS magic, the remaining data
+            // is too short to be a valid DDS file
+        } else {
+            panic!(
+                "Expected InvalidRestoredFileHeader error, got: {:?}",
+                result
+            );
         }
     }
 }

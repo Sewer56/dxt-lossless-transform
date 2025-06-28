@@ -1,6 +1,6 @@
 //! Error types for file format operations.
 
-use crate::embed::EmbedError;
+use crate::embed::{EmbedError, TransformFormat};
 use alloc::{format, string::String};
 use thiserror::Error;
 
@@ -45,25 +45,48 @@ pub enum FileFormatError {
     #[error("Unknown file format")]
     UnknownFormat,
 
-    /// File format was detected but is not supported
-    #[error("Unsupported format: {0}")]
-    UnsupportedFormat(&'static str),
-
     /// No transform builder provided for the detected format
     #[error("No transform builder provided for format: {0}")]
     NoBuilderForFormat(&'static str),
 
-    /// Invalid or corrupted file data
-    #[error("Invalid file data: {0}")]
-    InvalidFileData(String),
+    /// Output buffer is too small for the operation
+    #[error("Output buffer too small: required {required} bytes, got {actual} bytes")]
+    OutputBufferTooSmall { required: usize, actual: usize },
+
+    /// Input buffer is too short for the operation
+    #[error("Input buffer too short: required at least {required} bytes, got {actual} bytes")]
+    InputTooShort { required: usize, actual: usize },
+
+    /// Input and output buffer sizes must match
+    #[error("Buffer size mismatch: input has {input_len} bytes, output has {output_len} bytes")]
+    BufferSizeMismatch { input_len: usize, output_len: usize },
+
+    /// Data is not properly aligned for the format requirements
+    #[error("Invalid data alignment: size {size} is not divisible by {required_divisor}")]
+    InvalidDataAlignment {
+        size: usize,
+        required_divisor: usize,
+    },
+
+    /// Could not parse input file header during transform operation
+    #[error("Invalid input file header during transform")]
+    InvalidInputFileHeader,
+
+    /// Input texture format is not supported by the library during transform operation
+    #[error("Unsupported texture format during transform - file format is valid but texture compression format is not supported by this library")]
+    InvalidInputFileFormat,
+
+    /// Could not validate restored file header during untransform operation
+    #[error("Invalid restored file header during untransform - file may be corrupted or wrong handler used")]
+    InvalidRestoredFileHeader,
+
+    /// Transform format is not yet implemented
+    #[error("{0:?} format not yet implemented")]
+    FormatNotImplemented(TransformFormat),
 
     /// Transform operation failed
     #[error("Transform failed: {0}")]
     TransformFailed(String),
-
-    /// Untransform operation failed
-    #[error("Untransform failed: {0}")]
-    UntransformFailed(String),
 
     /// File I/O error
     #[cfg(feature = "file-io")]

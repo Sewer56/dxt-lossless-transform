@@ -1,6 +1,6 @@
 [package]
 name = "dxt-lossless-transform-file-formats-api"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 description = "High-level API for transform-aware file format handling for dxt-lossless-transform"
 repository.workspace = true

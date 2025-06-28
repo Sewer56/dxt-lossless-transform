@@ -2,7 +2,7 @@
 
 use crate::bundle::TransformBundle;
 use crate::file_io::FileOperationResult;
-use crate::traits::FileFormatHandler;
+use crate::traits::file_format_handler::FileFormatHandler;
 use core::fmt::Debug;
 use core::slice;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;

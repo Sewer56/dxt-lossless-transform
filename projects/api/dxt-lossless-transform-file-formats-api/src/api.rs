@@ -4,7 +4,7 @@ use crate::bundle::TransformBundle;
 use crate::embed::formats::{EmbeddableBc1Details, EmbeddableTransformDetails};
 use crate::embed::{TransformFormat, TransformHeader};
 use crate::error::{FormatHandlerError, TransformError, TransformResult};
-use crate::traits::FileFormatHandler;
+use crate::traits::file_format_handler::FileFormatHandler;
 use core::fmt::Debug;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 

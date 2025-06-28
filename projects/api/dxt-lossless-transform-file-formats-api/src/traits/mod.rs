@@ -104,10 +104,11 @@
 //! - **Archive formats**: Always store format information in metadata rather than relying on detection
 //! - **Game engines/applications**: Control your formats - detection should be unnecessary
 
-pub mod file_format_detection;
-pub mod file_format_handler;
-pub mod file_format_untransform_detection;
+pub(crate) mod file_format_detection;
+pub(crate) mod file_format_handler;
+pub(crate) mod file_format_untransform_detection;
 
-pub use file_format_detection::FileFormatDetection;
-pub use file_format_handler::FileFormatHandler;
-pub use file_format_untransform_detection::FileFormatUntransformDetection;
+// Re-export the main traits for convenience
+pub use file_format_detection::*;
+pub use file_format_handler::*;
+pub use file_format_untransform_detection::*;

@@ -1,6 +1,6 @@
 //! Trait for file format detection during untransformation.
 
-use crate::traits::FileFormatHandler;
+use crate::traits::file_format_handler::FileFormatHandler;
 
 /// Trait for detecting file formats during untransformation.
 ///
@@ -48,7 +48,7 @@ pub trait FileFormatUntransformDetection: FileFormatHandler {
     ///
     /// `true` if this handler can likely process the transformed data, `false` otherwise
     ///
-    /// [`FileFormatDetection::can_handle`]: crate::traits::FileFormatDetection::can_handle
+    /// [`FileFormatDetection::can_handle`]: crate::traits::file_format_detection::FileFormatDetection::can_handle
     fn can_handle_untransform(&self, input: &[u8]) -> bool;
 
     /// Get the list of file extensions supported by this handler.

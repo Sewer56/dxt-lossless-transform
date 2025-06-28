@@ -46,14 +46,7 @@ pub mod traits;
 #[cfg(feature = "file-io")]
 pub mod file_io;
 
-// Re-export key types
-pub use bundle::{Bc1Builder, TransformBundle};
-pub use error::{FormatHandlerError, FormatHandlerResult, TransformError, TransformResult};
-pub use traits::FileFormatHandler;
-
-// Re-export file operation types when file-io feature is enabled
-#[cfg(feature = "file-io")]
-pub use file_io::{FileOperationError, FileOperationResult};
-
-// Re-export convenience functions
-pub use api::{transform_slice_with_bundle, untransform_slice};
+// Re-export key APIs
+pub use api::*; // convenience functions
+pub use bundle::TransformBundle;
+pub use error::*; // error types

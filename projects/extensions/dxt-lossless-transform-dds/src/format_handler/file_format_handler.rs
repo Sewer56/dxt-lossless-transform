@@ -1,15 +1,16 @@
+use super::DdsHandler;
 use crate::dds::{
     constants::DDS_MAGIC,
     parse_dds::{parse_dds, parse_dds_ignore_magic, DdsFormat},
 };
+use core::fmt::Debug;
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_file_formats_api::{
     bundle::TransformBundle,
     embed::{TransformFormat, TransformHeader, TRANSFORM_HEADER_SIZE},
     error::{FormatHandlerError, TransformResult},
     traits::FileFormatHandler,
 };
-
-use super::DdsHandler;
 
 /// Convert DdsFormat to TransformFormat for dispatch
 fn dds_format_to_transform_format(
@@ -31,12 +32,16 @@ fn dds_format_to_transform_format(
 }
 
 impl FileFormatHandler for DdsHandler {
-    fn transform_bundle(
+    fn transform_bundle<T>(
         &self,
         input: &[u8],
         output: &mut [u8],
-        bundle: &TransformBundle,
-    ) -> TransformResult<()> {
+        bundle: &TransformBundle<T>,
+    ) -> TransformResult<()>
+    where
+        T: SizeEstimationOperations,
+        T::Error: Debug,
+    {
         // Validate buffer sizes
         if output.len() < input.len() {
             return Err(FormatHandlerError::OutputBufferTooSmall {
@@ -124,6 +129,7 @@ mod tests {
     use super::*;
     use crate::dds::constants::{DDS_HEADER_SIZE, DDS_MAGIC};
     use crate::test_prelude::*;
+    use dxt_lossless_transform_api_common::estimate::NoEstimation;
     use dxt_lossless_transform_file_formats_api::{
         embed::TransformFormat,
         error::{FormatHandlerError, TransformError},
@@ -134,7 +140,7 @@ mod tests {
     #[test]
     fn transform_bundle_rejects_output_buffer_too_small() {
         let handler = DdsHandler;
-        let bundle = TransformBundle::default_all();
+        let bundle = TransformBundle::<NoEstimation>::default_all();
         let input = create_valid_bc1_dds(DDS_HEADER_SIZE);
         let mut small_output = vec![0u8; input.len() - 1];
 
@@ -200,7 +206,7 @@ mod tests {
     #[test]
     fn transform_bundle_rejects_invalid_input_file_header() {
         let handler = DdsHandler;
-        let bundle = TransformBundle::default_all();
+        let bundle = TransformBundle::<NoEstimation>::default_all();
         let invalid_input = [0u8; DDS_HEADER_SIZE];
         let mut output = [0u8; DDS_HEADER_SIZE];
 
@@ -253,7 +259,7 @@ mod tests {
     #[test]
     fn transform_bundle_rejects_no_builder_for_bc1_format() {
         let handler = DdsHandler;
-        let bundle = TransformBundle::default(); // No builders provided
+        let bundle = TransformBundle::<NoEstimation>::default(); // No builders provided
         let input = create_valid_bc1_dds(DDS_HEADER_SIZE);
         let mut output = [0u8; DDS_HEADER_SIZE];
 
@@ -274,7 +280,7 @@ mod tests {
     #[test]
     fn transform_bundle_rejects_bc2_format_not_implemented() {
         let handler = DdsHandler;
-        let bundle = TransformBundle::default_all();
+        let bundle = TransformBundle::<NoEstimation>::default_all();
         let bc2_input = create_valid_bc2_dds(DDS_HEADER_SIZE);
         let mut output = [0u8; DDS_HEADER_SIZE];
 
@@ -297,7 +303,7 @@ mod tests {
     #[test]
     fn transform_bundle_rejects_bc3_format_not_implemented() {
         let handler = DdsHandler;
-        let bundle = TransformBundle::default_all();
+        let bundle = TransformBundle::<NoEstimation>::default_all();
         let bc3_input = create_valid_bc3_dds(DDS_HEADER_SIZE);
         let mut output = [0u8; DDS_HEADER_SIZE];
 
@@ -320,7 +326,7 @@ mod tests {
     #[test]
     fn transform_bundle_rejects_bc7_format_not_implemented() {
         let handler = DdsHandler;
-        let bundle = TransformBundle::default_all();
+        let bundle = TransformBundle::<NoEstimation>::default_all();
         let bc7_input = create_valid_bc7_dds(DDS_DX10_TOTAL_HEADER_SIZE);
         let mut output = [0u8; DDS_DX10_TOTAL_HEADER_SIZE];
 
@@ -343,7 +349,7 @@ mod tests {
     #[test]
     fn transform_bundle_rejects_unknown_format() {
         let handler = DdsHandler;
-        let bundle = TransformBundle::default_all();
+        let bundle = TransformBundle::<NoEstimation>::default_all();
         let unknown_input = create_unknown_format_dds(DDS_HEADER_SIZE);
         let mut output = [0u8; DDS_HEADER_SIZE];
 
@@ -362,7 +368,7 @@ mod tests {
     #[test]
     fn successful_bc1_transform_and_untransform_roundtrip() {
         let handler = DdsHandler;
-        let bundle = TransformBundle::default_all();
+        let bundle = TransformBundle::<NoEstimation>::default_all();
 
         // Create valid BC1 DDS with some texture data
         let mut input = create_valid_bc1_dds(DDS_HEADER_SIZE + 64);

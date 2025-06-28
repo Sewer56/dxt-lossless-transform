@@ -2,6 +2,8 @@
 
 use crate::bundle::TransformBundle;
 use crate::error::TransformResult;
+use core::fmt::Debug;
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 
 /// Core trait for file format transformation and untransformation.
 ///
@@ -50,12 +52,15 @@ pub trait FileFormatHandler: Send + Sync {
     /// - There's an error parsing the header (etc.)
     /// - No appropriate builder is provided in the bundle
     /// - Transform operation fails (e.g. invalid data, etc.)
-    fn transform_bundle(
+    fn transform_bundle<T>(
         &self,
         input: &[u8],
         output: &mut [u8],
-        bundle: &TransformBundle,
-    ) -> TransformResult<()>;
+        bundle: &TransformBundle<T>,
+    ) -> TransformResult<()>
+    where
+        T: SizeEstimationOperations,
+        T::Error: Debug;
 
     /// Untransform the input buffer to output buffer.
     ///

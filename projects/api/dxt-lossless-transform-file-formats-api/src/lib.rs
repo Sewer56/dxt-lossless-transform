@@ -8,17 +8,19 @@
 //! - Automatic file format detection (DDS, KTX, etc.)
 //! - Seamless header embedding of transform details
 //! - Type-safe transform bundles for different BCx formats
+//! - Support for both manual and automatic BC1 optimization
 //! - Memory-mapped file support for efficient I/O
 //!
 //! # Example
 //!
 //! ```
 //! use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_with_bundle, TransformResult};
+//! use dxt_lossless_transform_api_common::estimate::NoEstimation;
 //! use dxt_lossless_transform_dds::DdsHandler;
 //!
 //! fn example_file_transform(input: &[u8]) -> TransformResult<Vec<u8>> {
-//!     // Create a bundle with default settings for all formats
-//!     let bundle = TransformBundle::default_all();
+//!     // Create a bundle with default manual settings for all formats
+//!     let bundle = TransformBundle::<NoEstimation>::default_all();
 //!
 //!     // Transform a DDS file in memory
 //!     let mut output = vec![0u8; input.len()];
@@ -45,7 +47,7 @@ pub mod traits;
 pub mod file_io;
 
 // Re-export key types
-pub use bundle::{TransformBundle, UntransformResult};
+pub use bundle::{Bc1Builder, TransformBundle, UntransformResult};
 pub use error::{FormatHandlerError, FormatHandlerResult, TransformError, TransformResult};
 pub use traits::FileFormatHandler;
 

@@ -23,6 +23,7 @@ std = []
 c-exports = []
 
 [dependencies]
+dxt-lossless-transform-api-common = { path = "../../api/dxt-lossless-transform-api-common" }
 dxt-lossless-transform-file-formats-api = { path = "../../api/dxt-lossless-transform-file-formats-api" }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

@@ -27,6 +27,17 @@ impl Bc1ManualTransformBuilder {
         }
     }
 
+    /// Get the current transform settings.
+    ///
+    /// **Internal API**: This method exposes internal transform settings from the unstable core crate.
+    /// This is not intended for public use and may change or be removed in future versions.
+    ///
+    /// Returns a copy of the current transform settings configured on this builder.
+    #[doc(hidden)]
+    pub fn get_settings(&self) -> Bc1TransformSettings {
+        self.settings
+    }
+
     /// Set the decorrelation mode.
     ///
     /// Controls the YCoCg-R color space decorrelation variant used for transformation.

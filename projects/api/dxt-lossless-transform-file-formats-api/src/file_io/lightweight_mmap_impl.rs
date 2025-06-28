@@ -3,7 +3,9 @@
 use crate::bundle::TransformBundle;
 use crate::file_io::FileOperationResult;
 use crate::traits::FileFormatHandler;
+use core::fmt::Debug;
 use core::slice;
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use lightweight_mmap::handles::*;
 use lightweight_mmap::mmap::*;
 use std::path::Path;
@@ -23,12 +25,16 @@ use std::path::Path;
 /// # Returns
 ///
 /// Result indicating success or error
-pub fn transform_file_bundle<H: FileFormatHandler>(
+pub fn transform_file_bundle<H: FileFormatHandler, T>(
     handler: &H,
     input_path: &Path,
     output_path: &Path,
-    bundle: &TransformBundle,
-) -> FileOperationResult<()> {
+    bundle: &TransformBundle<T>,
+) -> FileOperationResult<()>
+where
+    T: SizeEstimationOperations,
+    T::Error: Debug,
+{
     // Open input file
     let input_handle = ReadOnlyFileHandle::open(input_path)?;
     let input_size = input_handle.size()? as usize;

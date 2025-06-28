@@ -18,11 +18,11 @@ and restoration during texture transform operations.
 ### Basic Transform with Default Settings
 
 ```rust
-use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_with_bundle};
+use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_with_bundle, bundle::NoEstimation};
 use dxt_lossless_transform_dds::DdsHandler;
 
 // Create a bundle with default settings for supported formats
-let bundle = TransformBundle::default_all();
+let bundle = TransformBundle::<NoEstimation>::default_all();
 
 // Transform a DDS file in memory
 let mut output = vec![0u8; input.len()];
@@ -32,11 +32,11 @@ transform_slice_with_bundle(&DdsHandler, &input, &mut output, &bundle)?;
 ### Custom BC1 Settings
 
 ```rust
-use dxt_lossless_transform_file_formats_api::TransformBundle;
+use dxt_lossless_transform_file_formats_api::{TransformBundle, bundle::NoEstimation};
 use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
-let bundle = TransformBundle::new()
+let bundle = TransformBundle::<NoEstimation>::new()
     .with_bc1_manual(
         Bc1ManualTransformBuilder::new()
             .with_split_colour_endpoints(true)
@@ -50,12 +50,12 @@ let bundle = TransformBundle::new()
 With the `file-io` feature enabled:
 
 ```rust
-use dxt_lossless_transform_file_formats_api::file_io::{transform_file_bundle, untransform_file_with};
+use dxt_lossless_transform_file_formats_api::{file_io::{transform_file_bundle, untransform_file_with}, TransformBundle, bundle::NoEstimation};
 use dxt_lossless_transform_dds::DdsHandler;
 use std::path::Path;
 
 // Transform file to file
-let bundle = TransformBundle::default_all();
+let bundle = TransformBundle::<NoEstimation>::default_all();
 transform_file_bundle(&DdsHandler, Path::new("input.dds"), Path::new("output.dds"), &bundle)?;
 
 // Untransform (settings are extracted from embedded header)
@@ -96,8 +96,9 @@ The `TransformBundle` allows you to configure transform settings:
   - Other transform optimizations
 
 Create bundles using:
-- `TransformBundle::new()` - Empty bundle, configure as needed
-- `TransformBundle::default_all()` - Default settings for supported formats
+
+- `TransformBundle::<NoEstimation>::new()` - Empty bundle, configure as needed
+- `TransformBundle::<NoEstimation>::default_all()` - Sensible manual settings for supported formats
 
 If a format is encountered that isn't configured in the bundle, the transform will fail with an error.
 

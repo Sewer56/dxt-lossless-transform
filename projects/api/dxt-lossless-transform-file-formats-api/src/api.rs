@@ -1,11 +1,13 @@
 //! High-level convenience APIs for file format operations.
 
-use crate::bundle::{Bc1TransformBuilderExt, TransformBundle};
+use crate::bundle::TransformBundle;
 use crate::embed::{
     EmbeddableBc1Details, EmbeddableTransformDetails, TransformFormat, TransformHeader,
 };
 use crate::error::{FormatHandlerError, TransformError, TransformResult};
 use crate::traits::FileFormatHandler;
+use core::fmt::Debug;
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 
 /// Transform a slice using the specified format handler and transform bundle.
 ///
@@ -25,22 +27,27 @@ use crate::traits::FileFormatHandler;
 ///
 /// ```
 /// use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_with_bundle};
+/// use dxt_lossless_transform_api_common::estimate::NoEstimation;
 /// use dxt_lossless_transform_dds::DdsHandler;
 /// use dxt_lossless_transform_file_formats_api::TransformResult;
 ///
 /// fn example_transform(input: &[u8]) -> TransformResult<Vec<u8>> {
-///     let bundle = TransformBundle::default_all();
+///     let bundle = TransformBundle::<NoEstimation>::default_all();
 ///     let mut output = vec![0u8; input.len()];
 ///     transform_slice_with_bundle(&DdsHandler, input, &mut output, &bundle)?;
 ///     Ok(output)
 /// }
 /// ```
-pub fn transform_slice_with_bundle<H: FileFormatHandler>(
+pub fn transform_slice_with_bundle<H: FileFormatHandler, T>(
     handler: &H,
     input: &[u8],
     output: &mut [u8],
-    bundle: &TransformBundle,
-) -> TransformResult<()> {
+    bundle: &TransformBundle<T>,
+) -> TransformResult<()>
+where
+    T: SizeEstimationOperations,
+    T::Error: Debug,
+{
     if output.len() < input.len() {
         return Err(TransformError::FormatHandler(
             FormatHandlerError::OutputBufferTooSmall {
@@ -190,40 +197,15 @@ pub fn dispatch_untransform(
 /// # Example
 ///
 /// See: `dxt-lossless-transform-dds` crate.
-pub fn dispatch_transform(
+pub fn dispatch_transform<T>(
     format: TransformFormat,
     input_texture_data: &[u8],
     output_texture_data: &mut [u8],
-    bundle: &TransformBundle,
-) -> TransformResult<TransformHeader> {
-    if output_texture_data.len() < input_texture_data.len() {
-        return Err(TransformError::FormatHandler(
-            FormatHandlerError::OutputBufferTooSmall {
-                required: input_texture_data.len(),
-                actual: output_texture_data.len(),
-            },
-        ));
-    }
-
-    let header = match format {
-        TransformFormat::Bc1 => {
-            let builder = bundle
-                .bc1
-                .as_ref()
-                .ok_or(FormatHandlerError::NoBuilderForFormat(TransformFormat::Bc1))?;
-
-            let details =
-                builder.transform_slice_with_details(input_texture_data, output_texture_data)?;
-
-            EmbeddableBc1Details::from(details).to_header()
-        }
-        TransformFormat::Bc2 | TransformFormat::Bc3 | TransformFormat::Bc7 => {
-            return Err(TransformError::UnknownTransformFormat);
-        }
-        _ => {
-            return Err(TransformError::UnknownTransformFormat);
-        }
-    };
-
-    Ok(header)
+    bundle: &TransformBundle<T>,
+) -> TransformResult<TransformHeader>
+where
+    T: SizeEstimationOperations,
+    T::Error: Debug,
+{
+    bundle.dispatch_transform(format, input_texture_data, output_texture_data)
 }

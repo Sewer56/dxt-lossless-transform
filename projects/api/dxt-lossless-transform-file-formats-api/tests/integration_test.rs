@@ -1,5 +1,6 @@
 //! Integration tests for file format API
 
+use dxt_lossless_transform_api_common::estimate::NoEstimation;
 use dxt_lossless_transform_dds::DdsHandler;
 use dxt_lossless_transform_file_formats_api::{
     traits::FileFormatDetection, transform_slice_with_bundle, untransform_slice, TransformBundle,
@@ -33,7 +34,7 @@ fn create_test_dds_bc1() -> Vec<u8> {
 #[test]
 fn test_dds_bc1_transform_roundtrip() {
     let handler = DdsHandler;
-    let bundle = TransformBundle::default_all();
+    let bundle = TransformBundle::<NoEstimation>::default_all();
 
     // Create test DDS
     let input = create_test_dds_bc1();
@@ -81,7 +82,7 @@ fn test_handler_detection() {
 #[test]
 fn test_missing_builder() {
     let handler = DdsHandler;
-    let bundle = TransformBundle::new(); // Empty bundle
+    let bundle = TransformBundle::<NoEstimation>::new(); // Empty bundle
 
     let input = create_test_dds_bc1();
     let mut output = vec![0u8; input.len()];

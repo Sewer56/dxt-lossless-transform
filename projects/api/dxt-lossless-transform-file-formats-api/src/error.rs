@@ -66,10 +66,6 @@ pub enum TransformError {
     #[error("Unrecognized or unsupported transform format in header")]
     UnknownTransformFormat,
 
-    /// Input and output buffer sizes must match
-    #[error("Buffer size mismatch: input has {input_len} bytes, output has {output_len} bytes")]
-    BufferSizeMismatch { input_len: usize, output_len: usize },
-
     /// Data is not properly aligned for the format requirements
     #[error("Invalid data alignment: size {size} is not divisible by {required_divisor}")]
     InvalidDataAlignment {

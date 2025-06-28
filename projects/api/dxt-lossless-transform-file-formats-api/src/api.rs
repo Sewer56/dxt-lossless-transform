@@ -2,7 +2,7 @@
 
 use crate::bundle::TransformBundle;
 use crate::embed::{EmbeddableTransformDetails, TransformFormat, TransformHeader};
-use crate::error::{TransformError, TransformResult};
+use crate::error::{FormatHandlerError, TransformError, TransformResult};
 use crate::formats::EmbeddableBc1Details;
 use crate::traits::FileFormatHandler;
 
@@ -17,7 +17,7 @@ use crate::traits::FileFormatHandler;
 ///
 /// - `handler`: The file format handler (e.g., DdsHandler)
 /// - `input`: Input buffer containing the file data
-/// - `output`: Output buffer (must be same size as input)
+/// - `output`: Output buffer (must be at least the same size as input)
 /// - `bundle`: Bundle containing transform builders for different BCx formats
 ///
 /// # Example
@@ -40,11 +40,13 @@ pub fn transform_slice_bundle<H: FileFormatHandler>(
     output: &mut [u8],
     bundle: &TransformBundle,
 ) -> TransformResult<()> {
-    if input.len() != output.len() {
-        return Err(TransformError::BufferSizeMismatch {
-            input_len: input.len(),
-            output_len: output.len(),
-        });
+    if output.len() < input.len() {
+        return Err(TransformError::FormatHandler(
+            FormatHandlerError::OutputBufferTooSmall {
+                required: input.len(),
+                actual: output.len(),
+            },
+        ));
     }
 
     handler.transform_bundle(input, output, bundle)
@@ -61,7 +63,7 @@ pub fn transform_slice_bundle<H: FileFormatHandler>(
 ///
 /// - `handler`: The file format handler (e.g., DdsHandler)
 /// - `input`: Input buffer containing transformed data
-/// - `output`: Output buffer (must be same size as input)
+/// - `output`: Output buffer (must be at least the same size as input)
 ///
 /// # Example
 ///
@@ -81,11 +83,13 @@ pub fn untransform_slice<H: FileFormatHandler>(
     input: &[u8],
     output: &mut [u8],
 ) -> TransformResult<()> {
-    if input.len() != output.len() {
-        return Err(TransformError::BufferSizeMismatch {
-            input_len: input.len(),
-            output_len: output.len(),
-        });
+    if output.len() < input.len() {
+        return Err(TransformError::FormatHandler(
+            FormatHandlerError::OutputBufferTooSmall {
+                required: input.len(),
+                actual: output.len(),
+            },
+        ));
     }
 
     handler.untransform(input, output)
@@ -100,7 +104,7 @@ pub fn untransform_slice<H: FileFormatHandler>(
 ///
 /// - `header`: The transform header containing format and settings
 /// - `input_texture_data`: Input slice containing the transformed texture data
-/// - `output_texture_data`: Output slice where the untransformed texture data will be written
+/// - `output_texture_data`: Output slice where the untransformed texture data will be written (must be at least the same size as input)
 ///
 /// # Safety Requirements
 ///
@@ -109,7 +113,7 @@ pub fn untransform_slice<H: FileFormatHandler>(
 /// - BC2/BC3: Must be multiple of 16 bytes  
 /// - BC7: Must be multiple of 16 bytes
 ///
-/// Input and output buffers must be the same size.
+/// Output buffer must be at least the same size as the input buffer.
 ///
 /// # Example
 ///
@@ -119,11 +123,13 @@ pub fn dispatch_untransform(
     input_texture_data: &[u8],
     output_texture_data: &mut [u8],
 ) -> TransformResult<()> {
-    if input_texture_data.len() != output_texture_data.len() {
-        return Err(TransformError::BufferSizeMismatch {
-            input_len: input_texture_data.len(),
-            output_len: output_texture_data.len(),
-        });
+    if output_texture_data.len() < input_texture_data.len() {
+        return Err(TransformError::FormatHandler(
+            FormatHandlerError::OutputBufferTooSmall {
+                required: input_texture_data.len(),
+                actual: output_texture_data.len(),
+            },
+        ));
     }
 
     match header.format() {

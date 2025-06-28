@@ -130,9 +130,6 @@ where
 
                 crate::embed::EmbeddableBc1Details::from_settings(details).to_header()
             }
-            TransformFormat::Bc2 | TransformFormat::Bc3 | TransformFormat::Bc7 => {
-                return Err(TransformError::UnknownTransformFormat);
-            }
             _ => {
                 return Err(TransformError::UnknownTransformFormat);
             }

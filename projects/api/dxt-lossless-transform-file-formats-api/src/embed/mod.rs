@@ -106,7 +106,11 @@ impl TransformHeader {
     }
 
     /// Get the transform format from the header.
-    pub fn format(&self) -> TransformFormat {
+    ///
+    /// Returns [`None`] if the format value in the header is not recognized.
+    /// This can happen when reading files created with newer versions that
+    /// support additional transform formats.
+    pub fn format(&self) -> Option<TransformFormat> {
         TransformFormat::from_u8(self.format_raw() as u8)
     }
 
@@ -140,11 +144,11 @@ mod tests {
 
     #[test]
     fn test_transform_format_conversion() {
-        assert_eq!(TransformFormat::from_u8(0x00), TransformFormat::Bc1);
-        assert_eq!(TransformFormat::from_u8(0x01), TransformFormat::Bc2);
-        assert_eq!(TransformFormat::from_u8(0x02), TransformFormat::Bc3);
-        assert_eq!(TransformFormat::from_u8(0x03), TransformFormat::Bc7);
-        assert_eq!(TransformFormat::from_u8(0x0F), TransformFormat::Reserved15);
+        assert_eq!(TransformFormat::from_u8(0x00), Some(TransformFormat::Bc1));
+        assert_eq!(TransformFormat::from_u8(0x01), Some(TransformFormat::Bc2));
+        assert_eq!(TransformFormat::from_u8(0x02), Some(TransformFormat::Bc3));
+        assert_eq!(TransformFormat::from_u8(0x03), Some(TransformFormat::Bc7));
+        assert_eq!(TransformFormat::from_u8(0x0F), None);
 
         assert_eq!(TransformFormat::Bc1.to_u8(), 0x00);
         assert_eq!(TransformFormat::Bc2.to_u8(), 0x01);
@@ -155,12 +159,12 @@ mod tests {
     #[test]
     fn test_transform_header_bitfield() {
         let header = TransformHeader::new(TransformFormat::Bc1, 0x0ABCDEF0);
-        assert_eq!(header.format(), TransformFormat::Bc1);
+        assert_eq!(header.format(), Some(TransformFormat::Bc1));
         assert_eq!(header.format_data(), 0x0ABCDEF0);
 
         // Test that data is properly masked to 28 bits
         let header2 = TransformHeader::new(TransformFormat::Bc3, 0xFFFFFFFF);
-        assert_eq!(header2.format(), TransformFormat::Bc3);
+        assert_eq!(header2.format(), Some(TransformFormat::Bc3));
         assert_eq!(header2.format_data(), 0x0FFFFFFF);
     }
 
@@ -202,7 +206,7 @@ mod tests {
         unsafe {
             let read_back = TransformHeader::read_from_ptr(buffer.as_ptr());
             assert_eq!(read_back, header);
-            assert_eq!(read_back.format(), TransformFormat::Bc7);
+            assert_eq!(read_back.format(), Some(TransformFormat::Bc7));
             assert_eq!(read_back.format_data(), 0x1234567);
         }
     }

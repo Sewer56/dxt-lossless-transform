@@ -9,7 +9,7 @@ pub enum EmbedError {
     #[error("Corrupted embedded data. Info about the transform stored is invalid.")]
     CorruptedEmbeddedData,
 
-    /// Transform format mismatch between header and expected format
-    #[error("Transform format mismatch: header contains different format than expected")]
-    FormatMismatch,
+    /// Unknown transform format in header
+    #[error("Unknown transform format: header contains unrecognized format value")]
+    UnknownFormat,
 }

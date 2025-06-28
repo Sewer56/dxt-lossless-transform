@@ -28,9 +28,10 @@ pub(crate) trait EmbeddableTransformDetails: Sized {
 
     /// Extract from a complete transform header
     fn from_header(header: TransformHeader) -> Result<Self, EmbedError> {
-        if header.format() != Self::FORMAT {
-            return Err(EmbedError::FormatMismatch);
+        match header.format() {
+            Some(format) if format == Self::FORMAT => Self::unpack(header.format_data()),
+            Some(_) => Err(EmbedError::UnknownFormat),
+            None => Err(EmbedError::UnknownFormat),
         }
-        Self::unpack(header.format_data())
     }
 }

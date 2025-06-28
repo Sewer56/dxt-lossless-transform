@@ -140,7 +140,7 @@ pub fn dispatch_untransform(
     }
 
     match header.format() {
-        TransformFormat::Bc1 => {
+        Some(TransformFormat::Bc1) => {
             let details = EmbeddableBc1Details::from_header(header)?;
 
             // BC1 untransform using unsafe API with safe wrapper

@@ -37,7 +37,7 @@ pub fn transform_file_bundle<H: FileFormatHandler>(
     let output_mapping = ReadWriteMmap::new(&output_handle, 0, input_size)?;
 
     // Transform directly into the memory-mapped output
-    crate::api::transform_slice_bundle(
+    crate::api::transform_slice_with_bundle(
         handler,
         unsafe { slice::from_raw_parts(input_mapping.data(), input_mapping.len()) },
         unsafe { slice::from_raw_parts_mut(output_mapping.data(), output_mapping.len()) },

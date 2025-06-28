@@ -18,7 +18,7 @@ and restoration during texture transform operations.
 ### Basic Transform with Default Settings
 
 ```rust
-use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_bundle};
+use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_with_bundle};
 use dxt_lossless_transform_dds::DdsHandler;
 
 // Create a bundle with default settings for supported formats
@@ -26,7 +26,7 @@ let bundle = TransformBundle::default_all();
 
 // Transform a DDS file in memory
 let mut output = vec![0u8; input.len()];
-transform_slice_bundle(&DdsHandler, &input, &mut output, &bundle)?;
+transform_slice_with_bundle(&DdsHandler, &input, &mut output, &bundle)?;
 ```
 
 ### Custom BC1 Settings

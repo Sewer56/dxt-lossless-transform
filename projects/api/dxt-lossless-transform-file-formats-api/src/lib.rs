@@ -13,7 +13,7 @@
 //! # Example
 //!
 //! ```
-//! use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_bundle, TransformResult};
+//! use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_with_bundle, TransformResult};
 //! use dxt_lossless_transform_dds::DdsHandler;
 //!
 //! fn example_file_transform(input: &[u8]) -> TransformResult<Vec<u8>> {
@@ -22,7 +22,7 @@
 //!
 //!     // Transform a DDS file in memory
 //!     let mut output = vec![0u8; input.len()];
-//!     transform_slice_bundle(&DdsHandler, input, &mut output, &bundle)?;
+//!     transform_slice_with_bundle(&DdsHandler, input, &mut output, &bundle)?;
 //!     Ok(output)
 //! }
 //! ```
@@ -55,4 +55,4 @@ pub use traits::FileFormatHandler;
 pub use file_io::{FileOperationError, FileOperationResult};
 
 // Re-export convenience functions
-pub use api::{transform_slice_bundle, untransform_slice};
+pub use api::{transform_slice_with_bundle, untransform_slice};

@@ -2,7 +2,7 @@
 
 use dxt_lossless_transform_dds::DdsHandler;
 use dxt_lossless_transform_file_formats_api::{
-    traits::FileFormatDetection, transform_slice_bundle, untransform_slice, TransformBundle,
+    traits::FileFormatDetection, transform_slice_with_bundle, untransform_slice, TransformBundle,
 };
 
 fn create_test_dds_bc1() -> Vec<u8> {
@@ -41,7 +41,7 @@ fn test_dds_bc1_transform_roundtrip() {
     let mut restored = vec![0u8; input.len()];
 
     // Transform
-    transform_slice_bundle(&handler, &input, &mut transformed, &bundle)
+    transform_slice_with_bundle(&handler, &input, &mut transformed, &bundle)
         .expect("Transform should succeed");
 
     // Check that header was modified (no longer DDS magic)
@@ -87,7 +87,7 @@ fn test_missing_builder() {
     let mut output = vec![0u8; input.len()];
 
     // Should fail with no BC1 builder
-    let result = transform_slice_bundle(&handler, &input, &mut output, &bundle);
+    let result = transform_slice_with_bundle(&handler, &input, &mut output, &bundle);
     assert!(result.is_err());
 
     match result {

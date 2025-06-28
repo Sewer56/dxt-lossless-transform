@@ -23,18 +23,18 @@ use crate::traits::FileFormatHandler;
 /// # Example
 ///
 /// ```
-/// use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_bundle};
+/// use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_with_bundle};
 /// use dxt_lossless_transform_dds::DdsHandler;
 /// use dxt_lossless_transform_file_formats_api::TransformResult;
 ///
 /// fn example_transform(input: &[u8]) -> TransformResult<Vec<u8>> {
 ///     let bundle = TransformBundle::default_all();
 ///     let mut output = vec![0u8; input.len()];
-///     transform_slice_bundle(&DdsHandler, input, &mut output, &bundle)?;
+///     transform_slice_with_bundle(&DdsHandler, input, &mut output, &bundle)?;
 ///     Ok(output)
 /// }
 /// ```
-pub fn transform_slice_bundle<H: FileFormatHandler>(
+pub fn transform_slice_with_bundle<H: FileFormatHandler>(
     handler: &H,
     input: &[u8],
     output: &mut [u8],

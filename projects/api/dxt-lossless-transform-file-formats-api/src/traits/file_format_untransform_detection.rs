@@ -37,7 +37,7 @@ pub trait FileFormatUntransformDetection: FileFormatHandler {
     /// was replaced with transform metadata (see [`FileFormatHandler`] documentation for
     /// replacement strategy details), detection relies on examining the remaining file structure.
     ///
-    /// **Reliability warning**: This detection is less reliable than [`crate::traits::FileFormatDetection::can_handle`]
+    /// **Reliability warning**: This detection is less reliable than [`FileFormatDetection::can_handle`]
     /// because critical format identification information has been replaced with transform metadata.
     ///
     /// # Parameters
@@ -47,6 +47,8 @@ pub trait FileFormatUntransformDetection: FileFormatHandler {
     /// # Returns
     ///
     /// `true` if this handler can likely process the transformed data, `false` otherwise
+    ///
+    /// [`FileFormatDetection::can_handle`]: crate::traits::FileFormatDetection::can_handle
     fn can_handle_untransform(&self, input: &[u8]) -> bool;
 
     /// Get the list of file extensions supported by this handler.

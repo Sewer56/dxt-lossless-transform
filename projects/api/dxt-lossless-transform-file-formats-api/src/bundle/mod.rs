@@ -10,7 +10,7 @@ use crate::embed::{TransformFormat, TransformHeader};
 use crate::error::{FormatHandlerError, TransformError, TransformResult};
 
 // Re-export BC1 builder (used externally)
-pub use bc1::Bc1Builder;
+use bc1::Bc1Builder;
 
 // Import BC2-7 builders for internal use in PhantomData fields
 use bc2::Bc2TransformBuilder;
@@ -18,10 +18,10 @@ use bc3::Bc3TransformBuilder;
 use bc7::Bc7TransformBuilder;
 
 // Submodules for each BCx format
-pub mod bc1; // BC1 module stays public (Bc1Builder is used externally)
-pub(crate) mod bc2; // BC2-7 modules are private (builders not used externally)
-pub(crate) mod bc3;
-pub(crate) mod bc7;
+mod bc1; // BC1 module stays lic (Bc1Builder is used externally)
+mod bc2; // BC2-7 modules are private (builders not used externally)
+mod bc3;
+mod bc7;
 
 /// Bundle of transform builders for different BCx formats.
 ///
@@ -38,13 +38,13 @@ where
     T: SizeEstimationOperations,
 {
     /// BC1 transform builder (supports both manual and automatic modes)
-    pub bc1: Option<Bc1Builder<T>>,
+    bc1: Option<Bc1Builder<T>>,
     /// BC2 transform builder (placeholder for future implementation)
-    pub bc2: PhantomData<Bc2TransformBuilder>,
+    bc2: PhantomData<Bc2TransformBuilder>,
     /// BC3 transform builder (placeholder for future implementation)  
-    pub bc3: PhantomData<Bc3TransformBuilder>,
+    bc3: PhantomData<Bc3TransformBuilder>,
     /// BC7 transform builder (placeholder for future implementation)
-    pub bc7: PhantomData<Bc7TransformBuilder>,
+    bc7: PhantomData<Bc7TransformBuilder>,
 }
 
 impl<T> Default for TransformBundle<T>
@@ -103,7 +103,7 @@ where
     ///
     /// # Returns
     /// A [`TransformHeader`] containing the transform details for embedding.
-    pub fn dispatch_transform(
+    pub(super) fn dispatch_transform(
         &self,
         format: TransformFormat,
         input_texture_data: &[u8],

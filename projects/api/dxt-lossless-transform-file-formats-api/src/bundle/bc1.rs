@@ -13,7 +13,7 @@ use dxt_lossless_transform_bc1_api::{Bc1AutoTransformBuilder, Bc1ManualTransform
 ///
 /// This enum wraps both [`Bc1ManualTransformBuilder`] and [`Bc1AutoTransformBuilder`]
 /// to provide a unified interface for BC1 transformation operations.
-pub enum Bc1Builder<T = NoEstimation>
+pub(super) enum Bc1Builder<T = NoEstimation>
 where
     T: SizeEstimationOperations,
 {
@@ -40,7 +40,7 @@ where
     ///
     /// # Returns
     /// The transform settings that were used, which can be embedded in the file header.
-    pub(crate) fn transform_slice_with_details(
+    pub(super) fn transform_slice_with_details(
         &self,
         input: &[u8],
         output: &mut [u8],

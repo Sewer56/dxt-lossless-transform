@@ -4,7 +4,6 @@ use crate::bundle::TransformBundle;
 use crate::file_io::FileOperationResult;
 use crate::traits::file_format_handler::FileFormatHandler;
 use core::fmt::Debug;
-use core::slice;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use lightweight_mmap::handles::*;
 use lightweight_mmap::mmap::*;
@@ -40,13 +39,13 @@ where
     let input_size = input_handle.size()? as usize;
     let input_mapping = ReadOnlyMmap::new(&input_handle, 0, input_size)?;
     let output_handle = ReadWriteFileHandle::create_preallocated(output_path, input_size as i64)?;
-    let output_mapping = ReadWriteMmap::new(&output_handle, 0, input_size)?;
+    let mut output_mapping = ReadWriteMmap::new(&output_handle, 0, input_size)?;
 
     // Transform directly into the memory-mapped output
     crate::api::transform_slice_with_bundle(
         handler,
-        unsafe { slice::from_raw_parts(input_mapping.data(), input_mapping.len()) },
-        unsafe { slice::from_raw_parts_mut(output_mapping.data(), output_mapping.len()) },
+        input_mapping.as_slice(),
+        output_mapping.as_mut_slice(),
         bundle,
     )?;
 

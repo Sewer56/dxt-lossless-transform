@@ -10,7 +10,7 @@ use dxt_lossless_transform_file_formats_api::{
     embed::{EmbeddableTransformDetails, TransformHeader},
     error::{FileFormatError, FileFormatResult},
     formats::EmbeddableBc1Details,
-    traits::{FileFormatDetection, FileFormatHandler},
+    traits::{FileFormatDetection, FileFormatHandler, FileFormatUntransformDetection},
 };
 
 /// Handler for DDS file format.
@@ -21,19 +21,23 @@ use dxt_lossless_transform_file_formats_api::{
 pub struct DdsHandler;
 
 impl FileFormatHandler for DdsHandler {
-    fn can_handle(&self, input: &[u8]) -> bool {
-        unsafe { parse_dds(input.as_ptr(), input.len()).is_some() }
-    }
-
     fn transform_bundle(
         &self,
         input: &[u8],
         output: &mut [u8],
         bundle: &TransformBundle,
     ) -> FileFormatResult<()> {
+        // Validate buffer sizes
+        if output.len() < input.len() {
+            return Err(FileFormatError::InvalidFileData(
+                "Output buffer too small to contain transformed DDS data".to_string(),
+            ));
+        }
+
         // Parse DDS header
-        let info = unsafe { parse_dds(input.as_ptr(), input.len()) }
-            .ok_or_else(|| FileFormatError::InvalidFileData("Not a valid DDS file".to_string()))?;
+        let info = unsafe { parse_dds(input.as_ptr(), input.len()) }.ok_or_else(|| {
+            FileFormatError::InvalidFileData("Could not parse DDS header".to_string())
+        })?;
 
         let data_offset = info.data_offset as usize;
 
@@ -89,11 +93,24 @@ impl FileFormatHandler for DdsHandler {
     }
 
     fn untransform(&self, input: &[u8], output: &mut [u8]) -> FileFormatResult<()> {
+        // Validate buffer sizes
+        if input.len() < 4 {
+            return Err(FileFormatError::InvalidFileData(
+                "Input too small to contain transform header".to_string(),
+            ));
+        }
+
+        if output.len() < input.len() {
+            return Err(FileFormatError::InvalidFileData(
+                "Output buffer too small to contain restored DDS data".to_string(),
+            ));
+        }
+
         // Read transform header from first 4 bytes
         let header = unsafe { TransformHeader::read_from_ptr(input.as_ptr()) };
 
         // Copy entire input to output
-        output.copy_from_slice(input);
+        output[..input.len()].copy_from_slice(input);
 
         // Restore DDS magic
         output[0..4].copy_from_slice(&DDS_MAGIC.to_ne_bytes());
@@ -116,6 +133,16 @@ impl FileFormatHandler for DdsHandler {
 }
 
 impl FileFormatDetection for DdsHandler {
+    fn can_handle(&self, input: &[u8]) -> bool {
+        unsafe { parse_dds(input.as_ptr(), input.len()).is_some() }
+    }
+
+    fn supported_extensions(&self) -> &[&str] {
+        &["dds"]
+    }
+}
+
+impl FileFormatUntransformDetection for DdsHandler {
     fn can_handle_untransform(&self, input: &[u8]) -> bool {
         if input.len() < 4 {
             return false;
@@ -133,6 +160,8 @@ impl FileFormatDetection for DdsHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::{format, vec};
+    use dxt_lossless_transform_file_formats_api::TransformBundle;
 
     #[test]
     fn test_dds_handler_can_handle() {
@@ -150,5 +179,54 @@ mod tests {
         // Too small
         let too_small = [0u8; 10];
         assert!(!handler.can_handle(&too_small[..]));
+    }
+
+    #[test]
+    fn test_transform_bundle_buffer_validation() {
+        let handler = DdsHandler;
+        let bundle = TransformBundle::default_all();
+
+        // Create valid DDS data
+        let mut input = vec![0u8; 128];
+        input[0..4].copy_from_slice(&DDS_MAGIC.to_ne_bytes());
+        // Set FOURCC to DXT1
+        input[0x54..0x58].copy_from_slice(b"DXT1");
+
+        // Output buffer too small should fail
+        let mut small_output = vec![0u8; 64]; // Smaller than input
+        let result = handler.transform_bundle(&input, &mut small_output, &bundle);
+        assert!(result.is_err());
+
+        if let Err(e) = result {
+            let msg = format!("{e:?}");
+            assert!(msg.contains("Output buffer too small"));
+        }
+    }
+
+    #[test]
+    fn test_untransform_buffer_validation() {
+        let handler = DdsHandler;
+
+        // Test with input too small for transform header
+        let tiny_input = vec![0u8; 2];
+        let mut output = vec![0u8; 128];
+        let result = handler.untransform(&tiny_input, &mut output);
+        assert!(result.is_err());
+
+        if let Err(e) = result {
+            let msg = format!("{e:?}");
+            assert!(msg.contains("Input too small to contain transform header"));
+        }
+
+        // Test with output buffer too small
+        let input = vec![0u8; 128];
+        let mut small_output = vec![0u8; 64]; // Smaller than input
+        let result = handler.untransform(&input, &mut small_output);
+        assert!(result.is_err());
+
+        if let Err(e) = result {
+            let msg = format!("{e:?}");
+            assert!(msg.contains("Output buffer too small to contain restored DDS data"));
+        }
     }
 }

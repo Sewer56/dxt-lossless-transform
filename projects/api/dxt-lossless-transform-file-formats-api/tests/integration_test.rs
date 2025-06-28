@@ -2,7 +2,7 @@
 
 use dxt_lossless_transform_dds::DdsHandler;
 use dxt_lossless_transform_file_formats_api::{
-    transform_slice_bundle, untransform_slice_with, FileFormatHandler, TransformBundle,
+    traits::FileFormatDetection, transform_slice_bundle, untransform_slice_with, TransformBundle,
 };
 
 fn create_test_dds_bc1() -> Vec<u8> {

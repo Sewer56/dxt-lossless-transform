@@ -1,25 +1,39 @@
-//! Core trait for file format handlers.
+//! Core trait for file format transformation.
 
 use crate::bundle::TransformBundle;
 use crate::error::FileFormatResult;
 
-/// Trait for handling specific file formats.
+/// Core trait for file format transformation and untransformation.
 ///
-/// File format handlers are responsible for:
-/// - Detecting if they can handle a given input (for known formats)
-/// - Managing header embedding/restoration
-/// - Coordinating transform operations with the appropriate builders
+/// This trait provides the fundamental operations for transforming file formats
+/// when the format is already known. (Do not do unneeded format validation here.)
 ///
-/// This trait focuses on performance when the file format is known.
-/// For automatic format detection, see [`FileFormatDetection`].
+/// It focuses purely on the transformation operations without any format
+/// detection responsibilities.
+///
+/// **Important**: Assume the data is untrusted. Make sure to do safety validation
+/// (buffer sizes, bounds checking, etc.) to prevent buffer overflows or out-of-range reads,
+/// especially when your code may be used in web applications or other security-sensitive contexts.
+/// Such validation may be feature-gated but should be enabled by default.
+///
+/// ## Header Replacement Strategy
+///
+/// When implementing this trait, you'll need to decide what part of the file header to replace
+/// with transform metadata:
+///
+/// - **What gets replaced**: Implementation-dependent (your choice)
+/// - **Typical replacement**: Magic header/signature (first 4 bytes) with transform metadata
+/// - **Example**: DDS handler replaces the 4-byte DDS magic (`"DDS "`) with transform metadata
+/// - **Alternative approaches**: Some handlers may choose to preserve magic headers intact
+/// - **Recommendation**: Generally recommended to write into magic header space to prevent
+///   issues with clever developers writing custom data in unused file format areas
+///
+/// The transform metadata is 4 bytes, matching what many file formats use for their magic header size.
 pub trait FileFormatHandler: Send + Sync {
-    /// Check if this handler can process the input data
-    fn can_handle(&self, input: &[u8]) -> bool;
-
     /// Transform the input buffer to output buffer using the provided transform bundle.
     ///
     /// The handler will:
-    /// 1. Validate the input format
+    /// 1. Parse the header to obtain necessary information
     /// 2. Copy headers to output
     /// 3. Use the appropriate builder from the bundle based on detected BCx format
     /// 4. Embed transform details in the output header
@@ -33,9 +47,9 @@ pub trait FileFormatHandler: Send + Sync {
     /// # Returns
     ///
     /// Ok(()) on success, or an error if:
-    /// - The format is not supported
+    /// - There's an error parsing the header (etc.)
     /// - No appropriate builder is provided in the bundle
-    /// - Transform operation fails
+    /// - Transform operation fails (e.g. invalid data, etc.)
     fn transform_bundle(
         &self,
         input: &[u8],
@@ -61,57 +75,4 @@ pub trait FileFormatHandler: Send + Sync {
     /// - The header is invalid or corrupted
     /// - Untransform operation fails
     fn untransform(&self, input: &[u8], output: &mut [u8]) -> FileFormatResult<()>;
-}
-
-/// Trait for automatic file format detection.
-///
-/// **Intended for CLI tools/single files where file format is unknown.**
-///
-/// This trait provides methods for automatically detecting file formats when you don't
-/// have prior knowledge of the format. This adds overhead and should be avoided in
-/// performance-critical scenarios.
-///
-/// (Also may be a bit less reliable depending on implementation details, but in the first party
-/// packages we strive for accuracy.)
-///
-/// ## When NOT to use this trait
-///
-/// - **Archive formats**: Store the exact format in archive metadata instead
-/// - **Performance-critical applications**: Use direct format handlers when format is known
-/// - **Embedded systems**: Where you control the file format
-///
-/// ## When to use this trait
-///
-/// - **CLI tools**: That need to process unknown file formats
-/// - **File conversion utilities**: That operate on mixed file types
-/// - **Interactive applications**: Where users provide arbitrary files
-pub trait FileFormatDetection: FileFormatHandler {
-    /// Check if this handler can process transformed data for untransform.
-    ///
-    /// This method is used to automatically detect which handler can process
-    /// a transformed file when you don't have prior knowledge of the original format.
-    /// It validates that restoring the original format results in a valid file.
-    ///
-    /// **Performance Note**: This method involves file parsing and validation,
-    /// which adds overhead. Only use when format auto-detection is required.
-    ///
-    /// # Parameters
-    ///
-    /// - `input`: The transformed file data to analyze
-    ///
-    /// # Returns
-    ///
-    /// `true` if this handler can process the transformed data, `false` otherwise
-    fn can_handle_untransform(&self, input: &[u8]) -> bool;
-
-    /// Get the list of file extensions supported by this handler.
-    ///
-    /// Used to filter potential handlers based on file extensions when automatically
-    /// detecting file formats, reducing false positives during format detection.
-    ///
-    /// # Returns
-    ///
-    /// A slice of supported file extensions (lowercase, without leading dot)
-    /// An empty string in the slice indicates all extensions are supported.
-    fn supported_extensions(&self) -> &[&str];
 }

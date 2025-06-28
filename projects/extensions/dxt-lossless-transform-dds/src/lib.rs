@@ -8,6 +8,7 @@ extern crate std;
 pub mod test_prelude;
 
 pub mod dds;
+pub mod format_handler;
 
 // Re-export the DDS handler for convenient access
-pub use dds::format_handler::DdsHandler;
+pub use format_handler::DdsHandler;

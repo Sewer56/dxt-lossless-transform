@@ -1,6 +1,6 @@
 //! DDS format handler implementation.
 
-use super::{
+use crate::dds::{
     constants::DDS_MAGIC,
     parse_dds::{parse_dds, parse_dds_ignore_magic, DdsFormat},
 };

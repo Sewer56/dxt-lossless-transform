@@ -11,7 +11,5 @@ pub mod parse_dds;
 #[cfg(feature = "c-exports")]
 pub mod exports;
 
-pub mod format_handler;
-
 pub use is_dds::*;
 pub use parse_dds::*;

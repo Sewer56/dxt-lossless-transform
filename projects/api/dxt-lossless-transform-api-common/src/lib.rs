@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.MD")]
 #![no_std]
+#![cfg_attr(feature = "nightly", feature(allocator_api))]
 #![warn(missing_docs)]
 
 extern crate alloc;

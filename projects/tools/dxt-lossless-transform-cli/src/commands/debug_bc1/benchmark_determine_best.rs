@@ -1,5 +1,6 @@
 use super::{determine_best_transform_details_with_estimator, BenchmarkDetermineBestCmd};
 use crate::{
+    debug::DdsFilter,
     debug::{
         benchmark_common::{
             self, print_overall_statistics, BenchmarkResult, BenchmarkScenarioResult,
@@ -9,7 +10,6 @@ use crate::{
     },
     error::TransformError,
     util::find_all_files,
-    DdsFilter,
 };
 use core::time::Duration;
 use dxt_lossless_transform_bc1::Bc1TransformSettings;

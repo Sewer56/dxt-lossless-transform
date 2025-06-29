@@ -3,7 +3,8 @@
 //! This module provides shared data structures, utilities, and benchmarking functions that can be
 //! reused across different BC format implementations for performance analysis.
 
-use crate::debug::{calc_compression_stats_common::get_filename, throughput::Throughput};
+use crate::debug::calc_compression_stats_common::get_filename;
+use crate::util::Throughput;
 use core::{f64, fmt::Debug};
 use std::{
     collections::HashMap,

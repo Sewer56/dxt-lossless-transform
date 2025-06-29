@@ -54,7 +54,7 @@ jobs:
           - { label: "Linux 64-bit ARM64", os: ubuntu-latest, target: aarch64-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable' }
 
           # Big Endian (32-bit)
-          - { label: "Linux + Big Endian 32-bit", os: ubuntu-latest, target: powerpc-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable' }
+          - { label: "Linux + Big Endian 32-bit", os: ubuntu-latest, target: powerpc-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable', no-default-features: true }
           
           # Big Endian (64-bit)
           - { label: "Linux + Big Endian 64-bit", os: ubuntu-latest, target: powerpc64-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable' }
@@ -86,6 +86,7 @@ jobs:
           features: ${{ matrix.features }}
           rust-toolchain: ${{ matrix.rust-toolchain }}
           additional-test-args: ${{ matrix.additional-test-args }}
+          no-default-features: ${{ matrix.no-default-features }} # Build fails for powerpc-unknown-linux-gnu due to no U64 atomics in CLI. So we feature gate it.
 
       # Uncomment after first release.
       # - name: Check semver

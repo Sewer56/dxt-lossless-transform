@@ -81,7 +81,7 @@ where
         let error_code = match error {
             Bc1Error::InvalidLength(_) => Dltbc1ErrorCode::InvalidLength,
             Bc1Error::OutputBufferTooSmall { .. } => Dltbc1ErrorCode::OutputBufferTooSmall,
-            Bc1Error::AllocationFailed(_) => Dltbc1ErrorCode::AllocationFailed,
+            Bc1Error::AllocationFailed => Dltbc1ErrorCode::AllocationFailed,
             Bc1Error::SizeEstimationFailed(_) => Dltbc1ErrorCode::SizeEstimationFailed,
         };
         Self::from_error_code(error_code)

@@ -1,6 +1,6 @@
 [package]
 name = "dxt-lossless-transform-api-common"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 readme = "README.MD"
 
@@ -20,10 +20,13 @@ dxt-lossless-transform-common = { workspace = true, default-features = false }
 # Provides aligned memory allocation
 safe-allocator-api = { version = "0.4.0", default-features = false }
 
+# Error handling for allocate module
+thiserror = { version = "2.0.12", default-features = false }
+
 [features]
 default = ["std"]
 # Enable use of standard library.
-std = ["bincode/std", "safe-allocator-api/std", "dxt-lossless-transform-common/std"]
+std = ["bincode/std", "safe-allocator-api/std", "dxt-lossless-transform-common/std", "thiserror/std"]
 # Use nightly compiler features
 nightly = ["safe-allocator-api/nightly", "dxt-lossless-transform-common/nightly"]
 # Compiles the public C API for the crate.

@@ -7,7 +7,6 @@ mod debug;
 mod error;
 mod util;
 use argh::FromArgs;
-use commands::DdsFilter;
 use core::error::Error;
 
 #[derive(FromArgs, Debug)]

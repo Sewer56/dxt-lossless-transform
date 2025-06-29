@@ -21,6 +21,7 @@ members = [
     "projects/api/dxt-lossless-transform-bc2-api", # High level cross-crate 'stable' API
     "projects/api/dxt-lossless-transform-bc3-api", # High level cross-crate 'stable' API
     "projects/api/dxt-lossless-transform-bc7-api", # High level cross-crate 'stable' API
+    "projects/api/dxt-lossless-transform-file-formats-api", # High level file format API
 
     # Low Level Crates (Core)
     "projects/core/dxt-lossless-transform-bc1",
@@ -55,6 +56,7 @@ dxt-lossless-transform-bc1-api = { path = "projects/api/dxt-lossless-transform-b
 dxt-lossless-transform-bc2-api = { path = "projects/api/dxt-lossless-transform-bc2-api", default-features = false }
 dxt-lossless-transform-bc3-api = { path = "projects/api/dxt-lossless-transform-bc3-api", default-features = false }
 dxt-lossless-transform-bc7-api = { path = "projects/api/dxt-lossless-transform-bc7-api", default-features = false }
+dxt-lossless-transform-file-formats-api = { path = "projects/api/dxt-lossless-transform-file-formats-api", default-features = false }
 
 # Low Level Crates (Core)
 dxt-lossless-transform-bc1 = { path = "projects/core/dxt-lossless-transform-bc1", default-features = false }

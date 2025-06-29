@@ -101,6 +101,7 @@ pub fn allocate_align_64(num_bytes: usize) -> Result<RawAlloc, AllocateError> {
 
 /// An error that happened in memory allocation within the library.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[non_exhaustive]
 pub enum AllocateError {
     /// An error that occurred while creating a layout for allocation.
     #[error("Invalid layout provided. Likely due to `num_bytes` in `allocate_align_64` being larger than isize::MAX. {0}")]

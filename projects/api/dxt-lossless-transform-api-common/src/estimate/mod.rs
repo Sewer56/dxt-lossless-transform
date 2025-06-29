@@ -122,3 +122,45 @@ impl<T: SizeEstimationOperations + ?Sized> SizeEstimationOperations for Box<T> {
         (**self).estimate_compressed_size(input_ptr, len_bytes, data_type, output_ptr, output_len)
     }
 }
+
+/// Dummy size estimation implementation that provides no actual estimation.
+///
+/// This is primarily intended for testing and manual transform operations where
+/// size estimation is not required. Only manual configuration is supported when
+/// using this estimator - automatic optimization features that rely on size
+/// estimation will not function.
+///
+/// # Usage
+///
+/// Use this when you need to provide an estimator type but don't actually need
+/// size estimation functionality:
+///
+/// ```rust
+/// use dxt_lossless_transform_api_common::estimate::NoEstimation;
+/// // For types that require an estimator but you're only doing manual operations
+/// ```
+#[derive(Debug, Clone, Copy)]
+pub struct NoEstimation;
+
+impl SizeEstimationOperations for NoEstimation {
+    type Error = ();
+
+    fn max_compressed_size(&self, _len_bytes: usize) -> Result<usize, Self::Error> {
+        Ok(0)
+    }
+
+    fn supports_data_type_differentiation(&self) -> bool {
+        false
+    }
+
+    unsafe fn estimate_compressed_size(
+        &self,
+        _input_ptr: *const u8,
+        _len_bytes: usize,
+        _data_type: DataType,
+        _output_ptr: *mut u8,
+        _output_len: usize,
+    ) -> Result<usize, Self::Error> {
+        Ok(0)
+    }
+}

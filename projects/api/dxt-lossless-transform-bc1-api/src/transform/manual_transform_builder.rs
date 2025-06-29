@@ -27,6 +27,17 @@ impl Bc1ManualTransformBuilder {
         }
     }
 
+    /// Get the current transform settings.
+    ///
+    /// **Internal API**: This method exposes internal transform settings from the unstable core crate.
+    /// This is not intended for public use and may change or be removed in future versions.
+    ///
+    /// Returns a copy of the current transform settings configured on this builder.
+    #[doc(hidden)]
+    pub fn get_settings(&self) -> Bc1TransformSettings {
+        self.settings
+    }
+
     /// Set the decorrelation mode.
     ///
     /// Controls the YCoCg-R color space decorrelation variant used for transformation.
@@ -93,7 +104,8 @@ impl Bc1ManualTransformBuilder {
     /// # }
     /// ```
     pub fn transform(&self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
-        transform_bc1_with_settings_safe(input, output, self.settings).map_err(Bc1Error::from)
+        transform_bc1_with_settings_safe(input, output, self.settings)
+            .map_err(Bc1Error::from_validation_error)
     }
 
     /// Untransform BC1 data using the configured settings.
@@ -132,7 +144,7 @@ impl Bc1ManualTransformBuilder {
     pub fn untransform(&self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
         let detransform_settings: Bc1DetransformSettings = self.settings;
         untransform_bc1_with_settings_safe(input, output, detransform_settings)
-            .map_err(Bc1Error::from)
+            .map_err(Bc1Error::from_validation_error)
     }
 }
 

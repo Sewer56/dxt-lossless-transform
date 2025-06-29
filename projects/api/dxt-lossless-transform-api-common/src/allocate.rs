@@ -12,9 +12,23 @@
 //! Note: Some processors may have different cache line sizes, but these values
 //! represent reasonable defaults for performance-oriented code.
 
-// Re-export types from the internal common crate
-pub use dxt_lossless_transform_common::allocate::{AllocateError, FixedRawAllocArray};
+use core::alloc::LayoutError;
+use safe_allocator_api::allocator_api::*;
 use safe_allocator_api::RawAlloc;
+use thiserror::Error;
+
+/// An error that happened in memory allocation within the library.
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[non_exhaustive]
+pub enum AllocateError {
+    /// An error that occurred while creating a layout for allocation.
+    #[error("Invalid layout provided. Likely due to `num_bytes` in `allocate_cache_line_aligned` being larger than isize::MAX. {0}")]
+    LayoutError(#[from] LayoutError),
+
+    /// An error that occurred while allocating memory.
+    #[error(transparent)]
+    AllocationFailed(#[from] AllocError),
+}
 
 /// Allocates data aligned to the processor's cache line size.
 ///

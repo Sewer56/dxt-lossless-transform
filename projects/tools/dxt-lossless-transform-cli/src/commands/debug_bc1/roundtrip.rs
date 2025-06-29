@@ -3,7 +3,9 @@ use std::fs;
 
 use super::RoundtripCmd;
 use crate::{
-    debug::extract_blocks_from_dds, error::TransformError, util::find_all_files, DdsFilter,
+    debug::{extract_blocks_from_dds, DdsFilter},
+    error::TransformError,
+    util::find_all_files,
 };
 use dxt_lossless_transform_bc1::{
     transform_bc1_with_settings, untransform_bc1_with_settings, util::decode_bc1_block,

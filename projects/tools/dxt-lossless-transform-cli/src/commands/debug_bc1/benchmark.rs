@@ -1,8 +1,9 @@
 use super::{determine_best_transform_details_with_estimator_cached, BenchmarkCmd};
 use crate::{
+    debug::DdsFilter,
     debug::{
         benchmark_common::{
-            self, print_file_result, print_overall_statistics, BenchmarkResult,
+            measure_time, print_file_result, print_overall_statistics, BenchmarkResult,
             BenchmarkScenarioResult,
         },
         compressed_data_cache::CompressedDataCache,
@@ -17,7 +18,6 @@ use crate::{
     },
     error::TransformError,
     util::find_all_files,
-    DdsFilter,
 };
 use core::time::Duration;
 use dxt_lossless_transform_bc1::{
@@ -332,7 +332,7 @@ unsafe fn process_scenario(
     }
 
     // Benchmark decompression
-    let (_, decompress_time) = benchmark_common::measure_time(|| {
+    let (_, decompress_time) = measure_time(|| {
         for _ in 0..config.iterations {
             decompress_data(
                 &compressed_data[..compressed_size],
@@ -344,7 +344,7 @@ unsafe fn process_scenario(
     });
 
     // Benchmark detransform
-    let (_, detransform_time) = benchmark_common::measure_time(|| {
+    let (_, detransform_time) = measure_time(|| {
         for _ in 0..config.iterations {
             untransform_bc1_with_settings(
                 decompressed_data.as_ptr(),
@@ -402,7 +402,7 @@ unsafe fn process_untransformed_scenario(
     }
 
     // Benchmark decompression
-    let (_, decompress_time) = benchmark_common::measure_time(|| {
+    let (_, decompress_time) = measure_time(|| {
         for _ in 0..config.iterations {
             decompress_data(
                 &compressed_data_ptr[..compressed_size],

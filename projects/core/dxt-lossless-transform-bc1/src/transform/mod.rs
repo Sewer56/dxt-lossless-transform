@@ -96,7 +96,7 @@ mod tests {
                 bc1_data.as_ptr(),
                 output_buffer.as_mut_ptr(),
                 bc1_data.len(),
-                transform_options,
+                &transform_options,
             )
         };
 
@@ -149,7 +149,7 @@ mod tests {
                 bc1_data.as_ptr(),
                 output_buffer.as_mut_ptr(),
                 bc1_data.len(),
-                transform_options,
+                &transform_options,
             )
         };
 

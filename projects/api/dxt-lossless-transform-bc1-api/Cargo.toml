@@ -1,6 +1,6 @@
 [package]
 name = "dxt-lossless-transform-bc1-api"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 readme = "README.MD"
 description = "Safe, high-level API for BC1 texture data lossless transforms with automatic validation and error handling"

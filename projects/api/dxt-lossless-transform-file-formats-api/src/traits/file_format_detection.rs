@@ -20,32 +20,28 @@ use crate::traits::file_format_handler::FileFormatHandler;
 pub trait FileFormatDetection: FileFormatHandler {
     /// Check if this handler can process the input data.
     ///
-    /// This method examines the file headers (including magic numbers) to determine
-    /// if this handler can process the given input file. Since the original headers
-    /// are intact, detection is reliable.
+    /// This method examines the file headers (including magic numbers) and optionally
+    /// the file extension to determine if this handler can process the given input file.
+    /// Since the original headers are intact, detection is reliable.
     ///
     /// # Parameters
     ///
     /// - `input`: The input file data to analyze
+    /// - `file_extension`: *Optional* file extension (lowercase, without leading dot).
+    ///   This is [`None`] if it is unknown or file does not have an extension.
     ///
     /// # Returns
     ///
     /// `true` if this handler can process the input data, `false` otherwise
-    fn can_handle(&self, input: &[u8]) -> bool;
-
-    /// Get the list of file extensions supported by this handler.
     ///
-    /// Used to filter potential handlers based on file extensions when automatically
-    /// detecting file formats, reducing false positives during format detection.
+    /// # Implementation Guidelines
     ///
-    /// # Returns
+    /// Implementations should perform the fastest check first, whether that's a file
+    /// extension check or parsing the remaining file structure.
     ///
-    /// A slice of supported file extensions (lowercase, without leading dot)
-    /// An empty string in the slice indicates all extensions are supported.
+    /// It is recommended to check both header and extension to avoid false positives.
     ///
-    /// # Remarks
-    ///
-    /// This is used to reduce the false positive rate during format detection;
-    /// it's better to be safe than sorry.
-    fn supported_extensions(&self) -> &[&str];
+    /// If your file format typically has no extension, you should explicitly check that the
+    /// value is [`None`] as that is what you're expecting.
+    fn can_handle(&self, input: &[u8], file_extension: Option<&str>) -> bool;
 }

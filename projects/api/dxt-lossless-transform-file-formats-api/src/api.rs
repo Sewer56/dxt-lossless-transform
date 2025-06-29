@@ -263,7 +263,7 @@ where
 
     // Try each handler until one accepts the file
     for handler in handlers {
-        if handler.can_handle(input) {
+        if handler.can_handle(input, None) {
             return handler.transform_bundle(input, output, bundle);
         }
     }
@@ -320,11 +320,183 @@ where
 
     // Try each handler until one accepts the file
     for handler in handlers {
-        if handler.can_handle_untransform(input) {
+        if handler.can_handle_untransform(input, None) {
             return handler.untransform(input, output);
         }
     }
 
     // No handler could process the file
     Err(TransformError::NoSupportedHandler)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_prelude::*;
+    use alloc::vec;
+    use dxt_lossless_transform_api_common::estimate::NoEstimation;
+
+    #[test]
+    fn test_transform_slice_with_bundle() {
+        let handler = MockHandler::new_extensionless_accepting();
+        let input = create_test_data(64);
+        let mut output = vec![0u8; 64];
+        let bundle = TransformBundle::<NoEstimation>::default_all();
+
+        let result = transform_slice_with_bundle(&handler, &input, &mut output, &bundle);
+        assert!(result.is_ok());
+
+        // Verify that the handler was called with correct parameters
+        let calls = handler.get_calls();
+        assert!(calls.transform_bundle_called);
+    }
+
+    #[test]
+    fn test_untransform_slice() {
+        let handler = MockHandler::new_extensionless_accepting();
+        let input = create_test_data(64);
+        let mut output = vec![0u8; 64];
+
+        let result = untransform_slice(&handler, &input, &mut output);
+        assert!(result.is_ok());
+
+        // Verify that the handler was called
+        let calls = handler.get_calls();
+        assert!(calls.untransform_called);
+    }
+
+    #[test]
+    fn test_dispatch_untransform_invalid_alignment() {
+        let header = create_test_bc1_header();
+        let input = vec![0u8; 15]; // Not multiple of 8
+        let mut output = vec![0u8; 15];
+
+        let result = dispatch_untransform(header, &input, &mut output);
+        assert!(matches!(
+            result,
+            Err(TransformError::InvalidDataAlignment { .. })
+        ));
+    }
+
+    #[test]
+    fn test_transform_slice_with_multiple_handlers_passes_none_extension() {
+        let handler = MockHandler::new_accepting("dds");
+        let input = create_test_data(64);
+        let mut output = vec![0u8; 64];
+        let bundle = TransformBundle::<NoEstimation>::default_all();
+
+        let result =
+            transform_slice_with_multiple_handlers([handler.clone()], &input, &mut output, &bundle);
+
+        // Verify the handler was called with None extension (slice operations don't have file paths)
+        let calls = handler.get_calls();
+        assert_eq!(calls.can_handle_calls.len(), 1);
+        assert_eq!(calls.can_handle_calls[0], None);
+
+        // Handler should reject since it expects "dds" extension but gets None
+        assert!(matches!(result, Err(TransformError::NoSupportedHandler)));
+    }
+
+    #[test]
+    fn test_transform_slice_with_multiple_handlers_tries_all_handlers() {
+        let handler1 = MockHandler::new_rejecting();
+        let handler2 = MockHandler::new_extensionless_accepting();
+        let input = create_test_data(64);
+        let mut output = vec![0u8; 64];
+        let bundle = TransformBundle::<NoEstimation>::default_all();
+
+        let result = transform_slice_with_multiple_handlers(
+            [handler1.clone(), handler2.clone()],
+            &input,
+            &mut output,
+            &bundle,
+        );
+        assert!(result.is_ok());
+
+        // Verify both handlers were asked
+        let calls1 = handler1.get_calls();
+        let calls2 = handler2.get_calls();
+        assert_eq!(calls1.can_handle_calls.len(), 1);
+        assert_eq!(calls2.can_handle_calls.len(), 1);
+
+        // Only the accepting handler should have been used for transformation
+        assert!(!calls1.transform_bundle_called);
+        assert!(calls2.transform_bundle_called);
+    }
+
+    #[test]
+    fn test_transform_slice_with_multiple_handlers_no_accepting_handler() {
+        let handler = MockHandler::new_rejecting();
+        let input = create_test_data(64);
+        let mut output = vec![0u8; 64];
+        let bundle = TransformBundle::<NoEstimation>::default_all();
+
+        let result =
+            transform_slice_with_multiple_handlers([handler.clone()], &input, &mut output, &bundle);
+        assert!(matches!(result, Err(TransformError::NoSupportedHandler)));
+
+        // Verify the handler was asked but not used
+        let calls = handler.get_calls();
+        assert_eq!(calls.can_handle_calls.len(), 1);
+        assert!(!calls.transform_bundle_called);
+    }
+
+    #[test]
+    fn test_untransform_slice_with_multiple_handlers_passes_none_extension() {
+        let handler = MockHandler::new_accepting("dds");
+        let input = create_test_data(64);
+        let mut output = vec![0u8; 64];
+
+        let result =
+            untransform_slice_with_multiple_handlers([handler.clone()], &input, &mut output);
+
+        // Verify the handler was called with None extension (slice operations don't have file paths)
+        let calls = handler.get_calls();
+        assert_eq!(calls.can_handle_untransform_calls.len(), 1);
+        assert_eq!(calls.can_handle_untransform_calls[0], None);
+
+        // Handler should reject since it expects "dds" extension but gets None
+        assert!(matches!(result, Err(TransformError::NoSupportedHandler)));
+    }
+
+    #[test]
+    fn test_untransform_slice_with_multiple_handlers_tries_all_handlers() {
+        let handler1 = MockHandler::new_rejecting();
+        let handler2 = MockHandler::new_extensionless_accepting();
+        let input = create_test_data(64);
+        let mut output = vec![0u8; 64];
+
+        let result = untransform_slice_with_multiple_handlers(
+            [handler1.clone(), handler2.clone()],
+            &input,
+            &mut output,
+        );
+        assert!(result.is_ok());
+
+        // Verify both handlers were asked
+        let calls1 = handler1.get_calls();
+        let calls2 = handler2.get_calls();
+        assert_eq!(calls1.can_handle_untransform_calls.len(), 1);
+        assert_eq!(calls2.can_handle_untransform_calls.len(), 1);
+
+        // Only the accepting handler should have been used for untransformation
+        assert!(!calls1.untransform_called);
+        assert!(calls2.untransform_called);
+    }
+
+    #[test]
+    fn test_untransform_slice_with_multiple_handlers_no_accepting_handler() {
+        let handler = MockHandler::new_rejecting();
+        let input = create_test_data(64);
+        let mut output = vec![0u8; 64];
+
+        let result =
+            untransform_slice_with_multiple_handlers([handler.clone()], &input, &mut output);
+        assert!(matches!(result, Err(TransformError::NoSupportedHandler)));
+
+        // Verify the handler was asked but not used
+        let calls = handler.get_calls();
+        assert_eq!(calls.can_handle_untransform_calls.len(), 1);
+        assert!(!calls.untransform_called);
+    }
 }

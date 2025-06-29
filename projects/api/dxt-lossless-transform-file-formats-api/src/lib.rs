@@ -50,3 +50,7 @@ pub mod file_io;
 pub use api::*; // convenience functions
 pub use bundle::TransformBundle;
 pub use error::*; // error types
+
+// Test utilities (only available during testing)
+#[cfg(test)]
+pub mod test_prelude;

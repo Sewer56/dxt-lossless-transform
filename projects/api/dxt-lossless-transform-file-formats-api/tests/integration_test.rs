@@ -72,11 +72,11 @@ fn test_handler_detection() {
 
     // Valid DDS
     let valid = create_test_dds_bc1();
-    assert!(handler.can_handle(&valid));
+    assert!(handler.can_handle(&valid, Some("dds")));
 
     // Invalid data
     let invalid = vec![0u8; 128];
-    assert!(!handler.can_handle(&invalid));
+    assert!(!handler.can_handle(&invalid, Some("dds")));
 }
 
 #[test]

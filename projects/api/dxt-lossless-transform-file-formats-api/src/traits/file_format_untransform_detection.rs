@@ -35,7 +35,8 @@ pub trait FileFormatUntransformDetection: FileFormatHandler {
     /// This method attempts to detect if a transformed file can be processed by this handler
     /// to recover the original format. Since some portion of the original file header
     /// was replaced with transform metadata (see [`FileFormatHandler`] documentation for
-    /// replacement strategy details), detection relies on examining the remaining file structure.
+    /// replacement strategy details), detection relies on examining the remaining file structure
+    /// and optionally the file extension.
     ///
     /// **Reliability warning**: This detection is less reliable than [`FileFormatDetection::can_handle`]
     /// because critical format identification information has been replaced with transform metadata.
@@ -43,27 +44,23 @@ pub trait FileFormatUntransformDetection: FileFormatHandler {
     /// # Parameters
     ///
     /// - `input`: The transformed file data to analyze
+    /// - `file_extension`: *Optional* file extension (lowercase, without leading dot).
+    ///   This is [`None`] if it is unknown or file does not have an extension.
     ///
     /// # Returns
     ///
     /// `true` if this handler can likely process the transformed data, `false` otherwise
     ///
+    /// # Implementation Guidelines
+    ///
+    /// Implementations should perform the fastest check first, whether that's a file
+    /// extension check or parsing the remaining file structure.
+    ///
+    /// It is recommended to check both header and extension to avoid false positives.
+    ///
+    /// If your file format typically has no extension, you should explicitly check that the
+    /// value is [`None`] as that is what you're expecting.
+    ///
     /// [`FileFormatDetection::can_handle`]: crate::traits::file_format_detection::FileFormatDetection::can_handle
-    fn can_handle_untransform(&self, input: &[u8]) -> bool;
-
-    /// Get the list of file extensions supported by this handler.
-    ///
-    /// Used to filter potential handlers based on file extensions when automatically
-    /// detecting file formats during untransformation, reducing false positives.
-    ///
-    /// # Returns
-    ///
-    /// A slice of supported file extensions (lowercase, without leading dot)
-    /// An empty string in the slice indicates all extensions are supported.
-    ///
-    /// # Remarks
-    ///
-    /// This is used to reduce the false positive rate during format detection;
-    /// it's better to be safe than sorry.
-    fn supported_extensions(&self) -> &[&str];
+    fn can_handle_untransform(&self, input: &[u8], file_extension: Option<&str>) -> bool;
 }

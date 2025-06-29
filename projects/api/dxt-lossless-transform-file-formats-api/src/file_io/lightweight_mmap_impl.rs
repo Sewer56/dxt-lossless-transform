@@ -11,6 +11,23 @@ use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use lightweight_mmap::handles::*;
 use lightweight_mmap::mmap::*;
 use std::path::Path;
+use std::string::String;
+
+/// Extract file extension from a path and convert to lowercase.
+///
+/// # Arguments
+///
+/// * `path` - The file path to extract extension from
+///
+/// # Returns
+///
+/// * `Some(extension)` - The lowercase extension string without leading dot
+/// * `None` - If the path has no extension
+pub fn extract_lowercase_extension(path: &Path) -> Option<String> {
+    // Note(sewer): Performance here is kinda oof, due to heap allocation, but this is on the
+    // slow path of unknown file types; so I don't mind for the time being.
+    path.extension()?.to_str().map(|s| s.to_lowercase())
+}
 
 /// Transform a file using a specific handler and transform bundle.
 ///
@@ -148,9 +165,13 @@ where
     let input_mapping = ReadOnlyMmap::new(&input_handle, 0, input_size)?;
     let input_data = input_mapping.as_slice();
 
+    // Extract file extension from input path for faster format detection
+    let file_extension = extract_lowercase_extension(input_path);
+    let file_extension_ref = file_extension.as_deref();
+
     // Try each handler until one accepts the file
     for handler in handlers {
-        if handler.can_handle(input_data) {
+        if handler.can_handle(input_data, file_extension_ref) {
             // Create output file with same size as input
             let output_handle =
                 ReadWriteFileHandle::create_preallocated(output_path, input_size as i64)?;
@@ -221,9 +242,13 @@ where
     let input_mapping = ReadOnlyMmap::new(&input_handle, 0, input_size)?;
     let input_data = input_mapping.as_slice();
 
+    // Extract file extension from input path for faster format detection
+    let file_extension = extract_lowercase_extension(input_path);
+    let file_extension_ref = file_extension.as_deref();
+
     // Try each handler until one accepts the file
     for handler in handlers {
-        if handler.can_handle_untransform(input_data) {
+        if handler.can_handle_untransform(input_data, file_extension_ref) {
             // Create output file with same size as input
             let output_handle =
                 ReadWriteFileHandle::create_preallocated(output_path, input_size as i64)?;
@@ -241,4 +266,228 @@ where
 
     // No handler could process the file
     Err(TransformError::NoSupportedHandler.into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_prelude::*;
+    use alloc::format;
+    use alloc::string::{String, ToString};
+    use dxt_lossless_transform_api_common::estimate::NoEstimation;
+    use std::vec::Vec;
+    use tempfile::{Builder, NamedTempFile};
+
+    /// Helper function to read file contents.
+    fn read_file_contents(path: &Path) -> std::io::Result<Vec<u8>> {
+        std::fs::read(path)
+    }
+
+    /// Helper to create a temporary input file with test data and optional extension.
+    fn create_input_file_with_data_and_extension(
+        data: &[u8],
+        extension: Option<&str>,
+    ) -> NamedTempFile {
+        let input_file = match extension {
+            Some(ext) => Builder::new()
+                .suffix(&format!(".{ext}"))
+                .tempfile()
+                .expect("Failed to create temp file"),
+            None => Builder::new()
+                .prefix("test_file_")
+                .tempfile()
+                .expect("Failed to create temp file"),
+        };
+
+        std::fs::write(input_file.path(), data).expect("Failed to write input data");
+        input_file
+    }
+
+    /// Helper to create a temporary output file.
+    fn create_output_file() -> NamedTempFile {
+        NamedTempFile::new().expect("Failed to create temp file")
+    }
+
+    /// Helper to verify successful file operation results.
+    fn verify_file_operation_success(output_path: &Path, expected_size: usize) {
+        let output_data = read_file_contents(output_path).expect("Failed to read output file");
+        assert_eq!(output_data.len(), expected_size);
+    }
+
+    /// Helper to verify transform handler calls.
+    fn verify_transform_handler_calls(
+        handler: &MockHandler,
+        expected_extension: Option<String>,
+        should_have_transformed: bool,
+    ) {
+        let calls = handler.get_calls();
+        assert_eq!(calls.can_handle_calls.len(), 1);
+        assert_eq!(calls.can_handle_calls[0], expected_extension);
+        assert_eq!(calls.transform_bundle_called, should_have_transformed);
+    }
+
+    /// Helper to verify untransform handler calls.
+    fn verify_untransform_handler_calls(
+        handler: &MockHandler,
+        expected_extension: Option<String>,
+        should_have_untransformed: bool,
+    ) {
+        let calls = handler.get_calls();
+        assert_eq!(calls.can_handle_untransform_calls.len(), 1);
+        assert_eq!(calls.can_handle_untransform_calls[0], expected_extension);
+        assert_eq!(calls.untransform_called, should_have_untransformed);
+    }
+
+    #[test]
+    fn test_transform_file_with_handler() {
+        let handler = MockHandler::new_extensionless_accepting();
+        let input_data = create_test_data(64);
+        let input_file = create_input_file_with_data_and_extension(&input_data, None);
+        let output_file = create_output_file();
+        let bundle = TransformBundle::<NoEstimation>::default_all();
+
+        let result =
+            transform_file_with_handler(&handler, input_file.path(), output_file.path(), &bundle);
+        assert!(result.is_ok());
+
+        verify_file_operation_success(output_file.path(), input_data.len());
+        assert!(handler.get_calls().transform_bundle_called);
+    }
+
+    #[test]
+    fn test_untransform_file_with_handler() {
+        let handler = MockHandler::new_extensionless_accepting();
+        let input_data = create_test_data(64);
+        let input_file = create_input_file_with_data_and_extension(&input_data, None);
+        let output_file = create_output_file();
+
+        let result = untransform_file_with_handler(&handler, input_file.path(), output_file.path());
+        assert!(result.is_ok());
+
+        verify_file_operation_success(output_file.path(), input_data.len());
+        assert!(handler.get_calls().untransform_called);
+    }
+
+    #[test]
+    fn test_transform_file_with_multiple_handlers_extension_matching() {
+        let handler = MockHandler::new_accepting("dds");
+        let input_data = create_test_data(64);
+        let input_file = create_input_file_with_data_and_extension(&input_data, Some("dds"));
+        let output_file = create_output_file();
+        let bundle = TransformBundle::<NoEstimation>::default_all();
+
+        let result = transform_file_with_multiple_handlers(
+            [handler.clone()],
+            input_file.path(),
+            output_file.path(),
+            &bundle,
+        );
+        assert!(result.is_ok());
+
+        verify_transform_handler_calls(&handler, Some("dds".to_string()), true);
+    }
+
+    #[test]
+    fn test_transform_file_with_multiple_handlers_extension_mismatch() {
+        let handler = MockHandler::new_accepting("dds");
+        let input_data = create_test_data(64);
+        let input_file = create_input_file_with_data_and_extension(&input_data, Some("png"));
+        let output_file = create_output_file();
+        let bundle = TransformBundle::<NoEstimation>::default_all();
+
+        let result = transform_file_with_multiple_handlers(
+            [handler.clone()],
+            input_file.path(),
+            output_file.path(),
+            &bundle,
+        );
+
+        assert!(matches!(
+            result,
+            Err(crate::file_io::FileOperationError::Transform(
+                TransformError::NoSupportedHandler
+            ))
+        ));
+
+        verify_transform_handler_calls(&handler, Some("png".to_string()), false);
+    }
+
+    #[test]
+    fn test_transform_file_with_multiple_handlers_case_insensitive_extension() {
+        let handler = MockHandler::new_accepting("dds");
+        let input_data = create_test_data(64);
+        let input_file = create_input_file_with_data_and_extension(&input_data, Some("DDS"));
+        let output_file = create_output_file();
+        let bundle = TransformBundle::<NoEstimation>::default_all();
+
+        let result = transform_file_with_multiple_handlers(
+            [handler.clone()],
+            input_file.path(),
+            output_file.path(),
+            &bundle,
+        );
+        assert!(result.is_ok());
+
+        // Extension should be converted to lowercase
+        verify_transform_handler_calls(&handler, Some("dds".to_string()), true);
+    }
+
+    #[test]
+    fn test_transform_file_with_multiple_handlers_no_extension() {
+        let handler = MockHandler::new_extensionless_accepting();
+        let input_data = create_test_data(64);
+        let input_file = create_input_file_with_data_and_extension(&input_data, None);
+        let output_file = create_output_file();
+        let bundle = TransformBundle::<NoEstimation>::default_all();
+
+        let result = transform_file_with_multiple_handlers(
+            [handler.clone()],
+            input_file.path(),
+            output_file.path(),
+            &bundle,
+        );
+        assert!(result.is_ok());
+
+        verify_transform_handler_calls(&handler, None, true);
+    }
+
+    #[test]
+    fn test_untransform_file_with_multiple_handlers_extension_matching() {
+        let handler = MockHandler::new_accepting("dds");
+        let input_data = create_test_data(64);
+        let input_file = create_input_file_with_data_and_extension(&input_data, Some("dds"));
+        let output_file = create_output_file();
+
+        let result = untransform_file_with_multiple_handlers(
+            [handler.clone()],
+            input_file.path(),
+            output_file.path(),
+        );
+        assert!(result.is_ok());
+
+        verify_untransform_handler_calls(&handler, Some("dds".to_string()), true);
+    }
+
+    #[test]
+    fn test_untransform_file_with_multiple_handlers_extension_mismatch() {
+        let handler = MockHandler::new_accepting("dds");
+        let input_data = create_test_data(64);
+        let input_file = create_input_file_with_data_and_extension(&input_data, Some("png"));
+        let output_file = create_output_file();
+
+        let result = untransform_file_with_multiple_handlers(
+            [handler.clone()],
+            input_file.path(),
+            output_file.path(),
+        );
+
+        assert!(matches!(
+            result,
+            Err(crate::file_io::FileOperationError::Transform(
+                TransformError::NoSupportedHandler
+            ))
+        ));
+
+        verify_untransform_handler_calls(&handler, Some("png".to_string()), false);
+    }
 }

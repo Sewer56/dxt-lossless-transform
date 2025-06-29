@@ -3,7 +3,7 @@
 use super::YCoCgVariant;
 use crate::Bc1Error;
 use dxt_lossless_transform_bc1::{
-    Bc1DetransformSettings, Bc1TransformSettings, transform_bc1_with_settings_safe,
+    Bc1TransformSettings, Bc1UntransformSettings, transform_bc1_with_settings_safe,
     untransform_bc1_with_settings_safe,
 };
 
@@ -142,8 +142,8 @@ impl Bc1ManualTransformBuilder {
     /// # }
     /// ```
     pub fn untransform(&self, input: &[u8], output: &mut [u8]) -> Result<(), Bc1Error> {
-        let detransform_settings: Bc1DetransformSettings = self.settings;
-        untransform_bc1_with_settings_safe(input, output, detransform_settings)
+        let untransform_settings: Bc1UntransformSettings = self.settings;
+        untransform_bc1_with_settings_safe(input, output, untransform_settings)
             .map_err(Bc1Error::from_validation_error)
     }
 }
@@ -202,17 +202,17 @@ mod tests {
             "Transform should not fail with valid BC1 data"
         );
 
-        // Detransform with same settings
-        let detransform_result = builder.untransform(&transformed, &mut restored);
+        // Untransform with same settings
+        let untransform_result = builder.untransform(&transformed, &mut restored);
         assert!(
-            detransform_result.is_ok(),
-            "Detransform should not fail with valid transformed data"
+            untransform_result.is_ok(),
+            "Untransform should not fail with valid transformed data"
         );
 
         // Verify round-trip
         assert_eq!(
             bc1_data, restored,
-            "Round-trip transform/detransform should restore original data"
+            "Round-trip transform/untransform should restore original data"
         );
     }
 }

@@ -5,7 +5,7 @@
 //! applying YCoCg recorrelation to the color endpoints. This combines two operations into
 //! a single optimized pass for improved performance.
 //!
-//! Below is a description of the detransformation process.
+//! Below is a description of the untransformation process.
 //! For transformation, swap the `output` and `input`.
 //!
 //! ## Input Format

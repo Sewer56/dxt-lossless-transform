@@ -391,7 +391,7 @@ pub(crate) fn run_with_recorrelate_untransform_unaligned_test(
 /// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 8).
 #[inline]
 pub(crate) fn run_standard_untransform_unaligned_test(
-    detransform_fn: StandardTransformFn,
+    untransform_fn: StandardTransformFn,
     max_blocks: usize,
     impl_name: &str,
 ) {
@@ -412,7 +412,7 @@ pub(crate) fn run_standard_untransform_unaligned_test(
             transformed_unaligned.as_mut_slice()[1..].copy_from_slice(transformed.as_slice());
 
             let mut reconstructed = allocate_align_64(original.len() + 1);
-            detransform_fn(
+            untransform_fn(
                 transformed_unaligned.as_ptr().add(1),
                 reconstructed.as_mut_ptr().add(1),
                 transformed.len(),

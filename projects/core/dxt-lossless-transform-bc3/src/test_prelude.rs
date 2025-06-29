@@ -183,8 +183,8 @@ pub(crate) fn run_standard_transform_unaligned_test(
 // Helper functions for untransform tests
 // --------------------------------------
 
-/// Executes an unaligned detransform test for unsplit operations.
-/// Tests a transform→detransform roundtrip with deliberately misaligned buffers.
+/// Executes an unaligned untransform test for unsplit operations.
+/// Tests a transform→untransform roundtrip with deliberately misaligned buffers.
 ///
 /// The `max_blocks` parameter should equal twice the number of bytes processed in one main loop
 /// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 16).

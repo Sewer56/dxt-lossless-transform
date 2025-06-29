@@ -14,7 +14,7 @@ extern crate std;
 #[cfg(feature = "experimental")]
 pub mod experimental;
 
-/// Provides optimized routines to transform/detransform into various forms of the lossless transform.
+/// Provides optimized routines to transform/untransform into various forms of the lossless transform.
 pub mod transforms;
 
 pub mod util;

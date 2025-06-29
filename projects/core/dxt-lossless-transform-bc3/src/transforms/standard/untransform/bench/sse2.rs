@@ -4,7 +4,7 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 use core::arch::*;
 
-use crate::transforms::standard::untransform::portable::u32_detransform_with_separate_pointers;
+use crate::transforms::standard::untransform::portable::u32_untransform_with_separate_pointers;
 
 /// # Safety
 ///
@@ -12,7 +12,7 @@ use crate::transforms::standard::untransform::portable::u32_detransform_with_sep
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "sse2")]
-pub(crate) unsafe fn u32_detransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn u32_untransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
     const BYTES_PER_ITERATION: usize = 64;
@@ -85,13 +85,13 @@ pub(crate) unsafe fn u32_detransform_sse2(input_ptr: *const u8, output_ptr: *mut
         }
     }
 
-    // Convert pointers to the types expected by u32_detransform_with_separate_pointers
+    // Convert pointers to the types expected by u32_untransform_with_separate_pointers
     let alpha_byte_in_ptr_u16 = alpha_byte_in_ptr as *const u16;
     let alpha_bit_in_ptr_u16 = alpha_bit_in_ptr as *const u16;
     let color_byte_in_ptr_u32 = color_byte_in_ptr as *const u32;
     let index_byte_in_ptr_u32 = index_byte_in_ptr as *const u32;
 
-    u32_detransform_with_separate_pointers(
+    u32_untransform_with_separate_pointers(
         alpha_byte_in_ptr_u16,
         alpha_bit_in_ptr_u16,
         color_byte_in_ptr_u32,
@@ -122,13 +122,13 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(u32_detransform_sse2, "u32", 8)]
+    #[case(u32_untransform_sse2, "u32", 8)]
     fn test_sse2_unaligned(
-        #[case] detransform_fn: StandardTransformFn,
+        #[case] untransform_fn: StandardTransformFn,
         #[case] impl_name: &str,
         #[case] max_blocks: usize,
     ) {
         // For SSE2: processes 64 bytes (4 blocks) per iteration, so max_blocks = 64 bytes × 2 ÷ 16 = 8
-        run_standard_untransform_unaligned_test(detransform_fn, max_blocks, impl_name);
+        run_standard_untransform_unaligned_test(untransform_fn, max_blocks, impl_name);
     }
 }

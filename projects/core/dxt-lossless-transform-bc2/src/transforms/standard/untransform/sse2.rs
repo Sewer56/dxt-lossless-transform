@@ -1,4 +1,4 @@
-use crate::transforms::standard::untransform::portable32::u32_detransform_with_separate_pointers;
+use crate::transforms::standard::untransform::portable32::u32_untransform_with_separate_pointers;
 use core::arch::asm;
 
 /// # Safety
@@ -124,7 +124,7 @@ pub(crate) unsafe fn shuffle_with_components(
     let remaining_len = len - aligned_len;
     if remaining_len > 0 {
         // Pointers `input_ptr`, `colors_ptr`, `indices_ptr`, and `output_ptr` have been updated by the asm block
-        u32_detransform_with_separate_pointers(
+        u32_untransform_with_separate_pointers(
             alpha_ptr as *const u64,   // Final alpha pointer from asm
             colors_ptr as *const u32,  // Final colors pointer from asm
             indices_ptr as *const u32, // Final indices pointer from asm
@@ -141,11 +141,11 @@ mod tests {
 
     #[rstest]
     #[case::shuffle(shuffle, "shuffle")]
-    fn test_sse2_unaligned(#[case] detransform_fn: StandardTransformFn, #[case] impl_name: &str) {
+    fn test_sse2_unaligned(#[case] untransform_fn: StandardTransformFn, #[case] impl_name: &str) {
         if !has_sse2() {
             return;
         }
         // SSE2 implementation processes 64 bytes per iteration, so max_blocks = 64 * 2 / 16 = 8
-        run_standard_untransform_unaligned_test(detransform_fn, 8, impl_name);
+        run_standard_untransform_unaligned_test(untransform_fn, 8, impl_name);
     }
 }

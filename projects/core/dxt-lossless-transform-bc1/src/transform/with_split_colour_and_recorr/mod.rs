@@ -5,7 +5,7 @@
 //! optimized step. This eliminates the need for intermediate memory copies by performing both
 //! decorrelation and unsplitting operations directly.
 //!
-//! Below is a description of the detransformation process.
+//! Below is a description of the untransformation process.
 //! For transformation, swap the `output` and `input`.
 //!
 //! ## Input Format

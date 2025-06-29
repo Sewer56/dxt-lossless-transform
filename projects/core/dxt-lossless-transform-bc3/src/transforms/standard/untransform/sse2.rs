@@ -6,7 +6,7 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 use core::arch::*;
 
-use crate::transforms::standard::untransform::portable::u32_detransform_with_separate_pointers;
+use crate::transforms::standard::untransform::portable::u32_untransform_with_separate_pointers;
 
 /// # Safety
 ///
@@ -15,7 +15,7 @@ use crate::transforms::standard::untransform::portable::u32_detransform_with_sep
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "sse2")]
 #[cfg_attr(target_arch = "x86", allow(dead_code))] // x86 does not use this path.
-pub(crate) unsafe fn u64_detransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn u64_untransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
     // Process as many 64-byte blocks as possible
@@ -27,7 +27,7 @@ pub(crate) unsafe fn u64_detransform_sse2(input_ptr: *const u8, output_ptr: *mut
     let color_byte_in_ptr = input_ptr.add(len / 16 * 8) as *const __m128i;
     let index_byte_in_ptr = input_ptr.add(len / 16 * 12) as *const __m128i;
 
-    u64_detransform_sse2_separate_components(
+    u64_untransform_sse2_separate_components(
         alpha_byte_in_ptr,
         alpha_bit_in_ptr,
         color_byte_in_ptr,
@@ -37,7 +37,7 @@ pub(crate) unsafe fn u64_detransform_sse2(input_ptr: *const u8, output_ptr: *mut
     );
 }
 
-/// Detransforms BC3 block data from separated components using SSE2 instructions.
+/// Untransforms BC3 block data from separated components using SSE2 instructions.
 ///
 /// # Arguments
 ///
@@ -58,7 +58,7 @@ pub(crate) unsafe fn u64_detransform_sse2(input_ptr: *const u8, output_ptr: *mut
 /// - `current_output_ptr` must be valid for writes for `len` bytes.
 /// - `len` must be a multiple of 16 (the size of a BC3 block).
 /// - Pointers do not need to be aligned; unaligned loads/reads are used.
-pub(crate) unsafe fn u64_detransform_sse2_separate_components(
+pub(crate) unsafe fn u64_untransform_sse2_separate_components(
     mut alpha_byte_in_ptr: *const u64,
     mut alpha_bit_in_ptr: *const u64,
     mut color_byte_in_ptr: *const __m128i,
@@ -126,13 +126,13 @@ pub(crate) unsafe fn u64_detransform_sse2_separate_components(
         }
     }
 
-    // Convert pointers to the types expected by u32_detransform_with_separate_pointers
+    // Convert pointers to the types expected by u32_untransform_with_separate_pointers
     let alpha_byte_in_ptr_u16 = alpha_byte_in_ptr as *const u16;
     let alpha_bit_in_ptr_u16 = alpha_bit_in_ptr as *const u16;
     let color_byte_in_ptr_u32 = color_byte_in_ptr as *const u32;
     let index_byte_in_ptr_u32 = index_byte_in_ptr as *const u32;
 
-    u32_detransform_with_separate_pointers(
+    u32_untransform_with_separate_pointers(
         alpha_byte_in_ptr_u16,
         alpha_bit_in_ptr_u16,
         color_byte_in_ptr_u32,
@@ -173,13 +173,13 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(u64_detransform_sse2, "u64", 8)]
+    #[case(u64_untransform_sse2, "u64", 8)]
     fn test_sse2_unaligned(
-        #[case] detransform_fn: StandardTransformFn,
+        #[case] untransform_fn: StandardTransformFn,
         #[case] impl_name: &str,
         #[case] max_blocks: usize,
     ) {
         // For SSE2: processes 64 bytes (4 blocks) per iteration, so max_blocks = 64 bytes × 2 ÷ 16 = 8
-        run_standard_untransform_unaligned_test(detransform_fn, max_blocks, impl_name);
+        run_standard_untransform_unaligned_test(untransform_fn, max_blocks, impl_name);
     }
 }

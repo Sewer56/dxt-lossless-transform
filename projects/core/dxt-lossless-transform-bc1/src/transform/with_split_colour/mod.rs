@@ -1,10 +1,10 @@
 //! # Unsplit Split Colour-Split Blocks Module
 //!
 //! This module provides optimized functions for combining split color data and block indices
-//! back into standard BC1 (DXT1) compressed texture blocks. This is part of the detransformation
+//! back into standard BC1 (DXT1) compressed texture blocks. This is part of the untransformation
 //! process that reverses the lossless transformation applied to BC1 data.
 //!
-//! Below is a description of the detransformation process.
+//! Below is a description of the untransformation process.
 //! For transformation, swap the `output` and `input`.
 //!
 //! ## Input Format

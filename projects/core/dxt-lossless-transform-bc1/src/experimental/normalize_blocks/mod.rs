@@ -86,14 +86,14 @@ pub mod transform;
 pub use normalize::*;
 pub use transform::*;
 
-use crate::{Bc1DetransformSettings, Bc1TransformSettings, YCoCgVariant};
+use crate::{Bc1TransformSettings, Bc1UntransformSettings, YCoCgVariant};
 
 /// The information about the BC1 transform that was just performed with experimental normalization support.
 /// Each item transformed via [`transform_bc1_with_normalize_blocks`] will produce an instance of this struct.
-/// To undo the transform, you'll need to pass [`Bc1DetransformSettings`] to [`crate::untransform_bc1_with_settings`],
+/// To undo the transform, you'll need to pass [`Bc1UntransformSettings`] to [`crate::untransform_bc1_with_settings`],
 /// which can be obtained from this struct using the `into` method.
 ///
-/// [`Bc1DetransformSettings`]: crate::Bc1DetransformSettings
+/// [`Bc1UntransformSettings`]: crate::Bc1UntransformSettings
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Bc1TransformDetailsWithNormalization {
     /// The color normalization mode that was used to normalize the data.
@@ -111,7 +111,7 @@ pub struct Bc1TransformDetailsWithNormalization {
     pub split_colour_endpoints: bool,
 }
 
-impl From<Bc1TransformDetailsWithNormalization> for Bc1DetransformSettings {
+impl From<Bc1TransformDetailsWithNormalization> for Bc1UntransformSettings {
     fn from(transform_details: Bc1TransformDetailsWithNormalization) -> Self {
         Self {
             decorrelation_mode: transform_details.decorrelation_mode,

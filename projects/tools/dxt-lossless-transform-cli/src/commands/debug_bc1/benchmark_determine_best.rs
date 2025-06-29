@@ -167,13 +167,13 @@ unsafe fn process_determine_best_scenario(
     // Average the time over iterations
     let avg_execution_time = execution_time / config.iterations;
 
-    // For this benchmark, we consider the entire determine_best_transform_details as "detransform"
+    // For this benchmark, we consider the entire determine_best_transform_details as "untransform"
     // and set decompress time to 0, as we're only measuring the algorithm performance
     Ok(Some(BenchmarkScenarioResult::new(
         scenario_name.to_string(),
         len_bytes,
         Duration::ZERO,     // No decompress time for this specific benchmark
-        avg_execution_time, // All time is considered "detransform" time
+        avg_execution_time, // All time is considered "untransform" time
     )))
 }
 
@@ -203,8 +203,8 @@ fn print_file_result_throughput(result: &BenchmarkResult) {
     println!("   📊 File size: {file_size_mib:.2} MiB");
 
     for scenario in &result.scenarios {
-        let execution_time_ms = scenario.detransform_time.as_secs_f64() * 1000.0;
-        let throughput = scenario.detransform_throughput;
+        let execution_time_ms = scenario.untransform_time.as_secs_f64() * 1000.0;
+        let throughput = scenario.untransform_throughput;
         println!(
             "   ⚡ {}: {execution_time_ms:.3} ms ({throughput:.2})",
             scenario.scenario_name

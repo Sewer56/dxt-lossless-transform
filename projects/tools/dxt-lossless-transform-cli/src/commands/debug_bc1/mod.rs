@@ -80,7 +80,7 @@ pub struct CompressionStatsCmd {
 }
 
 #[derive(FromArgs, Debug)]
-/// Benchmark BC1 transform and detransform performance on files in a directory
+/// Benchmark BC1 transform and untransform performance on files in a directory
 #[argh(subcommand, name = "benchmark")]
 pub struct BenchmarkCmd {
     /// input directory path to benchmark (recursively)

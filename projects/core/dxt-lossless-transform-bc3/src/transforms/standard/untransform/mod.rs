@@ -18,7 +18,7 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
         #[cfg(feature = "nightly")]
         #[cfg(target_arch = "x86_64")]
         if dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
-            avx512::avx512_detransform(input_ptr, output_ptr, len);
+            avx512::avx512_untransform(input_ptr, output_ptr, len);
             return;
         }
     }
@@ -28,7 +28,7 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
         #[cfg(target_arch = "x86_64")]
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512vbmi") {
-            avx512::avx512_detransform(input_ptr, output_ptr, len);
+            avx512::avx512_untransform(input_ptr, output_ptr, len);
             return;
         }
     }
@@ -37,12 +37,12 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
     // On i686, this is slower, so skipped.
     #[cfg(target_arch = "x86_64")]
     {
-        sse2::u64_detransform_sse2(input_ptr, output_ptr, len);
+        sse2::u64_untransform_sse2(input_ptr, output_ptr, len);
     }
 
     #[cfg(not(target_arch = "x86_64"))]
     {
-        portable::u32_detransform_v2(input_ptr, output_ptr, len);
+        portable::u32_untransform_v2(input_ptr, output_ptr, len);
     }
 }
 
@@ -66,7 +66,7 @@ pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        portable::u32_detransform_v2(input_ptr, output_ptr, len)
+        portable::u32_untransform_v2(input_ptr, output_ptr, len)
     }
 }
 
@@ -85,7 +85,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
         #[cfg(feature = "nightly")]
         #[cfg(target_arch = "x86_64")]
         if dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
-            avx512::avx512_detransform_separate_components(
+            avx512::avx512_untransform_separate_components(
                 alpha_byte_ptr,
                 alpha_bit_ptr,
                 color_byte_ptr,
@@ -102,7 +102,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
         #[cfg(target_arch = "x86_64")]
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512vbmi") {
-            avx512::avx512_detransform_separate_components(
+            avx512::avx512_untransform_separate_components(
                 alpha_byte_ptr,
                 alpha_bit_ptr,
                 color_byte_ptr,
@@ -118,7 +118,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
     // On i686, this is slower, so skipped.
     #[cfg(target_arch = "x86_64")]
     {
-        sse2::u64_detransform_sse2_separate_components(
+        sse2::u64_untransform_sse2_separate_components(
             alpha_byte_ptr as *const u64,
             alpha_bit_ptr as *const u64,
             color_byte_ptr as *const core::arch::x86_64::__m128i,
@@ -130,7 +130,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
 
     #[cfg(target_arch = "x86")]
     {
-        portable::u32_detransform_with_separate_pointers(
+        portable::u32_untransform_with_separate_pointers(
             alpha_byte_ptr as *const u16,
             alpha_bit_ptr as *const u16,
             color_byte_ptr as *const u32,
@@ -179,7 +179,7 @@ pub unsafe fn unsplit_block_with_separate_pointers(
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
         // Cast pointers to types expected by portable implementation
-        portable::u32_detransform_with_separate_pointers(
+        portable::u32_untransform_with_separate_pointers(
             alpha_byte_ptr as *const u16,
             alpha_bit_ptr as *const u16,
             color_byte_ptr as *const u32,

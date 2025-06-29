@@ -5,7 +5,7 @@ use core::ptr::{read_unaligned, write_unaligned};
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
-pub(crate) unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn u32_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
 
     // Get pointers to the alpha, color, index sections.
@@ -13,7 +13,7 @@ pub(crate) unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, 
     let colours_ptr = input_ptr.add(len / 2) as *const u32;
     let indices_ptr = (colours_ptr as *const u8).add(len / 4) as *const u32;
 
-    u32_detransform_with_separate_pointers(alphas_ptr, colours_ptr, indices_ptr, output_ptr, len);
+    u32_untransform_with_separate_pointers(alphas_ptr, colours_ptr, indices_ptr, output_ptr, len);
 }
 
 /// # Safety
@@ -23,7 +23,7 @@ pub(crate) unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, 
 /// - `indices_ptr` must point to valid `u32` data for `len / 4` bytes.
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
-pub(crate) unsafe fn u32_detransform_with_separate_pointers(
+pub(crate) unsafe fn u32_untransform_with_separate_pointers(
     mut alphas_ptr: *const u64,
     mut colours_ptr: *const u32,
     mut indices_ptr: *const u32,
@@ -60,12 +60,12 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(u32_detransform, "no_unroll")]
+    #[case(u32_untransform, "no_unroll")]
     fn test_portable32_unaligned(
-        #[case] detransform_fn: StandardTransformFn,
+        #[case] untransform_fn: StandardTransformFn,
         #[case] impl_name: &str,
     ) {
         // Portable implementation processes 16 bytes per iteration, so max_blocks = 16 * 2 / 16 = 2
-        run_standard_untransform_unaligned_test(detransform_fn, 2, impl_name);
+        run_standard_untransform_unaligned_test(untransform_fn, 2, impl_name);
     }
 }

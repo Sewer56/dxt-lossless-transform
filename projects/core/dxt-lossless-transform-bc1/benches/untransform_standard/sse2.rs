@@ -4,7 +4,7 @@ use safe_allocator_api::RawAlloc;
 
 fn bench_unpck(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        unpck_detransform(
+        unpck_untransform(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -14,7 +14,7 @@ fn bench_unpck(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAll
 
 fn bench_unpck_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        unpck_detransform_unroll_2(
+        unpck_untransform_unroll_2(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -25,7 +25,7 @@ fn bench_unpck_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, output: &m
 #[cfg(target_arch = "x86_64")]
 fn bench_unpck_unroll_4(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        unpck_detransform_unroll_4(
+        unpck_untransform_unroll_4(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),

@@ -4,7 +4,7 @@ use safe_allocator_api::RawAlloc;
 
 fn bench_portable32(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u32_detransform(
+        u32_untransform(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -14,7 +14,7 @@ fn bench_portable32(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut R
 
 fn bench_portable32_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u32_detransform_unroll_2(
+        u32_untransform_unroll_2(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -24,7 +24,7 @@ fn bench_portable32_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, outpu
 
 fn bench_portable32_unroll_4(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u32_detransform_unroll_4(
+        u32_untransform_unroll_4(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -34,7 +34,7 @@ fn bench_portable32_unroll_4(b: &mut criterion::Bencher, input: &RawAlloc, outpu
 
 fn bench_portable32_unroll_8(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u32_detransform_unroll_8(
+        u32_untransform_unroll_8(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),

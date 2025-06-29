@@ -1,4 +1,4 @@
-use crate::transform::standard::untransform::portable32::u32_detransform_with_separate_pointers;
+use crate::transform::standard::untransform::portable32::u32_untransform_with_separate_pointers;
 use core::arch::asm;
 
 /// # Safety
@@ -7,7 +7,7 @@ use core::arch::asm;
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
-pub(crate) unsafe fn permd_detransform_unroll_2(
+pub(crate) unsafe fn permd_untransform_unroll_2(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
@@ -17,7 +17,7 @@ pub(crate) unsafe fn permd_detransform_unroll_2(
     let indices_ptr = input_ptr.add(len / 2);
     let colors_ptr = input_ptr;
 
-    permd_detransform_unroll_2_with_components(output_ptr, len, indices_ptr, colors_ptr);
+    permd_untransform_unroll_2_with_components(output_ptr, len, indices_ptr, colors_ptr);
 }
 
 /// # Safety
@@ -27,13 +27,13 @@ pub(crate) unsafe fn permd_detransform_unroll_2(
 /// - colors_ptr must be valid for reads of len/2 bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
-pub(crate) unsafe fn permd_detransform_unroll_2_with_components(
+pub(crate) unsafe fn permd_untransform_unroll_2_with_components(
     mut output_ptr: *mut u8,
     len: usize,
     mut indices_in: *const u8,
     mut colors_in: *const u8,
 ) {
-    // Explanation in permd_detransform
+    // Explanation in permd_untransform
     debug_assert!(len % 8 == 0, "len must be divisible by 8");
     let aligned_len = len - (len % 128);
     let colors_aligned_end = colors_in.add(aligned_len / 2);
@@ -93,7 +93,7 @@ pub(crate) unsafe fn permd_detransform_unroll_2_with_components(
 
     // Process any remaining elements after the aligned blocks
     let remaining = len - aligned_len;
-    u32_detransform_with_separate_pointers(
+    u32_untransform_with_separate_pointers(
         colors_in as *const u32,
         indices_in as *const u32,
         output_ptr,
@@ -107,9 +107,9 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(permd_detransform_unroll_2, "avx_permd_unroll_2")]
-    fn test_avx2_unaligned(#[case] detransform_fn: StandardTransformFn, #[case] impl_name: &str) {
+    #[case(permd_untransform_unroll_2, "avx_permd_unroll_2")]
+    fn test_avx2_unaligned(#[case] untransform_fn: StandardTransformFn, #[case] impl_name: &str) {
         // 128 bytes processed per main loop iteration (* 2 / 8 == 32)
-        run_standard_untransform_unaligned_test(detransform_fn, 32, impl_name);
+        run_standard_untransform_unaligned_test(untransform_fn, 32, impl_name);
     }
 }

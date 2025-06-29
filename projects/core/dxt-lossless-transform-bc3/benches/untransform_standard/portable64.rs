@@ -1,10 +1,10 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc3::transforms::standard::untransform::bench::u64_detransform;
+use dxt_lossless_transform_bc3::transforms::standard::untransform::bench::u64_untransform;
 use safe_allocator_api::RawAlloc;
 
 fn bench_portable64(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u64_detransform(
+        u64_untransform(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),

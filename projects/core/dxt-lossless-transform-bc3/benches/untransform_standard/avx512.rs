@@ -1,12 +1,12 @@
 use criterion::{black_box, BenchmarkId};
 use dxt_lossless_transform_bc3::transforms::standard::untransform::bench::{
-    avx512_detransform, avx512_detransform_32_vbmi, avx512_detransform_32_vl,
+    avx512_untransform, avx512_untransform_32_vbmi, avx512_untransform_32_vl,
 };
 use safe_allocator_api::RawAlloc;
 
 fn bench_avx512_32_vbmi(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        avx512_detransform_32_vbmi(
+        avx512_untransform_32_vbmi(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -16,7 +16,7 @@ fn bench_avx512_32_vbmi(b: &mut criterion::Bencher, input: &RawAlloc, output: &m
 
 fn bench_avx512_32_vl(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        avx512_detransform_32_vl(
+        avx512_untransform_32_vl(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -26,7 +26,7 @@ fn bench_avx512_32_vl(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut
 
 fn bench_avx512_64(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        avx512_detransform(
+        avx512_untransform(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),

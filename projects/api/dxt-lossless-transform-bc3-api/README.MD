@@ -71,7 +71,7 @@ Transform BC3 (`bc3_transform`):
 - Compiler (x86-64, Rust + LLVM, no SIMD): 11.576 GiB/s `portable32 no-unroll`
 - Compiler (i686, Rust + LLVM, no SIMD): 10.510 GiB/s `portable32 no-unroll`
 
-Detransform BC3 (`bc3_detransform`):
+Untransform BC3 (`bc3_untransform`):
 
 - SSE2 (x86-64, 64-bit only): 22.234 GiB/s `u64 sse2`
 - Compiler (x86-64, 64-bit only, Rust + LLVM, no SIMD): 19.031 GiB/s `portable64 no-unroll`

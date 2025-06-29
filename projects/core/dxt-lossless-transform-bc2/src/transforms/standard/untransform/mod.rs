@@ -56,7 +56,7 @@ unsafe fn unsplit_blocks_bc2_x86(input_ptr: *const u8, output_ptr: *mut u8, len:
     }
 
     // Fallback to portable implementation
-    portable32::u32_detransform(input_ptr, output_ptr, len)
+    portable32::u32_untransform(input_ptr, output_ptr, len)
 }
 
 /// Transform BC2 data from separated alpha/color/index format back to standard interleaved format
@@ -79,7 +79,7 @@ pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        portable32::u32_detransform(input_ptr, output_ptr, len)
+        portable32::u32_untransform(input_ptr, output_ptr, len)
     }
 }
 
@@ -171,7 +171,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
     }
 
     // Fallback to portable implementation
-    portable32::u32_detransform_with_separate_pointers(
+    portable32::u32_untransform_with_separate_pointers(
         alphas_ptr,
         colors_ptr,
         indices_ptr,
@@ -214,7 +214,7 @@ pub unsafe fn unsplit_block_with_separate_pointers(
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        portable32::u32_detransform_with_separate_pointers(
+        portable32::u32_untransform_with_separate_pointers(
             alphas_ptr,
             colors_ptr,
             indices_ptr,
@@ -229,8 +229,8 @@ pub unsafe fn unsplit_block_with_separate_pointers(
 #[allow(clippy::missing_safety_doc)]
 #[allow(missing_docs)]
 pub mod bench_exports {
-    pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-        super::portable32::u32_detransform(input_ptr, output_ptr, len)
+    pub unsafe fn u32_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+        super::portable32::u32_untransform(input_ptr, output_ptr, len)
     }
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]

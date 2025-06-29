@@ -27,6 +27,10 @@ pub(crate) const DXGI_FORMAT_BC3_TYPELESS: u32 = 76_u32.to_le();
 pub(crate) const DXGI_FORMAT_BC3_UNORM: u32 = 77_u32.to_le();
 pub(crate) const DXGI_FORMAT_BC3_UNORM_SRGB: u32 = 78_u32.to_le();
 
+pub(crate) const DXGI_FORMAT_BC6H_TYPELESS: u32 = 94_u32.to_le();
+pub(crate) const DXGI_FORMAT_BC6H_UF16: u32 = 95_u32.to_le();
+pub(crate) const DXGI_FORMAT_BC6H_SF16: u32 = 96_u32.to_le();
+
 pub(crate) const DXGI_FORMAT_BC7_TYPELESS: u32 = 97_u32.to_le();
 pub(crate) const DXGI_FORMAT_BC7_UNORM: u32 = 98_u32.to_le();
 pub(crate) const DXGI_FORMAT_BC7_UNORM_SRGB: u32 = 99_u32.to_le();

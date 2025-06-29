@@ -24,6 +24,9 @@ fn dds_format_to_transform_format(
         DdsFormat::BC3 => Err(FormatHandlerError::FormatNotImplemented(
             TransformFormat::Bc3,
         )),
+        DdsFormat::BC6H => Err(FormatHandlerError::FormatNotImplemented(
+            TransformFormat::Bc6H,
+        )),
         DdsFormat::BC7 => Err(FormatHandlerError::FormatNotImplemented(
             TransformFormat::Bc7,
         )),
@@ -318,6 +321,29 @@ mod tests {
         } else {
             panic!(
                 "Expected FormatNotImplemented(Bc3) error, got: {:?}",
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn transform_bundle_rejects_bc6h_format_not_implemented() {
+        let handler = DdsHandler;
+        let bundle = TransformBundle::<NoEstimation>::default_all();
+        let bc6h_input = create_valid_bc6h_dds(DDS_DX10_TOTAL_HEADER_SIZE);
+        let mut output = [0u8; DDS_DX10_TOTAL_HEADER_SIZE];
+
+        let result = handler.transform_bundle(&bc6h_input, &mut output, &bundle);
+        assert!(result.is_err());
+
+        if let Err(TransformError::FormatHandler(FormatHandlerError::FormatNotImplemented(
+            TransformFormat::Bc6H,
+        ))) = result
+        {
+            // Expected
+        } else {
+            panic!(
+                "Expected FormatNotImplemented(Bc6H) error, got: {:?}",
                 result
             );
         }

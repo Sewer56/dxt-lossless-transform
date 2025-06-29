@@ -79,6 +79,18 @@ pub(super) use formats::EmbeddableBc1Details;
 /// - 28 bits for format-specific data
 pub const TRANSFORM_HEADER_SIZE: usize = 4;
 
+/// Additional space required for BC7 transform details beyond the header.
+///
+/// BC7 transform details require more space than fits in the 4-byte header,
+/// so implementations must reserve an additional 48 bytes for BC7 formats.
+pub const BC7_ADDITIONAL_SPACE: usize = 48;
+
+/// Additional space required for BC6H transform details beyond the header.
+///
+/// BC6H transform details require more space than fits in the 4-byte header,
+/// so implementations must reserve an additional 80 bytes for BC6H formats.
+pub const BC6H_ADDITIONAL_SPACE: usize = 80;
+
 bitfield! {
     /// Common header structure for all transform formats.
     ///
@@ -148,12 +160,14 @@ mod tests {
         assert_eq!(TransformFormat::from_u8(0x01), Some(TransformFormat::Bc2));
         assert_eq!(TransformFormat::from_u8(0x02), Some(TransformFormat::Bc3));
         assert_eq!(TransformFormat::from_u8(0x03), Some(TransformFormat::Bc7));
+        assert_eq!(TransformFormat::from_u8(0x04), Some(TransformFormat::Bc6H));
         assert_eq!(TransformFormat::from_u8(0x0F), None);
 
         assert_eq!(TransformFormat::Bc1.to_u8(), 0x00);
         assert_eq!(TransformFormat::Bc2.to_u8(), 0x01);
         assert_eq!(TransformFormat::Bc3.to_u8(), 0x02);
         assert_eq!(TransformFormat::Bc7.to_u8(), 0x03);
+        assert_eq!(TransformFormat::Bc6H.to_u8(), 0x04);
     }
 
     #[test]

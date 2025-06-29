@@ -57,6 +57,22 @@ pub fn create_valid_bc3_dds(size: usize) -> Vec<u8> {
     data
 }
 
+/// Helper function to create a valid DDS header with BC6H format (DX10 header)
+pub fn create_valid_bc6h_dds(size: usize) -> Vec<u8> {
+    let mut data = vec![0u8; size];
+    if size >= DDS_DX10_TOTAL_HEADER_SIZE {
+        data[0..4].copy_from_slice(&DDS_MAGIC.to_ne_bytes());
+        // Set FOURCC to DX10
+        data[0x54..0x58].copy_from_slice(b"DX10");
+        // Set DXGI format to BC6H
+        unsafe {
+            (data.as_mut_ptr().add(0x80) as *mut u32)
+                .write_unaligned(crate::dds::constants::DXGI_FORMAT_BC6H_UF16);
+        }
+    }
+    data
+}
+
 /// Helper function to create a valid DDS header with BC7 format (DX10 header)
 pub fn create_valid_bc7_dds(size: usize) -> Vec<u8> {
     let mut data = vec![0u8; size];

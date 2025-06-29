@@ -15,7 +15,8 @@ pub enum DdsFormat {
     BC2 = 3,
     /// a.k.a. DXT4/5
     BC3 = 4,
-    BC7 = 5,
+    BC6H = 5,
+    BC7 = 6,
 }
 
 /// The information of the DDS file supplied to the reader.
@@ -88,6 +89,9 @@ pub fn parse_dds_ignore_magic(data: &[u8]) -> Option<DdsInfo> {
             }
             DXGI_FORMAT_BC3_TYPELESS | DXGI_FORMAT_BC3_UNORM | DXGI_FORMAT_BC3_UNORM_SRGB => {
                 DdsFormat::BC3
+            }
+            DXGI_FORMAT_BC6H_TYPELESS | DXGI_FORMAT_BC6H_UF16 | DXGI_FORMAT_BC6H_SF16 => {
+                DdsFormat::BC6H
             }
             DXGI_FORMAT_BC7_TYPELESS | DXGI_FORMAT_BC7_UNORM | DXGI_FORMAT_BC7_UNORM_SRGB => {
                 DdsFormat::BC7
@@ -181,6 +185,9 @@ mod tests {
     #[case(DXGI_FORMAT_BC3_TYPELESS, DdsFormat::BC3)]
     #[case(DXGI_FORMAT_BC3_UNORM, DdsFormat::BC3)]
     #[case(DXGI_FORMAT_BC3_UNORM_SRGB, DdsFormat::BC3)]
+    #[case(DXGI_FORMAT_BC6H_TYPELESS, DdsFormat::BC6H)]
+    #[case(DXGI_FORMAT_BC6H_UF16, DdsFormat::BC6H)]
+    #[case(DXGI_FORMAT_BC6H_SF16, DdsFormat::BC6H)]
     #[case(DXGI_FORMAT_BC7_TYPELESS, DdsFormat::BC7)]
     #[case(DXGI_FORMAT_BC7_UNORM, DdsFormat::BC7)]
     #[case(DXGI_FORMAT_BC7_UNORM_SRGB, DdsFormat::BC7)]

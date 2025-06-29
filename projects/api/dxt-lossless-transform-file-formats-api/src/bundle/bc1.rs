@@ -2,8 +2,6 @@
 
 extern crate alloc;
 
-use std::fmt::format;
-
 use crate::error::TransformError;
 use dxt_lossless_transform_api_common::estimate::NoEstimation;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;

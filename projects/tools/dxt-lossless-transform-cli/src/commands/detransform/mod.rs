@@ -1,14 +1,12 @@
 use crate::util::Throughput;
-use crate::util::{canonicalize_cli_path, find_all_files, handle_process_entry_error};
+use crate::util::{canonicalize_cli_path, find_all_files};
 use argh::FromArgs;
 use bytesize::ByteSize;
 use dxt_lossless_transform_dds::DdsHandler;
 use dxt_lossless_transform_file_formats_api::file_io;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use rayon::prelude::IndexedParallelIterator;
+
 use std::{
     path::{Path, PathBuf},
-    sync::atomic::{AtomicU64, Ordering},
     time::Instant,
 };
 
@@ -42,21 +40,11 @@ pub fn handle_detransform_command(cmd: DetransformCmd) -> Result<(), Box<dyn std
     println!("Found {} files to process\n", entries.len());
 
     let start = Instant::now();
-    let bytes_processed = AtomicU64::new(0);
 
-    // Process files in parallel using file format handler pipeline
-    entries
-        .par_iter()
-        // 1 item at once per thread. Our items are big generally, and take time to process
-        // so 'max work stealing' is preferred.
-        .with_max_len(1)
-        .for_each(|entry| {
-            let result = process_file_untransform(entry, &cmd.input, &cmd.output, &bytes_processed);
-            handle_process_entry_error(result);
-        });
+    // Process files using file format handler pipeline
+    let total_bytes = process_files_untransform(&entries, &cmd.input, &cmd.output);
 
     let elapsed = start.elapsed();
-    let total_bytes = bytes_processed.load(Ordering::Relaxed);
     let data_size = ByteSize(total_bytes);
     let throughput = if elapsed.as_secs_f64() > 0.0 {
         Throughput::from_bytes_per_sec((total_bytes as f64 / elapsed.as_secs_f64()) as u64)
@@ -72,12 +60,55 @@ pub fn handle_detransform_command(cmd: DetransformCmd) -> Result<(), Box<dyn std
     Ok(())
 }
 
+/// Process all files for untransform and return total bytes processed
+fn process_files_untransform(
+    entries: &[std::fs::DirEntry],
+    input_dir: &Path,
+    output_dir: &Path,
+) -> u64 {
+    use crate::util::handle_process_entry_error;
+
+    #[cfg(feature = "multithreaded")]
+    {
+        use rayon::prelude::*;
+        use std::sync::atomic::{AtomicU64, Ordering};
+
+        let bytes_processed = AtomicU64::new(0);
+        entries
+            .par_iter()
+            // 1 item at once per thread. Our items are big generally, and take time to process
+            // so 'max work stealing' is preferred.
+            .with_max_len(1)
+            .for_each(
+                |entry| match process_file_untransform(entry, input_dir, output_dir) {
+                    Ok(bytes) => {
+                        bytes_processed.fetch_add(bytes, Ordering::Relaxed);
+                    }
+                    Err(e) => handle_process_entry_error(Err(e)),
+                },
+            );
+        bytes_processed.load(Ordering::Relaxed)
+    }
+
+    #[cfg(not(feature = "multithreaded"))]
+    {
+        let mut bytes_processed = 0u64;
+        for entry in entries {
+            match process_file_untransform(entry, input_dir, output_dir) {
+                Ok(bytes) => bytes_processed += bytes,
+                Err(e) => handle_process_entry_error(Err(e)),
+            }
+        }
+        bytes_processed
+    }
+}
+
+/// Process a single file untransform - returns bytes processed
 fn process_file_untransform(
     entry: &std::fs::DirEntry,
     input_dir: &Path,
     output_dir: &Path,
-    bytes_processed: &AtomicU64,
-) -> Result<(), crate::error::TransformError> {
+) -> Result<u64, crate::error::TransformError> {
     let path = entry.path();
     let relative = path.strip_prefix(input_dir).unwrap();
     let target_path = output_dir.join(relative);
@@ -88,14 +119,17 @@ fn process_file_untransform(
     }
 
     // Get file size for throughput calculation
-    if let Ok(metadata) = std::fs::metadata(&path) {
-        bytes_processed.fetch_add(metadata.len(), Ordering::Relaxed);
-    }
+    let bytes = if let Ok(metadata) = std::fs::metadata(&path) {
+        metadata.len()
+    } else {
+        0
+    };
 
     // Try different file format handlers in sequence using detection
     // Use the new wrapper API that handles multiple handlers automatically
     let handlers = [DdsHandler];
 
-    file_io::untransform_file_with_multiple_handlers(handlers, &path, &target_path)
-        .map_err(Into::into)
+    file_io::untransform_file_with_multiple_handlers(handlers, &path, &target_path)?;
+
+    Ok(bytes)
 }

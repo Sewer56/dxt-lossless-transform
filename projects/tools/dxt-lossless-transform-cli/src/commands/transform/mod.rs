@@ -1,15 +1,14 @@
 use crate::util::Throughput;
-use crate::util::{canonicalize_cli_path, find_all_files, handle_process_entry_error};
+use crate::util::{canonicalize_cli_path, find_all_files};
 use argh::FromArgs;
 use bytesize::ByteSize;
 use dxt_lossless_transform_api_common::estimate::NoEstimation;
 use dxt_lossless_transform_bc1_api::{Bc1AutoTransformBuilder, Bc1ManualTransformBuilder};
 use dxt_lossless_transform_dds::DdsHandler;
 use dxt_lossless_transform_file_formats_api::{file_io, TransformBundle};
-use rayon::prelude::*;
+
 use std::{
     path::{Path, PathBuf},
-    sync::atomic::{AtomicU64, Ordering},
     time::Instant,
 };
 
@@ -73,25 +72,23 @@ pub fn handle_transform_command(cmd: TransformCmd) -> Result<(), Box<dyn std::er
     println!("Found {} files to process\n", entries.len());
 
     let start = Instant::now();
-    let bytes_processed = AtomicU64::new(0);
 
-    match cmd.preset {
+    let total_bytes = match cmd.preset {
         CompressionPreset::Low => {
             let bundle = create_low_preset_bundle()?;
-            process_files_with_bundle(&entries, &cmd.input, &cmd.output, &bundle, &bytes_processed);
+            process_files_with_bundle(&entries, &cmd.input, &cmd.output, &bundle)
         }
         CompressionPreset::Optimal => {
             let bundle = create_optimal_preset_bundle()?;
-            process_files_with_bundle(&entries, &cmd.input, &cmd.output, &bundle, &bytes_processed);
+            process_files_with_bundle(&entries, &cmd.input, &cmd.output, &bundle)
         }
         CompressionPreset::Ultra => {
             let bundle = create_ultra_preset_bundle()?;
-            process_files_with_bundle(&entries, &cmd.input, &cmd.output, &bundle, &bytes_processed);
+            process_files_with_bundle(&entries, &cmd.input, &cmd.output, &bundle)
         }
-    }
+    };
 
     let elapsed = start.elapsed();
-    let total_bytes = bytes_processed.load(Ordering::Relaxed);
     let data_size = ByteSize(total_bytes);
     let throughput = if elapsed.as_secs_f64() > 0.0 {
         Throughput::from_bytes_per_sec((total_bytes as f64 / elapsed.as_secs_f64()) as u64)
@@ -137,36 +134,61 @@ fn create_ultra_preset_bundle() -> Result<
     Ok(bundle)
 }
 
-/// Process all files using the provided bundle
+/// Process all files using the provided bundle and return total bytes processed
 fn process_files_with_bundle<T>(
     entries: &[std::fs::DirEntry],
     input_dir: &Path,
     output_dir: &Path,
     bundle: &TransformBundle<T>,
-    bytes_processed: &AtomicU64,
-) where
+) -> u64
+where
     T: dxt_lossless_transform_api_common::estimate::SizeEstimationOperations + Sync,
     T::Error: std::fmt::Debug,
 {
-    entries
-        .par_iter()
-        // 1 item at once per thread. Our items are big generally, and take time to process
-        // so 'max work stealing' is preferred.
-        .with_max_len(1)
-        .for_each(|entry| {
-            let result =
-                process_file_transform(entry, input_dir, output_dir, bundle, bytes_processed);
-            handle_process_entry_error(result);
-        });
+    use crate::util::handle_process_entry_error;
+
+    #[cfg(feature = "multithreaded")]
+    {
+        use rayon::prelude::*;
+        use std::sync::atomic::{AtomicU64, Ordering};
+
+        let bytes_processed = AtomicU64::new(0);
+        entries
+            .par_iter()
+            // 1 item at once per thread. Our items are big generally, and take time to process
+            // so 'max work stealing' is preferred.
+            .with_max_len(1)
+            .for_each(
+                |entry| match process_file_transform(entry, input_dir, output_dir, bundle) {
+                    Ok(bytes) => {
+                        bytes_processed.fetch_add(bytes, Ordering::Relaxed);
+                    }
+                    Err(e) => handle_process_entry_error(Err(e)),
+                },
+            );
+        bytes_processed.load(Ordering::Relaxed)
+    }
+
+    #[cfg(not(feature = "multithreaded"))]
+    {
+        let mut bytes_processed = 0u64;
+        for entry in entries {
+            match process_file_transform(entry, input_dir, output_dir, bundle) {
+                Ok(bytes) => bytes_processed += bytes,
+                Err(e) => handle_process_entry_error(Err(e)),
+            }
+        }
+        bytes_processed
+    }
 }
 
-pub fn process_file_transform<T>(
+/// Process a single file transform - returns bytes processed
+fn process_file_transform<T>(
     entry: &std::fs::DirEntry,
     input_dir: &Path,
     output_dir: &Path,
     bundle: &TransformBundle<T>,
-    bytes_processed: &AtomicU64,
-) -> Result<(), crate::error::TransformError>
+) -> Result<u64, crate::error::TransformError>
 where
     T: dxt_lossless_transform_api_common::estimate::SizeEstimationOperations,
     T::Error: std::fmt::Debug,
@@ -181,14 +203,17 @@ where
     }
 
     // Get file size for throughput calculation
-    if let Ok(metadata) = std::fs::metadata(&path) {
-        bytes_processed.fetch_add(metadata.len(), Ordering::Relaxed);
-    }
+    let bytes = if let Ok(metadata) = std::fs::metadata(&path) {
+        metadata.len()
+    } else {
+        0
+    };
 
     // Try different file format handlers in sequence using detection
     // Use the new wrapper API that handles multiple handlers automatically
     let handlers = [DdsHandler];
 
-    file_io::transform_file_with_multiple_handlers(handlers, &path, &target_path, bundle)
-        .map_err(Into::into)
+    file_io::transform_file_with_multiple_handlers(handlers, &path, &target_path, bundle)?;
+
+    Ok(bytes)
 }

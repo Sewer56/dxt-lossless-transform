@@ -8,7 +8,7 @@ pub mod compression_size_cache;
 pub mod estimation;
 
 use crate::error::TransformError;
-use ::core::{ops::Sub, slice};
+use core::{ops::Sub, slice};
 use dxt_lossless_transform_dds::dds::{parse_dds, DdsFormat, DdsInfo};
 use lightweight_mmap::handles::*;
 use lightweight_mmap::mmap::*;

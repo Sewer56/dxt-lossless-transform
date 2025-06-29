@@ -247,16 +247,21 @@ mod tests {
         let mut output_buffer = create_test_buffer(64);
         let bundle = TransformBundle::<NoEstimation>::default_all();
 
-        let result = transform_file_to_slice_with_handler(
+        run_single_handler_test(
             &handler,
-            input_file.path(),
-            &mut output_buffer,
-            &bundle,
+            || {
+                transform_file_to_slice_with_handler(
+                    &handler,
+                    input_file.path(),
+                    &mut output_buffer,
+                    &bundle,
+                )
+            },
+            true,  // verify_transform_called
+            false, // verify_untransform_called
         );
 
-        assert!(result.is_ok());
         verify_slice_operation_success(&output_buffer, input_data.len());
-        assert!(handler.get_calls().transform_bundle_called);
     }
 
     #[test]
@@ -266,12 +271,20 @@ mod tests {
         let input_file = create_input_file_with_data_and_extension(&input_data, None);
         let mut output_buffer = create_test_buffer(64);
 
-        let result =
-            untransform_file_to_slice_with_handler(&handler, input_file.path(), &mut output_buffer);
+        run_single_handler_test(
+            &handler,
+            || {
+                untransform_file_to_slice_with_handler(
+                    &handler,
+                    input_file.path(),
+                    &mut output_buffer,
+                )
+            },
+            false, // verify_transform_called
+            true,  // verify_untransform_called
+        );
 
-        assert!(result.is_ok());
         verify_slice_operation_success(&output_buffer, input_data.len());
-        assert!(handler.get_calls().untransform_called);
     }
 
     #[test]
@@ -282,15 +295,20 @@ mod tests {
         let mut output_buffer = create_test_buffer(64);
         let bundle = TransformBundle::<NoEstimation>::default_all();
 
-        let result = transform_file_to_slice_with_multiple_handlers(
-            [handler.clone()],
-            input_file.path(),
-            &mut output_buffer,
-            &bundle,
+        run_extension_test(
+            &handler,
+            || {
+                transform_file_to_slice_with_multiple_handlers(
+                    [handler.clone()],
+                    input_file.path(),
+                    &mut output_buffer,
+                    &bundle,
+                )
+            },
+            "dds",
+            ExtensionTestResult::Success,
+            true, // is_transform
         );
-
-        assert!(result.is_ok());
-        verify_transform_handler_calls(&handler, Some("dds".to_string()), true);
     }
 
     #[test]
@@ -301,20 +319,20 @@ mod tests {
         let mut output_buffer = create_test_buffer(64);
         let bundle = TransformBundle::<NoEstimation>::default_all();
 
-        let result = transform_file_to_slice_with_multiple_handlers(
-            [handler.clone()],
-            input_file.path(),
-            &mut output_buffer,
-            &bundle,
+        run_extension_test(
+            &handler,
+            || {
+                transform_file_to_slice_with_multiple_handlers(
+                    [handler.clone()],
+                    input_file.path(),
+                    &mut output_buffer,
+                    &bundle,
+                )
+            },
+            "png",
+            ExtensionTestResult::NoSupportedHandler,
+            true, // is_transform
         );
-
-        assert!(matches!(
-            result,
-            Err(crate::file_io::FileOperationError::Transform(
-                TransformError::NoSupportedHandler
-            ))
-        ));
-        verify_transform_handler_calls(&handler, Some("png".to_string()), false);
     }
 
     #[test]
@@ -325,16 +343,18 @@ mod tests {
         let mut output_buffer = create_test_buffer(64);
         let bundle = TransformBundle::<NoEstimation>::default_all();
 
-        let result = transform_file_to_slice_with_multiple_handlers(
-            [handler.clone()],
-            input_file.path(),
-            &mut output_buffer,
-            &bundle,
+        run_case_insensitive_extension_test(
+            &handler,
+            || {
+                transform_file_to_slice_with_multiple_handlers(
+                    [handler.clone()],
+                    input_file.path(),
+                    &mut output_buffer,
+                    &bundle,
+                )
+            },
+            true, // is_transform
         );
-
-        assert!(result.is_ok());
-        // Extension should be converted to lowercase
-        verify_transform_handler_calls(&handler, Some("dds".to_string()), true);
     }
 
     #[test]
@@ -345,15 +365,18 @@ mod tests {
         let mut output_buffer = create_test_buffer(64);
         let bundle = TransformBundle::<NoEstimation>::default_all();
 
-        let result = transform_file_to_slice_with_multiple_handlers(
-            [handler.clone()],
-            input_file.path(),
-            &mut output_buffer,
-            &bundle,
+        run_extensionless_test(
+            &handler,
+            || {
+                transform_file_to_slice_with_multiple_handlers(
+                    [handler.clone()],
+                    input_file.path(),
+                    &mut output_buffer,
+                    &bundle,
+                )
+            },
+            true, // is_transform
         );
-
-        assert!(result.is_ok());
-        verify_transform_handler_calls(&handler, None, true);
     }
 
     #[test]
@@ -363,14 +386,19 @@ mod tests {
         let input_file = create_input_file_with_data_and_extension(&input_data, Some("dds"));
         let mut output_buffer = create_test_buffer(64);
 
-        let result = untransform_file_to_slice_with_multiple_handlers(
-            [handler.clone()],
-            input_file.path(),
-            &mut output_buffer,
+        run_extension_test(
+            &handler,
+            || {
+                untransform_file_to_slice_with_multiple_handlers(
+                    [handler.clone()],
+                    input_file.path(),
+                    &mut output_buffer,
+                )
+            },
+            "dds",
+            ExtensionTestResult::Success,
+            false, // is_transform
         );
-
-        assert!(result.is_ok());
-        verify_untransform_handler_calls(&handler, Some("dds".to_string()), true);
     }
 
     #[test]
@@ -380,18 +408,18 @@ mod tests {
         let input_file = create_input_file_with_data_and_extension(&input_data, Some("png"));
         let mut output_buffer = create_test_buffer(64);
 
-        let result = untransform_file_to_slice_with_multiple_handlers(
-            [handler.clone()],
-            input_file.path(),
-            &mut output_buffer,
+        run_extension_test(
+            &handler,
+            || {
+                untransform_file_to_slice_with_multiple_handlers(
+                    [handler.clone()],
+                    input_file.path(),
+                    &mut output_buffer,
+                )
+            },
+            "png",
+            ExtensionTestResult::NoSupportedHandler,
+            false, // is_transform
         );
-
-        assert!(matches!(
-            result,
-            Err(crate::file_io::FileOperationError::Transform(
-                TransformError::NoSupportedHandler
-            ))
-        ));
-        verify_untransform_handler_calls(&handler, Some("png".to_string()), false);
     }
 }

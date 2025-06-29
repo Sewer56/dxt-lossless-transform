@@ -1,5 +1,6 @@
 //! Test utilities for lightweight memory-mapped file operations.
 
+use crate::file_io::FileOperationResult;
 pub use crate::test_prelude::*;
 
 // Re-export commonly used testing items to avoid repetitive imports
@@ -79,4 +80,107 @@ pub fn verify_slice_operation_success(output_slice: &[u8], expected_size: usize)
 /// Helper to create a test data buffer with specific size.
 pub fn create_test_buffer(size: usize) -> Vec<u8> {
     vec![0u8; size]
+}
+
+/// Test result for extension-based operations.
+pub enum ExtensionTestResult {
+    Success,
+    NoSupportedHandler,
+}
+
+/// Generic test runner for single handler operations.
+///
+/// This function encapsulates the common pattern of testing operations with a single handler.
+pub fn run_single_handler_test<F>(
+    handler: &MockHandler,
+    operation: F,
+    verify_transform_called: bool,
+    verify_untransform_called: bool,
+) where
+    F: FnOnce() -> FileOperationResult<()>,
+{
+    let result = operation();
+    assert!(result.is_ok());
+
+    let calls = handler.get_calls();
+    assert_eq!(calls.transform_bundle_called, verify_transform_called);
+    assert_eq!(calls.untransform_called, verify_untransform_called);
+}
+
+/// Generic test runner for multiple handler extension-based operations.
+///
+/// This function encapsulates the common pattern of testing operations with multiple handlers
+/// where the test involves checking extension matching behavior.
+pub fn run_extension_test<F>(
+    handler: &MockHandler,
+    operation: F,
+    input_extension: &str,
+    expected_result: ExtensionTestResult,
+    is_transform: bool,
+) where
+    F: FnOnce() -> FileOperationResult<()>,
+{
+    let result = operation();
+
+    match expected_result {
+        ExtensionTestResult::Success => {
+            assert!(result.is_ok());
+            if is_transform {
+                verify_transform_handler_calls(handler, Some(input_extension.to_string()), true);
+            } else {
+                verify_untransform_handler_calls(handler, Some(input_extension.to_string()), true);
+            }
+        }
+        ExtensionTestResult::NoSupportedHandler => {
+            assert!(matches!(
+                result,
+                Err(crate::file_io::FileOperationError::Transform(
+                    TransformError::NoSupportedHandler
+                ))
+            ));
+            if is_transform {
+                verify_transform_handler_calls(handler, Some(input_extension.to_string()), false);
+            } else {
+                verify_untransform_handler_calls(handler, Some(input_extension.to_string()), false);
+            }
+        }
+    }
+}
+
+/// Test case insensitive extension matching.
+///
+/// This function tests that extensions are converted to lowercase and properly matched.
+pub fn run_case_insensitive_extension_test<F>(
+    handler: &MockHandler,
+    operation: F,
+    is_transform: bool,
+) where
+    F: FnOnce() -> FileOperationResult<()>,
+{
+    let result = operation();
+    assert!(result.is_ok());
+
+    // Extension should be converted to lowercase
+    if is_transform {
+        verify_transform_handler_calls(handler, Some("dds".to_string()), true);
+    } else {
+        verify_untransform_handler_calls(handler, Some("dds".to_string()), true);
+    }
+}
+
+/// Test extensionless file handling.
+///
+/// This function tests operations on files with no extension.
+pub fn run_extensionless_test<F>(handler: &MockHandler, operation: F, is_transform: bool)
+where
+    F: FnOnce() -> FileOperationResult<()>,
+{
+    let result = operation();
+    assert!(result.is_ok());
+
+    if is_transform {
+        verify_transform_handler_calls(handler, None, true);
+    } else {
+        verify_untransform_handler_calls(handler, None, true);
+    }
 }

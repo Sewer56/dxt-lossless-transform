@@ -245,16 +245,21 @@ mod tests {
         let output_file = create_output_file();
         let bundle = TransformBundle::<NoEstimation>::default_all();
 
-        let result = transform_slice_to_file_with_handler(
+        run_single_handler_test(
             &handler,
-            &input_data,
-            output_file.path(),
-            &bundle,
+            || {
+                transform_slice_to_file_with_handler(
+                    &handler,
+                    &input_data,
+                    output_file.path(),
+                    &bundle,
+                )
+            },
+            true,  // verify_transform_called
+            false, // verify_untransform_called
         );
 
-        assert!(result.is_ok());
         verify_file_operation_success(output_file.path(), input_data.len());
-        assert!(handler.get_calls().transform_bundle_called);
     }
 
     #[test]
@@ -263,12 +268,14 @@ mod tests {
         let input_data = create_test_data(64);
         let output_file = create_output_file();
 
-        let result =
-            untransform_slice_to_file_with_handler(&handler, &input_data, output_file.path());
+        run_single_handler_test(
+            &handler,
+            || untransform_slice_to_file_with_handler(&handler, &input_data, output_file.path()),
+            false, // verify_transform_called
+            true,  // verify_untransform_called
+        );
 
-        assert!(result.is_ok());
         verify_file_operation_success(output_file.path(), input_data.len());
-        assert!(handler.get_calls().untransform_called);
     }
 
     #[test]
@@ -278,16 +285,21 @@ mod tests {
         let output_file = create_output_file();
         let bundle = TransformBundle::<NoEstimation>::default_all();
 
-        let result = transform_slice_to_file_with_multiple_handlers(
-            [handler.clone()],
-            &input_data,
-            output_file.path(),
-            &bundle,
-            Some("dds"),
+        run_extension_test(
+            &handler,
+            || {
+                transform_slice_to_file_with_multiple_handlers(
+                    [handler.clone()],
+                    &input_data,
+                    output_file.path(),
+                    &bundle,
+                    Some("dds"),
+                )
+            },
+            "dds",
+            ExtensionTestResult::Success,
+            true, // is_transform
         );
-
-        assert!(result.is_ok());
-        verify_transform_handler_calls(&handler, Some("dds".to_string()), true);
     }
 
     #[test]
@@ -297,21 +309,21 @@ mod tests {
         let output_file = create_output_file();
         let bundle = TransformBundle::<NoEstimation>::default_all();
 
-        let result = transform_slice_to_file_with_multiple_handlers(
-            [handler.clone()],
-            &input_data,
-            output_file.path(),
-            &bundle,
-            Some("png"),
+        run_extension_test(
+            &handler,
+            || {
+                transform_slice_to_file_with_multiple_handlers(
+                    [handler.clone()],
+                    &input_data,
+                    output_file.path(),
+                    &bundle,
+                    Some("png"),
+                )
+            },
+            "png",
+            ExtensionTestResult::NoSupportedHandler,
+            true, // is_transform
         );
-
-        assert!(matches!(
-            result,
-            Err(crate::file_io::FileOperationError::Transform(
-                TransformError::NoSupportedHandler
-            ))
-        ));
-        verify_transform_handler_calls(&handler, Some("png".to_string()), false);
     }
 
     #[test]
@@ -321,16 +333,19 @@ mod tests {
         let output_file = create_output_file();
         let bundle = TransformBundle::<NoEstimation>::default_all();
 
-        let result = transform_slice_to_file_with_multiple_handlers(
-            [handler.clone()],
-            &input_data,
-            output_file.path(),
-            &bundle,
-            None,
+        run_extensionless_test(
+            &handler,
+            || {
+                transform_slice_to_file_with_multiple_handlers(
+                    [handler.clone()],
+                    &input_data,
+                    output_file.path(),
+                    &bundle,
+                    None,
+                )
+            },
+            true, // is_transform
         );
-
-        assert!(result.is_ok());
-        verify_transform_handler_calls(&handler, None, true);
     }
 
     #[test]
@@ -339,15 +354,20 @@ mod tests {
         let input_data = create_test_data(64);
         let output_file = create_output_file();
 
-        let result = untransform_slice_to_file_with_multiple_handlers(
-            [handler.clone()],
-            &input_data,
-            output_file.path(),
-            Some("dds"),
+        run_extension_test(
+            &handler,
+            || {
+                untransform_slice_to_file_with_multiple_handlers(
+                    [handler.clone()],
+                    &input_data,
+                    output_file.path(),
+                    Some("dds"),
+                )
+            },
+            "dds",
+            ExtensionTestResult::Success,
+            false, // is_transform
         );
-
-        assert!(result.is_ok());
-        verify_untransform_handler_calls(&handler, Some("dds".to_string()), true);
     }
 
     #[test]
@@ -356,20 +376,20 @@ mod tests {
         let input_data = create_test_data(64);
         let output_file = create_output_file();
 
-        let result = untransform_slice_to_file_with_multiple_handlers(
-            [handler.clone()],
-            &input_data,
-            output_file.path(),
-            Some("png"),
+        run_extension_test(
+            &handler,
+            || {
+                untransform_slice_to_file_with_multiple_handlers(
+                    [handler.clone()],
+                    &input_data,
+                    output_file.path(),
+                    Some("png"),
+                )
+            },
+            "png",
+            ExtensionTestResult::NoSupportedHandler,
+            false, // is_transform
         );
-
-        assert!(matches!(
-            result,
-            Err(crate::file_io::FileOperationError::Transform(
-                TransformError::NoSupportedHandler
-            ))
-        ));
-        verify_untransform_handler_calls(&handler, Some("png".to_string()), false);
     }
 
     #[test]
@@ -379,16 +399,19 @@ mod tests {
         let output_file = create_output_file();
         let bundle = TransformBundle::<NoEstimation>::default_all();
 
-        let result = transform_slice_to_file_with_multiple_handlers(
-            [handler.clone()],
-            &input_data,
-            output_file.path(),
-            &bundle,
-            None,
+        run_extensionless_test(
+            &handler,
+            || {
+                transform_slice_to_file_with_multiple_handlers(
+                    [handler.clone()],
+                    &input_data,
+                    output_file.path(),
+                    &bundle,
+                    None,
+                )
+            },
+            true, // is_transform
         );
-
-        assert!(result.is_ok());
-        verify_transform_handler_calls(&handler, None, true);
     }
 
     #[test]
@@ -398,14 +421,17 @@ mod tests {
         let input_data = create_test_data(64);
         let output_file = create_output_file();
 
-        let result = untransform_slice_to_file_with_multiple_handlers(
-            [handler.clone()],
-            &input_data,
-            output_file.path(),
-            None,
+        run_extensionless_test(
+            &handler,
+            || {
+                untransform_slice_to_file_with_multiple_handlers(
+                    [handler.clone()],
+                    &input_data,
+                    output_file.path(),
+                    None,
+                )
+            },
+            false, // is_transform
         );
-
-        assert!(result.is_ok());
-        verify_untransform_handler_calls(&handler, None, true);
     }
 }

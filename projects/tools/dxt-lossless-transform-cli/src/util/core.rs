@@ -40,15 +40,10 @@ pub fn find_all_files(dir: &Path, entries: &mut Vec<fs::DirEntry>) -> std::io::R
     Ok(())
 }
 
-/// Handles errors from process_dir_entry function by printing to stderr
-/// (except for IgnoredByFilter which is silently ignored).
+/// Handles errors from process_dir_entry function by printing to stderr.
 pub fn handle_process_entry_error(result: Result<(), crate::error::TransformError>) {
     if let Err(e) = result {
-        match e {
-            #[cfg(feature = "debug")]
-            crate::error::TransformError::IgnoredByFilter => (),
-            _ => eprintln!("{e}"),
-        }
+        eprintln!("{e}");
     }
 }
 

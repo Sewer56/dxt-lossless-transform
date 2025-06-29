@@ -4,6 +4,9 @@ mod file_format_detection;
 mod file_format_handler;
 mod file_format_untransform_detection;
 
+#[cfg(feature = "debug-block-extraction")]
+mod file_format_block_extraction;
+
 /// Handler for DDS file format.
 ///
 /// This handler supports BC1/BC2/BC3/BC7 formats within DDS files,

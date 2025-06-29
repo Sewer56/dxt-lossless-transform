@@ -1,6 +1,5 @@
 use super::{determine_best_transform_details_with_estimator_cached, BenchmarkCmd};
 use crate::{
-    debug::DdsFilter,
     debug::{
         benchmark_common::{
             measure_time, print_file_result, print_overall_statistics, BenchmarkResult,
@@ -14,7 +13,7 @@ use crate::{
             CompressionAlgorithm,
         },
         compression_size_cache::CompressionSizeCache,
-        extract_blocks_from_dds,
+        extract_blocks_from_file,
     },
     error::TransformError,
     util::find_all_files,
@@ -24,7 +23,9 @@ use dxt_lossless_transform_bc1::{
     transform_bc1_with_settings, untransform_bc1_with_settings, Bc1TransformSettings,
 };
 use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};
-use dxt_lossless_transform_dds::dds::DdsFormat;
+use dxt_lossless_transform_file_formats_api::{
+    embed::TransformFormat, handlers::TransformFormatFilter,
+};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::{fs, sync::Mutex};
 
@@ -176,100 +177,96 @@ fn process_file(
         Some(BenchmarkResult::new(entry.path().display().to_string(), 0))
     };
 
-    unsafe {
-        extract_blocks_from_dds(
-            entry,
-            DdsFilter::BC1,
-            |data_ptr: *const u8,
-             len_bytes: usize,
-             format: DdsFormat|
-             -> Result<(), TransformError> {
-                // Only benchmark BC1 blocks
-                if format != DdsFormat::BC1 {
-                    return Ok(()); // Skip non-BC1 data
-                }
+    extract_blocks_from_file(
+        &entry.path(),
+        TransformFormatFilter::Bc1,
+        |data: &[u8], _format: TransformFormat| -> Result<(), TransformError> {
+            let data_ptr = data.as_ptr();
+            let len_bytes = data.len();
 
-                if let Some(ref mut result) = file_result {
-                    result.file_size_bytes = len_bytes;
-                }
+            if let Some(ref mut result) = file_result {
+                result.file_size_bytes = len_bytes;
+            }
 
-                // Define the scenarios to benchmark
-                let scenarios = vec![
-                    (
-                        "API Recommended",
-                        determine_best_transform_details_with_estimator_cached(
-                            data_ptr,
-                            len_bytes,
-                            config.estimate_compression_level,
-                            config.estimate_compression_algorithm,
-                            config.experimental_normalize,
-                            config.use_all_decorrelation_modes,
-                            caches.compressed_size_cache,
-                        )?,
-                    ),
-                    (
-                        "NoSplit/None",
-                        Bc1TransformSettings {
-                            decorrelation_mode: YCoCgVariant::None,
-                            split_colour_endpoints: false,
-                        },
-                    ),
-                    (
-                        "NoSplit/YCoCg1",
-                        Bc1TransformSettings {
-                            decorrelation_mode: YCoCgVariant::Variant1,
-                            split_colour_endpoints: false,
-                        },
-                    ),
-                    (
-                        "Split/None",
-                        Bc1TransformSettings {
-                            decorrelation_mode: YCoCgVariant::None,
-                            split_colour_endpoints: true,
-                        },
-                    ),
-                    (
-                        "Split/YCoCg1",
-                        Bc1TransformSettings {
-                            decorrelation_mode: YCoCgVariant::Variant1,
-                            split_colour_endpoints: true,
-                        },
-                    ),
-                ];
+            // Define the scenarios to benchmark
+            let scenarios = vec![
+                ("API Recommended", unsafe {
+                    determine_best_transform_details_with_estimator_cached(
+                        data_ptr,
+                        len_bytes,
+                        config.estimate_compression_level,
+                        config.estimate_compression_algorithm,
+                        config.experimental_normalize,
+                        config.use_all_decorrelation_modes,
+                        caches.compressed_size_cache,
+                    )?
+                }),
+                (
+                    "NoSplit/None",
+                    Bc1TransformSettings {
+                        decorrelation_mode: YCoCgVariant::None,
+                        split_colour_endpoints: false,
+                    },
+                ),
+                (
+                    "NoSplit/YCoCg1",
+                    Bc1TransformSettings {
+                        decorrelation_mode: YCoCgVariant::Variant1,
+                        split_colour_endpoints: false,
+                    },
+                ),
+                (
+                    "Split/None",
+                    Bc1TransformSettings {
+                        decorrelation_mode: YCoCgVariant::None,
+                        split_colour_endpoints: true,
+                    },
+                ),
+                (
+                    "Split/YCoCg1",
+                    Bc1TransformSettings {
+                        decorrelation_mode: YCoCgVariant::Variant1,
+                        split_colour_endpoints: true,
+                    },
+                ),
+            ];
 
-                // Process each scenario
-                for (scenario_name, transform_details) in scenarios {
-                    if let Some(scenario_result) = process_scenario(
+            // Process each scenario
+            for (scenario_name, transform_details) in scenarios {
+                if let Some(scenario_result) = unsafe {
+                    process_scenario(
                         data_ptr,
                         len_bytes,
                         scenario_name,
                         transform_details,
                         config,
                         caches,
-                    )? {
-                        if let Some(ref mut result) = file_result {
-                            result.add_scenario(scenario_result);
-                        }
+                    )?
+                } {
+                    if let Some(ref mut result) = file_result {
+                        result.add_scenario(scenario_result);
                     }
                 }
+            }
 
-                // Process untransformed data (no transformation applied)
-                if let Some(untransformed_result) = process_untransformed_scenario(
+            // Process untransformed data (no transformation applied)
+            if let Some(untransformed_result) = unsafe {
+                process_untransformed_scenario(
                     data_ptr,
                     len_bytes,
                     "Untransformed",
                     config,
                     caches,
-                )? {
-                    if let Some(ref mut result) = file_result {
-                        result.add_scenario(untransformed_result);
-                    }
+                )?
+            } {
+                if let Some(ref mut result) = file_result {
+                    result.add_scenario(untransformed_result);
                 }
+            }
 
-                Ok(())
-            },
-        )?;
-    }
+            Ok(())
+        },
+    )?;
 
     Ok(file_result)
 }

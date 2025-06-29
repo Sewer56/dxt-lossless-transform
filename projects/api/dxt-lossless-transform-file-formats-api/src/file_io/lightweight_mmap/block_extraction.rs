@@ -1,0 +1,115 @@
+//! Block extraction operations using memory mapping.
+//!
+//! This module provides file I/O operations for extracting raw block data from files
+//! for debug, analysis, and testing purposes. These operations are feature-gated behind
+//! the `debug-block-extraction` feature.
+
+use crate::embed::TransformFormat;
+use crate::file_io::{FileOperationError, FileOperationResult};
+use crate::handlers::{FileFormatBlockExtraction, FileFormatDetection, TransformFormatFilter};
+use crate::TransformError;
+use lightweight_mmap::handles::*;
+use lightweight_mmap::mmap::*;
+use std::path::Path;
+
+/// Extracts BC1-BC7 blocks from a file using the file-formats-api.
+/// Raw block data from found files is passed to the `test_fn` parameter for processing.
+///
+/// This function uses memory mapping for optimal performance and supports any file format handler
+/// that implements both [`FileFormatDetection`] and [`FileFormatBlockExtraction`].
+///
+/// # Arguments
+///
+/// * `file_path` - Path to the file to extract blocks from
+/// * `handlers` - Array of file format handlers to try for block extraction
+/// * `filter` - Filter specifying which block formats to extract
+/// * `test_fn` - Callback function that receives the extracted block data as a slice
+///
+/// # Returns
+///
+/// * `Ok(())` - Successfully extracted and processed blocks
+/// * `Err(TransformError::IgnoredByFilter)` - File format doesn't match filter or no handler supports it
+/// * `Err(other)` - File I/O error or block extraction failed
+///
+/// # Example
+///
+/// ```rust
+/// use dxt_lossless_transform_file_formats_api::{
+///     file_io::extract_blocks_from_file_format,
+///     handlers::TransformFormatFilter,
+///     embed::TransformFormat,
+///     TransformError,
+/// };
+/// use dxt_lossless_transform_dds::DdsHandler;
+/// use std::path::Path;
+///
+/// fn example_extract(file_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+///     let handlers = [DdsHandler];
+///     let result = extract_blocks_from_file_format(
+///         file_path,
+///         &handlers,
+///         TransformFormatFilter::Bc1,
+///         |data: &[u8], format: TransformFormat| -> Result<(), TransformError> {
+///             // Process the block data here
+///             println!("Extracted {} bytes of {:?} data", data.len(), format);
+///             Ok(())
+///         }
+///     );
+///     match result {
+///         Ok(()) => println!("Successfully extracted blocks"),
+///         Err(e) => println!("Failed to extract: {:?}", e),
+///     }
+///     Ok(())
+/// }
+/// ```
+pub fn extract_blocks_from_file_format<H, TFunction>(
+    file_path: &Path,
+    handlers: &[H],
+    filter: TransformFormatFilter,
+    mut test_fn: TFunction,
+) -> FileOperationResult<()>
+where
+    H: FileFormatDetection + FileFormatBlockExtraction,
+    TFunction: FnMut(&[u8], TransformFormat) -> Result<(), TransformError>,
+{
+    // Use file-formats-api to open the file
+    let source_handle = ReadOnlyFileHandle::open(file_path)?;
+    let source_size = source_handle.size()? as usize;
+    let source_mapping = ReadOnlyMmap::new(&source_handle, 0, source_size)?;
+    let data = source_mapping.as_slice();
+
+    // Get file extension for handler detection
+    let file_extension = super::extract_lowercase_extension(file_path);
+    let file_extension_ref = file_extension.as_deref();
+
+    // Try each handler until one can process the file
+    for handler in handlers {
+        if handler.can_handle(data, file_extension_ref) {
+            // Extract blocks using the file-formats-api
+            match handler.extract_blocks(data, filter) {
+                Ok(blocks_opt) => match blocks_opt {
+                    Some(blocks) => {
+                        // Call the test function with the extracted blocks
+                        return test_fn(blocks.data, blocks.format)
+                            .map_err(FileOperationError::Transform);
+                    }
+                    None => {
+                        // Format doesn't match filter - this is expected behaviour
+                        return Err(FileOperationError::Transform(
+                            TransformError::NoSupportedHandler,
+                        ));
+                    }
+                },
+                Err(api_err) => {
+                    // Convert file-formats-api error to file operation error
+                    return Err(FileOperationError::Transform(api_err));
+                }
+            }
+        }
+    }
+
+    // No handler could process the file
+    Err(FileOperationError::Transform(
+        TransformError::NoSupportedHandler,
+    ))
+}

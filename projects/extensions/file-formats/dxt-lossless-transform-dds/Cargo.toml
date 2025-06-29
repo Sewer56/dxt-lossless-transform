@@ -21,6 +21,8 @@ default = ["std"]
 std = ["dxt-lossless-transform-api-common/std", "dxt-lossless-transform-file-formats-api/std"]
 # Compiles the public C API for the crate.
 c-exports = []
+# Enable debug block extraction functionality
+debug-block-extraction = ["std", "dxt-lossless-transform-file-formats-api/debug-block-extraction"]
 
 [dependencies]
 dxt-lossless-transform-api-common = { workspace = true, default-features = false }

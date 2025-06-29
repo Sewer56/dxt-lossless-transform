@@ -49,7 +49,8 @@ pub fn compress_data_cached(
     caches: &CacheRefs,
 ) -> Result<(Box<[u8]>, usize), TransformError> {
     // Calculate content hash once
-    let content_hash = calculate_content_hash(data_ptr, len_bytes);
+    let data_slice = unsafe { core::slice::from_raw_parts(data_ptr, len_bytes) };
+    let content_hash = calculate_content_hash(data_slice);
 
     // Try to load from cache first
     if let Some((cached_data, cached_size)) = caches.compressed_data_cache.load_compressed_data(
@@ -135,7 +136,8 @@ pub fn calc_size_with_cache_and_estimation_algorithm(
     data_type: DataType,
     cache: &Mutex<CompressionSizeCache>,
 ) -> Result<usize, TransformError> {
-    let content_hash = calculate_content_hash(data_ptr, len_bytes);
+    let data_slice = unsafe { core::slice::from_raw_parts(data_ptr, len_bytes) };
+    let content_hash = calculate_content_hash(data_slice);
 
     // Create an estimator to check if it supports data type differentiation
     let estimator = create_size_estimator(estimation_algorithm, compression_level)?;

@@ -110,8 +110,14 @@ pub(crate) mod file_format_detection;
 pub(crate) mod file_format_handler;
 pub(crate) mod file_format_untransform_detection;
 
+#[cfg(feature = "debug-block-extraction")]
+pub(crate) mod file_format_block_extraction;
+
 // Re-export traits and dispatch functions for convenience
 pub use dispatch::*;
 pub use file_format_detection::*;
 pub use file_format_handler::*;
 pub use file_format_untransform_detection::*;
+
+#[cfg(feature = "debug-block-extraction")]
+pub use file_format_block_extraction::*;

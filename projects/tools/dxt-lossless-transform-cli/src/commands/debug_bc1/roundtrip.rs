@@ -2,17 +2,15 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use std::fs;
 
 use super::RoundtripCmd;
-use crate::{
-    debug::{extract_blocks_from_dds, DdsFilter},
-    error::TransformError,
-    util::find_all_files,
-};
+use crate::{debug::extract_blocks_from_file, error::TransformError, util::find_all_files};
 use dxt_lossless_transform_bc1::{
     transform_bc1_with_settings, untransform_bc1_with_settings, util::decode_bc1_block,
     Bc1TransformSettings,
 };
 use dxt_lossless_transform_common::allocate::allocate_align_64;
-use dxt_lossless_transform_dds::dds::DdsFormat;
+use dxt_lossless_transform_file_formats_api::{
+    embed::TransformFormat, handlers::TransformFormatFilter,
+};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 pub(crate) fn handle_roundtrip_command(cmd: RoundtripCmd) -> Result<(), TransformError> {
@@ -109,23 +107,13 @@ fn test_bc1_roundtrip(data_ptr: *const u8, len_bytes: usize) -> Result<(), Trans
 }
 
 fn test_bc1_roundtrip_file(entry: &fs::DirEntry) -> Result<(), TransformError> {
-    unsafe {
-        extract_blocks_from_dds(
-            entry,
-            DdsFilter::BC1,
-            |data_ptr: *const u8,
-             len_bytes: usize,
-             format: DdsFormat|
-             -> Result<(), TransformError> {
-                // Only test BC1 blocks
-                if format != DdsFormat::BC1 {
-                    return Ok(()); // Skip non-BC1 data
-                }
-
-                test_bc1_roundtrip(data_ptr, len_bytes)
-            },
-        )
-    }
+    extract_blocks_from_file(
+        &entry.path(),
+        TransformFormatFilter::Bc1,
+        |data: &[u8], _format: TransformFormat| -> Result<(), TransformError> {
+            test_bc1_roundtrip(data.as_ptr(), data.len())
+        },
+    )
 }
 
 #[cfg(test)]

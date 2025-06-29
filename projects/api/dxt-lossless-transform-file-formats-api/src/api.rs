@@ -208,3 +208,123 @@ where
 {
     bundle.dispatch_transform(format, input_texture_data, output_texture_data)
 }
+
+/// Transform a slice using multiple handlers with automatic format detection.
+///
+/// This function tries each handler in sequence until one accepts the file format,
+/// then transforms the slice using that handler and the provided bundle.
+///
+/// # Parameters
+///
+/// - `handlers`: Iterator of file format handlers that implement [`crate::traits::FileFormatDetection`]
+/// - `input`: Input buffer containing the file data
+/// - `output`: Output buffer (must be at least the same size as input)
+/// - `bundle`: Bundle containing transform builders for different BCx formats
+///
+/// # Returns
+///
+/// Result indicating success or [`crate::error::TransformError::NoSupportedHandler`] if no handler can process the data.
+///
+/// # Example
+///
+/// ```
+/// use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_with_multiple_handlers, TransformResult};
+/// use dxt_lossless_transform_api_common::estimate::NoEstimation;
+/// use dxt_lossless_transform_dds::DdsHandler;
+///
+/// fn example_transform_multiple_handlers(input: &[u8]) -> TransformResult<Vec<u8>> {
+///     let handlers = [DdsHandler];
+///     let bundle = TransformBundle::<NoEstimation>::default_all();
+///     let mut output = vec![0u8; input.len()];
+///     transform_slice_with_multiple_handlers(handlers, input, &mut output, &bundle)?;
+///     Ok(output)
+/// }
+/// ```
+pub fn transform_slice_with_multiple_handlers<HandlerIterator, Handler, SizeEstimator>(
+    handlers: HandlerIterator,
+    input: &[u8],
+    output: &mut [u8],
+    bundle: &TransformBundle<SizeEstimator>,
+) -> TransformResult<()>
+where
+    HandlerIterator: IntoIterator<Item = Handler>,
+    Handler: crate::traits::FileFormatDetection,
+    SizeEstimator: SizeEstimationOperations,
+    SizeEstimator::Error: Debug,
+{
+    if output.len() < input.len() {
+        return Err(TransformError::FormatHandler(
+            FormatHandlerError::OutputBufferTooSmall {
+                required: input.len(),
+                actual: output.len(),
+            },
+        ));
+    }
+
+    // Try each handler until one accepts the file
+    for handler in handlers {
+        if handler.can_handle(input) {
+            return handler.transform_bundle(input, output, bundle);
+        }
+    }
+
+    // No handler could process the file
+    Err(TransformError::NoSupportedHandler)
+}
+
+/// Untransform a slice using multiple handlers with automatic format detection.
+///
+/// This function tries each handler in sequence until one accepts the transformed file format,
+/// then untransforms the slice using that handler.
+///
+/// # Parameters
+///
+/// - `handlers`: Iterator of file format handlers that implement [`crate::traits::FileFormatUntransformDetection`]
+/// - `input`: Input buffer containing transformed data
+/// - `output`: Output buffer (must be at least the same size as input)
+///
+/// # Returns
+///
+/// Result indicating success or [`crate::error::TransformError::NoSupportedHandler`] if no handler can process the data.
+///
+/// # Example
+///
+/// ```
+/// use dxt_lossless_transform_file_formats_api::{untransform_slice_with_multiple_handlers, TransformResult};
+/// use dxt_lossless_transform_dds::DdsHandler;
+///
+/// fn example_untransform_multiple_handlers(input: &[u8]) -> TransformResult<Vec<u8>> {
+///     let handlers = [DdsHandler];
+///     let mut output = vec![0u8; input.len()];
+///     untransform_slice_with_multiple_handlers(handlers, input, &mut output)?;
+///     Ok(output)
+/// }
+/// ```
+pub fn untransform_slice_with_multiple_handlers<HandlerIterator, Handler>(
+    handlers: HandlerIterator,
+    input: &[u8],
+    output: &mut [u8],
+) -> TransformResult<()>
+where
+    HandlerIterator: IntoIterator<Item = Handler>,
+    Handler: crate::traits::FileFormatUntransformDetection,
+{
+    if output.len() < input.len() {
+        return Err(TransformError::FormatHandler(
+            FormatHandlerError::OutputBufferTooSmall {
+                required: input.len(),
+                actual: output.len(),
+            },
+        ));
+    }
+
+    // Try each handler until one accepts the file
+    for handler in handlers {
+        if handler.can_handle_untransform(input) {
+            return handler.untransform(input, output);
+        }
+    }
+
+    // No handler could process the file
+    Err(TransformError::NoSupportedHandler)
+}

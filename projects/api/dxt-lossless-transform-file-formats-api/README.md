@@ -50,16 +50,16 @@ let bundle = TransformBundle::<NoEstimation>::new()
 With the `file-io` feature enabled:
 
 ```rust
-use dxt_lossless_transform_file_formats_api::{file_io::{transform_file_bundle, untransform_file_with}, TransformBundle, bundle::NoEstimation};
+use dxt_lossless_transform_file_formats_api::{file_io::{transform_file_with_handler, untransform_file_with_handler}, TransformBundle, bundle::NoEstimation};
 use dxt_lossless_transform_dds::DdsHandler;
 use std::path::Path;
 
 // Transform file to file
 let bundle = TransformBundle::<NoEstimation>::default_all();
-transform_file_bundle(&DdsHandler, Path::new("input.dds"), Path::new("output.dds"), &bundle)?;
+transform_file_with_handler(&DdsHandler, Path::new("input.dds"), Path::new("output.dds"), &bundle)?;
 
 // Untransform (settings are extracted from embedded header)
-untransform_file_with(&DdsHandler, Path::new("output.dds"), Path::new("restored.dds"))?;
+untransform_file_with_handler(&DdsHandler, Path::new("output.dds"), Path::new("restored.dds"))?;
 ```
 
 ### Untransforming Files

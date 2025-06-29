@@ -5,9 +5,7 @@ use bytesize::ByteSize;
 use dxt_lossless_transform_api_common::estimate::NoEstimation;
 use dxt_lossless_transform_bc1_api::{Bc1AutoTransformBuilder, Bc1ManualTransformBuilder};
 use dxt_lossless_transform_dds::DdsHandler;
-use dxt_lossless_transform_file_formats_api::{
-    file_io, traits::FileFormatDetection, TransformBundle,
-};
+use dxt_lossless_transform_file_formats_api::{file_io, TransformBundle};
 use rayon::prelude::*;
 use std::{
     path::{Path, PathBuf},
@@ -151,12 +149,12 @@ fn process_files_with_bundle<T>(
     T::Error: std::fmt::Debug,
 {
     entries.par_iter().for_each(|entry| {
-        let result = process_single_file(entry, input_dir, output_dir, bundle, bytes_processed);
+        let result = process_file_transform(entry, input_dir, output_dir, bundle, bytes_processed);
         handle_process_entry_error(result);
     });
 }
 
-pub fn process_single_file<T>(
+pub fn process_file_transform<T>(
     entry: &std::fs::DirEntry,
     input_dir: &Path,
     output_dir: &Path,
@@ -181,40 +179,10 @@ where
         bytes_processed.fetch_add(metadata.len(), Ordering::Relaxed);
     }
 
-    // Try to detect and transform using format detection
-    try_transform_with_detection(&path, &target_path, bundle)
-}
-
-/// Try to transform a file using format detection
-fn try_transform_with_detection<T>(
-    path: &Path,
-    target_path: &Path,
-    bundle: &TransformBundle<T>,
-) -> Result<(), crate::error::TransformError>
-where
-    T: dxt_lossless_transform_api_common::estimate::SizeEstimationOperations,
-    T::Error: std::fmt::Debug,
-{
-    // Read a small portion of the file to check headers for detection
-    let file_data = std::fs::read(path)?;
-
     // Try different file format handlers in sequence using detection
-    // Currently only DDS handler is available, but structured for easy expansion
+    // Use the new wrapper API that handles multiple handlers automatically
+    let handlers = [DdsHandler];
 
-    let dds_handler = DdsHandler;
-    if dds_handler.can_handle(&file_data) {
-        return file_io::transform_file_bundle(&dds_handler, path, target_path, bundle)
-            .map_err(Into::into);
-    }
-
-    // TODO: Add more file format handlers here when available
-    // let tga_handler = TgaHandler;
-    // if tga_handler.can_handle(&file_data) {
-    //     return file_io::transform_file_bundle(&tga_handler, path, target_path, bundle)
-    //         .map_err(Into::into);
-    // }
-
-    Err(crate::error::TransformError::UnsupportedFormat(
-        path.to_string_lossy().to_string(),
-    ))
+    file_io::transform_file_with_multiple_handlers(handlers, &path, &target_path, bundle)
+        .map_err(Into::into)
 }

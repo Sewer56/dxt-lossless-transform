@@ -3,7 +3,7 @@ use crate::util::{canonicalize_cli_path, find_all_files, handle_process_entry_er
 use argh::FromArgs;
 use bytesize::ByteSize;
 use dxt_lossless_transform_dds::DdsHandler;
-use dxt_lossless_transform_file_formats_api::{file_io, traits::FileFormatUntransformDetection};
+use dxt_lossless_transform_file_formats_api::file_io;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{
     path::{Path, PathBuf},
@@ -86,34 +86,10 @@ fn process_file_untransform(
         bytes_processed.fetch_add(metadata.len(), Ordering::Relaxed);
     }
 
-    // Try to detect and untransform using format detection
-    try_untransform_with_detection(&path, &target_path)
-}
-
-/// Try to untransform a file using format detection
-fn try_untransform_with_detection(
-    path: &Path,
-    target_path: &Path,
-) -> Result<(), crate::error::TransformError> {
-    // Read a small portion of the file to check headers for detection
-    let file_data = std::fs::read(path)?;
-
     // Try different file format handlers in sequence using detection
-    // Currently only DDS handler is available, but structured for easy expansion
+    // Use the new wrapper API that handles multiple handlers automatically
+    let handlers = [DdsHandler];
 
-    let dds_handler = DdsHandler;
-    if dds_handler.can_handle_untransform(&file_data) {
-        return file_io::untransform_file_with(&dds_handler, path, target_path).map_err(Into::into);
-    }
-
-    // TODO: Add more file format handlers here when available
-    // let tga_handler = TgaHandler;
-    // if tga_handler.can_handle_untransform(&file_data) {
-    //     return file_io::untransform_file_with(&tga_handler, path, target_path)
-    //         .map_err(Into::into);
-    // }
-
-    Err(crate::error::TransformError::UnsupportedFormat(
-        path.to_string_lossy().to_string(),
-    ))
+    file_io::untransform_file_with_multiple_handlers(handlers, &path, &target_path)
+        .map_err(Into::into)
 }

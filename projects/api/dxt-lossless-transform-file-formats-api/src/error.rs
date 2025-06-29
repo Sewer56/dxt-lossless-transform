@@ -72,4 +72,8 @@ pub enum TransformError {
         size: usize,
         required_divisor: usize,
     },
+
+    /// No file format handler can process this file
+    #[error("No file format handler can process the file")]
+    NoSupportedHandler,
 }

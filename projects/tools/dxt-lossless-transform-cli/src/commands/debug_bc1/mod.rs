@@ -231,8 +231,7 @@ pub fn handle_debug_command(cmd: DebugCmd) -> Result<(), TransformError> {
 ///
 /// # Parameters
 ///
-/// - `data_ptr`: Pointer to the BC1 data
-/// - `len_bytes`: Length of the data in bytes
+/// - `data`: Slice containing the BC1 data
 /// - `size_estimator`: Custom size estimator implementation
 /// - `experimental_normalize`: Whether to use experimental normalization
 /// - `use_all_decorrelation_modes`: Whether to test all decorrelation modes
@@ -240,9 +239,8 @@ pub fn handle_debug_command(cmd: DebugCmd) -> Result<(), TransformError> {
 /// # Returns
 ///
 /// The best transform details for the given data
-pub unsafe fn determine_best_transform_details_with_custom_estimator<T>(
-    data_ptr: *const u8,
-    len_bytes: usize,
+pub fn determine_best_transform_details_with_custom_estimator<T>(
+    data: &[u8],
     size_estimator: T,
     experimental_normalize: bool,
     use_all_decorrelation_modes: bool,
@@ -252,6 +250,9 @@ where
     T::Error: core::fmt::Debug,
 {
     use dxt_lossless_transform_common::allocate::allocate_align_64;
+
+    let data_ptr = data.as_ptr();
+    let len_bytes = data.len();
 
     let transform_options = Bc1EstimateSettings {
         size_estimator,
@@ -294,8 +295,7 @@ where
 ///
 /// # Parameters
 ///
-/// - `data_ptr`: Pointer to the BC1 data
-/// - `len_bytes`: Length of the data in bytes
+/// - `data`: Slice containing the BC1 data
 /// - `compression_level`: Compression level for the estimator
 /// - `compression_algorithm`: Algorithm to use for size estimation
 /// - `experimental_normalize`: Whether to use experimental normalization
@@ -304,9 +304,8 @@ where
 /// # Returns
 ///
 /// The best transform details for the given data
-pub unsafe fn determine_best_transform_details_with_estimator(
-    data_ptr: *const u8,
-    len_bytes: usize,
+pub fn determine_best_transform_details_with_estimator(
+    data: &[u8],
     compression_level: i32,
     compression_algorithm: CompressionAlgorithm,
     experimental_normalize: bool,
@@ -314,8 +313,7 @@ pub unsafe fn determine_best_transform_details_with_estimator(
 ) -> Result<Bc1TransformSettings, TransformError> {
     let size_estimator = create_size_estimator(compression_algorithm, compression_level)?;
     determine_best_transform_details_with_custom_estimator(
-        data_ptr,
-        len_bytes,
+        data,
         size_estimator,
         experimental_normalize,
         use_all_decorrelation_modes,
@@ -327,8 +325,7 @@ pub unsafe fn determine_best_transform_details_with_estimator(
 ///
 /// # Parameters
 ///
-/// - `data_ptr`: Pointer to the BC1 data
-/// - `len_bytes`: Length of the data in bytes
+/// - `data`: Slice containing the BC1 data
 /// - `estimate_compression_level`: Compression level for size estimation
 /// - `estimate_compression_algorithm`: Algorithm to use for size estimation
 /// - `cache`: Cache for storing compression size results
@@ -338,9 +335,8 @@ pub unsafe fn determine_best_transform_details_with_estimator(
 /// # Returns
 ///
 /// The best transform details for the given data
-pub unsafe fn determine_best_transform_details_with_estimator_cached(
-    data_ptr: *const u8,
-    len_bytes: usize,
+pub fn determine_best_transform_details_with_estimator_cached(
+    data: &[u8],
     estimate_compression_level: i32,
     estimate_compression_algorithm: CompressionAlgorithm,
     experimental_normalize: bool,
@@ -355,8 +351,7 @@ pub unsafe fn determine_best_transform_details_with_estimator_cached(
     )?;
 
     determine_best_transform_details_with_custom_estimator(
-        data_ptr,
-        len_bytes,
+        data,
         cached_estimator,
         experimental_normalize,
         use_all_decorrelation_modes,

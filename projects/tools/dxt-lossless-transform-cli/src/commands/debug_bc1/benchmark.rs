@@ -180,26 +180,23 @@ fn process_file(
         &entry.path(),
         TransformFormatFilter::Bc1,
         |data: &[u8], _format: TransformFormat| -> Result<(), TransformError> {
-            let data_ptr = data.as_ptr();
-            let len_bytes = data.len();
-
             if let Some(ref mut result) = file_result {
-                result.file_size_bytes = len_bytes;
+                result.file_size_bytes = data.len();
             }
 
             // Define the scenarios to benchmark
             let scenarios = vec![
-                ("API Recommended", unsafe {
+                (
+                    "API Recommended",
                     determine_best_transform_details_with_estimator_cached(
-                        data_ptr,
-                        len_bytes,
+                        data,
                         config.estimate_compression_level,
                         config.estimate_compression_algorithm,
                         config.experimental_normalize,
                         config.use_all_decorrelation_modes,
                         caches.compressed_size_cache,
-                    )?
-                }),
+                    )?,
+                ),
                 (
                     "NoSplit/None",
                     Bc1TransformSettings {
@@ -232,16 +229,9 @@ fn process_file(
 
             // Process each scenario
             for (scenario_name, transform_details) in scenarios {
-                if let Some(scenario_result) = unsafe {
-                    process_scenario(
-                        data_ptr,
-                        len_bytes,
-                        scenario_name,
-                        transform_details,
-                        config,
-                        caches,
-                    )?
-                } {
+                if let Some(scenario_result) =
+                    process_scenario(data, scenario_name, transform_details, config, caches)?
+                {
                     if let Some(ref mut result) = file_result {
                         result.add_scenario(scenario_result);
                     }
@@ -249,15 +239,9 @@ fn process_file(
             }
 
             // Process untransformed data (no transformation applied)
-            if let Some(untransformed_result) = unsafe {
-                process_untransformed_scenario(
-                    data_ptr,
-                    len_bytes,
-                    "Untransformed",
-                    config,
-                    caches,
-                )?
-            } {
+            if let Some(untransformed_result) =
+                process_untransformed_scenario(data, "Untransformed", config, caches)?
+            {
                 if let Some(ref mut result) = file_result {
                     result.add_scenario(untransformed_result);
                 }
@@ -270,29 +254,32 @@ fn process_file(
     Ok(file_result)
 }
 
-unsafe fn process_scenario(
-    data_ptr: *const u8,
-    len_bytes: usize,
+fn process_scenario(
+    data: &[u8],
     scenario_name: &str,
     transform_details: Bc1TransformSettings,
     config: &BenchmarkConfig,
     caches: &CacheRefs,
 ) -> Result<Option<BenchmarkScenarioResult>, TransformError> {
+    let data_ptr = data.as_ptr();
+    let len_bytes = data.len();
+
     // Allocate buffers
     let mut transformed_data = allocate_align_64(len_bytes)?;
 
     // Transform the original data
-    transform_bc1_with_settings(
-        data_ptr,
-        transformed_data.as_mut_ptr(),
-        len_bytes,
-        transform_details,
-    );
+    unsafe {
+        transform_bc1_with_settings(
+            data_ptr,
+            transformed_data.as_mut_ptr(),
+            len_bytes,
+            transform_details,
+        );
+    }
 
     // Compress the transformed data (this populates the cache for both dry run and benchmark)
     let (compressed_data, compressed_size) = compress_data_cached(
-        transformed_data.as_ptr(),
-        len_bytes,
+        transformed_data.as_slice(),
         config.compression_level,
         config.compression_algorithm,
         caches,
@@ -319,12 +306,14 @@ unsafe fn process_scenario(
         )?;
 
         // Untransform
-        untransform_bc1_with_settings(
-            decompressed_data.as_ptr(),
-            final_output.as_mut_ptr(),
-            len_bytes,
-            transform_details,
-        );
+        unsafe {
+            untransform_bc1_with_settings(
+                decompressed_data.as_ptr(),
+                final_output.as_mut_ptr(),
+                len_bytes,
+                transform_details,
+            );
+        }
     }
 
     // Benchmark decompression
@@ -342,12 +331,14 @@ unsafe fn process_scenario(
     // Benchmark untransform
     let (_, untransform_time) = measure_time(|| {
         for _ in 0..config.iterations {
-            untransform_bc1_with_settings(
-                decompressed_data.as_ptr(),
-                final_output.as_mut_ptr(),
-                len_bytes,
-                transform_details,
-            );
+            unsafe {
+                untransform_bc1_with_settings(
+                    decompressed_data.as_ptr(),
+                    final_output.as_mut_ptr(),
+                    len_bytes,
+                    transform_details,
+                );
+            }
         }
     });
 
@@ -363,17 +354,15 @@ unsafe fn process_scenario(
     )))
 }
 
-unsafe fn process_untransformed_scenario(
-    data_ptr: *const u8,
-    len_bytes: usize,
+fn process_untransformed_scenario(
+    data: &[u8],
     scenario_name: &str,
     config: &BenchmarkConfig,
     caches: &CacheRefs,
 ) -> Result<Option<BenchmarkScenarioResult>, TransformError> {
     // Compress the original data directly (bypassing transformation)
     let (compressed_data_ptr, compressed_size) = compress_data_cached(
-        data_ptr,
-        len_bytes,
+        data,
         config.compression_level,
         config.compression_algorithm,
         caches,
@@ -383,6 +372,8 @@ unsafe fn process_untransformed_scenario(
     if config.dry_run {
         return Ok(None);
     }
+
+    let len_bytes = data.len();
 
     // Allocate decompression buffer
     let mut decompressed_data = allocate_align_64(len_bytes)?;

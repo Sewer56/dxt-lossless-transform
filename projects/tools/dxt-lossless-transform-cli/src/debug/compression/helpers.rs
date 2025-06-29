@@ -42,15 +42,13 @@ pub struct CacheRefs<'a> {
 ///
 /// Also populates a [`CompressionSizeCache`] with the compressed size for future size-only queries.
 pub fn compress_data_cached(
-    data_ptr: *const u8,
-    len_bytes: usize,
+    data: &[u8],
     compression_level: i32,
     algorithm: CompressionAlgorithm,
     caches: &CacheRefs,
 ) -> Result<(Box<[u8]>, usize), TransformError> {
     // Calculate content hash once
-    let data_slice = unsafe { core::slice::from_raw_parts(data_ptr, len_bytes) };
-    let content_hash = calculate_content_hash(data_slice);
+    let content_hash = calculate_content_hash(data);
 
     // Try to load from cache first
     if let Some((cached_data, cached_size)) = caches.compressed_data_cache.load_compressed_data(
@@ -64,7 +62,7 @@ pub fn compress_data_cached(
 
     // Not in cache, compress the data using the compression operations
     let (compressed_data, compressed_size) =
-        compress_with_algorithm(data_ptr, len_bytes, algorithm, compression_level)?;
+        compress_with_algorithm(data.as_ptr(), data.len(), algorithm, compression_level)?;
 
     // Save to cache for future use
     if let Err(e) = caches.compressed_data_cache.save_compressed_data(
@@ -94,9 +92,8 @@ pub fn compress_data_cached(
 
 /// Calculates compressed size using a separate estimation algorithm without caching.
 /// This is a simplified version that doesn't use any caching mechanisms for pure performance measurement.
-pub unsafe fn calc_size_with_estimation_algorithm(
-    data_ptr: *const u8,
-    len_bytes: usize,
+pub fn calc_size_with_estimation_algorithm(
+    data: &[u8],
     compression_level: i32,
     estimation_algorithm: CompressionAlgorithm,
     data_type: DataType,
@@ -104,7 +101,7 @@ pub unsafe fn calc_size_with_estimation_algorithm(
     let estimator = create_size_estimator(estimation_algorithm, compression_level)?;
 
     // Get max buffer size (may be 0 if no allocation needed)
-    let max_comp_size = estimator.max_compressed_size(len_bytes)?;
+    let max_comp_size = estimator.max_compressed_size(data.len())?;
 
     // Allocate buffer if needed
     let (comp_buffer_ptr, comp_buffer_len, _comp_buffer) = if max_comp_size == 0 {
@@ -115,13 +112,15 @@ pub unsafe fn calc_size_with_estimation_algorithm(
         (ptr, max_comp_size, Some(comp_buffer))
     };
 
-    estimator.estimate_compressed_size(
-        data_ptr,
-        len_bytes,
-        data_type,
-        comp_buffer_ptr,
-        comp_buffer_len,
-    )
+    unsafe {
+        estimator.estimate_compressed_size(
+            data.as_ptr(),
+            data.len(),
+            data_type,
+            comp_buffer_ptr,
+            comp_buffer_len,
+        )
+    }
 }
 
 /// Calculates compressed size using a separate estimation algorithm with caching support.
@@ -129,15 +128,13 @@ pub unsafe fn calc_size_with_estimation_algorithm(
 /// This function first checks if the compressed size is already cached, and if not,
 /// estimates the compressed size using the specified estimation algorithm and stores the result in the cache for future use.
 pub fn calc_size_with_cache_and_estimation_algorithm(
-    data_ptr: *const u8,
-    len_bytes: usize,
+    data: &[u8],
     compression_level: i32,
     estimation_algorithm: CompressionAlgorithm,
     data_type: DataType,
     cache: &Mutex<CompressionSizeCache>,
 ) -> Result<usize, TransformError> {
-    let data_slice = unsafe { core::slice::from_raw_parts(data_ptr, len_bytes) };
-    let content_hash = calculate_content_hash(data_slice);
+    let content_hash = calculate_content_hash(data);
 
     // Create an estimator to check if it supports data type differentiation
     let estimator = create_size_estimator(estimation_algorithm, compression_level)?;
@@ -161,15 +158,12 @@ pub fn calc_size_with_cache_and_estimation_algorithm(
     }
 
     // Not in cache, compute it
-    let compressed_size = unsafe {
-        calc_size_with_estimation_algorithm(
-            data_ptr,
-            len_bytes,
-            compression_level,
-            estimation_algorithm,
-            data_type,
-        )?
-    };
+    let compressed_size = calc_size_with_estimation_algorithm(
+        data,
+        compression_level,
+        estimation_algorithm,
+        data_type,
+    )?;
 
     // Store in cache
     {

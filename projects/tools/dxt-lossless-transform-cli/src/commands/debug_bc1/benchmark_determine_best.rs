@@ -97,22 +97,14 @@ fn process_file(
         &entry.path(),
         TransformFormatFilter::Bc1,
         |data: &[u8], _format: TransformFormat| -> Result<(), TransformError> {
-            let data_ptr = data.as_ptr();
-            let len_bytes = data.len();
-
             if let Some(ref mut result) = file_result {
-                result.file_size_bytes = len_bytes;
+                result.file_size_bytes = data.len();
             }
 
             // Benchmark determine_best_transform_details function
-            if let Some(scenario_result) = unsafe {
-                process_determine_best_scenario(
-                    data_ptr,
-                    len_bytes,
-                    "determine_best_transform_details",
-                    config,
-                )?
-            } {
+            if let Some(scenario_result) =
+                process_determine_best_scenario(data, "determine_best_transform_details", config)?
+            {
                 if let Some(ref mut result) = file_result {
                     result.add_scenario(scenario_result);
                 }
@@ -125,17 +117,15 @@ fn process_file(
     Ok(file_result)
 }
 
-unsafe fn process_determine_best_scenario(
-    data_ptr: *const u8,
-    len_bytes: usize,
+fn process_determine_best_scenario(
+    data: &[u8],
     scenario_name: &str,
     config: &BenchmarkConfig,
 ) -> Result<Option<BenchmarkScenarioResult>, TransformError> {
     // Warmup phase
     for _ in 0..config.warmup_iterations {
         let _ = run_determine_best_once(
-            data_ptr,
-            len_bytes,
+            data,
             config.compression_level,
             config.compression_algorithm,
             config.experimental_normalize,
@@ -148,8 +138,7 @@ unsafe fn process_determine_best_scenario(
         benchmark_common::measure_time_result(|| -> Result<(), TransformError> {
             for _ in 0..config.iterations {
                 let _ = run_determine_best_once(
-                    data_ptr,
-                    len_bytes,
+                    data,
                     config.compression_level,
                     config.compression_algorithm,
                     config.experimental_normalize,
@@ -166,23 +155,21 @@ unsafe fn process_determine_best_scenario(
     // and set decompress time to 0, as we're only measuring the algorithm performance
     Ok(Some(BenchmarkScenarioResult::new(
         scenario_name.to_string(),
-        len_bytes,
+        data.len(),
         Duration::ZERO,     // No decompress time for this specific benchmark
         avg_execution_time, // All time is considered "untransform" time
     )))
 }
 
-unsafe fn run_determine_best_once(
-    data_ptr: *const u8,
-    len_bytes: usize,
+fn run_determine_best_once(
+    data: &[u8],
     estimate_compression_level: i32,
     compression_algorithm: CompressionAlgorithm,
     experimental_normalize: bool,
     use_all_decorrelation_modes: bool,
 ) -> Result<Bc1TransformSettings, TransformError> {
     determine_best_transform_details_with_estimator(
-        data_ptr,
-        len_bytes,
+        data,
         estimate_compression_level,
         compression_algorithm,
         experimental_normalize,

@@ -3,11 +3,7 @@ use std::fs;
 
 use super::RoundtripCmd;
 use crate::{debug::extract_blocks_from_file, error::TransformError, util::find_all_files};
-use dxt_lossless_transform_bc1::{
-    transform_bc1_with_settings, untransform_bc1_with_settings, util::decode_bc1_block,
-    Bc1TransformSettings,
-};
-use dxt_lossless_transform_common::allocate::allocate_align_64;
+use dxt_lossless_transform_bc1::Bc1TransformSettings;
 use dxt_lossless_transform_file_formats_api::embed::TransformFormat;
 use dxt_lossless_transform_file_formats_debug::TransformFormatFilter;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -55,49 +51,74 @@ pub(crate) fn handle_roundtrip_command(cmd: RoundtripCmd) -> Result<(), Transfor
     Ok(())
 }
 
-fn test_bc1_roundtrip(data_ptr: *const u8, len_bytes: usize) -> Result<(), TransformError> {
-    // Allocate aligned buffers
-    let mut transformed_data = allocate_align_64(len_bytes)?;
-    let mut roundtrip_data = allocate_align_64(len_bytes)?;
+fn test_bc1_roundtrip(data: &[u8]) -> Result<(), TransformError> {
+    use dxt_lossless_transform_bc1::{
+        transform_bc1_with_settings, untransform_bc1_with_settings, util::decode_bc1_block,
+    };
+    use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};
 
-    unsafe {
-        // Try all transform options
-        for transform_options in Bc1TransformSettings::all_combinations() {
-            // Transform the data
+    let data_ptr = data.as_ptr();
+    let len_bytes = data.len();
+
+    // Test all transform combinations
+    for transform_options in Bc1TransformSettings::all_combinations() {
+        // Allocate buffers
+        let mut transformed = allocate_align_64(len_bytes)?;
+        let mut restored = allocate_align_64(len_bytes)?;
+
+        unsafe {
+            // Transform
             transform_bc1_with_settings(
                 data_ptr,
-                transformed_data.as_mut_ptr(),
+                transformed.as_mut_ptr(),
                 len_bytes,
                 transform_options,
             );
 
-            // Untransform the data back
+            // Untransform
             untransform_bc1_with_settings(
-                transformed_data.as_ptr(),
-                roundtrip_data.as_mut_ptr(),
+                transformed.as_ptr(),
+                restored.as_mut_ptr(),
                 len_bytes,
                 transform_options,
             );
+        }
 
-            // Compare all pixels by decoding each block
-            let num_blocks = len_bytes / 8;
-            for block_idx in 0..num_blocks {
-                let block_offset = block_idx * 8;
+        // Compare all pixels by decoding each block
+        let num_blocks = len_bytes / 8;
+        for block_idx in 0..num_blocks {
+            let block_offset = block_idx * 8;
 
-                // Decode original block
+            // Decode original block
+            let original_decoded = unsafe {
                 let original_block_ptr = data_ptr.add(block_offset);
-                let original_decoded = decode_bc1_block(original_block_ptr);
+                decode_bc1_block(original_block_ptr)
+            };
 
-                // Decode roundtrip block
-                let roundtrip_block_ptr = roundtrip_data.as_ptr().add(block_offset);
-                let roundtrip_decoded = decode_bc1_block(roundtrip_block_ptr);
+            // Decode roundtrip block
+            let roundtrip_decoded = unsafe {
+                let roundtrip_block_ptr = restored.as_ptr().add(block_offset);
+                decode_bc1_block(roundtrip_block_ptr)
+            };
 
-                // Compare all 16 pixels in the block
-                if original_decoded != roundtrip_decoded {
-                    return Err(TransformError::Debug(format!(
-                    "Pixel mismatch in block {block_idx} (byte offset {block_offset}). Transform/untransform is not lossless!"
+            // Compare all 16 pixels in the block
+            if original_decoded != roundtrip_decoded {
+                let decorr_mode = match transform_options.decorrelation_mode {
+                    YCoCgVariant::None => "None",
+                    YCoCgVariant::Variant1 => "YCoCg1",
+                    YCoCgVariant::Variant2 => "YCoCg2",
+                    YCoCgVariant::Variant3 => "YCoCg3",
+                };
+
+                let split_endpoints = if transform_options.split_colour_endpoints {
+                    "Split"
+                } else {
+                    "NoSplit"
+                };
+
+                return Err(TransformError::Debug(format!(
+                    "Pixel mismatch in block {block_idx} (byte offset {block_offset}) for transform {decorr_mode}/{split_endpoints}. Transform/untransform is not lossless!"
                 )));
-                }
             }
         }
     }
@@ -110,7 +131,7 @@ fn test_bc1_roundtrip_file(entry: &fs::DirEntry) -> Result<(), TransformError> {
         &entry.path(),
         TransformFormatFilter::Bc1,
         |data: &[u8], _format: TransformFormat| -> Result<(), TransformError> {
-            test_bc1_roundtrip(data.as_ptr(), data.len())
+            test_bc1_roundtrip(data)
         },
     )
 }

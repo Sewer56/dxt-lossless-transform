@@ -128,40 +128,32 @@ fn analyze_bc1_compression_file(
         &entry.path(),
         TransformFormatFilter::Bc1,
         |data: &[u8], _format: TransformFormat| -> Result<(), TransformError> {
-            let data_ptr = data.as_ptr();
-            let len_bytes = data.len();
-
             file_result = Bc1CompressionStatsResult {
                 file_path: entry.path().display().to_string(),
-                original_uncompressed_size: len_bytes,
+                original_uncompressed_size: data.len(),
                 all_results: analyze_bc1_compression_transforms(
-                    data_ptr,
-                    len_bytes,
+                    data,
                     compression_level,
                     compression_algorithm,
                     cache,
                 )?,
                 original_compressed_size: calc_size_with_cache_and_estimation_algorithm(
-                    data_ptr,
-                    len_bytes,
+                    data,
                     compression_level,
                     compression_algorithm,
                     DataType::Bc1Colours,
                     cache,
                 )?,
-                api_recommended_result: unsafe {
-                    analyze_bc1_api_recommendation(
-                        data_ptr,
-                        len_bytes,
-                        estimate_compression_level,
-                        estimate_compression_algorithm,
-                        compression_level,
-                        compression_algorithm,
-                        experimental_normalize,
-                        use_all_decorrelation_modes,
-                        cache,
-                    )?
-                },
+                api_recommended_result: analyze_bc1_api_recommendation(
+                    data,
+                    estimate_compression_level,
+                    estimate_compression_algorithm,
+                    compression_level,
+                    compression_algorithm,
+                    experimental_normalize,
+                    use_all_decorrelation_modes,
+                    cache,
+                )?,
             };
 
             Ok(())
@@ -172,23 +164,23 @@ fn analyze_bc1_compression_file(
 }
 
 fn analyze_bc1_compression_transforms(
-    data_ptr: *const u8,
-    len_bytes: usize,
+    data: &[u8],
     compression_level: i32,
     compression_algorithm: CompressionAlgorithm,
     cache: &Mutex<CompressionCache>,
 ) -> Result<Vec<Bc1TransformResult>, TransformError> {
     // Allocate aligned buffers for transformations
-    let mut transformed_data = allocate_align_64(len_bytes)?;
+    let mut transformed_data = allocate_align_64(data.len())?;
     let mut results = Vec::new();
+
     unsafe {
         // Test all transform combinations
         for transform_options in Bc1TransformSettings::all_combinations() {
             // Transform the data
             transform_bc1_with_settings(
-                data_ptr,
+                data.as_ptr(),
                 transformed_data.as_mut_ptr(),
-                len_bytes,
+                data.len(),
                 transform_options,
             );
 
@@ -196,8 +188,7 @@ fn analyze_bc1_compression_transforms(
             results.push(Bc1TransformResult {
                 transform_options,
                 compressed_size: calc_size_with_cache_and_estimation_algorithm(
-                    transformed_data.as_ptr(),
-                    len_bytes,
+                    transformed_data.as_slice(),
                     compression_level,
                     compression_algorithm,
                     transform_options.to_data_type(),
@@ -211,9 +202,8 @@ fn analyze_bc1_compression_transforms(
 }
 
 #[allow(clippy::too_many_arguments)]
-unsafe fn analyze_bc1_api_recommendation(
-    data_ptr: *const u8,
-    len_bytes: usize,
+fn analyze_bc1_api_recommendation(
+    data: &[u8],
     estimate_compression_level: i32,
     estimate_compression_algorithm: CompressionAlgorithm,
     final_compression_level: i32,
@@ -223,8 +213,7 @@ unsafe fn analyze_bc1_api_recommendation(
     cache: &Mutex<CompressionCache>,
 ) -> Result<Bc1TransformResult, TransformError> {
     let best_details = determine_best_transform_details_with_estimator_cached(
-        data_ptr,
-        len_bytes,
+        data,
         estimate_compression_level,
         estimate_compression_algorithm,
         experimental_normalize,
@@ -233,18 +222,19 @@ unsafe fn analyze_bc1_api_recommendation(
     )?;
 
     // Transform the data using the recommended details and measure the size
-    let mut transformed_data = allocate_align_64(len_bytes)?;
-    transform_bc1_with_settings(
-        data_ptr,
-        transformed_data.as_mut_ptr(),
-        len_bytes,
-        best_details,
-    );
+    let mut transformed_data = allocate_align_64(data.len())?;
+    unsafe {
+        transform_bc1_with_settings(
+            data.as_ptr(),
+            transformed_data.as_mut_ptr(),
+            data.len(),
+            best_details,
+        );
+    }
 
     // Compress the transformed data (API recommendation, final level)
     let compressed_size = calc_size_with_cache_and_estimation_algorithm(
-        transformed_data.as_ptr(),
-        len_bytes,
+        transformed_data.as_slice(),
         final_compression_level,
         compression_algorithm,
         best_details.to_data_type(),

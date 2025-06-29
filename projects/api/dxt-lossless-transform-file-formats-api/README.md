@@ -111,6 +111,65 @@ untransform_file_with_handler(&DdsHandler, Path::new("output.dds"), Path::new("r
 # }
 ```
 
+### File-to-Slice Operations
+
+Transform files directly to memory slices:
+
+```rust
+use dxt_lossless_transform_file_formats_api::file_io::{
+    transform_file_to_slice_with_handler, untransform_file_to_slice_with_handler
+};
+use dxt_lossless_transform_file_formats_api::TransformBundle;
+use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
+use dxt_lossless_transform_bc1_api::Bc1AutoTransformBuilder;
+use dxt_lossless_transform_dds::DdsHandler;
+use std::path::Path;
+
+# fn example() -> Result<(), Box<dyn std::error::Error>> {
+let estimator = LosslessTransformUtilsSizeEstimation::new();
+let bundle = TransformBundle::new()
+    .with_bc1_auto(Bc1AutoTransformBuilder::new(estimator));
+
+// Read file and transform to slice
+let mut output_buffer = vec![0u8; 1024]; // Adjust size as needed
+transform_file_to_slice_with_handler(&DdsHandler, Path::new("input.dds"), &mut output_buffer, &bundle)?;
+
+// Untransform file to slice
+let mut restored_buffer = vec![0u8; 1024]; // Adjust size as needed
+untransform_file_to_slice_with_handler(&DdsHandler, Path::new("transformed.dds"), &mut restored_buffer)?;
+# Ok(())
+# }
+```
+
+### Slice-to-File Operations
+
+Transform memory slices directly to files:
+
+```rust
+use dxt_lossless_transform_file_formats_api::file_io::{
+    transform_slice_to_file_with_handler, untransform_slice_to_file_with_handler
+};
+use dxt_lossless_transform_file_formats_api::TransformBundle;
+use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
+use dxt_lossless_transform_bc1_api::Bc1AutoTransformBuilder;
+use dxt_lossless_transform_dds::DdsHandler;
+use std::path::Path;
+
+# fn example() -> Result<(), Box<dyn std::error::Error>> {
+# let texture_data = vec![0u8; 1024];
+let estimator = LosslessTransformUtilsSizeEstimation::new();
+let bundle = TransformBundle::new()
+    .with_bc1_auto(Bc1AutoTransformBuilder::new(estimator));
+
+// Transform slice to file
+transform_slice_to_file_with_handler(&DdsHandler, &texture_data, Path::new("output.dds"), &bundle)?;
+
+// Untransform slice to file
+untransform_slice_to_file_with_handler(&DdsHandler, &texture_data, Path::new("restored.dds"))?;
+# Ok(())
+# }
+```
+
 ### Manual Transform Configuration
 
 Not recommended, unless you're transforming in real-time with very low CPU overhead requirements.
@@ -275,10 +334,26 @@ It's recommended to pad the header + additional space so that the texture data s
 
 ### File I/O Functions (with `file-io` feature)
 
+#### File-to-File Operations
+
 - [`file_io::transform_file_with_handler`] - Transform file with input and output file path
 - [`file_io::transform_file_with_multiple_handlers`] - Try multiple handlers
 - [`file_io::untransform_file_with_handler`] - Untransform file with input and output file path
 - [`file_io::untransform_file_with_multiple_handlers`] - Try multiple handlers
+
+#### File-to-Slice Operations
+
+- [`file_io::transform_file_to_slice_with_handler`] - Transform file to memory slice
+- [`file_io::transform_file_to_slice_with_multiple_handlers`] - Transform file to slice with multiple handlers
+- [`file_io::untransform_file_to_slice_with_handler`] - Untransform file to memory slice
+- [`file_io::untransform_file_to_slice_with_multiple_handlers`] - Untransform file to slice with multiple handlers
+
+#### Slice-to-File Operations
+
+- [`file_io::transform_slice_to_file_with_handler`] - Transform memory slice to file
+- [`file_io::transform_slice_to_file_with_multiple_handlers`] - Transform slice to file with multiple handlers
+- [`file_io::untransform_slice_to_file_with_handler`] - Untransform memory slice to file
+- [`file_io::untransform_slice_to_file_with_multiple_handlers`] - Untransform slice to file with multiple handlers
 
 ### Handler Traits
 

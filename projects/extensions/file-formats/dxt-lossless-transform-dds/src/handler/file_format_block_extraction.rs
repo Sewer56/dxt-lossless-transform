@@ -2,10 +2,10 @@
 
 use crate::dds::{parse_dds, DdsFormat};
 use dxt_lossless_transform_file_formats_api::{
-    embed::TransformFormat,
-    error::TransformResult,
-    handlers::{ExtractedBlocks, FileFormatBlockExtraction, TransformFormatFilter},
-    TransformError,
+    embed::TransformFormat, error::TransformResult, TransformError,
+};
+use dxt_lossless_transform_file_formats_debug::{
+    ExtractedBlocks, FileFormatBlockExtraction, TransformFormatFilter,
 };
 
 impl FileFormatBlockExtraction for super::DdsHandler {

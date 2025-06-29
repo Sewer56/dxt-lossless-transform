@@ -9,8 +9,9 @@ pub mod estimation;
 
 use crate::error::TransformError;
 use dxt_lossless_transform_dds::DdsHandler;
-use dxt_lossless_transform_file_formats_api::{
-    embed::TransformFormat, file_io, handlers::TransformFormatFilter,
+use dxt_lossless_transform_file_formats_api::embed::TransformFormat;
+use dxt_lossless_transform_file_formats_debug::{
+    extract_blocks_from_file_format, TransformFormatFilter,
 };
 use std::path::Path;
 
@@ -36,8 +37,8 @@ where
         })
     };
 
-    // Use the file-formats-api function and convert the error
-    file_io::extract_blocks_from_file_format(file_path, &handlers, filter, transform_format_fn)
+    // Use the file-formats-debug function and convert the error
+    extract_blocks_from_file_format(file_path, &handlers, filter, transform_format_fn)
         .map_err(TransformError::FileOperationError)
 }
 

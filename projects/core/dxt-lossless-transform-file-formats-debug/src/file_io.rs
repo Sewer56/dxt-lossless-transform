@@ -1,13 +1,15 @@
-//! Block extraction operations using memory mapping.
+//! File I/O operations for block extraction.
 //!
 //! This module provides file I/O operations for extracting raw block data from files
-//! for debug, analysis, and testing purposes. These operations are feature-gated behind
-//! the `debug-block-extraction` feature.
+//! for debug, analysis, and testing purposes.
 
-use crate::embed::TransformFormat;
-use crate::file_io::{FileOperationError, FileOperationResult};
-use crate::handlers::{FileFormatBlockExtraction, FileFormatDetection, TransformFormatFilter};
-use crate::TransformError;
+use crate::{FileFormatBlockExtraction, TransformFormatFilter};
+use dxt_lossless_transform_file_formats_api::{
+    embed::TransformFormat,
+    file_io::{extract_lowercase_extension, FileOperationError, FileOperationResult},
+    handlers::FileFormatDetection,
+    TransformError,
+};
 use lightweight_mmap::handles::*;
 use lightweight_mmap::mmap::*;
 use std::path::Path;
@@ -33,10 +35,14 @@ use std::path::Path;
 ///
 /// # Example
 ///
-/// ```rust
+/// ```rust,ignore
+/// // Note: This example requires dxt-lossless-transform-dds with the
+/// // "debug-block-extraction" feature enabled
+/// use dxt_lossless_transform_file_formats_debug::{
+///     extract_blocks_from_file_format,
+///     TransformFormatFilter,
+/// };
 /// use dxt_lossless_transform_file_formats_api::{
-///     file_io::extract_blocks_from_file_format,
-///     handlers::TransformFormatFilter,
 ///     embed::TransformFormat,
 ///     TransformError,
 /// };
@@ -79,7 +85,7 @@ where
     let data = source_mapping.as_slice();
 
     // Get file extension for handler detection
-    let file_extension = super::extract_lowercase_extension(file_path);
+    let file_extension = extract_lowercase_extension(file_path);
     let file_extension_ref = file_extension.as_deref();
 
     // Try each handler until one can process the file

@@ -8,9 +8,8 @@ use dxt_lossless_transform_bc1::{
     Bc1TransformSettings,
 };
 use dxt_lossless_transform_common::allocate::allocate_align_64;
-use dxt_lossless_transform_file_formats_api::{
-    embed::TransformFormat, handlers::TransformFormatFilter,
-};
+use dxt_lossless_transform_file_formats_api::embed::TransformFormat;
+use dxt_lossless_transform_file_formats_debug::TransformFormatFilter;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 pub(crate) fn handle_roundtrip_command(cmd: RoundtripCmd) -> Result<(), TransformError> {

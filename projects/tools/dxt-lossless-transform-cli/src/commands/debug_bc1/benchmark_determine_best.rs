@@ -12,9 +12,8 @@ use crate::{
 };
 use core::time::Duration;
 use dxt_lossless_transform_bc1::Bc1TransformSettings;
-use dxt_lossless_transform_file_formats_api::{
-    embed::TransformFormat, handlers::TransformFormatFilter,
-};
+use dxt_lossless_transform_file_formats_api::embed::TransformFormat;
+use dxt_lossless_transform_file_formats_debug::TransformFormatFilter;
 use std::fs;
 
 /// Configuration for benchmark execution

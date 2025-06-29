@@ -32,10 +32,6 @@ file-io = [
     # Use the 'Path' based APIs.
     "lightweight-mmap/std",
 ]
-# This feature is used for debugging in the CLI, and other projects.
-debug-block-extraction = [
-    "std",
-]
 
 [dependencies]
 # Core dependencies

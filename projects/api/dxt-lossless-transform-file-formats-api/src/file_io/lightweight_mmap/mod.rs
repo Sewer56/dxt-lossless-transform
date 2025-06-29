@@ -16,9 +16,6 @@ pub mod file;
 pub mod file_to_slice;
 pub mod slice_to_file;
 
-#[cfg(feature = "debug-block-extraction")]
-pub mod block_extraction;
-
 #[cfg(test)]
 pub mod test_prelude;
 
@@ -26,9 +23,6 @@ pub mod test_prelude;
 pub use file::*;
 pub use file_to_slice::*;
 pub use slice_to_file::*;
-
-#[cfg(feature = "debug-block-extraction")]
-pub use block_extraction::*;
 
 /// Extract file extension from a path and convert to lowercase.
 ///

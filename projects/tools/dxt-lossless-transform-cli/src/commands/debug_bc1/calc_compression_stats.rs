@@ -17,9 +17,8 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use dxt_lossless_transform_api_common::estimate::DataType;
 use dxt_lossless_transform_bc1::{transform_bc1_with_settings, Bc1TransformSettings};
 use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};
-use dxt_lossless_transform_file_formats_api::{
-    embed::TransformFormat, handlers::TransformFormatFilter,
-};
+use dxt_lossless_transform_file_formats_api::embed::TransformFormat;
+use dxt_lossless_transform_file_formats_debug::TransformFormatFilter;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::{fs, sync::Mutex};
 

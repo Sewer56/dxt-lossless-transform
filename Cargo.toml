@@ -29,6 +29,7 @@ members = [
     "projects/core/dxt-lossless-transform-bc3",
     "projects/core/dxt-lossless-transform-bc7",
     "projects/core/dxt-lossless-transform-common",
+    "projects/core/dxt-lossless-transform-file-formats-debug", # Debug-only file format utilities
 
     # Extensions
     "projects/extensions/file-formats/dxt-lossless-transform-dds", # Adds DDS support
@@ -64,6 +65,7 @@ dxt-lossless-transform-bc2 = { path = "projects/core/dxt-lossless-transform-bc2"
 dxt-lossless-transform-bc3 = { path = "projects/core/dxt-lossless-transform-bc3", default-features = false }
 dxt-lossless-transform-bc7 = { path = "projects/core/dxt-lossless-transform-bc7", default-features = false }
 dxt-lossless-transform-common = { path = "projects/core/dxt-lossless-transform-common", default-features = false }
+dxt-lossless-transform-file-formats-debug = { path = "projects/core/dxt-lossless-transform-file-formats-debug", default-features = false }
 
 # Extensions
 dxt-lossless-transform-dds = { path = "projects/extensions/file-formats/dxt-lossless-transform-dds", default-features = false }

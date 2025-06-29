@@ -1,12 +1,10 @@
 //! Block extraction trait for debug and analysis operations.
 //!
 //! This module provides a trait for extracting raw block data from file formats
-//! for debug, analysis, and testing purposes. This is primarily used by debug commands
-//! and is feature-gated behind the `debug-block-extraction` feature.
+//! for debug, analysis, and testing purposes.
 
-use crate::embed::TransformFormat;
-use crate::error::TransformResult;
 use alloc::{format, string::String};
+use dxt_lossless_transform_file_formats_api::{embed::TransformFormat, error::TransformResult};
 
 /// Block extraction result containing raw block data and format information.
 #[derive(Debug)]
@@ -86,9 +84,8 @@ impl core::str::FromStr for TransformFormatFilter {
 /// Trait for extracting raw block data from file formats.
 ///
 /// This trait is designed for debug, analysis, and testing purposes where you need
-/// direct access to the raw block data within a file format. It's feature-gated
-/// behind `debug-block-extraction` to avoid including debug-only functionality
-/// in production builds.
+/// direct access to the raw block data within a file format. It's separated into
+/// this debug crate to avoid including debug-only functionality in production builds.
 ///
 /// # Safety
 ///
@@ -98,8 +95,10 @@ impl core::str::FromStr for TransformFormatFilter {
 /// # Example Implementation
 ///
 /// ```rust
+/// use dxt_lossless_transform_file_formats_debug::{
+///     FileFormatBlockExtraction, TransformFormatFilter, ExtractedBlocks,
+/// };
 /// use dxt_lossless_transform_file_formats_api::{
-///     handlers::{FileFormatBlockExtraction, TransformFormatFilter, ExtractedBlocks},
 ///     embed::TransformFormat,
 ///     error::{TransformResult, TransformError, FormatHandlerError},
 /// };

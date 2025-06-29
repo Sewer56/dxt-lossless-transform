@@ -205,143 +205,143 @@ pub mod untransform {
 
         // Wrapper functions for untransform benchmark APIs
 
-        pub unsafe fn u32_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-            crate::transform::standard::untransform::bench::u32_detransform(
+        pub unsafe fn u32_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+            crate::transform::standard::untransform::bench::u32_untransform(
                 input_ptr, output_ptr, len,
             )
         }
 
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-        pub unsafe fn unpck_detransform_unroll_2(
+        pub unsafe fn unpck_untransform_unroll_2(
             input_ptr: *const u8,
             output_ptr: *mut u8,
             len: usize,
         ) {
-            crate::transform::standard::untransform::bench::unpck_detransform_unroll_2(
+            crate::transform::standard::untransform::bench::unpck_untransform_unroll_2(
                 input_ptr, output_ptr, len,
             )
         }
 
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-        pub unsafe fn permd_detransform_unroll_2(
+        pub unsafe fn permd_untransform_unroll_2(
             input_ptr: *const u8,
             output_ptr: *mut u8,
             len: usize,
         ) {
-            crate::transform::standard::untransform::bench::permd_detransform_unroll_2(
+            crate::transform::standard::untransform::bench::permd_untransform_unroll_2(
                 input_ptr, output_ptr, len,
             )
         }
 
         #[cfg(all(feature = "nightly", any(target_arch = "x86_64", target_arch = "x86")))]
-        pub unsafe fn permute_512_detransform_unroll_2(
+        pub unsafe fn permute_512_untransform_unroll_2(
             input_ptr: *const u8,
             output_ptr: *mut u8,
             len: usize,
         ) {
-            crate::transform::standard::untransform::bench::permute_512_detransform_unroll_2(
+            crate::transform::standard::untransform::bench::permute_512_untransform_unroll_2(
                 input_ptr, output_ptr, len,
             )
         }
 
         // SSE2 functions
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-        pub unsafe fn unpck_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-            crate::transform::standard::untransform::bench::sse2::unpck_detransform(
+        pub unsafe fn unpck_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+            crate::transform::standard::untransform::bench::sse2::unpck_untransform(
                 input_ptr, output_ptr, len,
             )
         }
 
         #[cfg(target_arch = "x86_64")]
-        pub unsafe fn unpck_detransform_unroll_4(
+        pub unsafe fn unpck_untransform_unroll_4(
             input_ptr: *const u8,
             output_ptr: *mut u8,
             len: usize,
         ) {
-            crate::transform::standard::untransform::bench::sse2::unpck_detransform_unroll_4(
+            crate::transform::standard::untransform::bench::sse2::unpck_untransform_unroll_4(
                 input_ptr, output_ptr, len,
             )
         }
 
         // AVX2 functions
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-        pub unsafe fn permd_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-            crate::transform::standard::untransform::bench::avx2::permd_detransform(
+        pub unsafe fn permd_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+            crate::transform::standard::untransform::bench::avx2::permd_untransform(
                 input_ptr, output_ptr, len,
             )
         }
 
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-        pub unsafe fn avx2_unpck_detransform(
+        pub unsafe fn avx2_unpck_untransform(
             input_ptr: *const u8,
             output_ptr: *mut u8,
             len: usize,
         ) {
-            crate::transform::standard::untransform::bench::avx2::unpck_detransform(
+            crate::transform::standard::untransform::bench::avx2::unpck_untransform(
                 input_ptr, output_ptr, len,
             )
         }
 
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-        pub unsafe fn avx2_unpck_detransform_unroll_2(
+        pub unsafe fn avx2_unpck_untransform_unroll_2(
             input_ptr: *const u8,
             output_ptr: *mut u8,
             len: usize,
         ) {
-            crate::transform::standard::untransform::bench::avx2::unpck_detransform_unroll_2(
+            crate::transform::standard::untransform::bench::avx2::unpck_untransform_unroll_2(
                 input_ptr, output_ptr, len,
             )
         }
 
         // AVX512 functions
         #[cfg(all(feature = "nightly", any(target_arch = "x86_64", target_arch = "x86")))]
-        pub unsafe fn permute_512_detransform_unroll_2_intrinsics(
+        pub unsafe fn permute_512_untransform_unroll_2_intrinsics(
             input_ptr: *const u8,
             output_ptr: *mut u8,
             len: usize,
         ) {
-            crate::transform::standard::untransform::bench::avx512::permute_512_detransform_unroll_2_intrinsics(input_ptr, output_ptr, len)
+            crate::transform::standard::untransform::bench::avx512::permute_512_untransform_unroll_2_intrinsics(input_ptr, output_ptr, len)
         }
 
         #[cfg(all(feature = "nightly", any(target_arch = "x86_64", target_arch = "x86")))]
-        pub unsafe fn permute_512_detransform_unroll_2_with_components_intrinsics(
+        pub unsafe fn permute_512_untransform_unroll_2_with_components_intrinsics(
             output_ptr: *mut u8,
             len: usize,
             indices_ptr: *const u8,
             colors_ptr: *const u8,
         ) {
-            crate::transform::standard::untransform::bench::avx512::permute_512_detransform_unroll_2_with_components_intrinsics(
+            crate::transform::standard::untransform::bench::avx512::permute_512_untransform_unroll_2_with_components_intrinsics(
                 output_ptr, len, indices_ptr, colors_ptr
             )
         }
 
         // Portable32 functions
-        pub unsafe fn u32_detransform_unroll_2(
+        pub unsafe fn u32_untransform_unroll_2(
             input_ptr: *const u8,
             output_ptr: *mut u8,
             len: usize,
         ) {
-            crate::transform::standard::untransform::bench::portable32::u32_detransform_unroll_2(
+            crate::transform::standard::untransform::bench::portable32::u32_untransform_unroll_2(
                 input_ptr, output_ptr, len,
             )
         }
 
-        pub unsafe fn u32_detransform_unroll_4(
+        pub unsafe fn u32_untransform_unroll_4(
             input_ptr: *const u8,
             output_ptr: *mut u8,
             len: usize,
         ) {
-            crate::transform::standard::untransform::bench::portable32::u32_detransform_unroll_4(
+            crate::transform::standard::untransform::bench::portable32::u32_untransform_unroll_4(
                 input_ptr, output_ptr, len,
             )
         }
 
-        pub unsafe fn u32_detransform_unroll_8(
+        pub unsafe fn u32_untransform_unroll_8(
             input_ptr: *const u8,
             output_ptr: *mut u8,
             len: usize,
         ) {
-            crate::transform::standard::untransform::bench::portable32::u32_detransform_unroll_8(
+            crate::transform::standard::untransform::bench::portable32::u32_untransform_unroll_8(
                 input_ptr, output_ptr, len,
             )
         }

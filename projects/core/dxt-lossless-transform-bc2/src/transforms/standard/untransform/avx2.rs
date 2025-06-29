@@ -1,4 +1,4 @@
-use crate::transforms::standard::untransform::portable32::u32_detransform_with_separate_pointers;
+use crate::transforms::standard::untransform::portable32::u32_untransform_with_separate_pointers;
 use core::arch::asm;
 
 #[allow(clippy::unusual_byte_groupings)]
@@ -192,7 +192,7 @@ pub(crate) unsafe fn avx2_shuffle_with_components(
     let remaining_len = len - aligned_len;
     if remaining_len > 0 {
         // Pointers `alpha_ptr`, `colors_ptr`, `indices_ptr`, and `output_ptr` have been updated by the asm block
-        u32_detransform_with_separate_pointers(
+        u32_untransform_with_separate_pointers(
             alpha_ptr as *const u64, // Final alpha pointer from asm (or initial if aligned_len == 0)
             colors_ptr as *const u32, // Final colors pointer from asm (or initial)
             indices_ptr as *const u32, // Final indices pointer from asm (or initial)
@@ -372,7 +372,7 @@ pub(crate) unsafe fn avx2_shuffle_with_components(
     let remaining_len = len - aligned_len;
     if remaining_len > 0 {
         // Pointers `alpha_ptr`, `colors_ptr`, `indices_ptr`, and `output_ptr` have been updated by the asm block
-        u32_detransform_with_separate_pointers(
+        u32_untransform_with_separate_pointers(
             alpha_ptr as *const u64, // Final alpha pointer from asm (or initial if aligned_len == 0)
             colors_ptr as *const u32, // Final colors pointer from asm (or initial)
             indices_ptr as *const u32, // Final indices pointer from asm (or initial)
@@ -389,12 +389,12 @@ mod tests {
 
     #[rstest]
     #[case::avx2_shuffle(avx2_shuffle, "avx2_shuffle")]
-    fn test_avx2_unaligned(#[case] detransform_fn: StandardTransformFn, #[case] impl_name: &str) {
+    fn test_avx2_unaligned(#[case] untransform_fn: StandardTransformFn, #[case] impl_name: &str) {
         if !has_avx2() {
             return;
         }
 
         // AVX2 implementation processes 128 bytes per iteration, so max_blocks = 128 * 2 / 16 = 16
-        run_standard_untransform_unaligned_test(detransform_fn, 16, impl_name);
+        run_standard_untransform_unaligned_test(untransform_fn, 16, impl_name);
     }
 }

@@ -1,4 +1,4 @@
-use crate::transform::standard::untransform::portable32::u32_detransform_with_separate_pointers;
+use crate::transform::standard::untransform::portable32::u32_untransform_with_separate_pointers;
 use core::arch::asm;
 
 /// # Safety
@@ -7,7 +7,7 @@ use core::arch::asm;
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub(crate) unsafe fn unpck_detransform(
+pub(crate) unsafe fn unpck_untransform(
     mut input_ptr: *const u8,
     mut output_ptr: *mut u8,
     len: usize,
@@ -58,7 +58,7 @@ pub(crate) unsafe fn unpck_detransform(
     // Process any remaining elements after the aligned blocks
     let remaining = len - aligned_len;
     if remaining > 0 {
-        u32_detransform_with_separate_pointers(
+        u32_untransform_with_separate_pointers(
             input_ptr as *const u32,
             indices_ptr as *const u32,
             output_ptr,
@@ -74,7 +74,7 @@ pub(crate) unsafe fn unpck_detransform(
 #[cfg(target_arch = "x86_64")]
 #[allow(unused_assignments)]
 #[target_feature(enable = "sse2")]
-pub(crate) unsafe fn unpck_detransform_unroll_4(
+pub(crate) unsafe fn unpck_untransform_unroll_4(
     mut input_ptr: *const u8,
     mut output_ptr: *mut u8,
     len: usize,
@@ -159,7 +159,7 @@ pub(crate) unsafe fn unpck_detransform_unroll_4(
     // Process any remaining elements after the aligned blocks
     let remaining = len - aligned_len;
     if remaining > 0 {
-        u32_detransform_with_separate_pointers(
+        u32_untransform_with_separate_pointers(
             input_ptr as *const u32,
             indices_ptr as *const u32,
             output_ptr,
@@ -174,16 +174,16 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(unpck_detransform, "unpck", 8)] // processes 32 bytes per iteration, so max_blocks = 32 × 2 ÷ 8 = 8
+    #[case(unpck_untransform, "unpck", 8)] // processes 32 bytes per iteration, so max_blocks = 32 × 2 ÷ 8 = 8
     #[cfg_attr(
         target_arch = "x86_64",
-        case(unpck_detransform_unroll_4, "unpck_unroll_4", 32) // processes 128 bytes per iteration, so max_blocks = 128 × 2 ÷ 8 = 32
+        case(unpck_untransform_unroll_4, "unpck_unroll_4", 32) // processes 128 bytes per iteration, so max_blocks = 128 × 2 ÷ 8 = 32
     )]
     fn test_sse2_unaligned(
-        #[case] detransform_fn: StandardTransformFn,
+        #[case] untransform_fn: StandardTransformFn,
         #[case] impl_name: &str,
         #[case] max_blocks: usize,
     ) {
-        run_standard_untransform_unaligned_test(detransform_fn, max_blocks, impl_name);
+        run_standard_untransform_unaligned_test(untransform_fn, max_blocks, impl_name);
     }
 }

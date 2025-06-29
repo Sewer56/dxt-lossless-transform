@@ -20,7 +20,7 @@ struct TopLevel {
 #[argh(subcommand)]
 enum Commands {
     Transform(commands::transform::TransformCmd),
-    Detransform(commands::detransform::DetransformCmd),
+    Untransform(commands::untransform::UntransformCmd),
     #[cfg(feature = "debug-bc7")]
     DebugBc7(commands::debug_bc7::DebugCmd),
     #[cfg(feature = "debug-bc1")]
@@ -34,8 +34,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         Commands::Transform(cmd) => {
             commands::transform::handle_transform_command(cmd)?;
         }
-        Commands::Detransform(cmd) => {
-            commands::detransform::handle_detransform_command(cmd)?;
+        Commands::Untransform(cmd) => {
+            commands::untransform::handle_untransform_command(cmd)?;
         }
         #[cfg(feature = "debug-bc7")]
         Commands::DebugBc7(cmd) => {

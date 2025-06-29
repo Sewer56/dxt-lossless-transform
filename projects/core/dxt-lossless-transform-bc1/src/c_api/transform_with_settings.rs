@@ -10,10 +10,10 @@ use crate::{
 };
 use core::slice;
 
-/// Detransform settings for BC1 data.
+/// Untransform settings for BC1 data.
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
-pub struct Dltbc1DetransformSettings {
+pub struct Dltbc1UntransformSettings {
     /// Whether colour endpoints were split during transform
     pub split_colour_endpoints: bool,
     /// Decorrelation mode used during transform
@@ -29,8 +29,8 @@ impl From<Dltbc1TransformSettings> for crate::Bc1TransformSettings {
     }
 }
 
-impl From<Dltbc1DetransformSettings> for crate::Bc1DetransformSettings {
-    fn from(settings: Dltbc1DetransformSettings) -> Self {
+impl From<Dltbc1UntransformSettings> for crate::Bc1UntransformSettings {
+    fn from(settings: Dltbc1UntransformSettings) -> Self {
         crate::Bc1TransformSettings {
             split_colour_endpoints: settings.split_colour_endpoints,
             decorrelation_mode: settings.decorrelation_mode,
@@ -99,14 +99,14 @@ pub unsafe extern "C" fn dltbc1core_transform(
     }
 }
 
-/// Untransform BC1 data using specified detransform settings.
+/// Untransform BC1 data using specified untransform settings.
 ///
 /// # Parameters
 /// - `input`: Pointer to transformed BC1 data to untransform
 /// - `input_len`: Length of input data in bytes (must be divisible by 8)
 /// - `output`: Pointer to output buffer where original BC1 data will be written
 /// - `output_len`: Length of output buffer in bytes (must be at least `input_len`)
-/// - `details`: The detransform settings to use (must match original transform settings)
+/// - `details`: The untransform settings to use (must match original transform settings)
 ///
 /// # Returns
 /// A [`Dltbc1Result`] indicating success or containing an error.
@@ -114,14 +114,14 @@ pub unsafe extern "C" fn dltbc1core_transform(
 /// # Safety
 /// - `input` must be valid for reads of `input_len` bytes
 /// - `output` must be valid for writes of `output_len` bytes
-/// - The detransform settings must match the settings used for the original transformation
+/// - The untransform settings must match the settings used for the original transformation
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dltbc1core_untransform(
     input: *const u8,
     input_len: usize,
     output: *mut u8,
     output_len: usize,
-    details: Dltbc1DetransformSettings,
+    details: Dltbc1UntransformSettings,
 ) -> Dltbc1Result {
     // Validate pointers
     if input.is_null() {
@@ -280,7 +280,7 @@ mod tests {
             split_colour_endpoints: false,
             decorrelation_mode: YCoCgVariant::None,
         };
-        let detransform_details = Dltbc1DetransformSettings {
+        let untransform_details = Dltbc1UntransformSettings {
             split_colour_endpoints: false,
             decorrelation_mode: YCoCgVariant::None,
         };
@@ -302,7 +302,7 @@ mod tests {
                 transformed.len(),
                 restored.as_mut_ptr(),
                 restored.len(),
-                detransform_details,
+                untransform_details,
             );
 
             assert_eq!(untransform_result.error_code, Dltbc1ErrorCode::Success);
@@ -316,7 +316,7 @@ mod tests {
     #[test]
     fn test_dltbc1core_untransform_null_input() {
         let mut output = vec![0u8; 16];
-        let details = Dltbc1DetransformSettings {
+        let details = Dltbc1UntransformSettings {
             split_colour_endpoints: false,
             decorrelation_mode: YCoCgVariant::None,
         };
@@ -333,7 +333,7 @@ mod tests {
     #[test]
     fn test_dltbc1core_untransform_null_output() {
         let test_data = create_test_bc1_data();
-        let details = Dltbc1DetransformSettings {
+        let details = Dltbc1UntransformSettings {
             split_colour_endpoints: false,
             decorrelation_mode: YCoCgVariant::None,
         };
@@ -368,7 +368,7 @@ mod tests {
                     split_colour_endpoints: split_colours,
                     decorrelation_mode: decorr_mode,
                 };
-                let detransform_settings = Dltbc1DetransformSettings {
+                let untransform_settings = Dltbc1UntransformSettings {
                     split_colour_endpoints: split_colours,
                     decorrelation_mode: decorr_mode,
                 };
@@ -397,7 +397,7 @@ mod tests {
                         transformed.len(),
                         restored.as_mut_ptr(),
                         restored.len(),
-                        detransform_settings,
+                        untransform_settings,
                     );
                     assert_eq!(
                         untransform_result.error_code,
@@ -416,13 +416,13 @@ mod tests {
     }
 
     #[test]
-    fn test_dltbc1_detransform_settings_conversion() {
-        let settings = Dltbc1DetransformSettings {
+    fn test_dltbc1_untransform_settings_conversion() {
+        let settings = Dltbc1UntransformSettings {
             split_colour_endpoints: true,
             decorrelation_mode: YCoCgVariant::Variant2,
         };
 
-        let rust_settings: crate::Bc1DetransformSettings = settings.into();
+        let rust_settings: crate::Bc1UntransformSettings = settings.into();
         assert!(rust_settings.split_colour_endpoints);
         assert_eq!(rust_settings.decorrelation_mode, YCoCgVariant::Variant2);
     }

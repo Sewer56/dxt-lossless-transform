@@ -1,12 +1,12 @@
 use criterion::{black_box, BenchmarkId};
 use dxt_lossless_transform_bc3::transforms::standard::untransform::bench::{
-    u32_detransform_sse2, u64_detransform_sse2,
+    u32_untransform_sse2, u64_untransform_sse2,
 };
 use safe_allocator_api::RawAlloc;
 
 fn bench_u64_sse(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u64_detransform_sse2(
+        u64_untransform_sse2(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -16,7 +16,7 @@ fn bench_u64_sse(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawA
 
 fn bench_u32_sse(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        u32_detransform_sse2(
+        u32_untransform_sse2(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),

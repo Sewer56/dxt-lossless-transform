@@ -11,9 +11,9 @@ use std::{
 };
 
 #[derive(FromArgs, Debug)]
-/// Detransform DDS files (Demo CLI - use API for production)
-#[argh(subcommand, name = "detransform")]
-pub struct DetransformCmd {
+/// Untransform DDS files (Demo CLI - use API for production)
+#[argh(subcommand, name = "untransform")]
+pub struct UntransformCmd {
     /// input directory path
     #[argh(option, from_str_fn(canonicalize_cli_path))]
     pub input: PathBuf,
@@ -23,8 +23,8 @@ pub struct DetransformCmd {
     pub output: PathBuf,
 }
 
-pub fn handle_detransform_command(cmd: DetransformCmd) -> Result<(), Box<dyn std::error::Error>> {
-    println!("=== DXT Lossless Detransform CLI Demo ===");
+pub fn handle_untransform_command(cmd: UntransformCmd) -> Result<(), Box<dyn std::error::Error>> {
+    println!("=== DXT Lossless Untransform CLI Demo ===");
     println!("Note: This CLI is for demonstration purposes only.");
     println!("For production use, integrate the API directly into your application.\n");
 
@@ -52,7 +52,7 @@ pub fn handle_detransform_command(cmd: DetransformCmd) -> Result<(), Box<dyn std
         Throughput::from_bytes_per_sec(0)
     };
 
-    println!("\n=== Detransform Complete ===");
+    println!("\n=== Untransform Complete ===");
     println!("Time taken: {elapsed:.2?}");
     println!("Data processed: {data_size}");
     println!("Throughput: {throughput}");

@@ -1,4 +1,4 @@
-use crate::transforms::standard::untransform::portable32::u32_detransform_with_separate_pointers;
+use crate::transforms::standard::untransform::portable32::u32_untransform_with_separate_pointers;
 
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
@@ -171,7 +171,7 @@ pub(crate) unsafe fn avx512_shuffle_with_components_intrinsics(
     let remaining_len = len - aligned_len;
     if remaining_len > 0 {
         // Pointers `alpha_ptr`, `colors_ptr`, `indices_ptr`, and `output_ptr` have been updated by the asm block
-        u32_detransform_with_separate_pointers(
+        u32_untransform_with_separate_pointers(
             alpha_ptr as *const u64, // Final alpha pointer from asm (or initial if aligned_len == 0)
             colors_ptr as *const u32, // Final colors pointer from asm (or initial)
             indices_ptr as *const u32, // Final indices pointer from asm (or initial)
@@ -348,12 +348,12 @@ mod tests {
     #[rstest]
     #[case::avx512_shuffle(avx512_shuffle, "avx512_shuffle")]
     #[case::avx512_shuffle_intrinsics(avx512_shuffle_intrinsics, "avx512_shuffle_intrinsics")]
-    fn test_avx512_unaligned(#[case] detransform_fn: StandardTransformFn, #[case] impl_name: &str) {
+    fn test_avx512_unaligned(#[case] untransform_fn: StandardTransformFn, #[case] impl_name: &str) {
         if !has_avx512f() {
             return;
         }
 
         // AVX512 implementation processes 256 bytes per iteration, so max_blocks = 256 * 2 / 16 = 32
-        run_standard_untransform_unaligned_test(detransform_fn, 32, impl_name);
+        run_standard_untransform_unaligned_test(untransform_fn, 32, impl_name);
     }
 }

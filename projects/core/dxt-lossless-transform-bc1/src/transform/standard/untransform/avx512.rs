@@ -1,4 +1,4 @@
-use crate::transform::standard::untransform::portable32::u32_detransform_with_separate_pointers;
+use crate::transform::standard::untransform::portable32::u32_untransform_with_separate_pointers;
 use core::arch::asm;
 
 #[cfg(target_arch = "x86_64")]
@@ -14,7 +14,7 @@ use core::arch::x86::*;
 #[allow(unused_assignments)]
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
-pub(crate) unsafe fn permute_512_detransform_unroll_2(
+pub(crate) unsafe fn permute_512_untransform_unroll_2(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
@@ -24,7 +24,7 @@ pub(crate) unsafe fn permute_512_detransform_unroll_2(
     let indices_ptr = input_ptr.add(len / 2);
     let colors_ptr = input_ptr;
 
-    permute_512_detransform_unroll_2_with_components(output_ptr, len, indices_ptr, colors_ptr);
+    permute_512_untransform_unroll_2_with_components(output_ptr, len, indices_ptr, colors_ptr);
 }
 
 /// # Safety
@@ -35,7 +35,7 @@ pub(crate) unsafe fn permute_512_detransform_unroll_2(
 #[allow(unused_assignments)]
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
-pub(crate) unsafe fn permute_512_detransform_unroll_2_with_components(
+pub(crate) unsafe fn permute_512_untransform_unroll_2_with_components(
     mut output_ptr: *mut u8,
     len: usize,
     mut indices_in: *const u8,
@@ -109,7 +109,7 @@ pub(crate) unsafe fn permute_512_detransform_unroll_2_with_components(
 
     // Process any remaining elements after the aligned blocks
     let remaining = len - aligned_len;
-    u32_detransform_with_separate_pointers(
+    u32_untransform_with_separate_pointers(
         colors_in as *const u32,
         indices_in as *const u32,
         output_ptr,
@@ -123,13 +123,13 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(permute_512_detransform_unroll_2, "avx512_permute_unroll_2")]
-    fn test_avx512_unaligned(#[case] detransform_fn: StandardTransformFn, #[case] impl_name: &str) {
+    #[case(permute_512_untransform_unroll_2, "avx512_permute_unroll_2")]
+    fn test_avx512_unaligned(#[case] untransform_fn: StandardTransformFn, #[case] impl_name: &str) {
         if !has_avx512f() {
             return;
         }
 
         // 256 bytes processed per main loop iteration (* 2 / 8 == 64)
-        run_standard_untransform_unaligned_test(detransform_fn, 64, impl_name);
+        run_standard_untransform_unaligned_test(untransform_fn, 64, impl_name);
     }
 }

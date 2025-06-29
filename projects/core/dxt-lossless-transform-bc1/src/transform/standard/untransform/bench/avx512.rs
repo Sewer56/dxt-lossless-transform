@@ -1,4 +1,4 @@
-use crate::transform::standard::untransform::portable32::u32_detransform_with_separate_pointers;
+use crate::transform::standard::untransform::portable32::u32_untransform_with_separate_pointers;
 
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
@@ -13,7 +13,7 @@ use core::arch::x86::*;
 #[allow(unused_assignments)]
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
-pub(crate) unsafe fn permute_512_detransform_unroll_2_intrinsics(
+pub(crate) unsafe fn permute_512_untransform_unroll_2_intrinsics(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
@@ -23,7 +23,7 @@ pub(crate) unsafe fn permute_512_detransform_unroll_2_intrinsics(
     let indices_ptr = input_ptr.add(len / 2);
     let colors_ptr = input_ptr;
 
-    permute_512_detransform_unroll_2_with_components_intrinsics(
+    permute_512_untransform_unroll_2_with_components_intrinsics(
         output_ptr,
         len,
         indices_ptr,
@@ -39,7 +39,7 @@ pub(crate) unsafe fn permute_512_detransform_unroll_2_intrinsics(
 #[allow(unused_assignments)]
 #[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
-pub(crate) unsafe fn permute_512_detransform_unroll_2_with_components_intrinsics(
+pub(crate) unsafe fn permute_512_untransform_unroll_2_with_components_intrinsics(
     mut output_ptr: *mut u8,
     len: usize,
     mut indices_ptr: *const u8,
@@ -91,7 +91,7 @@ pub(crate) unsafe fn permute_512_detransform_unroll_2_with_components_intrinsics
     // Process any remaining elements after the aligned blocks
     let remaining = len - aligned_len;
     if remaining > 0 {
-        u32_detransform_with_separate_pointers(
+        u32_untransform_with_separate_pointers(
             colors_ptr as *const u32,
             indices_ptr as *const u32,
             output_ptr,
@@ -107,12 +107,12 @@ mod tests {
 
     #[rstest]
     #[case(
-        permute_512_detransform_unroll_2_intrinsics,
+        permute_512_untransform_unroll_2_intrinsics,
         "avx512_permute_unroll_2_intrinsics",
         64 // processes 256 bytes per iteration, so max_blocks = 256 × 2 ÷ 8 = 64
     )]
     fn test_avx512_unaligned(
-        #[case] detransform_fn: StandardTransformFn,
+        #[case] untransform_fn: StandardTransformFn,
         #[case] impl_name: &str,
         #[case] max_blocks: usize,
     ) {
@@ -120,6 +120,6 @@ mod tests {
             return;
         }
 
-        run_standard_untransform_unaligned_test(detransform_fn, max_blocks, impl_name);
+        run_standard_untransform_unaligned_test(untransform_fn, max_blocks, impl_name);
     }
 }

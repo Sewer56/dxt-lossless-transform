@@ -284,32 +284,32 @@ Total data processed: 8692.896 MiB
 
 📈 NoSplit/YCoCg1:
   Decompress: avg 1.93 GiB/s, total 4389.38 ms
-  Detransform: avg 30.17 GiB/s, total 281.42 ms
+  Untransform: avg 30.17 GiB/s, total 281.42 ms
   Combined: avg 1.82 GiB/s, total 4670.80 ms
 
 📈 NoSplit/None:
   Decompress: avg 1.90 GiB/s, total 4456.52 ms
-  Detransform: avg 34.86 GiB/s, total 243.53 ms
+  Untransform: avg 34.86 GiB/s, total 243.53 ms
   Combined: avg 1.81 GiB/s, total 4700.06 ms
 
 📈 Split/None:
   Decompress: avg 1.91 GiB/s, total 4452.17 ms
-  Detransform: avg 33.37 GiB/s, total 254.37 ms
+  Untransform: avg 33.37 GiB/s, total 254.37 ms
   Combined: avg 1.80 GiB/s, total 4706.55 ms
 
 📈 API Recommended:
   Decompress: avg 1.92 GiB/s, total 4412.05 ms
-  Detransform: avg 28.04 GiB/s, total 302.70 ms
+  Untransform: avg 28.04 GiB/s, total 302.70 ms
   Combined: avg 1.80 GiB/s, total 4714.75 ms
 
 📈 Split/YCoCg1:
   Decompress: avg 1.93 GiB/s, total 4409.77 ms
-  Detransform: avg 27.64 GiB/s, total 307.18 ms
+  Untransform: avg 27.64 GiB/s, total 307.18 ms
   Combined: avg 1.80 GiB/s, total 4716.95 ms
 
 📈 Untransformed:
   Decompress: avg 1.53 GiB/s, total 5559.60 ms
-  Detransform: avg 0 B/s, total 0.00 ms
+  Untransform: avg 0 B/s, total 0.00 ms
   Combined: avg 1.53 GiB/s, total 5559.60 ms
 
 ═══════════════════════════════════════════════════════════════

@@ -8,8 +8,8 @@
 
 use crate::transform::{
     transform_bc1_with_settings as unsafe_transform_bc1_with_settings,
-    untransform_bc1_with_settings as unsafe_untransform_bc1_with_settings, Bc1DetransformSettings,
-    Bc1TransformSettings,
+    untransform_bc1_with_settings as unsafe_untransform_bc1_with_settings, Bc1TransformSettings,
+    Bc1UntransformSettings,
 };
 use thiserror::Error;
 
@@ -116,7 +116,7 @@ pub fn transform_bc1_with_settings(
     Ok(())
 }
 
-/// Untransform BC1 data using specified detransform settings.
+/// Untransform BC1 data using specified untransform settings.
 ///
 /// This function reverses the transformation applied by [`transform_bc1_with_settings`]
 /// or [`super::transform_auto::transform_bc1_auto`], restoring the original BC1 data.
@@ -125,7 +125,7 @@ pub fn transform_bc1_with_settings(
 ///
 /// - `input`: The transformed BC1 data to untransform
 /// - `output`: The output buffer to write the original BC1 data to
-/// - `settings`: The detransform settings to use (must match the original transform settings)
+/// - `settings`: The untransform settings to use (must match the original transform settings)
 ///
 /// # Errors
 ///
@@ -138,7 +138,7 @@ pub fn transform_bc1_with_settings(
 /// use dxt_lossless_transform_bc1::{
 ///     transform_bc1_with_settings_safe, untransform_bc1_with_settings_safe
 /// };
-/// use dxt_lossless_transform_bc1::{Bc1TransformSettings, Bc1DetransformSettings};
+/// use dxt_lossless_transform_bc1::{Bc1TransformSettings, Bc1UntransformSettings};
 /// use dxt_lossless_transform_common::color_565::YCoCgVariant;
 /// # use dxt_lossless_transform_bc1::Bc1ValidationError;
 ///
@@ -155,11 +155,11 @@ pub fn transform_bc1_with_settings(
 /// // Transform the data
 /// transform_bc1_with_settings_safe(&bc1_data, &mut transformed, transform_settings)?;
 ///
-/// // Convert transform settings to detransform settings
-/// let detransform_settings: Bc1DetransformSettings = transform_settings.into();
+/// // Convert transform settings to untransform settings
+/// let untransform_settings: Bc1UntransformSettings = transform_settings.into();
 ///
 /// // Untransform to restore original data
-/// untransform_bc1_with_settings_safe(&transformed, &mut restored, detransform_settings)?;
+/// untransform_bc1_with_settings_safe(&transformed, &mut restored, untransform_settings)?;
 /// # assert_eq!(bc1_data, restored); // Verify round-trip works
 /// # Ok(())
 /// # }
@@ -192,7 +192,7 @@ pub fn transform_bc1_with_settings(
 pub fn untransform_bc1_with_settings(
     input: &[u8],
     output: &mut [u8],
-    settings: Bc1DetransformSettings,
+    settings: Bc1UntransformSettings,
 ) -> Result<(), Bc1ValidationError> {
     // Validate input length
     if input.len() % 8 != 0 {
@@ -291,7 +291,7 @@ mod tests {
         ];
         let mut output = [0u8; 8];
 
-        let settings = Bc1DetransformSettings {
+        let settings = Bc1UntransformSettings {
             decorrelation_mode: YCoCgVariant::Variant1,
             split_colour_endpoints: true,
         };
@@ -308,7 +308,7 @@ mod tests {
         let bc1_data = [0u8; 7]; // Invalid length (not divisible by 8)
         let mut output = [0u8; 7];
 
-        let settings = Bc1DetransformSettings {
+        let settings = Bc1UntransformSettings {
             decorrelation_mode: YCoCgVariant::Variant1,
             split_colour_endpoints: true,
         };
@@ -322,7 +322,7 @@ mod tests {
         let bc1_data = [0u8; 8];
         let mut output = [0u8; 4]; // Too small
 
-        let settings = Bc1DetransformSettings {
+        let settings = Bc1UntransformSettings {
             decorrelation_mode: YCoCgVariant::Variant1,
             split_colour_endpoints: true,
         };

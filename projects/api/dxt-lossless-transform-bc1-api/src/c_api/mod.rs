@@ -167,7 +167,7 @@ pub mod error;
 pub mod transform;
 
 use dxt_lossless_transform_api_common::reexports::color_565::YCoCgVariant;
-use dxt_lossless_transform_bc1::{Bc1DetransformSettings, Bc1TransformSettings};
+use dxt_lossless_transform_bc1::{Bc1TransformSettings, Bc1UntransformSettings};
 
 /// FFI-safe version of [`Bc1TransformSettings`] for C API.
 ///
@@ -182,13 +182,13 @@ pub struct Dltbc1TransformSettings {
     pub split_colour_endpoints: bool,
 }
 
-/// FFI-safe version of [`Bc1DetransformSettings`] for C API.
+/// FFI-safe version of [`Bc1UntransformSettings`] for C API.
 ///
-/// This struct mirrors the internal [`Bc1DetransformSettings`] but is guaranteed
+/// This struct mirrors the internal [`Bc1UntransformSettings`] but is guaranteed
 /// to have stable ABI layout for C interoperability.
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
-pub struct Dltbc1DetransformSettings {
+pub struct Dltbc1UntransformSettings {
     /// The decorrelation mode that was used to decorrelate the colors.
     pub decorrelation_mode: YCoCgVariant,
     /// Whether color endpoints are split.
@@ -204,7 +204,7 @@ impl Default for Dltbc1TransformSettings {
     }
 }
 
-impl Default for Dltbc1DetransformSettings {
+impl Default for Dltbc1UntransformSettings {
     fn default() -> Self {
         Self {
             decorrelation_mode: YCoCgVariant::Variant1,
@@ -232,8 +232,8 @@ impl From<Dltbc1TransformSettings> for Bc1TransformSettings {
     }
 }
 
-impl From<Bc1DetransformSettings> for Dltbc1DetransformSettings {
-    fn from(details: Bc1DetransformSettings) -> Self {
+impl From<Bc1UntransformSettings> for Dltbc1UntransformSettings {
+    fn from(details: Bc1UntransformSettings) -> Self {
         Self {
             decorrelation_mode: YCoCgVariant::from_internal_variant(details.decorrelation_mode),
             split_colour_endpoints: details.split_colour_endpoints,
@@ -241,8 +241,8 @@ impl From<Bc1DetransformSettings> for Dltbc1DetransformSettings {
     }
 }
 
-impl From<Dltbc1DetransformSettings> for Bc1DetransformSettings {
-    fn from(details: Dltbc1DetransformSettings) -> Self {
+impl From<Dltbc1UntransformSettings> for Bc1UntransformSettings {
+    fn from(details: Dltbc1UntransformSettings) -> Self {
         Self {
             decorrelation_mode: details.decorrelation_mode.to_internal_variant(),
             split_colour_endpoints: details.split_colour_endpoints,

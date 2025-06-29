@@ -6,9 +6,9 @@
 use dxt_lossless_transform_api_common::estimate::DataType;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
-/// Settings for BC1 transform and detransform operations.
+/// Settings for BC1 transform and untransform operations.
 ///
-/// This struct contains the configuration for both transforming and detransforming BC1 data.
+/// This struct contains the configuration for both transforming and untransforming BC1 data.
 /// Each item transformed via [`crate::transform_bc1_with_settings`] will use an instance of this struct.
 /// To undo the transform, pass the same settings to [`crate::untransform_bc1_with_settings`].
 ///
@@ -29,9 +29,9 @@ pub struct Bc1TransformSettings {
 
 /// Type alias for backward compatibility.
 ///
-/// [`Bc1DetransformSettings`] is now unified with [`Bc1TransformSettings`] since they were
-/// structurally identical. Use [`Bc1TransformSettings`] for both transform and detransform operations.
-pub type Bc1DetransformSettings = Bc1TransformSettings;
+/// [`Bc1UntransformSettings`] is now unified with [`Bc1TransformSettings`] since they were
+/// structurally identical. Use [`Bc1TransformSettings`] for both transform and untransform operations.
+pub type Bc1UntransformSettings = Bc1TransformSettings;
 
 impl Default for Bc1TransformSettings {
     fn default() -> Self {

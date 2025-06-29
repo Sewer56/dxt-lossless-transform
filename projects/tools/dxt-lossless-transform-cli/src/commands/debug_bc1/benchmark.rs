@@ -46,7 +46,7 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
 
     let input_path = &cmd.input_directory;
     println!(
-        "Benchmarking BC1 decompress+detransform performance for files in: {} (recursive)",
+        "Benchmarking BC1 decompress+untransform performance for files in: {} (recursive)",
         input_path.display()
     );
     println!("Iterations per file: {}", cmd.iterations);
@@ -322,7 +322,7 @@ unsafe fn process_scenario(
             config.compression_algorithm,
         )?;
 
-        // Detransform
+        // Untransform
         untransform_bc1_with_settings(
             decompressed_data.as_ptr(),
             final_output.as_mut_ptr(),
@@ -343,8 +343,8 @@ unsafe fn process_scenario(
         }
     });
 
-    // Benchmark detransform
-    let (_, detransform_time) = measure_time(|| {
+    // Benchmark untransform
+    let (_, untransform_time) = measure_time(|| {
         for _ in 0..config.iterations {
             untransform_bc1_with_settings(
                 decompressed_data.as_ptr(),
@@ -357,13 +357,13 @@ unsafe fn process_scenario(
 
     // Average the times over iterations
     let avg_decompress_time = decompress_time / config.iterations;
-    let avg_detransform_time = detransform_time / config.iterations;
+    let avg_untransform_time = untransform_time / config.iterations;
 
     Ok(Some(BenchmarkScenarioResult::new(
         scenario_name.to_string(),
         len_bytes,
         avg_decompress_time,
-        avg_detransform_time,
+        avg_untransform_time,
     )))
 }
 
@@ -420,6 +420,6 @@ unsafe fn process_untransformed_scenario(
         scenario_name.to_string(),
         len_bytes,
         avg_decompress_time,
-        Duration::ZERO, // No detransform time for untransformed scenario
+        Duration::ZERO, // No untransform time for untransformed scenario
     )))
 }

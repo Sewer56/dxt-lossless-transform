@@ -419,7 +419,7 @@ unsafe fn test_normalize_variant_with_normalization<T>(
 mod tests {
     use super::*;
     use crate::test_prelude::*;
-    use crate::{untransform_bc1_with_settings, Bc1DetransformSettings};
+    use crate::{untransform_bc1_with_settings, Bc1UntransformSettings};
     use dxt_lossless_transform_common::allocate::allocate_align_64;
 
     /// Test roundtrip transform→untransform for all combinations of Bc1TransformDetailsWithNormalization
@@ -450,12 +450,12 @@ mod tests {
                     );
 
                     // Untransform using standard function (normalization doesn't need to be reversed)
-                    let detransform_details: Bc1DetransformSettings = details.into();
+                    let untransform_details: Bc1UntransformSettings = details.into();
                     untransform_bc1_with_settings(
                         transformed.as_ptr(),
                         reconstructed.as_mut_ptr(),
                         len,
-                        detransform_details,
+                        untransform_details,
                     );
                 }
 

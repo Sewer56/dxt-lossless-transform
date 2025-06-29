@@ -8,7 +8,7 @@ use crate::transform::{
 };
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
-use super::settings::{Bc1DetransformSettings, Bc1TransformSettings};
+use super::settings::{Bc1TransformSettings, Bc1UntransformSettings};
 
 /// Transform BC1 data into a more compressible format.
 ///
@@ -79,7 +79,7 @@ pub unsafe fn transform_bc1_with_settings(
 ///   Output from [`transform_bc1_with_settings`].
 /// - `output_ptr`: A pointer to the output data (output BC1 blocks)
 /// - `len`: The length of the input data in bytes
-/// - `detransform_options`: A struct containing information about the transform that was originally performed.
+/// - `untransform_options`: A struct containing information about the transform that was originally performed.
 ///   Must match the settings used in [`transform_bc1_with_settings`] function (excluding color normalization).
 ///
 /// # Safety
@@ -93,14 +93,14 @@ pub unsafe fn untransform_bc1_with_settings(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
-    detransform_options: Bc1DetransformSettings,
+    untransform_options: Bc1UntransformSettings,
 ) {
     debug_assert!(len % 8 == 0);
 
-    let has_split_colours = detransform_options.split_colour_endpoints;
+    let has_split_colours = untransform_options.split_colour_endpoints;
 
     if has_split_colours {
-        if detransform_options.decorrelation_mode == YCoCgVariant::None {
+        if untransform_options.decorrelation_mode == YCoCgVariant::None {
             // Optimized single-pass operation: unsplit split colors and combine with indices
             // directly into BC1 blocks, avoiding intermediate memory copies
             with_split_colour::untransform_with_split_colour(
@@ -117,10 +117,10 @@ pub unsafe fn untransform_bc1_with_settings(
                 input_ptr.add(len / 2) as *const u32, // indices
                 output_ptr,                           // output BC1 blocks
                 len / 8,                              // number of blocks (8 bytes per block)
-                detransform_options.decorrelation_mode,
+                untransform_options.decorrelation_mode,
             );
         }
-    } else if detransform_options.decorrelation_mode == YCoCgVariant::None {
+    } else if untransform_options.decorrelation_mode == YCoCgVariant::None {
         // Standard transform – no split-colour and no decorrelation.
         untransform(input_ptr, output_ptr, len);
     } else {
@@ -129,7 +129,7 @@ pub unsafe fn untransform_bc1_with_settings(
             input_ptr,
             output_ptr,
             len,
-            detransform_options.decorrelation_mode,
+            untransform_options.decorrelation_mode,
         );
     }
 }

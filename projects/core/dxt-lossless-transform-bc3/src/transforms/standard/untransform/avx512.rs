@@ -6,7 +6,7 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 use std::is_x86_feature_detected;
 
-use crate::transforms::standard::untransform::portable::u32_detransform_with_separate_pointers;
+use crate::transforms::standard::untransform::portable::u32_untransform_with_separate_pointers;
 
 /// # Safety
 ///
@@ -14,12 +14,12 @@ use crate::transforms::standard::untransform::portable::u32_detransform_with_sep
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512vbmi")]
-pub(crate) unsafe fn avx512_detransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn avx512_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     // Non-64bit has an optimized path, and vl + non-vl variant,
     // however it turns out it's negigible in speed difference with 64-bit path, and sometimes slower even.
     // Somehow L1 cache reads are way faster than expected.
     //#[cfg(not(target_arch = "x86_64"))]
-    //avx512_detransform_32(input_ptr, output_ptr, len);
+    //avx512_untransform_32(input_ptr, output_ptr, len);
 
     debug_assert!(len % 16 == 0);
     // Process as many 64-byte blocks as possible
@@ -31,7 +31,7 @@ pub(crate) unsafe fn avx512_detransform(input_ptr: *const u8, output_ptr: *mut u
     let color_byte_in_ptr = input_ptr.add(len / 16 * 8);
     let index_byte_in_ptr = input_ptr.add(len / 16 * 12);
 
-    avx512_detransform_separate_components(
+    avx512_untransform_separate_components(
         alpha_byte_in_ptr,
         alpha_bit_in_ptr,
         color_byte_in_ptr,
@@ -48,7 +48,7 @@ pub(crate) unsafe fn avx512_detransform(input_ptr: *const u8, output_ptr: *mut u
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512vbmi")]
 #[allow(dead_code)] // This should be faster on 32-bit builds, but somehow it only trades blows.
-pub(crate) unsafe fn avx512_detransform_32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn avx512_untransform_32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(target_feature = "avx512vl")]
     let is_vl_supported = true;
 
@@ -56,9 +56,9 @@ pub(crate) unsafe fn avx512_detransform_32(input_ptr: *const u8, output_ptr: *mu
     let is_vl_supported = is_x86_feature_detected!("avx512vl");
 
     if is_vl_supported {
-        avx512_detransform_32_vl(input_ptr, output_ptr, len);
+        avx512_untransform_32_vl(input_ptr, output_ptr, len);
     } else {
-        avx512_detransform_32_vbmi(input_ptr, output_ptr, len);
+        avx512_untransform_32_vbmi(input_ptr, output_ptr, len);
     }
 }
 
@@ -69,7 +69,7 @@ pub(crate) unsafe fn avx512_detransform_32(input_ptr: *const u8, output_ptr: *mu
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512vbmi")]
 #[target_feature(enable = "avx512vl")]
-pub(crate) unsafe fn avx512_detransform_32_vl(
+pub(crate) unsafe fn avx512_untransform_32_vl(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
@@ -85,7 +85,7 @@ pub(crate) unsafe fn avx512_detransform_32_vl(
     let color_byte_in_ptr = input_ptr.add(len / 16 * 8);
     let index_byte_in_ptr = input_ptr.add(len / 16 * 12);
 
-    avx512_detransform_separate_components_32_vl(
+    avx512_untransform_separate_components_32_vl(
         alpha_byte_in_ptr,
         alpha_bit_in_ptr,
         color_byte_in_ptr,
@@ -101,7 +101,7 @@ pub(crate) unsafe fn avx512_detransform_32_vl(
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512vbmi")]
-pub(crate) unsafe fn avx512_detransform_32_vbmi(
+pub(crate) unsafe fn avx512_untransform_32_vbmi(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
@@ -117,7 +117,7 @@ pub(crate) unsafe fn avx512_detransform_32_vbmi(
     let color_byte_in_ptr = input_ptr.add(len / 16 * 8);
     let index_byte_in_ptr = input_ptr.add(len / 16 * 12);
 
-    avx512_detransform_separate_components_32(
+    avx512_untransform_separate_components_32(
         alpha_byte_in_ptr,
         alpha_bit_in_ptr,
         color_byte_in_ptr,
@@ -127,7 +127,7 @@ pub(crate) unsafe fn avx512_detransform_32_vbmi(
     );
 }
 
-/// Detransforms BC3 block data from separated components using AVX512 instructions.
+/// Untransforms BC3 block data from separated components using AVX512 instructions.
 ///
 /// # Arguments
 ///
@@ -151,7 +151,7 @@ pub(crate) unsafe fn avx512_detransform_32_vbmi(
 #[allow(clippy::erasing_op)]
 #[allow(clippy::identity_op)]
 #[target_feature(enable = "avx512vbmi")]
-pub(crate) unsafe fn avx512_detransform_separate_components(
+pub(crate) unsafe fn avx512_untransform_separate_components(
     mut alpha_byte_in_ptr: *const u8,
     mut alpha_bit_in_ptr: *const u8,
     mut color_byte_in_ptr: *const u8,
@@ -512,13 +512,13 @@ pub(crate) unsafe fn avx512_detransform_separate_components(
         current_output_ptr = current_output_ptr.add(BYTES_PER_ITERATION);
     }
 
-    // Convert pointers to the types expected by u32_detransform_with_separate_pointers
+    // Convert pointers to the types expected by u32_untransform_with_separate_pointers
     let alpha_byte_in_ptr_u16 = alpha_byte_in_ptr as *const u16;
     let alpha_bit_in_ptr_u16 = alpha_bit_in_ptr as *const u16;
     let color_byte_in_ptr_u32 = color_byte_in_ptr as *const u32;
     let index_byte_in_ptr_u32 = index_byte_in_ptr as *const u32;
 
-    u32_detransform_with_separate_pointers(
+    u32_untransform_with_separate_pointers(
         alpha_byte_in_ptr_u16,
         alpha_bit_in_ptr_u16,
         color_byte_in_ptr_u32,
@@ -528,7 +528,7 @@ pub(crate) unsafe fn avx512_detransform_separate_components(
     );
 }
 
-/// Detransforms BC3 block data from separated components using AVX512 instructions.
+/// Untransforms BC3 block data from separated components using AVX512 instructions.
 /// [32-bit optimized variant]
 ///
 /// # Arguments
@@ -553,7 +553,7 @@ pub(crate) unsafe fn avx512_detransform_separate_components(
 #[allow(clippy::erasing_op)]
 #[allow(clippy::identity_op)]
 #[target_feature(enable = "avx512vbmi")]
-pub(crate) unsafe fn avx512_detransform_separate_components_32(
+pub(crate) unsafe fn avx512_untransform_separate_components_32(
     mut alpha_byte_in_ptr: *const u8,
     mut alpha_bit_in_ptr: *const u8,
     mut color_byte_in_ptr: *const u8,
@@ -656,13 +656,13 @@ pub(crate) unsafe fn avx512_detransform_separate_components_32(
         current_output_ptr = current_output_ptr.add(BYTES_PER_ITERATION);
     }
 
-    // Convert pointers to the types expected by u32_detransform_with_separate_pointers
+    // Convert pointers to the types expected by u32_untransform_with_separate_pointers
     let alpha_byte_in_ptr_u16 = alpha_byte_in_ptr as *const u16;
     let alpha_bit_in_ptr_u16 = alpha_bit_in_ptr as *const u16;
     let color_byte_in_ptr_u32 = color_byte_in_ptr as *const u32;
     let index_byte_in_ptr_u32 = index_byte_in_ptr as *const u32;
 
-    u32_detransform_with_separate_pointers(
+    u32_untransform_with_separate_pointers(
         alpha_byte_in_ptr_u16,
         alpha_bit_in_ptr_u16,
         color_byte_in_ptr_u32,
@@ -672,7 +672,7 @@ pub(crate) unsafe fn avx512_detransform_separate_components_32(
     );
 }
 
-/// Detransforms BC3 block data from separated components using AVX512 instructions.
+/// Untransforms BC3 block data from separated components using AVX512 instructions.
 /// [32-bit optimized variant]
 ///
 /// # Arguments
@@ -698,7 +698,7 @@ pub(crate) unsafe fn avx512_detransform_separate_components_32(
 #[allow(clippy::identity_op)]
 #[target_feature(enable = "avx512vbmi")]
 #[target_feature(enable = "avx512vl")]
-pub(crate) unsafe fn avx512_detransform_separate_components_32_vl(
+pub(crate) unsafe fn avx512_untransform_separate_components_32_vl(
     mut alpha_byte_in_ptr: *const u8,
     mut alpha_bit_in_ptr: *const u8,
     mut color_byte_in_ptr: *const u8,
@@ -801,13 +801,13 @@ pub(crate) unsafe fn avx512_detransform_separate_components_32_vl(
         current_output_ptr = current_output_ptr.add(BYTES_PER_ITERATION);
     }
 
-    // Convert pointers to the types expected by u32_detransform_with_separate_pointers
+    // Convert pointers to the types expected by u32_untransform_with_separate_pointers
     let alpha_byte_in_ptr_u16 = alpha_byte_in_ptr as *const u16;
     let alpha_bit_in_ptr_u16 = alpha_bit_in_ptr as *const u16;
     let color_byte_in_ptr_u32 = color_byte_in_ptr as *const u32;
     let index_byte_in_ptr_u32 = index_byte_in_ptr as *const u32;
 
-    u32_detransform_with_separate_pointers(
+    u32_untransform_with_separate_pointers(
         alpha_byte_in_ptr_u16,
         alpha_bit_in_ptr_u16,
         color_byte_in_ptr_u32,
@@ -823,11 +823,11 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(avx512_detransform, "avx512", 64)] // main processes 512 bytes (32 blocks), so max_blocks = 512 × 2 ÷ 16 = 64
-    #[case(avx512_detransform_32_vbmi, "avx512_32_vbmi", 8)] // _32 variants process 64 bytes (4 blocks), so max_blocks = 64 × 2 ÷ 16 = 8
-    #[case(avx512_detransform_32_vl, "avx512_32_vl", 8)] // _32 variants process 64 bytes (4 blocks), so max_blocks = 64 × 2 ÷ 16 = 8
+    #[case(avx512_untransform, "avx512", 64)] // main processes 512 bytes (32 blocks), so max_blocks = 512 × 2 ÷ 16 = 64
+    #[case(avx512_untransform_32_vbmi, "avx512_32_vbmi", 8)] // _32 variants process 64 bytes (4 blocks), so max_blocks = 64 × 2 ÷ 16 = 8
+    #[case(avx512_untransform_32_vl, "avx512_32_vl", 8)] // _32 variants process 64 bytes (4 blocks), so max_blocks = 64 × 2 ÷ 16 = 8
     fn test_avx512_unaligned(
-        #[case] detransform_fn: StandardTransformFn,
+        #[case] untransform_fn: StandardTransformFn,
         #[case] impl_name: &str,
         #[case] max_blocks: usize,
     ) {
@@ -835,6 +835,6 @@ mod tests {
             return;
         }
 
-        run_standard_untransform_unaligned_test(detransform_fn, max_blocks, impl_name);
+        run_standard_untransform_unaligned_test(untransform_fn, max_blocks, impl_name);
     }
 }

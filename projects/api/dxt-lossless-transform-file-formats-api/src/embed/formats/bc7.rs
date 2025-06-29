@@ -7,9 +7,9 @@ use super::EmbeddableTransformDetails;
 use crate::embed::{EmbedError, TransformFormat};
 use bitfield::bitfield;
 
-/// Placeholder BC7 detransform details
+/// Placeholder BC7 untransform details
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct Bc7DetransformDetails;
+struct Bc7UntransformDetails;
 
 /// Header version for BC7 format
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,17 +49,17 @@ bitfield! {
     reserved, set_reserved: 27, 2;
 }
 
-/// Wrapper type for BC7 detransform details that can be stored in file headers
+/// Wrapper type for BC7 untransform details that can be stored in file headers
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct EmbeddableBc7Details(Bc7DetransformDetails);
+struct EmbeddableBc7Details(Bc7UntransformDetails);
 
-impl From<Bc7DetransformDetails> for EmbeddableBc7Details {
-    fn from(details: Bc7DetransformDetails) -> Self {
+impl From<Bc7UntransformDetails> for EmbeddableBc7Details {
+    fn from(details: Bc7UntransformDetails) -> Self {
         Self(details)
     }
 }
 
-impl From<EmbeddableBc7Details> for Bc7DetransformDetails {
+impl From<EmbeddableBc7Details> for Bc7UntransformDetails {
     fn from(embeddable: EmbeddableBc7Details) -> Self {
         embeddable.0
     }
@@ -82,6 +82,6 @@ impl EmbeddableTransformDetails for EmbeddableBc7Details {
         let _version = Bc7HeaderVersion::from_u32(header.header_version())?;
 
         // BC7 is not yet implemented
-        Ok(Self(Bc7DetransformDetails))
+        Ok(Self(Bc7UntransformDetails))
     }
 }

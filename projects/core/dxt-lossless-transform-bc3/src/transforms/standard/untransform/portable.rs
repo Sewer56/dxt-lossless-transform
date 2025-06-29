@@ -4,7 +4,7 @@
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-pub(crate) unsafe fn u32_detransform_with_separate_pointers(
+pub(crate) unsafe fn u32_untransform_with_separate_pointers(
     mut alpha_byte_in_ptr: *const u16,
     mut alpha_bit_in_ptr: *const u16,
     mut color_byte_in_ptr: *const u32,
@@ -42,7 +42,7 @@ pub(crate) unsafe fn u32_detransform_with_separate_pointers(
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
 #[cfg_attr(target_arch = "x86_64", allow(dead_code))] // x86_64 does not use this path.
-pub(crate) unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn u32_untransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len % 16 == 0);
     const BYTES_PER_ITERATION: usize = 32;
     let aligned_len = len - (len % BYTES_PER_ITERATION);
@@ -104,7 +104,7 @@ pub(crate) unsafe fn u32_detransform_v2(input_ptr: *const u8, output_ptr: *mut u
     }
 
     // Process remaining bytes if necessary
-    u32_detransform_with_separate_pointers(
+    u32_untransform_with_separate_pointers(
         alpha_byte_in_ptr as *const u16,
         alpha_bit_in_ptr,
         color_byte_in_ptr,
@@ -120,13 +120,13 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(u32_detransform_v2, "u32_v2", 2)]
+    #[case(u32_untransform_v2, "u32_v2", 2)]
     fn test_portable_unaligned(
-        #[case] detransform_fn: StandardTransformFn,
+        #[case] untransform_fn: StandardTransformFn,
         #[case] impl_name: &str,
         #[case] max_blocks: usize,
     ) {
         // For portable: processes 16 bytes (1 block) per iteration, so max_blocks = 16 bytes × 2 ÷ 16 = 2
-        run_standard_untransform_unaligned_test(detransform_fn, max_blocks, impl_name);
+        run_standard_untransform_unaligned_test(untransform_fn, max_blocks, impl_name);
     }
 }

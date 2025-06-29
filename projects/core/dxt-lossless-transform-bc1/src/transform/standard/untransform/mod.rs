@@ -20,17 +20,17 @@ unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
     {
         #[cfg(feature = "nightly")]
         if dxt_lossless_transform_common::cpu_detect::has_avx512f() {
-            avx512::permute_512_detransform_unroll_2(input_ptr, output_ptr, len);
+            avx512::permute_512_untransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
         if dxt_lossless_transform_common::cpu_detect::has_avx2() {
-            avx2::permd_detransform_unroll_2(input_ptr, output_ptr, len);
+            avx2::permd_untransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
         if dxt_lossless_transform_common::cpu_detect::has_sse2() {
-            sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
+            sse2::unpck_untransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
     }
@@ -39,23 +39,23 @@ unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") {
-            avx512::permute_512_detransform_unroll_2(input_ptr, output_ptr, len);
+            avx512::permute_512_untransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
         if cfg!(target_feature = "avx2") {
-            avx2::permd_detransform_unroll_2(input_ptr, output_ptr, len);
+            avx2::permd_untransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
         if cfg!(target_feature = "sse2") {
-            sse2::unpck_detransform_unroll_2(input_ptr, output_ptr, len);
+            sse2::unpck_untransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
     }
 
     // Fallback to portable implementation
-    portable32::u32_detransform(input_ptr, output_ptr, len)
+    portable32::u32_untransform(input_ptr, output_ptr, len)
 }
 
 /// Unsplit BC1 blocks, putting them back into standard interleaved format from a separated color/index format
@@ -78,7 +78,7 @@ pub(crate) unsafe fn untransform(input_ptr: *const u8, output_ptr: *mut u8, len:
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        portable32::u32_detransform(input_ptr, output_ptr, len)
+        portable32::u32_untransform(input_ptr, output_ptr, len)
     }
 }
 
@@ -96,7 +96,7 @@ unsafe fn untransform_with_separate_pointers_x86(
         use dxt_lossless_transform_common::cpu_detect::*;
         #[cfg(feature = "nightly")]
         if has_avx512f() {
-            avx512::permute_512_detransform_unroll_2_with_components(
+            avx512::permute_512_untransform_unroll_2_with_components(
                 output_ptr,
                 len,
                 indices_ptr as *const u8,
@@ -106,7 +106,7 @@ unsafe fn untransform_with_separate_pointers_x86(
         }
 
         if has_avx2() {
-            avx2::permd_detransform_unroll_2_with_components(
+            avx2::permd_untransform_unroll_2_with_components(
                 output_ptr,
                 len,
                 indices_ptr as *const u8,
@@ -116,7 +116,7 @@ unsafe fn untransform_with_separate_pointers_x86(
         }
 
         if has_sse2() {
-            sse2::unpck_detransform_unroll_2_with_components(
+            sse2::unpck_untransform_unroll_2_with_components(
                 output_ptr,
                 len,
                 indices_ptr as *const u8,
@@ -130,7 +130,7 @@ unsafe fn untransform_with_separate_pointers_x86(
     {
         #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") {
-            avx512::permute_512_detransform_unroll_2_with_components(
+            avx512::permute_512_untransform_unroll_2_with_components(
                 output_ptr,
                 len,
                 indices_ptr as *const u8,
@@ -140,7 +140,7 @@ unsafe fn untransform_with_separate_pointers_x86(
         }
 
         if cfg!(target_feature = "avx2") {
-            avx2::permd_detransform_unroll_2_with_components(
+            avx2::permd_untransform_unroll_2_with_components(
                 output_ptr,
                 len,
                 indices_ptr as *const u8,
@@ -150,7 +150,7 @@ unsafe fn untransform_with_separate_pointers_x86(
         }
 
         if cfg!(target_feature = "sse2") {
-            sse2::unpck_detransform_unroll_2_with_components(
+            sse2::unpck_untransform_unroll_2_with_components(
                 output_ptr,
                 len,
                 indices_ptr as *const u8,
@@ -161,7 +161,7 @@ unsafe fn untransform_with_separate_pointers_x86(
     }
 
     // Fallback to portable implementation
-    portable32::u32_detransform_with_separate_pointers(colors_ptr, indices_ptr, output_ptr, len)
+    portable32::u32_untransform_with_separate_pointers(colors_ptr, indices_ptr, output_ptr, len)
 }
 
 /// Unsplit BC1 blocks, putting them back into standard interleaved format from a separated color/index format
@@ -191,6 +191,6 @@ pub(crate) unsafe fn untransform_with_separate_pointers(
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        portable32::u32_detransform_with_separate_pointers(colors_ptr, indices_ptr, output_ptr, len)
+        portable32::u32_untransform_with_separate_pointers(colors_ptr, indices_ptr, output_ptr, len)
     }
 }

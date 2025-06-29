@@ -4,7 +4,7 @@ use safe_allocator_api::RawAlloc;
 
 fn bench_permute_512_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        permute_512_detransform_unroll_2(
+        permute_512_untransform_unroll_2(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),

@@ -25,7 +25,7 @@ pub struct MockHandlerCalls {
 ///
 /// This handler allows configuring acceptance behavior and tracks all method calls
 /// for verification in tests.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct MockHandler {
     calls: Arc<Mutex<MockHandlerCalls>>,
     accepts_extension: Option<alloc::string::String>,

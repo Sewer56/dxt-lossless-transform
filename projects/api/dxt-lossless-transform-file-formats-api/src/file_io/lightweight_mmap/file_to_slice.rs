@@ -1,6 +1,7 @@
 //! File-to-slice transformation operations using memory mapping.
 
 use crate::bundle::TransformBundle;
+use crate::error::FormatHandlerError;
 use crate::file_io::FileOperationResult;
 use crate::handlers::{FileFormatDetection, FileFormatHandler, FileFormatUntransformDetection};
 use crate::TransformError;
@@ -25,6 +26,11 @@ use std::path::Path;
 /// # Returns
 ///
 /// Result indicating success or error
+///
+/// # Errors
+///
+/// Returns [`FormatHandlerError::OutputBufferTooSmall`] if the output buffer is too small
+/// to hold the transformed file data.
 pub fn transform_file_to_slice_with_handler<H: FileFormatHandler, T>(
     handler: &H,
     input_path: &Path,
@@ -39,6 +45,17 @@ where
     let input_handle = ReadOnlyFileHandle::open(input_path)?;
     let input_size = input_handle.size()? as usize;
     let input_mapping = ReadOnlyMmap::new(&input_handle, 0, input_size)?;
+
+    // Check if output buffer is large enough
+    if input_size > output_data.len() {
+        return Err(
+            TransformError::FormatHandler(FormatHandlerError::OutputBufferTooSmall {
+                required: input_size,
+                actual: output_data.len(),
+            })
+            .into(),
+        );
+    }
 
     // Transform into the output slice
     crate::api::transform_slice_with_bundle(
@@ -65,6 +82,11 @@ where
 /// # Returns
 ///
 /// Result indicating success or error
+///
+/// # Errors
+///
+/// Returns [`FormatHandlerError::OutputBufferTooSmall`] if the output buffer is too small
+/// to hold the untransformed file data.
 pub fn untransform_file_to_slice_with_handler<H: FileFormatHandler>(
     handler: &H,
     input_path: &Path,
@@ -74,6 +96,17 @@ pub fn untransform_file_to_slice_with_handler<H: FileFormatHandler>(
     let input_handle = ReadOnlyFileHandle::open(input_path)?;
     let input_size = input_handle.size()? as usize;
     let input_mapping = ReadOnlyMmap::new(&input_handle, 0, input_size)?;
+
+    // Check if output buffer is large enough
+    if input_size > output_data.len() {
+        return Err(
+            TransformError::FormatHandler(FormatHandlerError::OutputBufferTooSmall {
+                required: input_size,
+                actual: output_data.len(),
+            })
+            .into(),
+        );
+    }
 
     // Untransform into the output slice
     crate::api::untransform_slice(
@@ -101,6 +134,11 @@ pub fn untransform_file_to_slice_with_handler<H: FileFormatHandler>(
 ///
 /// Result containing the handler that was used, or [`TransformError::NoSupportedHandler`]
 /// if no handler can process the file.
+///
+/// # Errors
+///
+/// Returns [`FormatHandlerError::OutputBufferTooSmall`] if the output buffer is too small
+/// to hold the transformed file data.
 ///
 /// # Example
 ///
@@ -141,6 +179,17 @@ where
     let input_mapping = ReadOnlyMmap::new(&input_handle, 0, input_size)?;
     let input_data = input_mapping.as_slice();
 
+    // Check if output buffer is large enough
+    if input_size > output_data.len() {
+        return Err(
+            TransformError::FormatHandler(FormatHandlerError::OutputBufferTooSmall {
+                required: input_size,
+                actual: output_data.len(),
+            })
+            .into(),
+        );
+    }
+
     // Extract file extension from input path for faster format detection
     let file_extension = super::extract_lowercase_extension(input_path);
     let file_extension_ref = file_extension.as_deref();
@@ -180,6 +229,11 @@ where
 /// Result containing the handler that was used, or [`TransformError::NoSupportedHandler`]
 /// if no handler can process the file.
 ///
+/// # Errors
+///
+/// Returns [`FormatHandlerError::OutputBufferTooSmall`] if the output buffer is too small
+/// to hold the untransformed file data.
+///
 /// # Example
 ///
 /// ```
@@ -213,6 +267,17 @@ where
     let input_size = input_handle.size()? as usize;
     let input_mapping = ReadOnlyMmap::new(&input_handle, 0, input_size)?;
     let input_data = input_mapping.as_slice();
+
+    // Check if output buffer is large enough
+    if input_size > output_data.len() {
+        return Err(
+            TransformError::FormatHandler(FormatHandlerError::OutputBufferTooSmall {
+                required: input_size,
+                actual: output_data.len(),
+            })
+            .into(),
+        );
+    }
 
     // Extract file extension from input path for faster format detection
     let file_extension = super::extract_lowercase_extension(input_path);
@@ -419,5 +484,102 @@ mod tests {
             ExtensionTestResult::NoSupportedHandler,
             false, // is_transform
         );
+    }
+
+    #[test]
+    fn transform_file_to_slice_fails_with_buffer_too_small() {
+        let handler = MockHandler::new_extensionless_accepting();
+        let input_data = create_test_data(64);
+        let input_file = create_input_file_with_data_and_extension(&input_data, None);
+        let mut small_buffer = create_test_buffer(32); // Buffer too small
+        let bundle = TransformBundle::<NoEstimation>::default_all();
+
+        let result = transform_file_to_slice_with_handler(
+            &handler,
+            input_file.path(),
+            &mut small_buffer,
+            &bundle,
+        );
+
+        match result {
+            Err(crate::file_io::FileOperationError::Transform(TransformError::FormatHandler(
+                FormatHandlerError::OutputBufferTooSmall { required, actual },
+            ))) => {
+                assert_eq!(required, 64);
+                assert_eq!(actual, 32);
+            }
+            _ => panic!("Expected OutputBufferTooSmall error, got: {:?}", result),
+        }
+    }
+
+    #[test]
+    fn untransform_file_to_slice_fails_with_buffer_too_small() {
+        let handler = MockHandler::new_extensionless_accepting();
+        let input_data = create_test_data(64);
+        let input_file = create_input_file_with_data_and_extension(&input_data, None);
+        let mut small_buffer = create_test_buffer(32); // Buffer too small
+
+        let result =
+            untransform_file_to_slice_with_handler(&handler, input_file.path(), &mut small_buffer);
+
+        match result {
+            Err(crate::file_io::FileOperationError::Transform(TransformError::FormatHandler(
+                FormatHandlerError::OutputBufferTooSmall { required, actual },
+            ))) => {
+                assert_eq!(required, 64);
+                assert_eq!(actual, 32);
+            }
+            _ => panic!("Expected OutputBufferTooSmall error, got: {:?}", result),
+        }
+    }
+
+    #[test]
+    fn transform_file_to_slice_with_multiple_handlers_fails_with_buffer_too_small() {
+        let handler = MockHandler::new_extensionless_accepting();
+        let input_data = create_test_data(64);
+        let input_file = create_input_file_with_data_and_extension(&input_data, None);
+        let mut small_buffer = create_test_buffer(32); // Buffer too small
+        let bundle = TransformBundle::<NoEstimation>::default_all();
+
+        let result = transform_file_to_slice_with_multiple_handlers(
+            [handler],
+            input_file.path(),
+            &mut small_buffer,
+            &bundle,
+        );
+
+        match result {
+            Err(crate::file_io::FileOperationError::Transform(TransformError::FormatHandler(
+                FormatHandlerError::OutputBufferTooSmall { required, actual },
+            ))) => {
+                assert_eq!(required, 64);
+                assert_eq!(actual, 32);
+            }
+            _ => panic!("Expected OutputBufferTooSmall error, got: {:?}", result),
+        }
+    }
+
+    #[test]
+    fn untransform_file_to_slice_with_multiple_handlers_fails_with_buffer_too_small() {
+        let handler = MockHandler::new_extensionless_accepting();
+        let input_data = create_test_data(64);
+        let input_file = create_input_file_with_data_and_extension(&input_data, None);
+        let mut small_buffer = create_test_buffer(32); // Buffer too small
+
+        let result = untransform_file_to_slice_with_multiple_handlers(
+            [handler],
+            input_file.path(),
+            &mut small_buffer,
+        );
+
+        match result {
+            Err(crate::file_io::FileOperationError::Transform(TransformError::FormatHandler(
+                FormatHandlerError::OutputBufferTooSmall { required, actual },
+            ))) => {
+                assert_eq!(required, 64);
+                assert_eq!(actual, 32);
+            }
+            _ => panic!("Expected OutputBufferTooSmall error, got: {:?}", result),
+        }
     }
 }

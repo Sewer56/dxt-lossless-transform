@@ -1,34 +1,4 @@
-//! File format aware API for DXT lossless transform operations.
-//!
-//! This crate provides high-level APIs that automatically handle file format detection,
-//! header embedding, and restoration during DXT transform operations.
-//!
-//! # Features
-//!
-//! - Automatic file format detection (DDS, KTX, etc.)
-//! - Seamless header embedding of transform details
-//! - Type-safe transform bundles for different BCx formats
-//! - Support for both manual and automatic BC1 optimization
-//! - Memory-mapped file support for efficient I/O
-//!
-//! # Example
-//!
-//! ```
-//! use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_with_bundle, TransformResult};
-//! use dxt_lossless_transform_api_common::estimate::NoEstimation;
-//! use dxt_lossless_transform_dds::DdsHandler;
-//!
-//! fn example_file_transform(input: &[u8]) -> TransformResult<Vec<u8>> {
-//!     // Create a bundle with default manual settings for all formats
-//!     let bundle = TransformBundle::<NoEstimation>::default_all();
-//!
-//!     // Transform a DDS file in memory
-//!     let mut output = vec![0u8; input.len()];
-//!     transform_slice_with_bundle(&DdsHandler, input, &mut output, &bundle)?;
-//!     Ok(output)
-//! }
-//! ```
-
+#![doc = include_str!("../README.md")]
 #![no_std]
 
 #[cfg(feature = "std")]
@@ -41,7 +11,7 @@ pub mod api;
 pub mod bundle;
 pub mod embed;
 pub mod error;
-pub mod traits;
+pub mod handlers;
 
 #[cfg(feature = "file-io")]
 pub mod file_io;
@@ -50,6 +20,7 @@ pub mod file_io;
 pub use api::*; // convenience functions
 pub use bundle::TransformBundle;
 pub use error::*; // error types
+pub use handlers::*; // file format handler infrastructure (traits + dispatch functions)
 
 // Test utilities (only available during testing)
 #[cfg(test)]

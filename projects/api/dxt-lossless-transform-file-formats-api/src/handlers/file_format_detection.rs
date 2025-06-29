@@ -1,6 +1,6 @@
 //! Trait for file format detection during transformation.
 
-use crate::traits::file_format_handler::FileFormatHandler;
+use super::FileFormatHandler;
 
 /// Trait for detecting file formats during transformation.
 ///

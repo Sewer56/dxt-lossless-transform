@@ -4,9 +4,7 @@ extern crate std;
 use crate::bundle::TransformBundle;
 use crate::embed::TransformHeader;
 use crate::error::{FormatHandlerError, TransformError, TransformResult};
-use crate::traits::{
-    file_format_handler::FileFormatHandler, FileFormatDetection, FileFormatUntransformDetection,
-};
+use crate::handlers::{FileFormatDetection, FileFormatHandler, FileFormatUntransformDetection};
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;

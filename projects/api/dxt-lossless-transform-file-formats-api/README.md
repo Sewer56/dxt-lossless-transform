@@ -1,127 +1,243 @@
 # dxt-lossless-transform-file-formats-api
 
-File format aware API for DXT lossless transform operations.
+This crate provides the high level API for adding support to texture file formats such as DDS to the
+`dxt-lossless-transform` project.
 
-This crate provides high-level APIs that automatically handle file format detection, header embedding,
-and restoration during texture transform operations.
+## Cheat Sheet
 
-## Features
+If you just want to transform texture files, use the existing handlers like `DdsHandler` from `dxt-lossless-transform-dds` crate.
 
-- **Automatic format detection**: Supports DDS files (with more formats coming)
-- **Seamless header embedding**: Transform details are stored in file headers
-- **Type-safe transform bundles**: Configure different settings for each BCx format
-- **Memory-mapped file support**: Efficient file I/O operations
-- **Slice-based API**: Work with data in memory without file I/O
-
-## Usage
-
-### Basic Transform with Default Settings
+### Basic File Transform
 
 ```rust
-use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_with_bundle, bundle::NoEstimation};
+use dxt_lossless_transform_file_formats_api::{TransformBundle, transform_slice_with_bundle};
+use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 use dxt_lossless_transform_dds::DdsHandler;
 
-// Create a bundle with default settings for supported formats
-let bundle = TransformBundle::<NoEstimation>::default_all();
-
 // Transform a DDS file in memory
+let bundle = TransformBundle::<LosslessTransformUtilsSizeEstimation>::default_all();
 let mut output = vec![0u8; input.len()];
 transform_slice_with_bundle(&DdsHandler, &input, &mut output, &bundle)?;
 ```
 
-### Custom BC1 Settings
+### BC1 Automatic Optimization
 
 ```rust
-use dxt_lossless_transform_file_formats_api::{TransformBundle, bundle::NoEstimation};
-use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
-use dxt_lossless_transform_common::color_565::YCoCgVariant;
+use dxt_lossless_transform_file_formats_api::TransformBundle;
+use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
+use dxt_lossless_transform_bc1_api::Bc1AutoTransformBuilder;
 
-let bundle = TransformBundle::<NoEstimation>::new()
-    .with_bc1_manual(
-        Bc1ManualTransformBuilder::new()
-            .with_split_colour_endpoints(true)
-            .with_decorrelation_mode(YCoCgVariant::Variant2)
+let estimator = LosslessTransformUtilsSizeEstimation::new();
+let bundle = TransformBundle::new()
+    .with_bc1_auto(
+        Bc1AutoTransformBuilder::new()
+            .with_size_estimator(estimator)
     );
-    // Only BC1 is currently supported with configurable options
 ```
 
-### File I/O Operations
+### Multiple Handlers (Unknown File Types)
 
-With the `file-io` feature enabled:
+When you have unknown file types, you can use the methods with prefix `multiple_handlers`;
+this will go over every file format handler until one accepts the file.
 
 ```rust
-use dxt_lossless_transform_file_formats_api::{file_io::{transform_file_with_handler, untransform_file_with_handler}, TransformBundle, bundle::NoEstimation};
+use dxt_lossless_transform_file_formats_api::transform_slice_with_multiple_handlers;
+use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
 use dxt_lossless_transform_dds::DdsHandler;
-use std::path::Path;
 
-// Transform file to file
-let bundle = TransformBundle::<NoEstimation>::default_all();
-transform_file_with_handler(&DdsHandler, Path::new("input.dds"), Path::new("output.dds"), &bundle)?;
-
-// Untransform (settings are extracted from embedded header)
-untransform_file_with_handler(&DdsHandler, Path::new("output.dds"), Path::new("restored.dds"))?;
+// Try handlers in order until one accepts the file
+let handlers = [DdsHandler];
+let bundle = TransformBundle::<LosslessTransformUtilsSizeEstimation>::default_all();
+let mut output = vec![0u8; input.len()];
+transform_slice_with_multiple_handlers(handlers, &input, &mut output, &bundle)?;
 ```
 
 ### Untransforming Files
 
 ```rust
-use dxt_lossless_transform_file_formats_api::untransform_slice_with;
+use dxt_lossless_transform_file_formats_api::{untransform_slice, untransform_slice_with_multiple_handlers};
 use dxt_lossless_transform_dds::DdsHandler;
 
-// Untransform data in memory
+// When you know the format
 let mut output = vec![0u8; input.len()];
-untransform_slice_with(&DdsHandler, &input, &mut output)?;
+untransform_slice(&DdsHandler, &input, &mut output)?;
+
+// When you don't know the format
+let handlers = [DdsHandler];
+let mut output = vec![0u8; input.len()];
+untransform_slice_with_multiple_handlers(handlers, &input, &mut output)?;
 ```
 
-## How It Works
+### File I/O Operations
 
-1. **Transform**: The file format handler detects the BCx format, applies the appropriate transform from the bundle, and embeds the transform details in the file header (replacing the original magic bytes).
+With the `file-io` feature:
 
-2. **Untransform**: The handler extracts the transform details from the embedded header, restores the original file format magic bytes, and applies the reverse transform using the embedded settings.
+```rust
+use dxt_lossless_transform_file_formats_api::file_io::{
+    transform_file_with_handler, untransform_file_with_handler
+};
+use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
+use dxt_lossless_transform_dds::DdsHandler;
+use std::path::Path;
+
+let bundle = TransformBundle::<LosslessTransformUtilsSizeEstimation>::default_all();
+transform_file_with_handler(&DdsHandler, Path::new("input.dds"), Path::new("output.dds"), &bundle)?;
+untransform_file_with_handler(&DdsHandler, Path::new("output.dds"), Path::new("restored.dds"))?;
+```
+
+### Manual Transform Configuration
+
+Not recommended, unless you're transforming in real-time with very low CPU overhead requirements.
+
+(Or if you know optimal settings ahead of time.)
+
+```rust
+use dxt_lossless_transform_file_formats_api::TransformBundle;
+use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
+use dxt_lossless_transform_bc1_api::Bc1ManualTransformBuilder;
+use dxt_lossless_transform_common::color_565::YCoCgVariant;
+
+let bundle = TransformBundle::<LosslessTransformUtilsSizeEstimation>::new()
+    .with_bc1_manual(Bc1ManualTransformBuilder::new()); // Set settings by hand.
+```
+
+## Implementing File Format Handler
+
+To add support for new texture file formats, implement the handler traits.
+
+Look at `DdsHandler` from `dxt-lossless-transform-dds` crate for inspiration.
+
+### Basic Handler
+
+All handlers must implement [`FileFormatHandler`]:
+
+```rust
+use dxt_lossless_transform_file_formats_api::{FileFormatHandler, TransformBundle, TransformResult};
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
+
+struct MyFormatHandler;
+
+impl FileFormatHandler for MyFormatHandler {
+    fn transform_bundle<T>(
+        &self, 
+        input: &[u8], 
+        output: &mut [u8], 
+        bundle: &TransformBundle<T>
+    ) -> TransformResult<()> 
+    where 
+        T: SizeEstimationOperations,
+        T::Error: core::fmt::Debug,
+    {
+        // 0. Validate input & output buffer are large enough.
+        // 1. Parse your file format header
+        // 2. Detect BCx format (BC1, BC2, BC3, BC7)
+        // 3. Extract texture data portion
+        // 4. Call bundle.dispatch_transform() with the texture data
+        // 5. Embed transform details in output file header
+        todo!()
+    }
+
+    fn untransform(&self, input: &[u8], output: &mut [u8]) -> TransformResult<()> {
+        // 0. Validate input & output buffer are large enough.
+        // 1. Parse your file format header with embedded transform data
+        // 2. Extract transform details and texture data
+        // 3. Call dispatch_untransform() with the texture data
+        // 4. Restore original file format header in output
+        todo!()
+    }
+}
+```
+
+### Transform Detection
+
+For automatic format detection during transform, implement [`FileFormatDetection`]:
+
+```rust
+use dxt_lossless_transform_file_formats_api::FileFormatDetection;
+
+impl FileFormatDetection for MyFormatHandler {
+    fn can_handle(&self, input: &[u8], file_extension: Option<&str>) -> bool {
+        // Check file extension first (faster)
+        if let Some(ext) = file_extension {
+            if ext != "myformat" {
+                return false;
+            }
+        }
+        
+        // Then check file header magic bytes
+        input.len() >= 4 && &input[0..4] == b"MFMT" // "MyFormat"
+    }
+}
+```
+
+### Untransform Detection
+
+For automatic format detection during untransform, implement [`FileFormatUntransformDetection`]:
+
+```rust
+use dxt_lossless_transform_file_formats_api::FileFormatUntransformDetection;
+
+impl FileFormatUntransformDetection for MyFormatHandler {
+    fn can_handle_untransform(&self, input: &[u8], file_extension: Option<&str>) -> bool {
+        // Insert logic here that validates the file.
+        // Bear in mind, that the transform details are in the place they were placed 
+        // during `transform_bundle` call. So a part of the header would be overwritten.
+    }
+}
+```
+
+## API Reference
+
+### Transform Functions
+
+- [`transform_slice_with_bundle`] - Transform with specific handler
+- [`transform_slice_with_multiple_handlers`] - Try multiple handlers
+- [`untransform_slice`] - Untransform with specific handler  
+- [`untransform_slice_with_multiple_handlers`] - Try multiple handlers
+
+### File I/O Functions (with `file-io` feature)
+
+- [`file_io::transform_file_with_handler`] - Transform file with input and output file path
+- [`file_io::transform_file_with_multiple_handlers`] - Try multiple handlers
+- [`file_io::untransform_file_with_handler`] - Untransform file with input and output file path
+- [`file_io::untransform_file_with_multiple_handlers`] - Try multiple handlers
+
+### Handler Traits
+
+- [`FileFormatHandler`] - Basic transform/untransform support
+- [`FileFormatDetection`] - Transform-time format detection
+- [`FileFormatUntransformDetection`] - Untransform-time format detection
+
+The following low level functions are provided to aid handler implementation:
+
+- [`dispatch_transform`] - Transform texture data only
+- [`dispatch_untransform`] - Untransform texture data only
+
+### Bundle Configuration
+
+- [`TransformBundle::new()`] - Empty bundle
+- [`TransformBundle::default_all()`] - Default settings for supported formats
+- [`TransformBundle::with_bc1_manual()`] - Add manual BC1 settings
+- [`TransformBundle::with_bc1_auto()`] - Add automatic BC1 optimization
+
+## Error Types
+
+- [`TransformResult<T>`] - Main result type
+- [`TransformError`] - Transform operation errors
+- [`FormatHandlerError`] - File format handler errors
+
+Common errors:
+
+- [`TransformError::NoSupportedHandler`] - No handler accepted the file
+- [`FormatHandlerError::NoBuilderForFormat`] - Bundle missing required format
+- [`TransformError::InvalidDataAlignment`] - Texture data size invalid
 
 ## Supported Formats
 
-- **File Formats**: DDS (DirectDraw Surface)
-- **Compression Formats**: BC1 (manual mode with configurable options)
-
-**Note**: BC2, BC3, and BC7 support is planned but not yet available with configurable transform options.
-
-## Transform Bundle Configuration
-
-The `TransformBundle` allows you to configure transform settings:
-
-- **BC1**: Full configuration support via `Bc1ManualTransformBuilder`
-  - Split color endpoints
-  - Color decorrelation modes
-  - Other transform optimizations
-
-Create bundles using:
-
-- `TransformBundle::<NoEstimation>::new()` - Empty bundle, configure as needed
-- `TransformBundle::<NoEstimation>::default_all()` - Sensible manual settings for supported formats
-
-If a format is encountered that isn't configured in the bundle, the transform will fail with an error.
+- **BC1**: Full support (manual and automatic optimization)
+- **BC2, BC3, BC7**: Planned
 
 ## Features
 
 - `std` (default): Standard library support
-- `file-io`: Enables memory-mapped file I/O functions using `lightweight-mmap`
-
-## Error Handling
-
-The API uses `FileFormatResult<T>` for error handling, which can indicate:
-
-- Invalid file data
-- Unsupported formats
-- Missing builders for detected formats
-- I/O errors (when using file operations)
-
-## DDS Handler Details
-
-The `DdsHandler` from the `dxt-lossless-transform-dds` crate:
-
-- Detects BC1/BC2/BC3/BC7 formats within DDS files
-- Embeds transform metadata in the 4-byte DDS magic header
-- Supports both transform and untransform operations
-- Can detect transformed files for untransform operations
-- Currently only BC1 files can be transformed with configurable settings 
+- `file-io`: File I/O operations with memory mapping 

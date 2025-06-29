@@ -1,8 +1,9 @@
-//! Core traits for file format handling.
+//! File format handler infrastructure.
 //!
-//! This module defines three complementary traits for implementing file format handlers
+//! This module provides both the traits and helper functions for implementing file format handlers
 //! in the DXT lossless transform system. The traits are designed to separate different
-//! responsibilities and use cases in the transformation pipeline.
+//! responsibilities and use cases in the transformation pipeline, while the dispatch functions
+//! provide lower-level utilities for handler implementations.
 //!
 //! ## Architecture Overview
 //!
@@ -104,11 +105,13 @@
 //! - **Archive formats**: Always store format information in metadata rather than relying on detection
 //! - **Game engines/applications**: Control your formats - detection should be unnecessary
 
+pub(crate) mod dispatch;
 pub(crate) mod file_format_detection;
 pub(crate) mod file_format_handler;
 pub(crate) mod file_format_untransform_detection;
 
-// Re-export the main traits for convenience
+// Re-export traits and dispatch functions for convenience
+pub use dispatch::*;
 pub use file_format_detection::*;
 pub use file_format_handler::*;
 pub use file_format_untransform_detection::*;

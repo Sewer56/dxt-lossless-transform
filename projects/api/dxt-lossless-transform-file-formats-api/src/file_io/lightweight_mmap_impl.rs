@@ -2,9 +2,7 @@
 
 use crate::bundle::TransformBundle;
 use crate::file_io::FileOperationResult;
-use crate::traits::{
-    file_format_handler::FileFormatHandler, FileFormatDetection, FileFormatUntransformDetection,
-};
+use crate::handlers::{FileFormatDetection, FileFormatHandler, FileFormatUntransformDetection};
 use crate::TransformError;
 use core::fmt::Debug;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;

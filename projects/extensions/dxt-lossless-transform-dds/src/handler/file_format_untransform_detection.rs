@@ -1,5 +1,5 @@
 use crate::dds::parse_dds::parse_dds_ignore_magic;
-use dxt_lossless_transform_file_formats_api::traits::FileFormatUntransformDetection;
+use dxt_lossless_transform_file_formats_api::handlers::FileFormatUntransformDetection;
 
 use super::DdsHandler;
 

@@ -9,7 +9,7 @@ use dxt_lossless_transform_file_formats_api::{
     bundle::TransformBundle,
     embed::{TransformFormat, TransformHeader, TRANSFORM_HEADER_SIZE},
     error::{FormatHandlerError, TransformResult},
-    traits::FileFormatHandler,
+    handlers::FileFormatHandler,
 };
 
 /// Convert DdsFormat to TransformFormat for dispatch
@@ -60,7 +60,7 @@ impl FileFormatHandler for DdsHandler {
 
         // Convert DDS format to transform format and dispatch
         let transform_format = dds_format_to_transform_format(info.format)?;
-        let header = dxt_lossless_transform_file_formats_api::api::dispatch_transform(
+        let header = dxt_lossless_transform_file_formats_api::dispatch_transform(
             transform_format,
             &input[data_offset..],
             &mut output[data_offset..],
@@ -114,7 +114,7 @@ impl FileFormatHandler for DdsHandler {
         output[4..data_offset].copy_from_slice(&input[4..data_offset]);
 
         // Dispatch untransform based on header format using separate input/output texture data
-        dxt_lossless_transform_file_formats_api::api::dispatch_untransform(
+        dxt_lossless_transform_file_formats_api::dispatch_untransform(
             header,
             &input[data_offset..],
             &mut output[data_offset..],

@@ -3,7 +3,7 @@
 use dxt_lossless_transform_api_common::estimate::NoEstimation;
 use dxt_lossless_transform_dds::DdsHandler;
 use dxt_lossless_transform_file_formats_api::{
-    traits::*, transform_slice_with_bundle, untransform_slice, TransformBundle,
+    handlers::*, transform_slice_with_bundle, untransform_slice, TransformBundle,
 };
 
 fn create_test_dds_bc1() -> Vec<u8> {

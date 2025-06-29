@@ -12,6 +12,7 @@ pub enum TransformError {
     #[error("{0}")]
     MmapError(String),
 
+    #[cfg(feature = "debug")]
     #[error("Unsupported DDS format, {0}")]
     UnsupportedFormat(String),
     #[cfg(feature = "debug")]

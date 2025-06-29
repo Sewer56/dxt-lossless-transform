@@ -24,7 +24,7 @@ pub struct TransformCmd {
     #[argh(option, from_str_fn(canonicalize_cli_path))]
     pub output: PathBuf,
 
-    /// compression preset: low, optimal, ultra [default: optimal]
+    /// compression preset: low, medium, optimal, max [default: optimal]
     #[argh(option, default = "CompressionPreset::Optimal")]
     pub preset: CompressionPreset,
 }
@@ -35,9 +35,11 @@ pub enum CompressionPreset {
     /// Default manual settings for fast processing
     Low,
     /// Automatic optimization using LTU estimator
+    Medium,
+    /// Automatic optimization using ZStandard level 1
     Optimal,
     /// Automatic optimization with brute force settings using ZStandard
-    Ultra,
+    Max,
 }
 
 impl std::str::FromStr for CompressionPreset {
@@ -46,10 +48,11 @@ impl std::str::FromStr for CompressionPreset {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "low" => Ok(Self::Low),
+            "medium" => Ok(Self::Medium),
             "optimal" => Ok(Self::Optimal),
-            "ultra" => Ok(Self::Ultra),
+            "max" => Ok(Self::Max),
             _ => Err(format!(
-                "Unknown preset: {s}. Valid options: low, optimal, ultra"
+                "Unknown preset: {s}. Valid options: low, medium, optimal, max"
             )),
         }
     }
@@ -78,12 +81,16 @@ pub fn handle_transform_command(cmd: TransformCmd) -> Result<(), Box<dyn std::er
             let bundle = create_low_preset_bundle()?;
             process_files_with_bundle(&entries, &cmd.input, &cmd.output, &bundle)
         }
+        CompressionPreset::Medium => {
+            let bundle = create_medium_preset_bundle()?;
+            process_files_with_bundle(&entries, &cmd.input, &cmd.output, &bundle)
+        }
         CompressionPreset::Optimal => {
             let bundle = create_optimal_preset_bundle()?;
             process_files_with_bundle(&entries, &cmd.input, &cmd.output, &bundle)
         }
-        CompressionPreset::Ultra => {
-            let bundle = create_ultra_preset_bundle()?;
+        CompressionPreset::Max => {
+            let bundle = create_max_preset_bundle()?;
             process_files_with_bundle(&entries, &cmd.input, &cmd.output, &bundle)
         }
     };
@@ -112,8 +119,8 @@ fn create_low_preset_bundle() -> Result<TransformBundle<NoEstimation>, Box<dyn s
     Ok(bundle)
 }
 
-/// Create transform bundle for optimal preset (LTU estimator)
-fn create_optimal_preset_bundle() -> Result<
+/// Create transform bundle for medium preset (LTU estimator)
+fn create_medium_preset_bundle() -> Result<
     TransformBundle<dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation>,
     Box<dyn std::error::Error>,
 > {
@@ -122,8 +129,19 @@ fn create_optimal_preset_bundle() -> Result<
     Ok(bundle)
 }
 
-/// Create transform bundle for ultra preset (ZStandard estimator)
-fn create_ultra_preset_bundle() -> Result<
+/// Create transform bundle for optimal preset (ZStandard level 1)
+fn create_optimal_preset_bundle() -> Result<
+    TransformBundle<dxt_lossless_transform_zstd::ZStandardSizeEstimation>,
+    Box<dyn std::error::Error>,
+> {
+    // Create ZStandard level 1 estimator
+    let estimator = dxt_lossless_transform_zstd::ZStandardSizeEstimation::new(1)?;
+    let bundle = TransformBundle::new().with_bc1_auto(Bc1AutoTransformBuilder::new(estimator));
+    Ok(bundle)
+}
+
+/// Create transform bundle for max preset (ZStandard with brute force)
+fn create_max_preset_bundle() -> Result<
     TransformBundle<dxt_lossless_transform_zstd::ZStandardSizeEstimation>,
     Box<dyn std::error::Error>,
 > {

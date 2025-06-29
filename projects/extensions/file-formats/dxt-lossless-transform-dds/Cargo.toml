@@ -18,7 +18,7 @@ bench = false
 
 [features]
 default = ["std"]
-std = []
+std = ["dxt-lossless-transform-api-common/std", "dxt-lossless-transform-file-formats-api/std"]
 # Compiles the public C API for the crate.
 c-exports = []
 

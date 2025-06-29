@@ -7,12 +7,12 @@ mod error;
 pub use error::*;
 
 #[cfg(feature = "lightweight-mmap")]
-mod lightweight_mmap_impl;
+mod lightweight_mmap;
 
 // Public API lives in there.
 // If adding alternative implementation, you need to swap it out.
 #[cfg(feature = "lightweight-mmap")]
-pub use lightweight_mmap_impl::*;
+pub use lightweight_mmap::*;
 
 #[cfg(not(feature = "lightweight-mmap"))]
 compile_error!("The 'lightweight-mmap' feature must be enabled for file I/O operations.");

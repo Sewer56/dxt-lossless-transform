@@ -68,7 +68,7 @@ pub enum Bc1AutoTransformError<T> {
 ///     use_all_decorrelation_modes: false,
 /// };
 ///
-/// let _transform_details = transform_bc1_auto_safe(&bc1_data, &mut output, options)?;
+/// let _transform_details = transform_bc1_auto_safe(&bc1_data, &mut output, &options)?;
 /// # Ok(())
 /// # }
 /// ```
@@ -95,7 +95,7 @@ pub enum Bc1AutoTransformError<T> {
 pub fn transform_bc1_auto<T>(
     input: &[u8],
     output: &mut [u8],
-    options: Bc1EstimateSettings<T>,
+    options: &Bc1EstimateSettings<T>,
 ) -> Result<Bc1TransformSettings, Bc1AutoTransformError<T::Error>>
 where
     T: SizeEstimationOperations,
@@ -141,7 +141,7 @@ mod tests {
             use_all_decorrelation_modes: false,
         };
 
-        let result = super::transform_bc1_auto(&bc1_data, &mut output, options);
+        let result = super::transform_bc1_auto(&bc1_data, &mut output, &options);
         assert!(
             result.is_ok(),
             "Function should not fail with valid BC1 data"

@@ -5,6 +5,7 @@ use bytesize::ByteSize;
 use dxt_lossless_transform_dds::DdsHandler;
 use dxt_lossless_transform_file_formats_api::file_io;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::prelude::IndexedParallelIterator;
 use std::{
     path::{Path, PathBuf},
     sync::atomic::{AtomicU64, Ordering},
@@ -44,10 +45,15 @@ pub fn handle_detransform_command(cmd: DetransformCmd) -> Result<(), Box<dyn std
     let bytes_processed = AtomicU64::new(0);
 
     // Process files in parallel using file format handler pipeline
-    entries.par_iter().for_each(|entry| {
-        let result = process_file_untransform(entry, &cmd.input, &cmd.output, &bytes_processed);
-        handle_process_entry_error(result);
-    });
+    entries
+        .par_iter()
+        // 1 item at once per thread. Our items are big generally, and take time to process
+        // so 'max work stealing' is preferred.
+        .with_max_len(1)
+        .for_each(|entry| {
+            let result = process_file_untransform(entry, &cmd.input, &cmd.output, &bytes_processed);
+            handle_process_entry_error(result);
+        });
 
     let elapsed = start.elapsed();
     let total_bytes = bytes_processed.load(Ordering::Relaxed);

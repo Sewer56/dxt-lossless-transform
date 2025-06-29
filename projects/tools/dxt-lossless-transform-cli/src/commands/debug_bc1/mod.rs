@@ -283,7 +283,7 @@ where
             })
         } else {
             // Use standard API without normalization
-            transform_bc1_auto(data_ptr, output_ptr, len_bytes, transform_options)
+            transform_bc1_auto(data_ptr, output_ptr, len_bytes, &transform_options)
                 .map_err(|e| TransformError::Debug(format!("API recommendation failed: {e:?}")))
         }
     }

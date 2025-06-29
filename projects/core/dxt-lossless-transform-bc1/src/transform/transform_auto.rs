@@ -171,7 +171,7 @@ where
 ///         bc1_data.as_ptr(),
 ///         output_buffer.as_mut_ptr(),
 ///         bc1_data.len(),
-///         options
+///         &options
 ///     )
 /// }.expect("Transform failed");
 ///
@@ -202,7 +202,7 @@ pub unsafe fn transform_bc1_auto<T>(
     input_ptr: *const u8,
     output_ptr: *mut u8,
     len: usize,
-    transform_options: Bc1EstimateSettings<T>,
+    transform_options: &Bc1EstimateSettings<T>,
 ) -> Result<Bc1TransformSettings, DetermineBestTransformError<T::Error>>
 where
     T: SizeEstimationOperations,

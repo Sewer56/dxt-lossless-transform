@@ -121,7 +121,7 @@ where
     /// # }
     /// ```
     pub fn transform(
-        self,
+        &self,
         input: &[u8],
         output: &mut [u8],
     ) -> Result<Bc1ManualTransformBuilder, Bc1Error<T::Error>>
@@ -129,7 +129,7 @@ where
         T::Error: core::fmt::Debug,
     {
         // Use the configured settings directly
-        let optimal_settings = transform_bc1_auto_safe(input, output, self.settings)
+        let optimal_settings = transform_bc1_auto_safe(input, output, &self.settings)
             .map_err(Bc1Error::from_auto_transform_error)?;
 
         // Return a manual builder configured with these optimal settings

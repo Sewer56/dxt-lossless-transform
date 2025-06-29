@@ -177,7 +177,7 @@ pub unsafe extern "C" fn dltbc1core_transform_auto(
     };
 
     // Transform with automatic optimization using core crate's safe function
-    match transform_bc1_auto_safe(data_slice, output_slice, options) {
+    match transform_bc1_auto_safe(data_slice, output_slice, &options) {
         Ok(transform_details) => {
             // Write the transform details to the output pointer
             unsafe {

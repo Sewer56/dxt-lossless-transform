@@ -2,11 +2,13 @@
 
 extern crate alloc;
 
-use crate::embed::TransformFormat;
-use crate::error::{FormatHandlerError, TransformError};
+use std::fmt::format;
+
+use crate::error::TransformError;
 use dxt_lossless_transform_api_common::estimate::NoEstimation;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_bc1::Bc1TransformSettings;
+use dxt_lossless_transform_bc1_api::Bc1Error;
 use dxt_lossless_transform_bc1_api::{Bc1AutoTransformBuilder, Bc1ManualTransformBuilder};
 
 /// BC1 transform builder that transparently supports both manual and automatic optimization.
@@ -52,13 +54,21 @@ where
                 builder.transform(input, output)?;
                 Ok(settings)
             }
-            Bc1Builder::Auto(_builder) => {
-                // Auto builders consume themselves during transform operation
-                // When working with references, auto builders are not supported
-                // This is by design - auto optimization should be done with owned builders
-                Err(TransformError::FormatHandler(
-                    FormatHandlerError::NoBuilderForFormat(TransformFormat::Bc1),
-                ))
+            Bc1Builder::Auto(builder) => {
+                let settings = builder.transform(input, output).map_err(|e| match e {
+                    Bc1Error::InvalidLength(len) => {
+                        TransformError::Bc1(Bc1Error::InvalidLength(len))
+                    }
+                    dxt_lossless_transform_bc1_api::Bc1Error::OutputBufferTooSmall {
+                        needed,
+                        actual,
+                    } => TransformError::Bc1(Bc1Error::OutputBufferTooSmall { needed, actual }),
+                    Bc1Error::AllocationFailed => TransformError::Bc1(Bc1Error::AllocationFailed),
+                    Bc1Error::SizeEstimationFailed(err) => TransformError::Bc1(
+                        Bc1Error::SizeEstimationFailed(alloc::format!("{err:?}")),
+                    ),
+                })?; // This mapping is a bit nasty but forced by the generic on Bc1Error deep down.
+                Ok(settings.get_settings())
             }
         }
     }

@@ -148,10 +148,16 @@ fn process_files_with_bundle<T>(
     T: dxt_lossless_transform_api_common::estimate::SizeEstimationOperations + Sync,
     T::Error: std::fmt::Debug,
 {
-    entries.par_iter().for_each(|entry| {
-        let result = process_file_transform(entry, input_dir, output_dir, bundle, bytes_processed);
-        handle_process_entry_error(result);
-    });
+    entries
+        .par_iter()
+        // 1 item at once per thread. Our items are big generally, and take time to process
+        // so 'max work stealing' is preferred.
+        .with_max_len(1)
+        .for_each(|entry| {
+            let result =
+                process_file_transform(entry, input_dir, output_dir, bundle, bytes_processed);
+            handle_process_entry_error(result);
+        });
 }
 
 pub fn process_file_transform<T>(

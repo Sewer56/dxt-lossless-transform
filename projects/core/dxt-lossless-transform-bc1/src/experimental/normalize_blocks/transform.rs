@@ -326,7 +326,7 @@ where
         drop(normalize_buffers);
 
         // Use the regular transform function since no normalization is needed
-        let regular_result = transform_bc1_auto(input_ptr, output_ptr, len, transform_options)?;
+        let regular_result = transform_bc1_auto(input_ptr, output_ptr, len, &transform_options)?;
 
         // Convert regular result to normalization result using From trait
         Ok(regular_result.into())

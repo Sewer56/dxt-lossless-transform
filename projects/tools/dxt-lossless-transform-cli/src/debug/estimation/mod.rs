@@ -161,7 +161,8 @@ where
         output_len: usize,
     ) -> Result<usize, Self::Error> {
         // Calculate content hash for cache key
-        let cache_hash = calculate_content_hash(input_ptr, len_bytes);
+        let input_slice = unsafe { core::slice::from_raw_parts(input_ptr, len_bytes) };
+        let cache_hash = calculate_content_hash(input_slice);
 
         // Determine the data type to use for caching
         // If the estimator doesn't support data type differentiation, use Unknown

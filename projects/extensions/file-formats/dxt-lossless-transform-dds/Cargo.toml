@@ -21,10 +21,15 @@ default = ["std"]
 std = ["dxt-lossless-transform-api-common/std", "dxt-lossless-transform-file-formats-api/std"]
 # Compiles the public C API for the crate.
 c-exports = []
+# Enable debug block extraction functionality
+debug-block-extraction = ["std", "dxt-lossless-transform-file-formats-debug"]
 
 [dependencies]
 dxt-lossless-transform-api-common = { workspace = true, default-features = false }
 dxt-lossless-transform-file-formats-api = { workspace = true, default-features = false }
+
+# Optional debug dependency
+dxt-lossless-transform-file-formats-debug = { workspace = true, default-features = false, optional = true }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dev-dependencies]

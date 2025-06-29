@@ -31,9 +31,9 @@ members = [
     "projects/core/dxt-lossless-transform-common",
 
     # Extensions
-    "projects/extensions/dxt-lossless-transform-dds", # Adds DDS support
-    "projects/extensions/dxt-lossless-transform-zstd", # ZStandard size estimation
-    "projects/extensions/dxt-lossless-transform-ltu", # Lossless Transform Utils size estimation
+    "projects/extensions/file-formats/dxt-lossless-transform-dds", # Adds DDS support
+    "projects/extensions/compressors/dxt-lossless-transform-zstd", # ZStandard size estimation
+    "projects/extensions/estimators/dxt-lossless-transform-ltu", # Lossless Transform Utils size estimation
 
     # CLI Tool
     "projects/tools/dxt-lossless-transform-cli",
@@ -66,9 +66,9 @@ dxt-lossless-transform-bc7 = { path = "projects/core/dxt-lossless-transform-bc7"
 dxt-lossless-transform-common = { path = "projects/core/dxt-lossless-transform-common", default-features = false }
 
 # Extensions
-dxt-lossless-transform-dds = { path = "projects/extensions/dxt-lossless-transform-dds", default-features = false }
-dxt-lossless-transform-zstd = { path = "projects/extensions/dxt-lossless-transform-zstd", default-features = false }
-dxt-lossless-transform-ltu = { path = "projects/extensions/dxt-lossless-transform-ltu", default-features = false }
+dxt-lossless-transform-dds = { path = "projects/extensions/file-formats/dxt-lossless-transform-dds", default-features = false }
+dxt-lossless-transform-zstd = { path = "projects/extensions/compressors/dxt-lossless-transform-zstd", default-features = false }
+dxt-lossless-transform-ltu = { path = "projects/extensions/estimators/dxt-lossless-transform-ltu", default-features = false }
 
 # CLI Tool
 dxt-lossless-transform-cli = { path = "projects/tools/dxt-lossless-transform-cli", default-features = false }

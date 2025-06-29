@@ -161,7 +161,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
           crate-name: "dxt-lossless-transform-dds"
-          rust-project-path: "projects/extensions/dxt-lossless-transform-dds"
+          rust-project-path: "projects/extensions/file-formats/dxt-lossless-transform-dds"
           workspace-path: "."
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
@@ -217,7 +217,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
           crate-name: "dxt-lossless-transform-ltu"
-          rust-project-path: "projects/extensions/dxt-lossless-transform-ltu"
+          rust-project-path: "projects/extensions/estimators/dxt-lossless-transform-ltu"
           workspace-path: "."
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
@@ -254,8 +254,8 @@ jobs:
       - name: C bindings - DDS
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: 'projects/extensions/dxt-lossless-transform-dds/'
-          config-file: ../../../cbindgen_c.toml
+          rust-project-path: 'projects/extensions/file-formats/dxt-lossless-transform-dds/'
+          config-file: ../../../../cbindgen_c.toml
           output-header-file: dxt-lossless-transform-dds.h
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
@@ -263,8 +263,8 @@ jobs:
       - name: C++ bindings - DDS
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: 'projects/extensions/dxt-lossless-transform-dds/'
-          config-file: ../../../cbindgen_cpp.toml
+          rust-project-path: 'projects/extensions/file-formats/dxt-lossless-transform-dds/'
+          config-file: ../../../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-dds.hpp
           artifact-prefix: ""
           use-cache: false
@@ -308,8 +308,8 @@ jobs:
       - name: C bindings - LTU
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: 'projects/extensions/dxt-lossless-transform-ltu/'
-          config-file: ../../../cbindgen_c.toml
+          rust-project-path: 'projects/extensions/estimators/dxt-lossless-transform-ltu/'
+          config-file: ../../../../cbindgen_c.toml
           output-header-file: dxt-lossless-transform-ltu.h
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
@@ -317,8 +317,8 @@ jobs:
       - name: C++ bindings - LTU
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: 'projects/extensions/dxt-lossless-transform-ltu/'
-          config-file: ../../../cbindgen_cpp.toml
+          rust-project-path: 'projects/extensions/estimators/dxt-lossless-transform-ltu/'
+          config-file: ../../../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-ltu.hpp
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.

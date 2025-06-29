@@ -42,6 +42,27 @@ where
         }
     }
 
+    /// Create a new automatic transform builder with the provided estimator.
+    ///
+    /// This is a variant of [`Self::new`] that is preconfigured with the settings that
+    /// maximize compression at the cost of (much) slower optimization time.
+    ///
+    /// You should use [`Self::new`] under most cases; the gains here are typically
+    /// less than 0.1% in practice (negligible).
+    ///
+    /// # Parameters
+    /// - `estimator`: The size estimator to use for finding the best possible transform.
+    ///   This will test different transform configurations and choose the one that results
+    ///   in the smallest estimated compressed size according to this estimator.
+    pub fn new_ultra(estimator: T) -> Self {
+        Self {
+            settings: Bc1EstimateSettings {
+                size_estimator: estimator,
+                use_all_decorrelation_modes: true,
+            },
+        }
+    }
+
     /// Set whether to use all decorrelation modes.
     ///
     /// When `false` (default), only tests common configurations for faster optimization.

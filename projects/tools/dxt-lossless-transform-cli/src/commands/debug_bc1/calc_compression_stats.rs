@@ -1,5 +1,6 @@
 use super::{determine_best_transform_details_with_estimator_cached, CompressionStatsCmd};
 use crate::{
+    debug::DdsFilter,
     debug::{
         calc_compression_stats_common,
         compression::{
@@ -12,7 +13,6 @@ use crate::{
     },
     error::TransformError,
     util::find_all_files,
-    DdsFilter,
 };
 use core::sync::atomic::{AtomicUsize, Ordering};
 use dxt_lossless_transform_api_common::estimate::DataType;

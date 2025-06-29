@@ -111,14 +111,14 @@ pub fn run_single_handler_test<F>(
 ///
 /// This function encapsulates the common pattern of testing operations with multiple handlers
 /// where the test involves checking extension matching behavior.
-pub fn run_extension_test<F>(
+pub fn run_extension_test<F, H>(
     handler: &MockHandler,
     operation: F,
     input_extension: &str,
     expected_result: ExtensionTestResult,
     is_transform: bool,
 ) where
-    F: FnOnce() -> FileOperationResult<()>,
+    F: FnOnce() -> FileOperationResult<H>,
 {
     let result = operation();
 
@@ -150,12 +150,12 @@ pub fn run_extension_test<F>(
 /// Test case insensitive extension matching.
 ///
 /// This function tests that extensions are converted to lowercase and properly matched.
-pub fn run_case_insensitive_extension_test<F>(
+pub fn run_case_insensitive_extension_test<F, H>(
     handler: &MockHandler,
     operation: F,
     is_transform: bool,
 ) where
-    F: FnOnce() -> FileOperationResult<()>,
+    F: FnOnce() -> FileOperationResult<H>,
 {
     let result = operation();
     assert!(result.is_ok());
@@ -171,9 +171,9 @@ pub fn run_case_insensitive_extension_test<F>(
 /// Test extensionless file handling.
 ///
 /// This function tests operations on files with no extension.
-pub fn run_extensionless_test<F>(handler: &MockHandler, operation: F, is_transform: bool)
+pub fn run_extensionless_test<F, H>(handler: &MockHandler, operation: F, is_transform: bool)
 where
-    F: FnOnce() -> FileOperationResult<()>,
+    F: FnOnce() -> FileOperationResult<H>,
 {
     let result = operation();
     assert!(result.is_ok());

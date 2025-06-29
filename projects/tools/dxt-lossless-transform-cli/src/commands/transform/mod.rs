@@ -231,7 +231,7 @@ where
     // Use the new wrapper API that handles multiple handlers automatically
     let handlers = [DdsHandler];
 
-    file_io::transform_file_with_multiple_handlers(handlers, &path, &target_path, bundle)?;
+    let _ = file_io::transform_file_with_multiple_handlers(handlers, &path, &target_path, bundle)?;
 
     Ok(bytes)
 }

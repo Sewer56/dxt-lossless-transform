@@ -99,7 +99,7 @@ pub fn untransform_file_to_slice_with_handler<H: FileFormatHandler>(
 ///
 /// # Returns
 ///
-/// Result indicating success or error. Returns [`crate::error::TransformError::NoSupportedHandler`]
+/// Result containing the handler that was used, or [`TransformError::NoSupportedHandler`]
 /// if no handler can process the file.
 ///
 /// # Example
@@ -116,11 +116,11 @@ pub fn untransform_file_to_slice_with_handler<H: FileFormatHandler>(
 /// fn example_transform_file_to_slice_multiple_handlers(
 ///     input_path: &Path,
 ///     output_data: &mut [u8]
-/// ) -> FileOperationResult<()> {
+/// ) -> FileOperationResult<DdsHandler> {
 ///     let handlers = [DdsHandler];
 ///     let bundle = TransformBundle::<NoEstimation>::default_all();
-///     transform_file_to_slice_with_multiple_handlers(handlers, input_path, output_data, &bundle)?;
-///     Ok(())
+///     let used_handler = transform_file_to_slice_with_multiple_handlers(handlers, input_path, output_data, &bundle)?;
+///     Ok(used_handler)
 /// }
 /// ```
 pub fn transform_file_to_slice_with_multiple_handlers<HandlerIterator, Handler, SizeEstimator>(
@@ -128,7 +128,7 @@ pub fn transform_file_to_slice_with_multiple_handlers<HandlerIterator, Handler, 
     input_path: &Path,
     output_data: &mut [u8],
     bundle: &TransformBundle<SizeEstimator>,
-) -> FileOperationResult<()>
+) -> FileOperationResult<Handler>
 where
     HandlerIterator: IntoIterator<Item = Handler>,
     Handler: FileFormatDetection,
@@ -149,13 +149,14 @@ where
     for handler in handlers {
         if handler.can_handle(input_data, file_extension_ref) {
             // Transform using the accepting handler
-            return crate::api::transform_slice_with_bundle(
+            crate::api::transform_slice_with_bundle(
                 &handler,
                 input_data,
                 &mut output_data[..input_size],
                 bundle,
-            )
-            .map_err(Into::into);
+            )?;
+
+            return Ok(handler);
         }
     }
 
@@ -176,7 +177,7 @@ where
 ///
 /// # Returns
 ///
-/// Result indicating success or error. Returns [`crate::error::TransformError::NoSupportedHandler`]
+/// Result containing the handler that was used, or [`TransformError::NoSupportedHandler`]
 /// if no handler can process the file.
 ///
 /// # Example
@@ -192,17 +193,17 @@ where
 /// fn example_untransform_file_to_slice_multiple_handlers(
 ///     input_path: &Path,
 ///     output_data: &mut [u8]
-/// ) -> FileOperationResult<()> {
+/// ) -> FileOperationResult<DdsHandler> {
 ///     let handlers = [DdsHandler];
-///     untransform_file_to_slice_with_multiple_handlers(handlers, input_path, output_data)?;
-///     Ok(())
+///     let used_handler = untransform_file_to_slice_with_multiple_handlers(handlers, input_path, output_data)?;
+///     Ok(used_handler)
 /// }
 /// ```
 pub fn untransform_file_to_slice_with_multiple_handlers<HandlerIterator, Handler>(
     handlers: HandlerIterator,
     input_path: &Path,
     output_data: &mut [u8],
-) -> FileOperationResult<()>
+) -> FileOperationResult<Handler>
 where
     HandlerIterator: IntoIterator<Item = Handler>,
     Handler: FileFormatUntransformDetection,
@@ -221,12 +222,9 @@ where
     for handler in handlers {
         if handler.can_handle_untransform(input_data, file_extension_ref) {
             // Untransform using the accepting handler
-            return crate::api::untransform_slice(
-                &handler,
-                input_data,
-                &mut output_data[..input_size],
-            )
-            .map_err(Into::into);
+            crate::api::untransform_slice(&handler, input_data, &mut output_data[..input_size])?;
+
+            return Ok(handler);
         }
     }
 

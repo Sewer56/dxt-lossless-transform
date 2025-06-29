@@ -129,7 +129,7 @@ fn process_file_untransform(
     // Use the new wrapper API that handles multiple handlers automatically
     let handlers = [DdsHandler];
 
-    file_io::untransform_file_with_multiple_handlers(handlers, &path, &target_path)?;
+    let _ = file_io::untransform_file_with_multiple_handlers(handlers, &path, &target_path)?;
 
     Ok(bytes)
 }

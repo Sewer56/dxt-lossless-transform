@@ -104,7 +104,7 @@ pub fn untransform_file_with_handler<H: FileFormatHandler>(
 ///
 /// # Returns
 ///
-/// Result indicating success or error. Returns [`crate::error::TransformError::NoSupportedHandler`]
+/// Result containing the handler that was used, or [`TransformError::NoSupportedHandler`]
 /// if no handler can process the file.
 ///
 /// # Example
@@ -121,11 +121,11 @@ pub fn untransform_file_with_handler<H: FileFormatHandler>(
 /// fn example_transform_file_multiple_handlers(
 ///     input_path: &Path,
 ///     output_path: &Path
-/// ) -> FileOperationResult<()> {
+/// ) -> FileOperationResult<DdsHandler> {
 ///     let handlers = [DdsHandler];
 ///     let bundle = TransformBundle::<NoEstimation>::default_all();
-///     transform_file_with_multiple_handlers(handlers, input_path, output_path, &bundle)?;
-///     Ok(())
+///     let used_handler = transform_file_with_multiple_handlers(handlers, input_path, output_path, &bundle)?;
+///     Ok(used_handler)
 /// }
 /// ```
 pub fn transform_file_with_multiple_handlers<HandlerIterator, Handler, SizeEstimator>(
@@ -133,7 +133,7 @@ pub fn transform_file_with_multiple_handlers<HandlerIterator, Handler, SizeEstim
     input_path: &Path,
     output_path: &Path,
     bundle: &TransformBundle<SizeEstimator>,
-) -> FileOperationResult<()>
+) -> FileOperationResult<Handler>
 where
     HandlerIterator: IntoIterator<Item = Handler>,
     Handler: FileFormatDetection,
@@ -159,13 +159,14 @@ where
             let mut output_mapping = ReadWriteMmap::new(&output_handle, 0, input_size)?;
 
             // Transform using the accepting handler
-            return crate::api::transform_slice_with_bundle(
+            crate::api::transform_slice_with_bundle(
                 &handler,
                 input_data,
                 output_mapping.as_mut_slice(),
                 bundle,
-            )
-            .map_err(Into::into);
+            )?;
+
+            return Ok(handler);
         }
     }
 
@@ -186,7 +187,7 @@ where
 ///
 /// # Returns
 ///
-/// Result indicating success or error. Returns [`crate::error::TransformError::NoSupportedHandler`]
+/// Result containing the handler that was used, or [`TransformError::NoSupportedHandler`]
 /// if no handler can process the file.
 ///
 /// # Example
@@ -202,17 +203,17 @@ where
 /// fn example_untransform_file_multiple_handlers(
 ///     input_path: &Path,
 ///     output_path: &Path
-/// ) -> FileOperationResult<()> {
+/// ) -> FileOperationResult<DdsHandler> {
 ///     let handlers = [DdsHandler];
-///     untransform_file_with_multiple_handlers(handlers, input_path, output_path)?;
-///     Ok(())
+///     let used_handler = untransform_file_with_multiple_handlers(handlers, input_path, output_path)?;
+///     Ok(used_handler)
 /// }
 /// ```
 pub fn untransform_file_with_multiple_handlers<HandlerIterator, Handler>(
     handlers: HandlerIterator,
     input_path: &Path,
     output_path: &Path,
-) -> FileOperationResult<()>
+) -> FileOperationResult<Handler>
 where
     HandlerIterator: IntoIterator<Item = Handler>,
     Handler: FileFormatUntransformDetection,
@@ -236,12 +237,9 @@ where
             let mut output_mapping = ReadWriteMmap::new(&output_handle, 0, input_size)?;
 
             // Untransform using the accepting handler
-            return crate::api::untransform_slice(
-                &handler,
-                input_data,
-                output_mapping.as_mut_slice(),
-            )
-            .map_err(Into::into);
+            crate::api::untransform_slice(&handler, input_data, output_mapping.as_mut_slice())?;
+
+            return Ok(handler);
         }
     }
 

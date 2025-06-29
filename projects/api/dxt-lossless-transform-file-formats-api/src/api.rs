@@ -114,7 +114,7 @@ pub fn untransform_slice<H: FileFormatHandler>(
 ///
 /// # Returns
 ///
-/// Result indicating success or [`crate::error::TransformError::NoSupportedHandler`] if no handler can process the data.
+/// Result containing the handler that was used, or [`TransformError::NoSupportedHandler`] if no handler can process the data.
 ///
 /// # Example
 ///
@@ -123,12 +123,12 @@ pub fn untransform_slice<H: FileFormatHandler>(
 /// use dxt_lossless_transform_api_common::estimate::NoEstimation;
 /// use dxt_lossless_transform_dds::DdsHandler;
 ///
-/// fn example_transform_multiple_handlers(input: &[u8]) -> TransformResult<Vec<u8>> {
+/// fn example_transform_multiple_handlers(input: &[u8]) -> TransformResult<DdsHandler> {
 ///     let handlers = [DdsHandler];
 ///     let bundle = TransformBundle::<NoEstimation>::default_all();
 ///     let mut output = vec![0u8; input.len()];
-///     transform_slice_with_multiple_handlers(handlers, input, &mut output, &bundle)?;
-///     Ok(output)
+///     let used_handler = transform_slice_with_multiple_handlers(handlers, input, &mut output, &bundle)?;
+///     Ok(used_handler)
 /// }
 /// ```
 pub fn transform_slice_with_multiple_handlers<HandlerIterator, Handler, SizeEstimator>(
@@ -136,7 +136,7 @@ pub fn transform_slice_with_multiple_handlers<HandlerIterator, Handler, SizeEsti
     input: &[u8],
     output: &mut [u8],
     bundle: &TransformBundle<SizeEstimator>,
-) -> TransformResult<()>
+) -> TransformResult<Handler>
 where
     HandlerIterator: IntoIterator<Item = Handler>,
     Handler: FileFormatDetection,
@@ -155,7 +155,8 @@ where
     // Try each handler until one accepts the file
     for handler in handlers {
         if handler.can_handle(input, None) {
-            return handler.transform_bundle(input, output, bundle);
+            handler.transform_bundle(input, output, bundle)?;
+            return Ok(handler);
         }
     }
 
@@ -176,7 +177,7 @@ where
 ///
 /// # Returns
 ///
-/// Result indicating success or [`crate::error::TransformError::NoSupportedHandler`] if no handler can process the data.
+/// Result containing the handler that was used, or [`TransformError::NoSupportedHandler`] if no handler can process the data.
 ///
 /// # Example
 ///
@@ -184,18 +185,18 @@ where
 /// use dxt_lossless_transform_file_formats_api::{untransform_slice_with_multiple_handlers, TransformResult};
 /// use dxt_lossless_transform_dds::DdsHandler;
 ///
-/// fn example_untransform_multiple_handlers(input: &[u8]) -> TransformResult<Vec<u8>> {
+/// fn example_untransform_multiple_handlers(input: &[u8]) -> TransformResult<DdsHandler> {
 ///     let handlers = [DdsHandler];
 ///     let mut output = vec![0u8; input.len()];
-///     untransform_slice_with_multiple_handlers(handlers, input, &mut output)?;
-///     Ok(output)
+///     let used_handler = untransform_slice_with_multiple_handlers(handlers, input, &mut output)?;
+///     Ok(used_handler)
 /// }
 /// ```
 pub fn untransform_slice_with_multiple_handlers<HandlerIterator, Handler>(
     handlers: HandlerIterator,
     input: &[u8],
     output: &mut [u8],
-) -> TransformResult<()>
+) -> TransformResult<Handler>
 where
     HandlerIterator: IntoIterator<Item = Handler>,
     Handler: FileFormatUntransformDetection,
@@ -212,7 +213,8 @@ where
     // Try each handler until one accepts the file
     for handler in handlers {
         if handler.can_handle_untransform(input, None) {
-            return handler.untransform(input, output);
+            handler.untransform(input, output)?;
+            return Ok(handler);
         }
     }
 

@@ -15,7 +15,7 @@ debug-bc7 = ["debug"]
 # Debugging BC1 behaviour
 debug-bc1 = ["debug", "dxt-lossless-transform-bc1/experimental"]
 # Common debugging utilities
-debug = ["zstd-sys", "thiserror-no-std", "xxhash-rust", "bincode", "serde", "serde_json", "dirs", "derive-enum-all-values", "lossless-transform-utils", "dxt-lossless-transform-dds/debug-block-extraction", "dxt-lossless-transform-file-formats-debug"]
+debug = ["zstd-sys", "thiserror-no-std", "xxhash-rust", "bincode", "serde", "serde_json", "dirs", "derive-enum-all-values", "lossless-transform-utils", "ctrlc", "dxt-lossless-transform-dds/debug-block-extraction", "dxt-lossless-transform-file-formats-debug"]
 
 nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/nightly", 
            "dxt-lossless-transform-api-common/nightly", "safe-allocator-api/nightly"]
@@ -47,3 +47,4 @@ serde_json = { optional = true, version = "1.0" }
 dirs = { optional = true, version = "6.0.0" }
 derive-enum-all-values = { optional = true, version = "0.2.0" }
 lossless-transform-utils = { optional = true, version = "0.1.0" }
+ctrlc = { optional = true, version = "3.4" }

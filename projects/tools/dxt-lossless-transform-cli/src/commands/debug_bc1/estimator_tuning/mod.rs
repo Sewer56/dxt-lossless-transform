@@ -1,6 +1,6 @@
 use crate::error::TransformError;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub mod analyze;
 pub mod tune;
@@ -40,6 +40,28 @@ pub struct LtuParameters {
 
     /// Entropy value (bits per byte)
     pub entropy: f64,
+}
+
+/// Checkpoint data for resuming interrupted tuning operations
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TuningCheckpoint {
+    /// Files that have been processed successfully
+    pub processed_files: HashSet<String>,
+
+    /// Accumulated data points from processed files
+    pub accumulated_data: Vec<EstimatorDataPoint>,
+
+    /// ZStandard levels being tested
+    pub zstd_levels: Vec<i32>,
+
+    /// Transform filter being used
+    pub filter: String,
+
+    /// Input directory path
+    pub input_directory: String,
+
+    /// Total number of files found initially
+    pub total_files: usize,
 }
 
 /// Get the power of 2 that this size falls into

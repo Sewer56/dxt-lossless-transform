@@ -1,6 +1,7 @@
 pub(crate) mod benchmark;
 pub(crate) mod benchmark_determine_best;
 pub(crate) mod calc_compression_stats;
+pub(crate) mod estimator_tuning;
 pub(crate) mod roundtrip;
 
 use crate::debug::compression::CompressionAlgorithm;
@@ -34,6 +35,8 @@ pub enum DebugCommands {
     CompressionStats(CompressionStatsCmd),
     Benchmark(BenchmarkCmd),
     BenchmarkDetermineBest(BenchmarkDetermineBestCmd),
+    TuneEstimator(estimator_tuning::tune::TuneEstimatorCmd),
+    AnalyzeEstimator(estimator_tuning::analyze::AnalyzeEstimatorCmd),
 }
 
 #[derive(FromArgs, Debug)]
@@ -222,6 +225,12 @@ pub fn handle_debug_command(cmd: DebugCmd) -> Result<(), TransformError> {
             benchmark_determine_best::handle_benchmark_determine_best_command(
                 benchmark_determine_best_cmd,
             )
+        }
+        DebugCommands::TuneEstimator(tune_estimator_cmd) => {
+            estimator_tuning::tune::handle_tune_estimator_command(tune_estimator_cmd)
+        }
+        DebugCommands::AnalyzeEstimator(analyze_estimator_cmd) => {
+            estimator_tuning::analyze::handle_analyze_estimator_command(analyze_estimator_cmd)
         }
     }
 }

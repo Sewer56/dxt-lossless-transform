@@ -20,6 +20,10 @@ pub struct AnalyzeEstimatorCmd {
     /// ZStandard compression levels to optimize for (comma-separated, e.g., "1,6,22" or "all" for 1-22)
     #[argh(option, default = "String::from(\"all\")")]
     pub zstd_levels: String,
+
+    /// minimum number of files required in a group to include it in output (default: 50)
+    #[argh(option, default = "50")]
+    pub min_files: usize,
 }
 
 /// Configuration for brute force search
@@ -39,11 +43,11 @@ struct BruteForceConfig {
 impl Default for BruteForceConfig {
     fn default() -> Self {
         Self {
-            min_lz_multiplier: 0.0001,
-            max_lz_multiplier: 1.0,
-            lz_step_size: 0.0001,
+            min_lz_multiplier: 0.5,
+            max_lz_multiplier: 1.3,
+            lz_step_size: 0.001,
             min_entropy_multiplier: 0.85,
-            max_entropy_multiplier: 1.75,
+            max_entropy_multiplier: 1.40,
             entropy_step_size: 0.001,
         }
     }
@@ -58,11 +62,14 @@ struct OptimizationResult {
     optimal_settings: EstimationSettings,
     mean_absolute_error: f64,
     mean_percentage_error: f64,
+    average_compressed_size: f64,
+    average_estimated_size: f64,
 }
 
 pub fn handle_analyze_estimator_command(cmd: AnalyzeEstimatorCmd) -> Result<(), TransformError> {
     println!("Analyzing estimator tuning data...");
     println!("Input file: {:?}", cmd.input_file);
+    println!("Minimum files per group: {}", cmd.min_files);
 
     // Parse ZStandard levels
     let zstd_levels = super::parse_zstd_levels(&cmd.zstd_levels)?;
@@ -127,7 +134,7 @@ pub fn handle_analyze_estimator_command(cmd: AnalyzeEstimatorCmd) -> Result<(), 
     }
 
     // Print comprehensive summary
-    print_comprehensive_summary(&all_results, &zstd_levels, &data_points);
+    print_comprehensive_summary(&all_results, &zstd_levels, &data_points, cmd.min_files);
 
     Ok(())
 }
@@ -204,17 +211,23 @@ fn find_optimal_coefficients(
     }
 
     // Test all combinations in parallel
-    let results: Vec<(EstimationSettings, f64, f64)> = combinations
+    let results: Vec<(EstimationSettings, f64, f64, f64, f64)> = combinations
         .into_par_iter()
         .map(|settings| {
-            let (mean_abs_error, mean_percent_error) =
+            let (mean_abs_error, mean_percent_error, avg_compressed, avg_estimated) =
                 evaluate_settings(&settings, &valid_points, zstd_level);
-            (settings, mean_abs_error, mean_percent_error)
+            (
+                settings,
+                mean_abs_error,
+                mean_percent_error,
+                avg_compressed,
+                avg_estimated,
+            )
         })
         .collect();
 
     // Find the best combination (minimize mean absolute error)
-    let (optimal_settings, mae, mpe) = results
+    let (optimal_settings, mae, mpe, avg_compressed, avg_estimated) = results
         .into_iter()
         .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
         .unwrap();
@@ -226,18 +239,22 @@ fn find_optimal_coefficients(
         optimal_settings,
         mean_absolute_error: mae,
         mean_percentage_error: mpe,
+        average_compressed_size: avg_compressed,
+        average_estimated_size: avg_estimated,
     })
 }
 
 /// Evaluate how good a set of estimation settings is
-/// Returns (mean_absolute_error, mean_percentage_error)
+/// Returns (mean_absolute_error, mean_percentage_error, average_compressed_size, average_estimated_size)
 fn evaluate_settings(
     settings: &EstimationSettings,
     data_points: &[&EstimatorDataPoint],
     zstd_level: i32,
-) -> (f64, f64) {
+) -> (f64, f64, f64, f64) {
     let mut absolute_errors = Vec::new();
     let mut percentage_errors = Vec::new();
+    let mut compressed_sizes = Vec::new();
+    let mut estimated_sizes = Vec::new();
 
     for point in data_points {
         // Get the actual compressed size for this zstd level
@@ -260,22 +277,34 @@ fn evaluate_settings(
         let estimated_size = size_estimate(params, *settings);
 
         // Calculate errors
-        let absolute_error = (estimated_size as f64 - actual_size as f64).abs();
-        let percentage_error = absolute_error / actual_size as f64;
+        let absolute_error = (estimated_size as isize - actual_size as isize).unsigned_abs();
+        let percentage_error = absolute_error as f64 / actual_size as f64;
 
         absolute_errors.push(absolute_error);
         percentage_errors.push(percentage_error);
+        compressed_sizes.push(actual_size);
+        estimated_sizes.push(estimated_size);
     }
 
     if absolute_errors.is_empty() {
-        return (f64::INFINITY, f64::INFINITY);
+        return (f64::INFINITY, f64::INFINITY, 0.0, 0.0);
     }
 
-    let mean_absolute_error = absolute_errors.iter().sum::<f64>() / absolute_errors.len() as f64;
+    let mean_absolute_error =
+        absolute_errors.iter().sum::<usize>() as f64 / absolute_errors.len() as f64;
     let mean_percentage_error =
         percentage_errors.iter().sum::<f64>() / percentage_errors.len() as f64;
+    let average_compressed_size =
+        compressed_sizes.iter().sum::<usize>() as f64 / compressed_sizes.len() as f64;
+    let average_estimated_size =
+        estimated_sizes.iter().sum::<usize>() as f64 / estimated_sizes.len() as f64;
 
-    (mean_absolute_error, mean_percentage_error)
+    (
+        mean_absolute_error,
+        mean_percentage_error,
+        average_compressed_size,
+        average_estimated_size,
+    )
 }
 
 /// Print a comprehensive summary of all results
@@ -283,6 +312,7 @@ fn print_comprehensive_summary(
     results: &[OptimizationResult],
     zstd_levels: &[i32],
     data_points: &[EstimatorDataPoint],
+    min_files: usize,
 ) {
     println!("\n==========================================");
     println!("      OPTIMAL COEFFICIENTS SUMMARY");
@@ -322,12 +352,10 @@ fn print_comprehensive_summary(
                 .count();
 
             // Count unique files for this power level
-            let unique_files: std::collections::HashSet<&String> = data_points
-                .iter()
-                .filter(|point| super::get_power_of_2_for_size(point.data_size) == power)
-                .map(|point| &point.file_name)
-                .collect();
-            let unique_file_count = unique_files.len();
+            let unique_file_count = total_data_points / 4; // each file generates 4 data points for BC1
+            if unique_file_count < min_files {
+                continue; // Skip entire power level if no data type has enough files
+            }
 
             println!(
                 "\n📏 {} ({} data points from {} files) - Data Types: {}",
@@ -341,18 +369,20 @@ fn print_comprehensive_summary(
             for data_type in sorted_data_types {
                 if let Some(type_results) = data_type_groups.get(&data_type) {
                     // Sort by ZStandard level
-                    let mut sorted_results = type_results.clone();
+                    let mut sorted_results = type_results.to_vec();
                     sorted_results.sort_by_key(|r| r.zstd_level);
 
                     for result in sorted_results {
                         println!(
-                            "  {} ZStd{}: lz={:.4}, entropy={:.4} (AvgErr={:.1}B, AvgErr%={:.1}%)",
+                            "  {} ZStd{}: lz={:.4}, entropy={:.4} (AvgErr={:.1}B, AvgErr%={:.1}%) | AvgCompressed={:.1}B, AvgEstimated={:.1}B",
                             result.data_type,
                             result.zstd_level,
                             result.optimal_settings.lz_match_multiplier,
                             result.optimal_settings.entropy_multiplier,
                             result.mean_absolute_error,
-                            result.mean_percentage_error * 100.0
+                            result.mean_percentage_error * 100.0,
+                            result.average_compressed_size,
+                            result.average_estimated_size,
                         );
                     }
                 }

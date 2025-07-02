@@ -1,3 +1,15 @@
+//! Tuning the 'Lossless Transform Utils' estimator for accurately predicting the file size after compression.
+//!
+//! This code provides the logic for finding optimal coefficients for the lossless-transform-utils estimator;
+//! focusing on providing accurate predictions of compressed size of larger, aggregated data sets.
+//!
+//! # Remarks
+//!
+//! While this provides accurate guesses for the compressed size of typical files; it is only good at
+//! estimating the compressed size of larger, aggregated data sets.
+//!
+//! The errors on individual files can vary widely; so I would recommend against using this code for estimating single files.
+
 use crate::error::TransformError;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};

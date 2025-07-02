@@ -20,9 +20,7 @@
 
 use crate::transform::settings::{COMPREHENSIVE_TEST_ORDER, FAST_TEST_ORDER};
 use crate::transform::standard::{transform, transform_with_separate_pointers};
-use crate::transform::{
-    transform_bc1_auto, Bc1EstimateSettings, Bc1TransformSettings, DetermineBestTransformError,
-};
+use crate::transform::{transform_bc1_auto, Bc1EstimateSettings, DetermineBestTransformError};
 use core::mem::size_of;
 use core::slice;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
@@ -393,15 +391,9 @@ unsafe fn test_normalize_variant_with_normalization<T>(
     // indices_out_arr.copy_from_slice(indices_in_arr);
 
     // Test the current mode.
-    let transform_details = Bc1TransformSettings {
-        decorrelation_mode: current_mode.decorrelation_mode,
-        split_colour_endpoints: current_mode.split_colour_endpoints,
-    };
-
     let result_size = match transform_options.size_estimator.estimate_compressed_size(
         output,
         len / 2,
-        transform_details.to_data_type(),
         comp_buffer_ptr,
         comp_buffer_len,
     ) {

@@ -6,34 +6,30 @@ This is a fast estimator for LZ based compression algorithms.
 
 ## Overview
 
-The lossless-transform-utils estimator provides fast compression size estimation by analyzing:
-
-- LZ match patterns in the data
-- Entropy characteristics through histogram analysis
+The lossless-transform-utils estimator provides fast compression size estimation by analyzing LZ match patterns in the data.
 
 This approach is significantly faster than performing actual compression while maintaining
 reasonable accuracy for optimization purposes.
 
-## Important: Texture-Specific Implementation
+## Important: Relative Comparison Only
 
-**This estimator is specifically tuned for DXT/BC texture data and may not work well with generic data.**
-The default parameters have been carefully calibrated for texture compression patterns.
-The profile is inherited from the [`DataType`] field passed in via the API.
+This estimator is designed for relative comparison between different transforms of the same data.
+The absolute values returned are not meaningful - only the relative ordering matters for determining which transform compresses better.
 
-**Using custom parameters via `new_with_params()` or `new_with_settings()` is discouraged** unless you have conducted thorough testing with your specific data type and understand the estimation model. The default settings via `new()` should be used in most cases.
+In other words, only compare against other results from this estimator.
+
+The estimation is based on a simple formula: `data.len().saturating_sub(num_lz_matches)`.
+More LZ matches indicate better compressibility, resulting in a lower estimated size.
 
 ## Usage
 
 ```rust
 use dxt_lossless_transform_ltu::LosslessTransformUtilsSizeEstimation;
-use dxt_lossless_transform_api_common::estimate::{SizeEstimationOperations, DataType};
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-// Create estimator with default parameters
+// Create estimator
 let estimator = LosslessTransformUtilsSizeEstimation::new();
-
-// Or with custom parameters
-let estimator = LosslessTransformUtilsSizeEstimation::new_with_params(0.6, 1.2);
 
 // Example data
 let data = vec![0u8; 64];
@@ -43,7 +39,6 @@ let estimated_size = unsafe {
     estimator.estimate_compressed_size(
         data.as_ptr(),
         data.len(),
-        DataType::Bc1Colours,
         core::ptr::null_mut(),
         0,
     )?
@@ -52,11 +47,15 @@ let estimated_size = unsafe {
 # }
 ```
 
-## Default Parameters
+## Algorithm
 
-The default parameters are determined based on the [`DataType`].
+The estimator uses a simple but effective approach:
 
-These were brute forced from a large dataset of various textures and images to provide decent accuracy.
+1. Analyze the input data for LZ match patterns using `lossless-transform-utils`
+2. Return `data.len().saturating_sub(num_lz_matches)` as the estimated size
+3. More matches = lower estimated size = "better compression potential"
+
+This provides good relative ordering for optimization while being very fast to compute.
 
 ## C API
 
@@ -81,9 +80,7 @@ dltltu_free_size_estimator(ltu_estimator);
 
 ### C API Functions
 
-- `dltltu_new_size_estimator()` - Create with default settings
-- `dltltu_new_size_estimator_with_params(lz_match_multiplier, entropy_multiplier)` - Create with custom parameters
-- `dltltu_new_size_estimator_with_settings(settings)` - Create with settings struct
+- `dltltu_new_size_estimator()` - Create a new estimator
 - `dltltu_free_size_estimator(estimator)` - Free the estimator
 
 ## Dependencies

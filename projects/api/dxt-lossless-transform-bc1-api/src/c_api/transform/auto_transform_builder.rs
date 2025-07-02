@@ -271,7 +271,6 @@ mod tests {
             _context: *mut c_void,
             _input_ptr: *const u8,
             len_bytes: usize,
-            _data_type: u8,
             _output_ptr: *mut u8,
             _output_len: usize,
             out_size: *mut usize,
@@ -286,7 +285,6 @@ mod tests {
             context: ptr::null_mut(),
             max_compressed_size: dummy_max_compressed_size,
             estimate_compressed_size: dummy_estimate_compressed_size,
-            supports_data_type_differentiation: false,
         }
     }
 

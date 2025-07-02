@@ -131,7 +131,7 @@ where
 ///
 /// ```rust,no_run
 /// # use dxt_lossless_transform_bc1::{transform_bc1_auto, Bc1EstimateSettings};
-/// # use dxt_lossless_transform_api_common::estimate::{SizeEstimationOperations, DataType};
+/// # use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 ///
 /// // Define a compression estimator implementation
 /// struct MyCompressionEstimator;
@@ -150,7 +150,6 @@ where
 ///         &self,
 ///         _input_ptr: *const u8,
 ///         len_bytes: usize,
-///         _data_type: DataType,
 ///         _output_ptr: *mut u8,
 ///         _output_len: usize,
 ///     ) -> Result<usize, Self::Error> {
@@ -251,17 +250,9 @@ where
         // speed.
 
         // Test the current mode by measuring the compressed size using the trait
-        let data_type = current_mode.to_data_type();
-
         let result_size = transform_options
             .size_estimator
-            .estimate_compressed_size(
-                output_ptr,
-                len / 2,
-                data_type,
-                comp_buffer_ptr,
-                comp_buffer_len,
-            )
+            .estimate_compressed_size(output_ptr, len / 2, comp_buffer_ptr, comp_buffer_len)
             .map_err(DetermineBestTransformError::SizeEstimationError)?;
         if result_size < best_size {
             best_size = result_size;

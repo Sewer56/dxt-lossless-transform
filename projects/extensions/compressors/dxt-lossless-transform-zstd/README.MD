@@ -9,7 +9,7 @@ This crate provides a [`ZStandardSizeEstimation`] implementation of the
 
 ```rust
 use dxt_lossless_transform_zstd::ZStandardSizeEstimation;
-use dxt_lossless_transform_api_common::estimate::{SizeEstimationOperations, DataType};
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 
 let estimator = ZStandardSizeEstimation::new_default();
 let data = b"Hello, world!";
@@ -27,7 +27,6 @@ let estimated_size = unsafe {
     estimator.estimate_compressed_size(
         data.as_ptr(), 
         data.len(), 
-        DataType::Bc1Colours, 
         output_buffer.as_mut_ptr(),
         max_size
     ).unwrap()

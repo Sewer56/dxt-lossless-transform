@@ -1,7 +1,6 @@
 //! Generic compression helpers with caching support for benchmarking
 //! and 'native' error handling. Supports multiple compression algorithms.
 
-use dxt_lossless_transform_api_common::estimate::DataType;
 use dxt_lossless_transform_common::allocate::allocate_align_64;
 
 use super::super::{
@@ -78,13 +77,7 @@ pub fn compress_data_cached(
     // Also populate the size cache when writing to data cache
     {
         let mut size_cache_guard = caches.compressed_size_cache.lock().unwrap();
-        size_cache_guard.insert(
-            content_hash,
-            compression_level,
-            algorithm,
-            DataType::Unknown, // Actual compression doesn't differentiate by data type
-            compressed_size,
-        );
+        size_cache_guard.insert(content_hash, compression_level, algorithm, compressed_size);
     }
 
     Ok((compressed_data, compressed_size))
@@ -96,7 +89,6 @@ pub fn calc_size_with_estimation_algorithm(
     data: &[u8],
     compression_level: i32,
     estimation_algorithm: CompressionAlgorithm,
-    data_type: DataType,
 ) -> Result<usize, TransformError> {
     let estimator = create_size_estimator(estimation_algorithm, compression_level)?;
 
@@ -116,7 +108,6 @@ pub fn calc_size_with_estimation_algorithm(
         estimator.estimate_compressed_size(
             data.as_ptr(),
             data.len(),
-            data_type,
             comp_buffer_ptr,
             comp_buffer_len,
         )
@@ -131,39 +122,23 @@ pub fn calc_size_with_cache_and_estimation_algorithm(
     data: &[u8],
     compression_level: i32,
     estimation_algorithm: CompressionAlgorithm,
-    data_type: DataType,
     cache: &Mutex<CompressionSizeCache>,
 ) -> Result<usize, TransformError> {
     let content_hash = calculate_content_hash(data);
 
-    // Create an estimator to check if it supports data type differentiation
-    let estimator = create_size_estimator(estimation_algorithm, compression_level)?;
-    let cache_data_type = if estimator.supports_data_type_differentiation() {
-        data_type
-    } else {
-        DataType::Unknown
-    };
-
     // Try to get from cache
     {
         let cache_guard = cache.lock().unwrap();
-        if let Some(cached_size) = cache_guard.get(
-            content_hash,
-            compression_level,
-            estimation_algorithm,
-            cache_data_type,
-        ) {
+        if let Some(cached_size) =
+            cache_guard.get(content_hash, compression_level, estimation_algorithm)
+        {
             return Ok(cached_size);
         }
     }
 
     // Not in cache, compute it
-    let compressed_size = calc_size_with_estimation_algorithm(
-        data,
-        compression_level,
-        estimation_algorithm,
-        data_type,
-    )?;
+    let compressed_size =
+        calc_size_with_estimation_algorithm(data, compression_level, estimation_algorithm)?;
 
     // Store in cache
     {
@@ -172,7 +147,6 @@ pub fn calc_size_with_cache_and_estimation_algorithm(
             content_hash,
             compression_level,
             estimation_algorithm,
-            cache_data_type,
             compressed_size,
         );
     }

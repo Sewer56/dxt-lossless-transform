@@ -144,7 +144,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
+    use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 
     /// Dummy estimator for testing
     struct DummyEstimator;
@@ -160,7 +160,6 @@ mod tests {
             &self,
             _input_ptr: *const u8,
             len_bytes: usize,
-            _data_type: DataType,
             _output_ptr: *mut u8,
             _output_len: usize,
         ) -> Result<usize, Self::Error> {

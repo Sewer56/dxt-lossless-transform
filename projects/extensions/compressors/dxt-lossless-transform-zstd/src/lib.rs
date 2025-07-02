@@ -12,7 +12,7 @@ pub mod test_prelude;
 
 use alloc::string::String;
 use core::{ffi::c_void, slice};
-use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_common::allocate::AllocateError;
 use thiserror::Error;
 use zstd_sys::ZSTD_cParameter::*;
@@ -113,7 +113,6 @@ impl SizeEstimationOperations for ZStandardSizeEstimation {
         &self,
         input_ptr: *const u8,
         len_bytes: usize,
-        _data_type: DataType,
         output_ptr: *mut u8,
         output_len: usize,
     ) -> Result<usize, Self::Error> {
@@ -208,13 +207,7 @@ mod tests {
     fn estimate_empty_data() {
         let estimator = ZStandardSizeEstimation::new_default();
         let result = unsafe {
-            estimator.estimate_compressed_size(
-                core::ptr::null(),
-                0,
-                DataType::Bc1Colours,
-                core::ptr::null_mut(),
-                0,
-            )
+            estimator.estimate_compressed_size(core::ptr::null(), 0, core::ptr::null_mut(), 0)
         };
         assert_eq!(result.unwrap(), 0);
     }
@@ -233,7 +226,6 @@ mod tests {
             estimator.estimate_compressed_size(
                 data.as_ptr(),
                 data.len(),
-                DataType::Bc1Colours,
                 output_buffer.as_mut_ptr(),
                 max_size,
             )
@@ -270,7 +262,6 @@ mod tests {
             estimator1.estimate_compressed_size(
                 data.as_ptr(),
                 data.len(),
-                DataType::Bc1Colours,
                 output_buffer1.as_mut_ptr(),
                 max_size1,
             )
@@ -280,7 +271,6 @@ mod tests {
             estimator10.estimate_compressed_size(
                 data.as_ptr(),
                 data.len(),
-                DataType::Bc1Colours,
                 output_buffer10.as_mut_ptr(),
                 max_size10,
             )

@@ -3,7 +3,6 @@
 //! This module contains the configuration structures and related functionality
 //! for BC1 transformation operations.
 
-use dxt_lossless_transform_api_common::estimate::DataType;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
 /// Settings for BC1 transform and untransform operations.
@@ -75,22 +74,6 @@ impl Bc1TransformSettings {
                     split_colour_endpoints: split_endpoints,
                 })
         })
-    }
-
-    /// Determines the appropriate [`DataType`] for size estimation based on the transform options.
-    ///
-    /// This method maps the transform configuration to the corresponding data type that
-    /// should be used for compression size estimation and caching.
-    ///
-    /// # Returns
-    /// The [`DataType`] that represents the data format after applying these transform options
-    pub fn to_data_type(&self) -> DataType {
-        match (self.decorrelation_mode, self.split_colour_endpoints) {
-            (YCoCgVariant::None, false) => DataType::Bc1Colours,
-            (YCoCgVariant::None, true) => DataType::Bc1SplitColours,
-            (_, true) => DataType::Bc1SplitDecorrelatedColours, // Split colours with decorrelation
-            (_, false) => DataType::Bc1DecorrelatedColours,     // Decorrelated but not split
-        }
     }
 }
 

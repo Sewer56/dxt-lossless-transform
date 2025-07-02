@@ -22,7 +22,7 @@ pub use rstest::rstest;
 pub use crate::{transform_bc1_with_settings, Bc1TransformSettings};
 
 // Common types from dxt_lossless_transform_api_common
-pub use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
+pub use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 
 // Common types from dxt_lossless_transform_common
 pub use dxt_lossless_transform_common::color_565::YCoCgVariant;
@@ -54,7 +54,6 @@ impl SizeEstimationOperations for DummyEstimator {
         &self,
         _input_ptr: *const u8,
         len_bytes: usize,
-        _data_type: DataType,
         _output_ptr: *mut u8,
         _output_len: usize,
     ) -> Result<usize, Self::Error> {

@@ -1,6 +1,6 @@
 //! C-compatible size estimation interface.
 
-use crate::estimate::{DataType, SizeEstimationOperations};
+use crate::estimate::SizeEstimationOperations;
 use core::{ffi::c_void, fmt::Display};
 
 /// Function pointer type for [`SizeEstimationOperations::max_compressed_size`] operation.
@@ -23,7 +23,6 @@ pub type DltMaxCompressedSizeFn =
 /// - `context`: User-provided context (can be null)
 /// - `input_ptr`: Pointer to the input data
 /// - `len_bytes`: Length of the input data in bytes
-/// - `data_type`: The type of data being compressed (see DataType enum values)
 /// - `output_ptr`: Pre-allocated output buffer for compression
 /// - `output_len`: Length of the pre-allocated output buffer
 /// - `out_size`: Output parameter for the estimated compressed size.
@@ -36,7 +35,6 @@ pub type DltEstimateCompressedSizeFn = unsafe extern "C" fn(
     context: *mut c_void,
     input_ptr: *const u8,
     len_bytes: usize,
-    data_type: u8,
     output_ptr: *mut u8,
     output_len: usize,
     out_size: *mut usize,
@@ -51,8 +49,6 @@ pub struct DltSizeEstimator {
     pub max_compressed_size: DltMaxCompressedSizeFn,
     /// Function to estimate compressed size
     pub estimate_compressed_size: DltEstimateCompressedSizeFn,
-    /// Whether the estimator supports data type differentiation
-    pub supports_data_type_differentiation: bool,
 }
 
 // Safety: DltSizeEstimator is Send if the context pointer is Send
@@ -91,15 +87,10 @@ impl SizeEstimationOperations for DltSizeEstimator {
         }
     }
 
-    fn supports_data_type_differentiation(&self) -> bool {
-        self.supports_data_type_differentiation
-    }
-
     unsafe fn estimate_compressed_size(
         &self,
         input_ptr: *const u8,
         len_bytes: usize,
-        data_type: DataType,
         output_ptr: *mut u8,
         output_len: usize,
     ) -> Result<usize, Self::Error> {
@@ -109,7 +100,6 @@ impl SizeEstimationOperations for DltSizeEstimator {
                 self.context,
                 input_ptr,
                 len_bytes,
-                data_type as u8,
                 output_ptr,
                 output_len,
                 &mut out_size,
@@ -132,18 +122,13 @@ impl SizeEstimationOperations for &DltSizeEstimator {
         (*self).max_compressed_size(len_bytes)
     }
 
-    fn supports_data_type_differentiation(&self) -> bool {
-        (*self).supports_data_type_differentiation()
-    }
-
     unsafe fn estimate_compressed_size(
         &self,
         input_ptr: *const u8,
         len_bytes: usize,
-        data_type: DataType,
         output_ptr: *mut u8,
         output_len: usize,
     ) -> Result<usize, Self::Error> {
-        (*self).estimate_compressed_size(input_ptr, len_bytes, data_type, output_ptr, output_len)
+        (*self).estimate_compressed_size(input_ptr, len_bytes, output_ptr, output_len)
     }
 }

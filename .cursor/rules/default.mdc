@@ -9,6 +9,27 @@ alwaysApply: false
 
 This is a high-performance Rust library for lossless DXT texture compression with extensive SIMD optimizations and unsafe code for maximum performance. The project follows strict coding standards and performance requirements.
 
+## Project Structure
+
+The project is organized into several main directories under `/projects/`:
+
+- **`/projects/core/`** - Houses the **unstable API** implementations
+  - Contains the core transformation logic for each block format
+  - Low-level crates without API stability guarantees
+  - Optimized for maximum performance with frequent breaking changes
+
+- **`/projects/api/`** - Houses the **stable API** 
+  - Provides stable, backwards-compatible interfaces to the core functionality
+  - Safe wrappers around the unstable core implementations
+  - Recommended for external users and applications
+
+- **`/projects/extensions/`** - Contains extensions (additions) that build on top of the stable API
+  - Additional functionality like estimators and compressors
+  - File format support and specialized utilities
+  - All built using the stable API from `/projects/api/`
+
+- **`/projects/tools/`** - Contains miscellaneous programs
+
 ## Code Style & Formatting
 
 ### Rust Formatting

@@ -15,23 +15,36 @@ compressed, and improve load speed, by making the data faster to decompress.
 ## Project Layout
 
 > [!TIP]
-> The project is split up into the following crates.
+> The project is organized into several main directories under `/projects/`:
+
+### Project Structure
+
+- **`/projects/core/`** - Houses the **unstable API** implementations (low-level crates without API stability guarantees)
+- **`/projects/api/`** - Houses the **stable API** (recommended for external users)
+- **`/projects/extensions/`** - Contains extensions that build on top of the stable API
+- **`/projects/tools/`** - Contains miscellaneous programs and utilities
 
 Click on a project to navigate to its description.
 
-### High Level API
+### Stable API (`/projects/api/`)
 
+> [!TIP]
+> These provide stable, backwards-compatible interfaces. Recommended for external users.
+
+- [dxt-lossless-transform-api-common]: Shared functionality for all stable API crates.
 - [dxt-lossless-transform-bc1-api]: A stable API for [dxt-lossless-transform-bc1].
 - [dxt-lossless-transform-bc2-api]: A stable API for [dxt-lossless-transform-bc2].
 - [dxt-lossless-transform-bc3-api]: A stable API for [dxt-lossless-transform-bc3].
 - [dxt-lossless-transform-bc7-api]: A stable API for [dxt-lossless-transform-bc7].
-- [dxt-lossless-transform-api-common]: A stable API for 'add-ons' shared between the other 'api' crates.
+- [dxt-lossless-transform-file-formats-api]: File format handling with stable API.
 
-### Utility Libraries
+### Extensions (`/projects/extensions/`)
+
+#### File Format Support
 
 - [dxt-lossless-transform-dds]: Adds DDS support for the dxt-lossless-transform crate.
 
-### Estimator Libraries
+#### Estimator Libraries
 
 > [!TIP]
 > 
@@ -56,10 +69,10 @@ Speeds are based on a single core on a Ryzen 9950X3D CPU, and are approximate va
 
 For more information, [refer to my blog post](https://sewer56.dev/blog/2025/03/11/a-program-for-helping-create-lossless-transforms.html#estimator-accuracy-high-compression-level).
 
-### Implementations
+### Core Implementations (`/projects/core/`) - Unstable API
 
-> [!TIP]
-> These crates have the concrete implementations
+> [!WARNING]
+> These crates have the concrete implementations but **no stable API**. Use the stable API crates instead.
 
 - [dxt-lossless-transform-common]: Code shared between multiple internal implementations.
 - [dxt-lossless-transform-bc1]: Implementation of the lossless transform for the BC1 block format.
@@ -67,7 +80,13 @@ For more information, [refer to my blog post](https://sewer56.dev/blog/2025/03/1
 - [dxt-lossless-transform-bc3]: Implementation of the lossless transform for the BC3 block format.
 - [dxt-lossless-transform-bc7]: Implementation of the lossless transform for the BC7 block format.
 
-They are low level crates; without a stable API.
+They are low level crates optimized for maximum performance with frequent breaking changes.
+
+### Tools (`/projects/tools/`)
+
+- CLI tools and debugging utilities
+- Development and testing applications
+- Example implementations and benchmarks
 
 ## Fuzzing
 
@@ -136,5 +155,6 @@ Licensed under [GPL v3 (with Reloaded FAQ)](./LICENSE).
 [dxt-lossless-transform-bc3-api]: projects/dxt-lossless-transform-bc3-api/README.MD
 [dxt-lossless-transform-bc7-api]: projects/dxt-lossless-transform-bc7-api/README.MD
 [dxt-lossless-transform-dds]: projects/dxt-lossless-transform-dds/README.MD
+[dxt-lossless-transform-file-formats-api]: projects/api/dxt-lossless-transform-file-formats-api/README.md
 [dxt-lossless-transform-zstd]: projects/extensions/dxt-lossless-transform-zstd/README.MD
 [dxt-lossless-transform-ltu]: projects/extensions/dxt-lossless-transform-ltu/README.MD

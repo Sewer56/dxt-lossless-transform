@@ -25,7 +25,7 @@ pub unsafe fn permute_512_with_separate_pointers(
     mut indices_ptr: *mut u32,
     len: usize,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     let mut aligned_len = len - (len % 128);
 
@@ -109,7 +109,7 @@ pub unsafe fn permute_512_with_separate_pointers(
 #[target_feature(enable = "avx512f")]
 #[allow(unused_assignments)]
 pub unsafe fn permute_512(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     let alphas_ptr = output_ptr as *mut u64;
     let colors_ptr = output_ptr.add(len / 2);
@@ -130,8 +130,9 @@ pub unsafe fn permute_512(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512f")]
 #[allow(unused_assignments)]
+#[allow(dead_code)]
 pub unsafe fn permute_512_intrinsics(mut input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     let mut aligned_len = len - (len % 128);
     let mut alpha_ptr = output_ptr;

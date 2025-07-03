@@ -10,7 +10,7 @@ pub(crate) unsafe fn u32_untransform_unroll_2(
     output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     let mut colours_ptr = input_ptr as *const u32;
     let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
@@ -67,7 +67,7 @@ pub(crate) unsafe fn u32_untransform_unroll_4(
     output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     let mut colours_ptr = input_ptr as *const u32;
     let mut indices_ptr = input_ptr.add(len / 2) as *const u32;
@@ -134,7 +134,7 @@ pub(crate) unsafe fn u32_untransform_unroll_8(
     output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     let mut colours_ptr = input_ptr as *const u32;
     let mut indices_ptr = input_ptr.add(len / 2) as *const u32;

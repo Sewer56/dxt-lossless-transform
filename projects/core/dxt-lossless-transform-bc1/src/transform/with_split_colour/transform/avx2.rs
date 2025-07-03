@@ -15,7 +15,7 @@ pub(crate) unsafe fn transform_with_split_colour(
     block_count: usize,
 ) {
     let len = block_count * 8; // BC1 block size is 8 bytes
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     // Process as many 128-byte blocks as possible (16 BC1 blocks)
     let aligned_len = len - (len % 128);

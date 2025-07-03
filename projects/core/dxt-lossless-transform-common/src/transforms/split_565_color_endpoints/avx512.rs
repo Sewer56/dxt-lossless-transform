@@ -23,7 +23,7 @@ use core::arch::x86_64::*;
 #[allow(clippy::identity_op)]
 pub(crate) unsafe fn avx512_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        colors_len_bytes >= 4 && colors_len_bytes.is_multiple_of(4),
         "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 

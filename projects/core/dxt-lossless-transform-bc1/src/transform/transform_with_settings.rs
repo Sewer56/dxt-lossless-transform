@@ -34,7 +34,7 @@ pub unsafe fn transform_bc1_with_settings(
     len: usize,
     transform_options: Bc1TransformSettings,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     let has_split_colours = transform_options.split_colour_endpoints;
 
@@ -95,7 +95,7 @@ pub unsafe fn untransform_bc1_with_settings(
     len: usize,
     untransform_options: Bc1UntransformSettings,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     let has_split_colours = untransform_options.split_colour_endpoints;
 

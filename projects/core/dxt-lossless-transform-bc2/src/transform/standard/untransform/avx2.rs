@@ -15,7 +15,7 @@ static INDCOL_PERMUTE_MASK: [u32; 8] = [0, 4, 2, 6, 1, 5, 3, 7u32];
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86_64")]
 pub(crate) unsafe fn avx2_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     let alpha_ptr = input_ptr;
     let colors_ptr = alpha_ptr.add(len / 2);
     let indices_ptr = colors_ptr.add(len / 4);
@@ -39,7 +39,7 @@ pub(crate) unsafe fn avx2_shuffle_with_components(
     mut colors_ptr: *const u8,
     mut indices_ptr: *const u8,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     // Process 8 blocks (128 bytes) at a time
     let aligned_len = len - (len % 128);
     let alpha_ptr_aligned_end = alpha_ptr.add(aligned_len / 2);

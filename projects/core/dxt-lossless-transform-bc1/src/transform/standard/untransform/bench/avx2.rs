@@ -12,7 +12,7 @@ pub(crate) unsafe fn permd_untransform(
     mut output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     // Process as many 64-byte blocks as possible
     let aligned_len = len - (len % 64);
     let mut indices_ptr = input_ptr.add(len / 2);
@@ -146,7 +146,7 @@ pub(crate) unsafe fn unpck_untransform(
     mut output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     // Process as many 64-byte blocks as possible
     let aligned_len = len - (len % 64);
     let mut indices_ptr = input_ptr.add(len / 2);
@@ -215,7 +215,7 @@ pub(crate) unsafe fn unpck_untransform_unroll_2(
     mut output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     // Process as many 128-byte blocks as possible
     let aligned_len = len - (len % 128);
     let mut indices_ptr = input_ptr.add(len / 2);

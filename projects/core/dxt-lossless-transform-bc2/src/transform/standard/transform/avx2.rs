@@ -26,7 +26,7 @@ pub(crate) unsafe fn shuffle_with_separate_pointers(
     mut indices_ptr: *mut u32,
     len: usize,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     let aligned_len = len - (len % 128);
 

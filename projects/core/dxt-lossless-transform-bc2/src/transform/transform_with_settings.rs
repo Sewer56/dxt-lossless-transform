@@ -33,7 +33,7 @@ pub unsafe fn transform_bc2_with_settings(
     len: usize,
     transform_options: Bc2TransformSettings,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     let has_split_colours = transform_options.split_colour_endpoints;
 
@@ -96,7 +96,7 @@ pub unsafe fn untransform_bc2_with_settings(
     len: usize,
     untransform_options: Bc2UntransformSettings,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     let has_split_colours = untransform_options.split_colour_endpoints;
 

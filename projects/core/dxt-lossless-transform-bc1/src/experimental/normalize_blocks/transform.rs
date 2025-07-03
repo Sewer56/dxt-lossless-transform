@@ -69,7 +69,7 @@ pub unsafe fn transform_bc1_with_normalize_blocks(
     len: usize,
     transform_options: Bc1TransformDetailsWithNormalization,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     let has_normalization =
         transform_options.color_normalization_mode != ColorNormalizationMode::None;

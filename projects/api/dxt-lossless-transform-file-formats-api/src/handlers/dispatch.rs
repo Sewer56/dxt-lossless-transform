@@ -53,7 +53,7 @@ pub fn dispatch_untransform(
             let details = EmbeddableBc1Details::from_header(header)?;
 
             // BC1 untransform using unsafe API with safe wrapper
-            if input_texture_data.len() % 8 != 0 {
+            if !input_texture_data.len().is_multiple_of(8) {
                 return Err(TransformError::InvalidDataAlignment {
                     size: input_texture_data.len(),
                     required_divisor: 8,

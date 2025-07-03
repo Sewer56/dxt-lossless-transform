@@ -6,7 +6,7 @@ use crate::transforms::standard::untransform::portable::u32_untransform_with_sep
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
 pub(crate) unsafe fn u32_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     // Set up input pointers for each section
     let alpha_byte_in_ptr = input_ptr as *const u16;
@@ -31,7 +31,7 @@ pub(crate) unsafe fn u32_untransform(input_ptr: *const u8, output_ptr: *mut u8, 
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
 pub(crate) unsafe fn u64_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     const BYTES_PER_ITERATION: usize = 32;
     let aligned_len = len - (len % BYTES_PER_ITERATION);
 

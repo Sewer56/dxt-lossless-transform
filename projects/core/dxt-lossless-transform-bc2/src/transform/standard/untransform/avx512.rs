@@ -16,7 +16,7 @@ use core::arch::*;
 #[target_feature(enable = "avx512f")]
 #[allow(unused_assignments)]
 pub(crate) unsafe fn avx512_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     let alpha_ptr = input_ptr;
     let colors_ptr = alpha_ptr.add(len / 2);
     let indices_ptr = colors_ptr.add(len / 4);
@@ -40,7 +40,7 @@ pub(crate) unsafe fn avx512_shuffle_intrinsics(
     output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     let alpha_ptr = input_ptr;
     let colors_ptr = alpha_ptr.add(len / 2);
     let indices_ptr = colors_ptr.add(len / 4);
@@ -65,7 +65,7 @@ pub(crate) unsafe fn avx512_shuffle_with_components_intrinsics(
     mut colors_ptr: *const u8,
     mut indices_ptr: *const u8,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     // Process 16 blocks (256 bytes) at a time
     let aligned_len = len - (len % 256);
     let alpha_ptr_aligned_end = alpha_ptr.add(aligned_len / 2);
@@ -200,7 +200,7 @@ pub(crate) unsafe fn avx512_shuffle_with_components(
     mut colors_ptr: *const u8,
     mut indices_ptr: *const u8,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     // Process 16 blocks (256 bytes) at a time
     let aligned_len = len - (len % 256);
     let alpha_ptr_aligned_end = alpha_ptr.add(aligned_len / 2);

@@ -18,7 +18,7 @@ use core::mem::size_of;
 #[inline(always)]
 pub(crate) unsafe fn u64(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        colors_len_bytes >= 4 && colors_len_bytes.is_multiple_of(4),
         "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
@@ -70,7 +70,7 @@ pub(crate) unsafe fn u64(colors: *const u8, colors_out: *mut u8, colors_len_byte
 #[inline(always)]
 pub(crate) unsafe fn u64_unroll_2(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        colors_len_bytes >= 4 && colors_len_bytes.is_multiple_of(4),
         "colors_len_bytes must be at least 4 and a multiple of 4 for unroll_2"
     );
 
@@ -128,7 +128,7 @@ pub(crate) unsafe fn u64_unroll_2(colors: *const u8, colors_out: *mut u8, colors
 #[inline(always)]
 pub(crate) unsafe fn u64_unroll_4(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        colors_len_bytes >= 4 && colors_len_bytes.is_multiple_of(4),
         "colors_len_bytes must be at least 4 and a multiple of 4 for unroll_4"
     );
 
@@ -196,7 +196,7 @@ pub(crate) unsafe fn u64_unroll_4(colors: *const u8, colors_out: *mut u8, colors
 #[inline(always)]
 pub(crate) unsafe fn u64_unroll_8(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        colors_len_bytes >= 4 && colors_len_bytes.is_multiple_of(4),
         "colors_len_bytes must be at least 4 and a multiple of 4 for unroll_8"
     );
 
@@ -287,7 +287,7 @@ pub(crate) unsafe fn u64_unroll_8(colors: *const u8, colors_out: *mut u8, colors
 #[inline(always)]
 pub(crate) unsafe fn u64_mix(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     debug_assert!(
-        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        colors_len_bytes >= 4 && colors_len_bytes.is_multiple_of(4),
         "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
@@ -349,7 +349,7 @@ pub(crate) unsafe fn u64_mix_unroll_2(
     colors_len_bytes: usize,
 ) {
     debug_assert!(
-        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        colors_len_bytes >= 4 && colors_len_bytes.is_multiple_of(4),
         "colors_len_bytes must be at least 4 and a multiple of 4 for unroll_2"
     );
 
@@ -421,7 +421,7 @@ pub(crate) unsafe fn u64_mix_unroll_4(
     colors_len_bytes: usize,
 ) {
     debug_assert!(
-        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        colors_len_bytes >= 4 && colors_len_bytes.is_multiple_of(4),
         "colors_len_bytes must be at least 4 and a multiple of 4 for unroll_4"
     );
 
@@ -511,7 +511,7 @@ pub(crate) unsafe fn u64_mix_unroll_8(
     colors_len_bytes: usize,
 ) {
     debug_assert!(
-        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        colors_len_bytes >= 4 && colors_len_bytes.is_multiple_of(4),
         "colors_len_bytes must be at least 4 and a multiple of 4 for unroll_8"
     );
 

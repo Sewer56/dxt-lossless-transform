@@ -98,7 +98,7 @@ impl Color565 {
         num_items: usize,
     ) {
         debug_assert!(
-            num_items % 2 == 0,
+            num_items.is_multiple_of(2),
             "num_items must be even for split operations"
         );
 
@@ -191,7 +191,7 @@ impl Color565 {
         num_items: usize,
     ) {
         debug_assert!(
-            num_items % 2 == 0,
+            num_items.is_multiple_of(2),
             "num_items must be even for split operations"
         );
 
@@ -284,7 +284,7 @@ impl Color565 {
         num_items: usize,
     ) {
         debug_assert!(
-            num_items % 2 == 0,
+            num_items.is_multiple_of(2),
             "num_items must be even for split operations"
         );
 
@@ -381,7 +381,7 @@ impl Color565 {
                 // For None variant, we just interleave without transformation
                 if num_items > 0 {
                     debug_assert!(
-                        num_items % 2 == 0,
+                        num_items.is_multiple_of(2),
                         "num_items must be even for split operations"
                     );
 

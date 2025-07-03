@@ -31,7 +31,7 @@ pub(crate) unsafe fn shufps_unroll_4_with_separate_pointers(
     mut indices_out: *mut u32,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     // Process as many 64-byte blocks as possible
     let aligned_len = len - (len % 64);
 

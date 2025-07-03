@@ -91,7 +91,7 @@ pub fn transform_bc2_with_settings(
     settings: Bc2TransformSettings,
 ) -> Result<(), Bc2ValidationError> {
     // Validate input length
-    if input.len() % 16 != 0 {
+    if !input.len().is_multiple_of(16) {
         return Err(Bc2ValidationError::InvalidLength(input.len()));
     }
 
@@ -195,7 +195,7 @@ pub fn untransform_bc2_with_settings(
     settings: Bc2UntransformSettings,
 ) -> Result<(), Bc2ValidationError> {
     // Validate input length
-    if input.len() % 16 != 0 {
+    if !input.len().is_multiple_of(16) {
         return Err(Bc2ValidationError::InvalidLength(input.len()));
     }
 

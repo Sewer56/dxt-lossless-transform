@@ -117,7 +117,7 @@ pub unsafe fn split_color_endpoints(
 ) {
     // Debug assert: colors_len_bytes must be at least 4 and a multiple of 4
     debug_assert!(
-        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        colors_len_bytes >= 4 && colors_len_bytes.is_multiple_of(4),
         "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 

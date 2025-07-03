@@ -8,7 +8,7 @@ use core::arch::asm;
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 pub(crate) unsafe fn shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     // Process 4 blocks (64 bytes) at a time
     let alpha_ptr = input_ptr;
     let colors_ptr = input_ptr.add(len / 2);
@@ -33,7 +33,7 @@ pub(crate) unsafe fn shuffle_with_components(
     mut indices_ptr: *const u8,
 ) {
     debug_assert!(
-        len % 16 == 0,
+        len.is_multiple_of(16),
         "BC2 shuffle expects `len` to be a multiple of 16 (block size)"
     );
 

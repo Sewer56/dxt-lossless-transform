@@ -13,7 +13,7 @@ use crate::transforms::standard::untransform::portable::u32_untransform_with_sep
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "sse2")]
 pub(crate) unsafe fn u32_untransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     const BYTES_PER_ITERATION: usize = 64;
     // Process as many 64-byte blocks as possible

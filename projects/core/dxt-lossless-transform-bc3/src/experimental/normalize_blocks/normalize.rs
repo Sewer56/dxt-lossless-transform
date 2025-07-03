@@ -40,7 +40,7 @@ pub unsafe fn normalize_blocks(
     alpha_mode: AlphaNormalizationMode,
     color_mode: ColorNormalizationMode,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     debug_assert!(
         input_ptr == output_ptr
             || input_ptr.add(len) <= output_ptr
@@ -331,7 +331,7 @@ unsafe fn normalize_blocks_impl<F>(input_ptr: *const u8, len: usize, mut handle_
 where
     F: FnMut(*const u8, AlphaBlockCase, ColorBlockCase, Color565, u8),
 {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     // Calculate pointers to current block
     let mut src_block_ptr = input_ptr;
@@ -422,7 +422,7 @@ pub unsafe fn normalize_blocks_all_modes(
          AlphaNormalizationMode::all_values().len()],
     len: usize,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     debug_assert!(
         output_ptrs.iter().flatten().all(|&out_ptr| {
             input_ptr.add(len) <= out_ptr || out_ptr.add(len) <= input_ptr as *mut _

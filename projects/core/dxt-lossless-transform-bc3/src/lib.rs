@@ -54,7 +54,7 @@ pub unsafe fn transform_bc3(
     output_ptr: *mut u8,
     len: usize,
 ) -> BC3TransformDetails {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     crate::transforms::standard::split_blocks(input_ptr, output_ptr, len);
     BC3TransformDetails {}
 }
@@ -88,7 +88,7 @@ pub unsafe fn untransform_bc3(
     len: usize,
     _details: BC3TransformDetails,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     crate::transforms::standard::unsplit_blocks(input_ptr, output_ptr, len);
 }
 

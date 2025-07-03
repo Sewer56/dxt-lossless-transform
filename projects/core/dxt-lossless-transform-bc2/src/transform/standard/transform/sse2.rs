@@ -9,7 +9,7 @@ use core::arch::asm;
 #[allow(unused_assignments)]
 #[cfg_attr(target_arch = "x86_64", allow(dead_code))]
 pub(crate) unsafe fn shuffle_v2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     let alphas_ptr = output_ptr as *mut u64;
     let colors_ptr = output_ptr.add(len / 2) as *mut u32;
@@ -26,7 +26,7 @@ pub(crate) unsafe fn shuffle_v2(input_ptr: *const u8, output_ptr: *mut u8, len: 
 #[allow(unused_assignments)]
 #[cfg(target_arch = "x86_64")]
 pub(crate) unsafe fn shuffle_v3(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     let alphas_ptr = output_ptr as *mut u64;
     let colors_ptr = output_ptr.add(len / 2) as *mut u32;
@@ -51,7 +51,7 @@ pub(crate) unsafe fn shuffle_v3_with_separate_pointers(
     mut indices_ptr: *mut u32,
     len: usize,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     // Process as many 128-byte blocks as possible
     let aligned_len = len - (len % 128);
@@ -162,7 +162,7 @@ pub(crate) unsafe fn shuffle_v2_with_separate_pointers(
     mut indices_ptr: *mut u32,
     len: usize,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     let aligned_len = len - (len % 64);
 

@@ -26,7 +26,7 @@ pub(crate) unsafe fn sse2_shift_impl(
     colors_len_bytes: usize,
 ) {
     debug_assert!(
-        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        colors_len_bytes >= 4 && colors_len_bytes.is_multiple_of(4),
         "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
@@ -105,7 +105,7 @@ pub(crate) unsafe fn sse2_shuf_impl(
     colors_len_bytes: usize,
 ) {
     debug_assert!(
-        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        colors_len_bytes >= 4 && colors_len_bytes.is_multiple_of(4),
         "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 
@@ -188,7 +188,7 @@ pub(crate) unsafe fn sse2_shuf_unroll2_impl(
     colors_len_bytes: usize,
 ) {
     debug_assert!(
-        colors_len_bytes >= 4 && colors_len_bytes % 4 == 0,
+        colors_len_bytes >= 4 && colors_len_bytes.is_multiple_of(4),
         "colors_len_bytes must be at least 4 and a multiple of 4"
     );
 

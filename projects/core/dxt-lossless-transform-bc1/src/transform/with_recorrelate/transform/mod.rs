@@ -24,7 +24,7 @@ pub(crate) unsafe fn transform_with_decorrelate(
     len: usize,
     decorrelation_mode: YCoCgVariant,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     let colors_ptr = output_ptr as *mut u32;
     let indices_ptr = output_ptr.add(len / 2) as *mut u32;

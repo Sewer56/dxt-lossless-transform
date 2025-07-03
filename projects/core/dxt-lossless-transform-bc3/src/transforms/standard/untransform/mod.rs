@@ -57,7 +57,7 @@ unsafe fn unsplit_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
 pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
@@ -162,7 +162,7 @@ pub unsafe fn unsplit_block_with_separate_pointers(
     output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {

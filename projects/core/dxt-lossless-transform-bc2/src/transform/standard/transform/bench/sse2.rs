@@ -8,7 +8,7 @@ use core::arch::asm;
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 pub unsafe fn shuffle_v1(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     let aligned_len = len - (len % 32);
     let mut colors_ptr = output_ptr.add(len / 2);
@@ -91,7 +91,7 @@ pub unsafe fn shuffle_v1(mut input_ptr: *const u8, mut output_ptr: *mut u8, len:
 #[target_feature(enable = "sse2")]
 #[allow(unused_assignments)]
 pub unsafe fn shuffle_v1_unroll_2(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     let aligned_len = len - (len % 64);
     let mut colors_ptr = output_ptr.add(len / 2);

@@ -16,7 +16,7 @@ use crate::transforms::standard::untransform::portable::u32_untransform_with_sep
 #[target_feature(enable = "sse2")]
 #[cfg_attr(target_arch = "x86", allow(dead_code))] // x86 does not use this path.
 pub(crate) unsafe fn u64_untransform_sse2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     // Process as many 64-byte blocks as possible
     let current_output_ptr = output_ptr;
@@ -66,7 +66,7 @@ pub(crate) unsafe fn u64_untransform_sse2_separate_components(
     mut current_output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     const BYTES_PER_ITERATION: usize = 64;
     let aligned_len = len - (len % BYTES_PER_ITERATION);
     if aligned_len > 0 {

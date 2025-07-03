@@ -8,7 +8,7 @@ use core::arch::asm;
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
 pub(crate) unsafe fn permute(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     // Process as many 64-byte blocks as possible
     let aligned_len = len - (len % 64);
 
@@ -95,7 +95,7 @@ pub(crate) unsafe fn permute_unroll_2(
     mut output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     // Process as many 128-byte blocks as possible
     let aligned_len = len - (len % 128);
 
@@ -182,7 +182,7 @@ pub(crate) unsafe fn permute_unroll_2(
 #[allow(unused_assignments)]
 #[target_feature(enable = "avx2")]
 pub(crate) unsafe fn gather(mut input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     // Process as many 128-byte blocks as possible
     let aligned_len = len - (len % 128);
 
@@ -260,7 +260,7 @@ pub(crate) unsafe fn shuffle_permute(
     mut output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     // Process as many 64-byte blocks as possible
     let aligned_len = len - (len % 64);
 

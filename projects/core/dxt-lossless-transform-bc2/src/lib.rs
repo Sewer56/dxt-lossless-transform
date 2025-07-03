@@ -17,6 +17,13 @@ pub mod experimental;
 /// Provides optimized routines to transform/untransform into various forms of the lossless transform.
 pub mod transforms;
 
+/// Advanced BC2 transform operations with settings, auto-optimization, and safe wrappers
+pub mod transform;
+
+/// C API functions for BC2 transforms (enabled with c-exports feature)
+#[cfg(feature = "c-exports")]
+pub mod c_api;
+
 pub mod util;
 
 #[cfg(test)]
@@ -94,3 +101,11 @@ pub unsafe fn untransform_bc2(
     debug_assert!(len % 16 == 0);
     transforms::standard::unsplit_blocks(input_ptr, output_ptr, len);
 }
+
+// Re-export transform module contents for advanced BC2 operations
+pub use transform::{
+    transform_bc2_auto, transform_bc2_auto_safe, transform_bc2_with_settings,
+    transform_bc2_with_settings_safe, untransform_bc2_with_settings,
+    untransform_bc2_with_settings_safe, Bc2AutoTransformError, Bc2EstimateSettings,
+    Bc2TransformSettings, Bc2UntransformSettings, Bc2ValidationError, DetermineBestTransformError,
+};

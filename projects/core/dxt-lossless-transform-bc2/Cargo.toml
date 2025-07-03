@@ -26,9 +26,13 @@ nightly = ["dxt-lossless-transform-common/nightly"]
 bench = []
 # Experimental features, not ready for prime time. Use at your own risk!
 experimental = []
+# Enable C API exports
+c-exports = []
 
 [dependencies]
 dxt-lossless-transform-common = { workspace = true, default-features = false }
+dxt-lossless-transform-api-common = { path = "../../api/dxt-lossless-transform-api-common", default-features = false }
+thiserror = "2.0"
 likely_stable = "0.1.3"
 derive-enum-all-values = "0.2.1"
 
@@ -36,7 +40,7 @@ derive-enum-all-values = "0.2.1"
 [dev-dependencies]
 criterion = "0.5.1"
 rstest = "0.25.0"
-safe-allocator-api = "0.4.0"
+safe-allocator-api = "0.4.1"
 
 [target.'cfg(all(any(target_os = "linux", target_os = "macos"), any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))'.dev-dependencies]
 pprof = { version = "0.14", features = ["flamegraph", "criterion"] }

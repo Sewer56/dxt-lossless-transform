@@ -21,7 +21,7 @@ pub(crate) unsafe fn avx512_untransform(input_ptr: *const u8, output_ptr: *mut u
     //#[cfg(not(target_arch = "x86_64"))]
     //avx512_untransform_32(input_ptr, output_ptr, len);
 
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     // Process as many 64-byte blocks as possible
     let current_output_ptr = output_ptr;
 
@@ -74,7 +74,7 @@ pub(crate) unsafe fn avx512_untransform_32_vl(
     output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     // Process as many 64-byte blocks as possible
     let current_output_ptr = output_ptr;
@@ -106,7 +106,7 @@ pub(crate) unsafe fn avx512_untransform_32_vbmi(
     output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     // Process as many 64-byte blocks as possible
     let current_output_ptr = output_ptr;
@@ -159,7 +159,7 @@ pub(crate) unsafe fn avx512_untransform_separate_components(
     mut current_output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     const BYTES_PER_ITERATION: usize = 512;
     // We drop some alpha bits, which may lead to an overrun so we should technically subtract,
     // however it's impossible to get a read over the buffer here, as the colours and indices follow
@@ -561,7 +561,7 @@ pub(crate) unsafe fn avx512_untransform_separate_components_32(
     mut current_output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     const BYTES_PER_ITERATION: usize = 64;
     // We drop some alpha bits, which may lead to an overrun so we should technically subtract,
     // however it's impossible to get a read over the buffer here, as the colours and indices follow
@@ -706,7 +706,7 @@ pub(crate) unsafe fn avx512_untransform_separate_components_32_vl(
     mut current_output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     const BYTES_PER_ITERATION: usize = 64;
     // We drop some alpha bits, which may lead to an overrun so we should technically subtract,
     // however it's impossible to get a read over the buffer here, as the colours and indices follow

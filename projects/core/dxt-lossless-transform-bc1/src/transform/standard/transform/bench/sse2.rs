@@ -12,7 +12,7 @@ pub(crate) unsafe fn punpckhqdq_unroll_4(
     mut output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     // Process as many 64-byte blocks as possible
     let aligned_len = len - (len % 64);
 
@@ -98,7 +98,7 @@ pub(crate) unsafe fn punpckhqdq_unroll_2(
     mut output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     // Process as many 32-byte blocks as possible
     let aligned_len = len - (len % 32);
 
@@ -172,7 +172,7 @@ pub(crate) unsafe fn shufps_unroll_2(
     mut output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     // Process as many 32-byte blocks as possible
     let aligned_len = len - (len % 32);
 

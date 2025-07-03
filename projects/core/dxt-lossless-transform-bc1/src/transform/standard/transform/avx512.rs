@@ -18,7 +18,7 @@ const PERM_INDICES_BYTES: [i8; 16] = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23,
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512f")]
 pub(crate) unsafe fn permute_512(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     let colors_ptr = output_ptr as *mut u32;
     let indices_ptr = output_ptr.add(len / 2) as *mut u32;
@@ -43,7 +43,7 @@ pub(crate) unsafe fn permute_512_with_separate_pointers(
     mut indices_out: *mut u32,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     let aligned_len = len - (len % 128);
 
     if aligned_len > 0 {

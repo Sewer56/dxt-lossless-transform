@@ -120,7 +120,7 @@ unsafe fn normalize_blocks_impl<F>(input_ptr: *const u8, len: usize, mut handle_
 where
     F: FnMut(*const u8, &Decoded4x4Block, BlockCase, Color565),
 {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     // Calculate pointers to current block
     let mut src_block_ptr = input_ptr;
@@ -419,7 +419,7 @@ pub unsafe fn normalize_blocks_all_modes(
     output_ptrs: &[*mut u8; ColorNormalizationMode::all_values().len()],
     len: usize,
 ) -> bool {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     debug_assert!(output_ptrs.len() == ColorNormalizationMode::all_values().len());
 
     // Assert that no output buffer partially overlaps with the input

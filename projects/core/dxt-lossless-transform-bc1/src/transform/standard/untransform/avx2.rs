@@ -12,7 +12,7 @@ pub(crate) unsafe fn permd_untransform_unroll_2(
     output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     // Process as many 128-byte blocks as possible
     let indices_ptr = input_ptr.add(len / 2);
     let colors_ptr = input_ptr;
@@ -34,7 +34,7 @@ pub(crate) unsafe fn permd_untransform_unroll_2_with_components(
     mut colors_in: *const u8,
 ) {
     // Explanation in permd_untransform
-    debug_assert!(len % 8 == 0, "len must be divisible by 8");
+    debug_assert!(len.is_multiple_of(8), "len must be divisible by 8");
     let aligned_len = len - (len % 128);
     let colors_aligned_end = colors_in.add(aligned_len / 2);
 

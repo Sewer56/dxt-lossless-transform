@@ -33,7 +33,7 @@ fn get_index(value: u64) -> u32 {
 /// - len must be divisible by 8
 #[inline(always)]
 pub(crate) unsafe fn portable(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     // This implementation is a good general purpose one for all vector sizes
     shift(input_ptr, output_ptr, len);
@@ -45,7 +45,7 @@ pub(crate) unsafe fn portable(input_ptr: *const u8, output_ptr: *mut u8, len: us
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
 pub(crate) unsafe fn shift(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     let max_ptr = input_ptr.add(len) as *mut u64;
     let mut input_ptr = input_ptr as *mut u64;
@@ -76,7 +76,7 @@ pub(crate) unsafe fn shift(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
 pub(crate) unsafe fn shift_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     let max_aligned_ptr = input_ptr.add(len / 16 * 16) as *mut u64;
     let max_ptr = input_ptr.add(len) as *mut u64;
@@ -133,7 +133,7 @@ pub(crate) unsafe fn shift_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, l
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
 pub(crate) unsafe fn shift_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     let max_aligned_ptr = input_ptr.add(len / 32 * 32) as *mut u64;
     let max_ptr = input_ptr.add(len) as *mut u64;
@@ -200,7 +200,7 @@ pub(crate) unsafe fn shift_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, l
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
 pub(crate) unsafe fn shift_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     let max_aligned_ptr = input_ptr.add(len / 64 * 64) as *mut u64;
     let max_ptr = input_ptr.add(len) as *mut u64;
@@ -288,7 +288,7 @@ pub(crate) unsafe fn shift_unroll_8(input_ptr: *const u8, output_ptr: *mut u8, l
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 8
 pub(crate) unsafe fn shift_with_count(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     let mut num_elements = len / 8;
     let mut input_ptr = input_ptr as *mut u64;
@@ -325,7 +325,7 @@ pub(crate) unsafe fn shift_with_count_unroll_2(
     output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     // Process full 16-byte chunks
     let full_chunks = len / 16;
@@ -391,7 +391,7 @@ pub(crate) unsafe fn shift_with_count_unroll_4(
     output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     // Process full 32-byte chunks
     let full_chunks = len / 32;
@@ -469,7 +469,7 @@ pub(crate) unsafe fn shift_with_count_unroll_8(
     output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     // Process full 64-byte chunks
     let full_chunks = len / 64;

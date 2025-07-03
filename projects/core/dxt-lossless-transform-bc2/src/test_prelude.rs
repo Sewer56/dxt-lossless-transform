@@ -19,7 +19,10 @@ pub use std::is_x86_feature_detected;
 pub use rstest::rstest;
 
 // Core functionality from this crate
-pub use crate::{transform_bc2, untransform_bc2, BC2TransformDetails};
+pub use crate::transform::*;
+
+// Common types from dxt_lossless_transform_api_common
+pub use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 
 // Test utilities from transforms module are used internally
 // but not re-exported due to visibility constraints
@@ -109,6 +112,30 @@ fn allocate_align_64(num_bytes: usize) -> RawAlloc {
     dxt_lossless_transform_common::allocate::allocate_align_64(num_bytes).unwrap()
 }
 
+/// A simple dummy estimator for testing purposes.
+///
+/// This estimator doesn't perform actual compression estimation but provides
+/// a predictable implementation for testing API behavior.
+pub struct DummyEstimator;
+
+impl SizeEstimationOperations for DummyEstimator {
+    type Error = &'static str;
+
+    fn max_compressed_size(&self, _len_bytes: usize) -> Result<usize, Self::Error> {
+        Ok(0) // No buffer needed for dummy estimator
+    }
+
+    unsafe fn estimate_compressed_size(
+        &self,
+        _input_ptr: *const u8,
+        len_bytes: usize,
+        _output_ptr: *mut u8,
+        _output_len: usize,
+    ) -> Result<usize, Self::Error> {
+        Ok(len_bytes) // Just return the input length
+    }
+}
+
 // ---------------------------------------
 // Shared test helpers for transform tests
 // ---------------------------------------
@@ -146,7 +173,7 @@ pub(crate) fn run_standard_transform_unaligned_test(
             );
 
             // Step 2: Untransform using standard function with unaligned pointers
-            crate::transforms::standard::unsplit_blocks(
+            crate::transform::standard::untransform(
                 transformed.as_ptr().add(1),
                 reconstructed.as_mut_ptr().add(1),
                 original.len(),
@@ -187,7 +214,7 @@ pub(crate) fn run_standard_untransform_unaligned_test(
 
         unsafe {
             // First, transform using standard split_blocks
-            crate::transforms::standard::split_blocks(
+            crate::transform::standard::transform(
                 original.as_ptr(),
                 unaligned_transformed.as_mut_ptr().add(1),
                 original.len(),

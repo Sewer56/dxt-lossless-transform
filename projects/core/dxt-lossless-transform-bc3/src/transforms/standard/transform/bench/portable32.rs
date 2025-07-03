@@ -4,7 +4,7 @@
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
 pub unsafe fn u32_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     let mut alpha_byte_out_ptr = output_ptr as *mut u16;
     let mut alpha_bit_out_ptr = output_ptr.add(len / 16 * 2) as *mut u16;

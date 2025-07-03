@@ -38,7 +38,7 @@ pub unsafe fn normalize_blocks(
     len: usize,
     color_mode: ColorNormalizationMode,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     // Assert that buffers either don't overlap or are identical (in-place transformation)
     debug_assert!(
         eq(input_ptr, output_ptr as *const u8) ||
@@ -115,7 +115,7 @@ unsafe fn normalize_blocks_impl<F>(input_ptr: *const u8, len: usize, mut handle_
 where
     F: FnMut(*const u8, BlockCase, Color565),
 {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     // Calculate pointers to current block
     let mut src_block_ptr = input_ptr;
@@ -195,7 +195,7 @@ pub unsafe fn normalize_blocks_all_modes(
     output_ptrs: &[*mut u8; ColorNormalizationMode::all_values().len()],
     len: usize,
 ) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
     debug_assert!(output_ptrs.len() == ColorNormalizationMode::all_values().len());
     debug_assert!(
         output_ptrs.iter().all(|&out_ptr| {

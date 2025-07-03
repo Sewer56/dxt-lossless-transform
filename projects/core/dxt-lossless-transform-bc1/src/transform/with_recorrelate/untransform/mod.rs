@@ -19,7 +19,7 @@ pub(crate) unsafe fn untransform_with_recorrelate(
     len: usize,
     recorrelation_mode: YCoCgVariant,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
 
     unsafe {
         // Setup pointers

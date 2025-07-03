@@ -16,7 +16,7 @@ use super::portable32::u32_with_separate_endpoints;
 #[allow(clippy::identity_op)]
 #[allow(clippy::erasing_op)]
 pub(crate) unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     // Setup pointers for alpha components
     let alpha_byte_out_ptr = output_ptr;
@@ -57,7 +57,7 @@ pub(crate) unsafe fn avx512_vbmi_with_separate_pointers(
 ) {
     // Note: Leaving as intrinsics because the compiler generated form for ancient CPU
     // produces OK code.
-    debug_assert!(len % 16 == 0);
+    debug_assert!(len.is_multiple_of(16));
 
     // Process 8 blocks (128 bytes) at a time
     let mut aligned_len = len - (len % 128);

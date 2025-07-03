@@ -91,7 +91,7 @@ pub fn transform_bc1_with_settings(
     settings: Bc1TransformSettings,
 ) -> Result<(), Bc1ValidationError> {
     // Validate input length
-    if input.len() % 8 != 0 {
+    if !input.len().is_multiple_of(8) {
         return Err(Bc1ValidationError::InvalidLength(input.len()));
     }
 
@@ -195,7 +195,7 @@ pub fn untransform_bc1_with_settings(
     settings: Bc1UntransformSettings,
 ) -> Result<(), Bc1ValidationError> {
     // Validate input length
-    if input.len() % 8 != 0 {
+    if !input.len().is_multiple_of(8) {
         return Err(Bc1ValidationError::InvalidLength(input.len()));
     }
 

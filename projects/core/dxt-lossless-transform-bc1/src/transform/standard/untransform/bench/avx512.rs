@@ -18,7 +18,7 @@ pub(crate) unsafe fn permute_512_untransform_unroll_2_intrinsics(
     output_ptr: *mut u8,
     len: usize,
 ) {
-    debug_assert!(len % 8 == 0);
+    debug_assert!(len.is_multiple_of(8));
     // Process as many 128-byte blocks as possible
     let indices_ptr = input_ptr.add(len / 2);
     let colors_ptr = input_ptr;
@@ -45,7 +45,7 @@ pub(crate) unsafe fn permute_512_untransform_unroll_2_with_components_intrinsics
     mut indices_ptr: *const u8,
     mut colors_ptr: *const u8,
 ) {
-    debug_assert!(len % 8 == 0, "len must be divisible by 8");
+    debug_assert!(len.is_multiple_of(8), "len must be divisible by 8");
     let aligned_len = len - (len % 256);
     let colors_aligned_end = colors_ptr.add(aligned_len / 2);
 

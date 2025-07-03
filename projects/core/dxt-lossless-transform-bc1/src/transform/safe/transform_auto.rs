@@ -101,7 +101,7 @@ where
     T: SizeEstimationOperations,
 {
     // Validate input length
-    if input.len() % 8 != 0 {
+    if !input.len().is_multiple_of(8) {
         return Err(Bc1AutoTransformError::InvalidLength(input.len()));
     }
 

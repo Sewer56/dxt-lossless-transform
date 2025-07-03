@@ -31,7 +31,7 @@
 //!
 //! **Performance is bottlenecked by the estimator speed (single thread, Ryzen 9950X3D):**
 //! - **~265MiB/s** overall throughput with `dxt-lossless-transform-zstd` estimator (level 1)
-//! - **~641MiB/s** overall throughput with `lossless-transform-utils` estimator  
+//! - **~1018MiB/s** overall throughput with `lossless-transform-utils` estimator  
 //! - Additional memory usage: compression buffer needed by estimator (depends on the estimator)
 //!
 //! The automatic functions optimize further for size at the expense of speed.
@@ -70,7 +70,7 @@ mod tests {
         transform_bc1_auto, Bc1EstimateSettings, DetermineBestTransformError,
     };
     use crate::test_prelude::*;
-    use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
+    use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 
     /// Test that transform_bc1_auto works correctly
     #[rstest]
@@ -131,7 +131,6 @@ mod tests {
                 &self,
                 _input_ptr: *const u8,
                 _len_bytes: usize,
-                _data_type: DataType,
                 _output_ptr: *mut u8,
                 _output_len: usize,
             ) -> Result<usize, Self::Error> {

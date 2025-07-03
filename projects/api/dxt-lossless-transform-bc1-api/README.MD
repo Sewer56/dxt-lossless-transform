@@ -48,10 +48,10 @@ Run the untransform after decompressing.
 
 Recommended estimators ***for ZStandard compression***:
 
-| Estimator                                | Crate                         | Speed*     | Accuracy | Use Case                                 |
-| ---------------------------------------- | ----------------------------- | ---------- | -------- | ---------------------------------------- |
-| [`LosslessTransformUtilsSizeEstimation`] | `dxt-lossless-transform-ltu`  | ~641 MiB/s | Good     | Fast optimization, real-time use         |
-| [`ZStandardSizeEstimation`] level 1      | `dxt-lossless-transform-zstd` | ~265 MiB/s | Higher   | Optimal compression ratio/speed tradeoff |
+| Estimator                                | Crate                         | Speed*      | Accuracy | Use Case                                 |
+| ---------------------------------------- | ----------------------------- | ----------- | -------- | ---------------------------------------- |
+| [`LosslessTransformUtilsSizeEstimation`] | `dxt-lossless-transform-ltu`  | ~1018 MiB/s | Ok       | Fast optimization, real-time use         |
+| [`ZStandardSizeEstimation`] level 1      | `dxt-lossless-transform-zstd` | ~265 MiB/s  | Higher   | Optimal compression ratio/speed tradeoff |
 
 <sub>*Speed measured on Ryzen 9950X3D, single thread</sub>
 

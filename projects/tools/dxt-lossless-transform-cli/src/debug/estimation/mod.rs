@@ -3,7 +3,7 @@
 use crate::debug::compression_size_cache::CompressionSizeCache;
 use crate::debug::{calculate_content_hash, compression::CompressionAlgorithm};
 use crate::error::TransformError;
-use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use std::sync::Mutex;
 
 /// Creates a size estimator for the specified algorithm.
@@ -53,20 +53,15 @@ impl SizeEstimationOperations for ZstdEstimatorWrapper {
         })
     }
 
-    fn supports_data_type_differentiation(&self) -> bool {
-        self.0.supports_data_type_differentiation()
-    }
-
     unsafe fn estimate_compressed_size(
         &self,
         input_ptr: *const u8,
         len_bytes: usize,
-        data_type: dxt_lossless_transform_api_common::estimate::DataType,
         output_ptr: *mut u8,
         output_len: usize,
     ) -> Result<usize, Self::Error> {
         self.0
-            .estimate_compressed_size(input_ptr, len_bytes, data_type, output_ptr, output_len)
+            .estimate_compressed_size(input_ptr, len_bytes, output_ptr, output_len)
             .map_err(|e| TransformError::Debug(format!("ZStandard estimation failed: {e}")))
     }
 }
@@ -85,20 +80,15 @@ impl SizeEstimationOperations for LtuEstimatorWrapper {
         })
     }
 
-    fn supports_data_type_differentiation(&self) -> bool {
-        self.0.supports_data_type_differentiation()
-    }
-
     unsafe fn estimate_compressed_size(
         &self,
         input_ptr: *const u8,
         len_bytes: usize,
-        data_type: dxt_lossless_transform_api_common::estimate::DataType,
         output_ptr: *mut u8,
         output_len: usize,
     ) -> Result<usize, Self::Error> {
         self.0
-            .estimate_compressed_size(input_ptr, len_bytes, data_type, output_ptr, output_len)
+            .estimate_compressed_size(input_ptr, len_bytes, output_ptr, output_len)
             .map_err(|e| {
                 TransformError::Debug(format!("LosslessTransformUtils estimation failed: {e}"))
             })
@@ -156,7 +146,6 @@ where
         &self,
         input_ptr: *const u8,
         len_bytes: usize,
-        data_type: DataType,
         output_ptr: *mut u8,
         output_len: usize,
     ) -> Result<usize, Self::Error> {
@@ -164,23 +153,12 @@ where
         let input_slice = unsafe { core::slice::from_raw_parts(input_ptr, len_bytes) };
         let cache_hash = calculate_content_hash(input_slice);
 
-        // Determine the data type to use for caching
-        // If the estimator doesn't support data type differentiation, use Unknown
-        let cache_data_type = if self.inner.supports_data_type_differentiation() {
-            data_type
-        } else {
-            DataType::Unknown
-        };
-
         // Try to get from cache first
         {
             let cache_guard = self.cache.lock().unwrap();
-            if let Some(cached_size) = cache_guard.get(
-                cache_hash,
-                self.compression_level,
-                self.algorithm,
-                cache_data_type,
-            ) {
+            if let Some(cached_size) =
+                cache_guard.get(cache_hash, self.compression_level, self.algorithm)
+            {
                 return Ok(cached_size);
             }
         }
@@ -188,7 +166,7 @@ where
         // Not in cache, delegate to inner estimator
         let estimated_size = self
             .inner
-            .estimate_compressed_size(input_ptr, len_bytes, data_type, output_ptr, output_len)?;
+            .estimate_compressed_size(input_ptr, len_bytes, output_ptr, output_len)?;
 
         // Store result in cache
         {
@@ -197,7 +175,6 @@ where
                 cache_hash,
                 self.compression_level,
                 self.algorithm,
-                cache_data_type,
                 estimated_size,
             );
         }

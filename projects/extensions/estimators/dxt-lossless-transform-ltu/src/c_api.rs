@@ -1,4 +1,25 @@
-//! C API for the Lossless Transform Utils (LTU) size estimator.
+//! C API for LTU (Lossless Transform Utils) Size Estimation
+//!
+//! This module provides a C-compatible interface for the LTU size estimation functionality.
+//! It exposes the core [`LosslessTransformUtilsSizeEstimation`] type and related operations
+//! through C function pointers and structures.
+//!
+//! ## Usage Pattern
+//!
+//! 1. Create an estimator instance using [`dltltu_new_size_estimator`]
+//! 2. Use the estimator with any API that accepts [`SizeEstimationOperations`]
+//! 3. Free the estimator when done using [`dltltu_free_size_estimator`]
+//!
+//! ## Important Notes
+//!
+//! This estimator is designed for relative comparison between different transforms
+//! of the same data. The absolute values returned are not meaningful - only the
+//! relative ordering matters for determining which transform compresses better.
+//!
+//! ## Thread Safety
+//!
+//! The LTU estimator is thread-safe and can be used from multiple threads simultaneously.
+//! The estimator has no internal state, making it safe for concurrent use.
 //!
 //! # Required Headers
 //!
@@ -11,18 +32,8 @@
 //! This module provides C-compatible exports for using the LTU size estimator
 //! from C, C++, or other languages that support C FFI.
 //!
-//! The LTU estimator provides fast size estimation based on LZ match analysis
-//! and entropy calculation, offering a good balance between speed and accuracy.
-//!
-//! # Important: Texture-Specific Implementation
-//!
-//! **This estimator is specifically tuned for DXT/BC texture data and may not work well with generic data.**
-//! The default parameters have been carefully calibrated for texture compression patterns, each
-//! marked with a [`DataType`] value on entry to the API.
-//!
-//! **Using custom parameters via [`dltltu_new_size_estimator_with_params`] or [`dltltu_new_size_estimator_with_settings`]
-//! is discouraged** unless you have conducted thorough testing with your specific data type and understand
-//! the estimation model. The default settings via [`dltltu_new_size_estimator`] should be used in most cases.
+//! The LTU estimator provides fast size estimation based on LZ match analysis,
+//! offering a good balance between speed and accuracy for relative comparisons.
 //!
 //! # Usage with Transform APIs (BC1, BC2, BC3, BC7, etc.)
 //!
@@ -35,34 +46,30 @@
 //!
 //! # Available Functions
 //!
-//! - [`dltltu_new_size_estimator`] - Create a new estimator with default settings
-//! - [`dltltu_new_size_estimator_with_params`] - Create with custom multipliers
-//! - [`dltltu_new_size_estimator_with_settings`] - Create with settings struct
+//! - [`dltltu_new_size_estimator`] - Create a new estimator
 //! - [`dltltu_free_size_estimator`] - Free an estimator
 //!
 //! [`dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal`]: https://docs.rs/dxt-lossless-transform-bc1-api/latest/dxt_lossless_transform_bc1_api/c_api/determine_optimal_transform/fn.dltbc1_EstimateOptionsBuilder_BuildAndDetermineOptimal.html
 
-use crate::{EstimationSettings, LosslessTransformUtilsSizeEstimation};
+use crate::LosslessTransformUtilsSizeEstimation;
 use alloc::boxed::Box;
 use core::ffi::c_void;
-
-// Note: DltSizeEstimator is defined in dxt-lossless-transform-api-common
-// Users must include that header before this one
 use dxt_lossless_transform_api_common::c_api::size_estimation::DltSizeEstimator;
-use dxt_lossless_transform_api_common::estimate::{DataType, SizeEstimationOperations};
+use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 
-/// Creates a new LTU size estimator with default settings.
+/// Create a new LTU size estimator.
 ///
-/// The returned estimator uses the default estimation parameters which
-/// are optimized for BC1 texture data.
+/// The estimator uses LZ match analysis for fast relative size comparison.
 ///
 /// # Returns
-/// A pointer to a heap-allocated [`DltSizeEstimator`] configured to use the LTU implementation.
-/// The caller must free this with [`dltltu_free_size_estimator`] when done.
+///
+/// Pointer to the created estimator, or null on allocation failure
 ///
 /// # Safety
-/// - The returned pointer must be freed with [`dltltu_free_size_estimator`]
-/// - The returned pointer must not be used after it is freed
+///
+/// This function allocates memory and returns a raw pointer. The caller must
+/// ensure that [`dltltu_free_size_estimator`] is called to properly deallocate
+/// the memory when the estimator is no longer needed.
 #[no_mangle]
 pub unsafe extern "C" fn dltltu_new_size_estimator() -> *mut DltSizeEstimator {
     let ltu = Box::new(LosslessTransformUtilsSizeEstimation::new());
@@ -70,82 +77,14 @@ pub unsafe extern "C" fn dltltu_new_size_estimator() -> *mut DltSizeEstimator {
     Box::into_raw(Box::new(estimator))
 }
 
-/// Creates a new LTU size estimator with custom parameters.
-///
-/// # Warning
-/// **Using custom parameters is discouraged unless you have conducted thorough testing**
-/// with your specific data type. The default estimator is tuned for DXT/BC texture data.
-/// The profile is inherited from the [`DataType`] field passed in via the API.
-/// Consider using [`dltltu_new_size_estimator`] instead.
+/// Free an LTU size estimator created by [`dltltu_new_size_estimator`].
 ///
 /// # Parameters
-/// - `lz_match_multiplier`: Multiplier for LZ match effectiveness (recommended: 0.5-0.7)
-/// - `entropy_multiplier`: Multiplier for entropy coding efficiency (recommended: 1.0-1.3)
-///
-/// # Returns
-/// A pointer to a heap-allocated [`DltSizeEstimator`] configured with custom parameters.
-/// The caller must free this with [`dltltu_free_size_estimator`] when done.
+/// * `estimator` - Pointer to the estimator to free (can be null)
 ///
 /// # Safety
-/// - The returned pointer must be freed with [`dltltu_free_size_estimator`]
-/// - The returned pointer must not be used after it is freed
-#[no_mangle]
-pub unsafe extern "C" fn dltltu_new_size_estimator_with_params(
-    lz_match_multiplier: f64,
-    entropy_multiplier: f64,
-) -> *mut DltSizeEstimator {
-    let ltu = Box::new(LosslessTransformUtilsSizeEstimation::new_with_params(
-        lz_match_multiplier,
-        entropy_multiplier,
-    ));
-    let estimator = create_c_size_estimator(ltu);
-    Box::into_raw(Box::new(estimator))
-}
-
-/// Creates a new LTU size estimator with custom settings structure.
-///
-/// # Warning
-/// **Using custom settings is discouraged unless you have conducted thorough testing**
-/// with your specific data type. The default estimator is tuned for DXT/BC texture data, profile
-/// is inherited from the [`DataType`] field passed in via the API.
-/// Consider using [`dltltu_new_size_estimator`] instead.
-///
-/// # Parameters
-/// - `settings`: Pointer to estimation settings structure
-///
-/// # Returns
-/// A pointer to a heap-allocated [`DltSizeEstimator`] configured with the provided settings.
-/// Returns null if `settings` is null.
-/// The caller must free this with [`dltltu_free_size_estimator`] when done.
-///
-/// # Safety
-/// - `settings` must be a valid pointer to an [`EstimationSettings`] structure or null
-/// - The returned pointer must be freed with [`dltltu_free_size_estimator`]
-/// - The returned pointer must not be used after it is freed
-#[no_mangle]
-pub unsafe extern "C" fn dltltu_new_size_estimator_with_settings(
-    settings: *const EstimationSettings,
-) -> *mut DltSizeEstimator {
-    if settings.is_null() {
-        return core::ptr::null_mut();
-    }
-
-    let settings = unsafe { *settings };
-    let ltu = Box::new(LosslessTransformUtilsSizeEstimation::new_with_settings(
-        settings,
-    ));
-    let estimator = create_c_size_estimator(ltu);
-    Box::into_raw(Box::new(estimator))
-}
-
-/// Frees an LTU size estimator.
-///
-/// # Parameters
-/// - `estimator`: The estimator to free (can be null)
-///
-/// # Safety
-/// - `estimator` must be a valid pointer returned by one of the `dltltu_new_*` functions or null
-/// - The estimator must not be used after calling this function
+/// The estimator pointer must have been returned by [`dltltu_new_size_estimator`],
+/// or be null. After calling this function, the pointer becomes invalid.
 #[no_mangle]
 pub unsafe extern "C" fn dltltu_free_size_estimator(estimator: *mut DltSizeEstimator) {
     if !estimator.is_null() {
@@ -187,7 +126,6 @@ unsafe extern "C" fn ltu_estimate_compressed_size(
     context: *mut c_void,
     input_ptr: *const u8,
     len_bytes: usize,
-    data_type: u8,
     output_ptr: *mut u8,
     output_len: usize,
     out_size: *mut usize,
@@ -197,19 +135,7 @@ unsafe extern "C" fn ltu_estimate_compressed_size(
     }
 
     let ltu = unsafe { &*(context as *const LosslessTransformUtilsSizeEstimation) };
-    let data_type = match data_type {
-        // 1:1 mapping at time of writing, so no-op after compilation
-        0 => DataType::Unknown,
-        1 => DataType::Bc1Colours,
-        2 => DataType::Bc1DecorrelatedColours,
-        3 => DataType::Bc1SplitColours,
-        4 => DataType::Bc1SplitDecorrelatedColours,
-        _ => DataType::Unknown,
-    };
-
-    match unsafe {
-        ltu.estimate_compressed_size(input_ptr, len_bytes, data_type, output_ptr, output_len)
-    } {
+    match unsafe { ltu.estimate_compressed_size(input_ptr, len_bytes, output_ptr, output_len) } {
         Ok(size) => {
             unsafe { *out_size = size };
             0 // Success
@@ -224,7 +150,6 @@ fn create_c_size_estimator(ltu: Box<LosslessTransformUtilsSizeEstimation>) -> Dl
         context: Box::into_raw(ltu) as *mut c_void,
         max_compressed_size: ltu_max_compressed_size,
         estimate_compressed_size: ltu_estimate_compressed_size,
-        supports_data_type_differentiation: true,
     }
 }
 
@@ -271,45 +196,13 @@ fn create_c_size_estimator(ltu: Box<LosslessTransformUtilsSizeEstimation>) -> Dl
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dxt_lossless_transform_api_common::estimate::DataType;
 
     #[test]
-    fn test_create_and_free_default_estimator() {
+    fn test_create_and_free_estimator() {
         unsafe {
             let estimator = dltltu_new_size_estimator();
             assert!(!estimator.is_null());
             dltltu_free_size_estimator(estimator);
-        }
-    }
-
-    #[test]
-    fn test_create_and_free_with_params() {
-        unsafe {
-            let estimator = dltltu_new_size_estimator_with_params(0.6, 1.2);
-            assert!(!estimator.is_null());
-            dltltu_free_size_estimator(estimator);
-        }
-    }
-
-    #[test]
-    fn test_create_and_free_with_settings() {
-        let settings = EstimationSettings {
-            lz_match_multiplier: 0.6,
-            entropy_multiplier: 1.2,
-        };
-
-        unsafe {
-            let estimator = dltltu_new_size_estimator_with_settings(&settings);
-            assert!(!estimator.is_null());
-            dltltu_free_size_estimator(estimator);
-        }
-    }
-
-    #[test]
-    fn test_null_settings_returns_null() {
-        unsafe {
-            let estimator = dltltu_new_size_estimator_with_settings(core::ptr::null());
-            assert!(estimator.is_null());
         }
     }
 
@@ -343,14 +236,12 @@ mod tests {
                 estimator_ref.context,
                 test_data.as_ptr(),
                 test_data.len(),
-                DataType::Bc1Colours as u8,
                 core::ptr::null_mut(),
                 0,
                 &mut estimated_size,
             );
             assert_eq!(result, 0); // Success
-            assert!(estimated_size > 0);
-            assert!(estimated_size < test_data.len());
+            assert!(estimated_size < test_data.len()); // Should be smaller for repetitive data
 
             dltltu_free_size_estimator(estimator);
         }

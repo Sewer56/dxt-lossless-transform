@@ -6,33 +6,21 @@
 
 use alloc::boxed::Box;
 
-/// Enum representing the type of data being estimated for compressed size.
-///
-/// # Remarks
-///
-/// In CLI modules, and similar, this is supported for estimation only, not compression.
-#[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, bincode::Encode, bincode::Decode)]
-pub enum DataType {
-    /// Unknown data type
-    Unknown = 0,
-    /// Standard BC1 colour data (interleaved color0/color1 pairs)
-    Bc1Colours = 1,
-    /// BC1 colour data after decorrelation transforms have been applied
-    Bc1DecorrelatedColours = 2,
-    /// BC1 colour data that has been split into separate color0 and color1 arrays
-    Bc1SplitColours = 3,
-    /// BC1 colour data that has been both split and decorrelated
-    Bc1SplitDecorrelatedColours = 4,
-}
-
 /// Trait for size estimation operations.
 ///
-/// Implementations can provide either fast approximations or perform actual
-/// compression to estimate the compressed size of data.
+/// This trait is used to test the most optimal transform by comparing compressed sizes
+/// between different data transformations. Implementations can provide either fast
+/// approximations or perform actual compression to estimate the compressed size of data.
 ///
 /// The trait allows implementations to have their compression levels and other
 /// parameters pre-configured, making it more flexible than function-based approaches.
+///
+/// # Important Notes
+///
+/// The results of [`SizeEstimationOperations::estimate_compressed_size`] will only ever be compared against calls to
+/// [`SizeEstimationOperations::estimate_compressed_size`] for the same estimator instance. The most important thing
+/// is to be able to correctly assert whether one piece of data will compress to a smaller
+/// size than another, rather than providing absolute accuracy of compressed sizes.
 pub trait SizeEstimationOperations {
     /// The error type returned by estimation operations.
     type Error;
@@ -47,35 +35,13 @@ pub trait SizeEstimationOperations {
     ///
     /// # Returns
     /// The maximum buffer size needed for compression, or 0 if no allocation is needed
-    ///
-    /// # Contract
-    /// The returned size must be consistent regardless of the [`DataType`] that will be passed
-    /// to [`SizeEstimationOperations::estimate_compressed_size`]. This allows callers to allocate once and reuse the
-    /// buffer across different data types.
     fn max_compressed_size(&self, len_bytes: usize) -> Result<usize, Self::Error>;
-
-    /// Indicates whether this implementation produces different results for different [`DataType`] values.
-    ///
-    /// This is used by caching systems to determine whether to include the data type
-    /// in cache keys or treat all data types the same.
-    ///
-    /// # Returns
-    /// `true` if the implementation produces different results for different data types,
-    /// `false` if it treats all data types the same way.
-    ///
-    /// # Default Implementation
-    /// The default implementation returns `false`, meaning implementations that don't
-    /// differentiate between data types don't need to override this method.
-    fn supports_data_type_differentiation(&self) -> bool {
-        false
-    }
 
     /// Calculates the estimated compressed size.
     ///
     /// # Parameters
     /// * `input_ptr` - Pointer to the input data to estimate
     /// * `len_bytes` - Length of the input data in bytes
-    /// * `data_type` - The type of data being compressed
     /// * `output_ptr` - Pre-allocated output buffer for compression (guaranteed non-null)
     /// * `output_len` - Length of the pre-allocated output buffer
     ///
@@ -93,7 +59,6 @@ pub trait SizeEstimationOperations {
         &self,
         input_ptr: *const u8,
         len_bytes: usize,
-        data_type: DataType,
         output_ptr: *mut u8,
         output_len: usize,
     ) -> Result<usize, Self::Error>;
@@ -107,19 +72,14 @@ impl<T: SizeEstimationOperations + ?Sized> SizeEstimationOperations for Box<T> {
         (**self).max_compressed_size(len_bytes)
     }
 
-    fn supports_data_type_differentiation(&self) -> bool {
-        (**self).supports_data_type_differentiation()
-    }
-
     unsafe fn estimate_compressed_size(
         &self,
         input_ptr: *const u8,
         len_bytes: usize,
-        data_type: DataType,
         output_ptr: *mut u8,
         output_len: usize,
     ) -> Result<usize, Self::Error> {
-        (**self).estimate_compressed_size(input_ptr, len_bytes, data_type, output_ptr, output_len)
+        (**self).estimate_compressed_size(input_ptr, len_bytes, output_ptr, output_len)
     }
 }
 
@@ -149,15 +109,10 @@ impl SizeEstimationOperations for NoEstimation {
         Ok(0)
     }
 
-    fn supports_data_type_differentiation(&self) -> bool {
-        false
-    }
-
     unsafe fn estimate_compressed_size(
         &self,
         _input_ptr: *const u8,
         _len_bytes: usize,
-        _data_type: DataType,
         _output_ptr: *mut u8,
         _output_len: usize,
     ) -> Result<usize, Self::Error> {

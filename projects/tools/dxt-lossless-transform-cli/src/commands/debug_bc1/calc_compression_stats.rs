@@ -8,13 +8,12 @@ use crate::{
             },
             CompressionAlgorithm,
         },
-        compression_size_cache, extract_blocks_from_file,
+        compression_size_cache, extract_blocks_from_file, handle_debug_error,
     },
     error::TransformError,
     util::find_all_files,
 };
 use core::sync::atomic::{AtomicUsize, Ordering};
-use dxt_lossless_transform_api_common::estimate::DataType;
 use dxt_lossless_transform_bc1::{transform_bc1_with_settings, Bc1TransformSettings};
 use dxt_lossless_transform_common::{allocate::allocate_align_64, color_565::YCoCgVariant};
 use dxt_lossless_transform_file_formats_api::embed::TransformFormat;
@@ -92,7 +91,7 @@ pub(crate) fn handle_compression_stats_command(
                     results.lock().unwrap().push(file_result);
                 }
                 Err(e) => {
-                    println!("✗ Error analyzing {}: {}", entry.path().display(), e);
+                    handle_debug_error(&entry.path(), "analyzing", Err(e));
                 }
             }
         });
@@ -141,7 +140,6 @@ fn analyze_bc1_compression_file(
                     data,
                     compression_level,
                     compression_algorithm,
-                    DataType::Bc1Colours,
                     cache,
                 )?,
                 api_recommended_result: analyze_bc1_api_recommendation(
@@ -191,7 +189,6 @@ fn analyze_bc1_compression_transforms(
                     transformed_data.as_slice(),
                     compression_level,
                     compression_algorithm,
-                    transform_options.to_data_type(),
                     cache,
                 )?,
             });
@@ -237,7 +234,6 @@ fn analyze_bc1_api_recommendation(
         transformed_data.as_slice(),
         final_compression_level,
         compression_algorithm,
-        best_details.to_data_type(),
         cache,
     )?;
 

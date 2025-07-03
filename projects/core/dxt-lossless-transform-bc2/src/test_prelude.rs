@@ -19,7 +19,7 @@ pub use std::is_x86_feature_detected;
 pub use rstest::rstest;
 
 // Core functionality from this crate
-pub use crate::{transform_bc2, untransform_bc2, BC2TransformDetails};
+pub use crate::transform::*;
 
 // Common types from dxt_lossless_transform_api_common
 pub use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
@@ -173,7 +173,7 @@ pub(crate) fn run_standard_transform_unaligned_test(
             );
 
             // Step 2: Untransform using standard function with unaligned pointers
-            crate::transforms::standard::unsplit_blocks(
+            crate::transform::standard::untransform(
                 transformed.as_ptr().add(1),
                 reconstructed.as_mut_ptr().add(1),
                 original.len(),
@@ -214,7 +214,7 @@ pub(crate) fn run_standard_untransform_unaligned_test(
 
         unsafe {
             // First, transform using standard split_blocks
-            crate::transforms::standard::split_blocks(
+            crate::transform::standard::transform(
                 original.as_ptr(),
                 unaligned_transformed.as_mut_ptr().add(1),
                 original.len(),

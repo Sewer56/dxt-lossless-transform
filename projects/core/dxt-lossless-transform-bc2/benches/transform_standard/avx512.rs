@@ -1,9 +1,9 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc2::transforms::standard::transform::bench::{
-    permute_512, permute_512_v2,
-};
+use dxt_lossless_transform_bc2::bench::transform::standard::permute_512;
+use dxt_lossless_transform_bc2::bench::transform::standard::permute_512_v2;
 use safe_allocator_api::RawAlloc;
 
+#[cfg(feature = "nightly")]
 fn bench_permute(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
         permute_512(

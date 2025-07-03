@@ -1,5 +1,5 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc2::transforms::standard::transform::bench::{
+use dxt_lossless_transform_bc2::bench::transform::standard::{
     shuffle_v1, shuffle_v1_unroll_2, sse2_shuffle_v2, sse2_shuffle_v3,
 };
 use safe_allocator_api::RawAlloc;

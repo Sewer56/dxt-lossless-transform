@@ -43,11 +43,11 @@ pub(crate) mod settings;
 pub(crate) mod transform_auto;
 pub(crate) mod transform_with_settings;
 
-// Transform module implementations
-mod standard;
-mod with_recorrelate;
-mod with_split_colour;
-mod with_split_colour_and_recorr;
+// Transform module implementations - standard public to crate for bench access
+pub(crate) mod standard;
+pub(crate) mod with_recorrelate;
+pub(crate) mod with_split_colour;
+pub(crate) mod with_split_colour_and_recorr;
 
 // Safe slice-based wrapper functions
 pub mod safe;

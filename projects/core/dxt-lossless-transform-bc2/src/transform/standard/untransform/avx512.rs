@@ -1,4 +1,4 @@
-use crate::transforms::standard::untransform::portable32::u32_untransform_with_separate_pointers;
+use crate::transform::standard::untransform::portable32::u32_untransform_with_separate_pointers;
 
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;

@@ -39,6 +39,9 @@
 //! - Type: `*mut u32`
 //! - Contains the 2-bit per pixel color indices for each BC2 block
 
+pub(crate) mod transform;
+pub(crate) mod untransform;
+
 /// Transform BC2 data using standard transform (wrapper around existing implementation)
 ///
 /// # Safety
@@ -49,7 +52,7 @@
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
 pub(crate) unsafe fn transform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    crate::transforms::standard::split_blocks(input_ptr, output_ptr, len);
+    transform::split_blocks(input_ptr, output_ptr, len);
 }
 
 /// Untransform BC2 data using standard untransform (wrapper around existing implementation)
@@ -62,5 +65,5 @@ pub(crate) unsafe fn transform(input_ptr: *const u8, output_ptr: *mut u8, len: u
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
 pub(crate) unsafe fn untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    crate::transforms::standard::unsplit_blocks(input_ptr, output_ptr, len);
+    untransform::unsplit_blocks(input_ptr, output_ptr, len);
 }

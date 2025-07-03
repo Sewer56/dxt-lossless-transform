@@ -15,6 +15,7 @@ This is a high-performance Rust library for lossless DXT texture compression wit
 
 - Use proper rustdoc format with elements in brackets like [`Color565`] instead of `Color565`
 - Maintain original code order (including assembly sections) and all comments intact unless explicitly permitted
+- Try to not exceed 500 lines of code per module, excluding tests. If that's not possible, split the module into multiple modules.
 
 ### Variable Names & Structure
 
@@ -53,6 +54,10 @@ This is a high-performance Rust library for lossless DXT texture compression wit
 
 - Prefer stack allocation when possible
 - Use `allocate_align_64` for large aligned buffers
+
+## Backwards Compatibility
+
+- Our crates are not yet released; therefore, you may make backwards incompatible changes. Do not however rename methods unless it is necessary.
 
 ## Compilation
 

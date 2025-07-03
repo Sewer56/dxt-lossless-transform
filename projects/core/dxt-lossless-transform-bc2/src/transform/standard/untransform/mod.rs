@@ -87,7 +87,7 @@ pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 #[cfg(feature = "bench")]
 #[allow(clippy::missing_safety_doc)]
 #[allow(missing_docs)]
-pub mod bench_exports {
+pub mod bench {
     pub unsafe fn u32_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
         super::portable32::u32_untransform(input_ptr, output_ptr, len)
     }

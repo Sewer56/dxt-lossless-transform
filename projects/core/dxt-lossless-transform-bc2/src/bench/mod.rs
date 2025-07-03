@@ -83,7 +83,7 @@ pub mod untransform {
         // Wrapper functions for untransform benchmark APIs
 
         pub unsafe fn u32_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-            crate::transform::standard::untransform::bench_exports::u32_untransform(
+            crate::transform::standard::untransform::bench::u32_untransform(
                 input_ptr, output_ptr, len,
             )
         }
@@ -91,24 +91,20 @@ pub mod untransform {
         // SSE2 functions
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         pub unsafe fn sse2_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-            crate::transform::standard::untransform::bench_exports::sse2_shuffle(
-                input_ptr, output_ptr, len,
-            )
+            crate::transform::standard::untransform::bench::sse2_shuffle(input_ptr, output_ptr, len)
         }
 
         // AVX2 functions
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         pub unsafe fn avx2_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-            crate::transform::standard::untransform::bench_exports::avx2_shuffle(
-                input_ptr, output_ptr, len,
-            )
+            crate::transform::standard::untransform::bench::avx2_shuffle(input_ptr, output_ptr, len)
         }
 
         // AVX512 functions
         #[cfg(feature = "nightly")]
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         pub unsafe fn avx512_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-            crate::transform::standard::untransform::bench_exports::avx512_shuffle(
+            crate::transform::standard::untransform::bench::avx512_shuffle(
                 input_ptr, output_ptr, len,
             )
         }

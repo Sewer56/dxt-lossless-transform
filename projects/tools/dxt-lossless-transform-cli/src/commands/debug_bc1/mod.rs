@@ -77,6 +77,10 @@ pub struct CompressionStatsCmd {
     /// (typical gains <0.1%; consider using estimator level closer to final compression level instead)
     #[argh(switch)]
     pub use_all_decorrelation_modes: bool,
+
+    /// maximum file size in bytes to analyze (filters out larger files, disabled by default)
+    #[argh(option)]
+    pub max_size: Option<u64>,
 }
 
 #[derive(FromArgs, Debug)]

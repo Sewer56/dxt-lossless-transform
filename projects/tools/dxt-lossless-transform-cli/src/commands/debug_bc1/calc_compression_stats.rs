@@ -60,6 +60,36 @@ pub(crate) fn handle_compression_stats_command(
     // Collect all files recursively using existing infrastructure
     let mut entries = Vec::new();
     find_all_files(input_path, &mut entries)?;
+
+    // Filter by file size if max_size is specified
+    if let Some(max_size) = cmd.max_size {
+        println!("Filtering files by maximum size: {max_size} bytes");
+        let original_count = entries.len();
+
+        entries.retain(|entry| {
+            match entry.metadata() {
+                Ok(metadata) => {
+                    let file_size = metadata.len();
+                    file_size <= max_size
+                }
+                Err(_) => {
+                    // If we can't get metadata, skip the file
+                    eprintln!(
+                        "Warning: Could not get metadata for {}, skipping",
+                        entry.path().display()
+                    );
+                    false
+                }
+            }
+        });
+
+        let filtered_count = entries.len();
+        let excluded_count = original_count - filtered_count;
+        println!(
+            "Filtered {filtered_count} files (excluded {excluded_count} files larger than {max_size} bytes)"
+        );
+    }
+
     println!("Found {} files to analyze", entries.len());
 
     let files_analyzed = AtomicUsize::new(0);

@@ -8,7 +8,7 @@ use crate::{
             },
             CompressionAlgorithm,
         },
-        compression_size_cache, extract_blocks_from_file,
+        compression_size_cache, extract_blocks_from_file, handle_debug_error,
     },
     error::TransformError,
     util::find_all_files,
@@ -91,7 +91,7 @@ pub(crate) fn handle_compression_stats_command(
                     results.lock().unwrap().push(file_result);
                 }
                 Err(e) => {
-                    println!("✗ Error analyzing {}: {}", entry.path().display(), e);
+                    handle_debug_error(&entry.path(), "analyzing", Err(e));
                 }
             }
         });

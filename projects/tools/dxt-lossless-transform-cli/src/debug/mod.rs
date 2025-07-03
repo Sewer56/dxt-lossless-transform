@@ -42,6 +42,35 @@ where
         .map_err(TransformError::FileOperationError)
 }
 
+/// Handles errors from debug operations by printing to stdout.
+/// Silently ignores NoSupportedHandler errors to allow filtering mixed file types.
+pub(crate) fn handle_debug_error(
+    file_path: &Path,
+    operation: &str,
+    result: Result<(), TransformError>,
+) {
+    if let Err(e) = result {
+        // Check if this is a "No file format handler can process the file" error
+        if let TransformError::FileOperationError(
+            dxt_lossless_transform_file_formats_api::file_io::FileOperationError::Transform(
+                transform_error,
+            ),
+        ) = &e
+        {
+            if matches!(
+                transform_error,
+                dxt_lossless_transform_file_formats_api::TransformError::NoSupportedHandler
+            ) {
+                // Silently ignore files that can't be processed - common when filtering directories
+                return;
+            }
+        }
+
+        // Print all other errors
+        println!("✗ Error {operation} {}: {}", file_path.display(), e);
+    }
+}
+
 /// Calculates XXH3-128 hash of data for use as a cache key.
 pub fn calculate_content_hash(data: &[u8]) -> u128 {
     xxhash_rust::xxh3::xxh3_128(data)

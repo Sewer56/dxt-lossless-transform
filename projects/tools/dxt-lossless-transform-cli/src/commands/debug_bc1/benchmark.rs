@@ -13,7 +13,7 @@ use crate::{
             CompressionAlgorithm,
         },
         compression_size_cache::CompressionSizeCache,
-        extract_blocks_from_file,
+        extract_blocks_from_file, handle_debug_error,
     },
     error::TransformError,
     util::find_all_files,
@@ -147,7 +147,7 @@ pub(crate) fn handle_benchmark_command(cmd: BenchmarkCmd) -> Result<(), Transfor
                 // Dry run. Unreachable.
             }
             Err(e) => {
-                println!("✗ Error benchmarking {}: {}", entry.path().display(), e);
+                handle_debug_error(&entry.path(), "benchmarking", Err(e));
             }
         }
     }

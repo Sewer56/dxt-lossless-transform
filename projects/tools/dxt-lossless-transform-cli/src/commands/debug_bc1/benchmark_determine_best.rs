@@ -5,7 +5,7 @@ use crate::{
             self, print_overall_statistics, BenchmarkResult, BenchmarkScenarioResult,
         },
         compression::CompressionAlgorithm,
-        extract_blocks_from_file,
+        extract_blocks_from_file, handle_debug_error,
     },
     error::TransformError,
     util::find_all_files,
@@ -76,7 +76,7 @@ pub(crate) fn handle_benchmark_determine_best_command(
                 // No result to process
             }
             Err(e) => {
-                println!("✗ Error benchmarking {}: {}", entry.path().display(), e);
+                handle_debug_error(&entry.path(), "benchmarking", Err(e));
             }
         }
     }

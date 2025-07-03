@@ -97,7 +97,7 @@ where
 /// ## Performance Characteristics
 ///
 /// Overall throughput depends on the estimator used:
-/// - **LTU estimator**: ~641 MiB/s (fast, good accuracy)
+/// - **LTU estimator**: ~1018 MiB/s (fast, ok accuracy)
 /// - **ZStandard level 1 estimator**: ~265 MiB/s (slower, higher accuracy)
 ///
 /// The transformation itself runs at ~24GB/s, so the estimator becomes the bottleneck.

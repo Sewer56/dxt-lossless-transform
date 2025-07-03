@@ -31,7 +31,7 @@
 //!
 //! **Performance is bottlenecked by the estimator speed (single thread, Ryzen 9950X3D):**
 //! - **~265MiB/s** overall throughput with `dxt-lossless-transform-zstd` estimator (level 1)
-//! - **~641MiB/s** overall throughput with `lossless-transform-utils` estimator  
+//! - **~1018MiB/s** overall throughput with `lossless-transform-utils` estimator  
 //! - Additional memory usage: compression buffer needed by estimator (depends on the estimator)
 //!
 //! The automatic functions optimize further for size at the expense of speed.

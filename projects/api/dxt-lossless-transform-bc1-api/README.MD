@@ -55,7 +55,7 @@ Recommended estimators ***for ZStandard compression***:
 
 <sub>*Speed measured on Ryzen 9950X3D, single thread</sub>
 
-**Quick recommendation**: Use [`LosslessTransformUtilsSizeEstimation`] for real-time packing (zstd level < 3), else [`ZStandardSizeEstimation`] with level 1.
+**Quick recommendation**: Use [`LosslessTransformUtilsSizeEstimation`] for real-time packing (zstd level < 4), else [`ZStandardSizeEstimation`] with level 1.
 
 Higher compression ratios are possible with [`ZStandardSizeEstimation`], but the gains beyond level 1 are minimal; 
 they should be used for final publishing only alongside other brute force options.

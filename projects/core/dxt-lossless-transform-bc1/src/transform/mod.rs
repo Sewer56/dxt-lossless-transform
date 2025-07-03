@@ -35,9 +35,8 @@
 //! - Additional memory usage: compression buffer needed by estimator (depends on the estimator)
 //!
 //! The automatic functions optimize further for size at the expense of speed.
-//! As a general rule of thumb, if you're compressing zstd level 3 or below, go manual.
-//! If you're compressing zstd level 4 to 9, use `lossless-transform-utils` instead.
-//! Otherwise for levels 10 and above, use `dxt-lossless-transform-zstd` instead.
+//! As a general rule of thumb, use `lossless-transform-utils` for zstd levels 1-3,
+//! and `dxt-lossless-transform-zstd` level 1 for zstd level 4 and above.
 
 // Module structure
 pub(crate) mod settings;

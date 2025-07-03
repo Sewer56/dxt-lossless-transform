@@ -52,7 +52,7 @@ pub(crate) mod untransform;
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
 pub(crate) unsafe fn transform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    transform::split_blocks(input_ptr, output_ptr, len);
+    transform::transform(input_ptr, output_ptr, len);
 }
 
 /// Untransform BC2 data using standard untransform (wrapper around existing implementation)
@@ -65,5 +65,5 @@ pub(crate) unsafe fn transform(input_ptr: *const u8, output_ptr: *mut u8, len: u
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
 pub(crate) unsafe fn untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    untransform::unsplit_blocks(input_ptr, output_ptr, len);
+    untransform::untransform(input_ptr, output_ptr, len);
 }

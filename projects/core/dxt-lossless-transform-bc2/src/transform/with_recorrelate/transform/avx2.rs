@@ -32,17 +32,13 @@ unsafe fn transform_decorr<const VARIANT: u8>(
         // Load 8 BC2 blocks = 128 bytes
         let data0 = _mm256_loadu_si256(input_ptr as *const __m256i); // First two blocks
         let data1 = _mm256_loadu_si256(input_ptr.add(32) as *const __m256i); // Second two blocks
-        let data3 = _mm256_loadu_si256(input_ptr.add(64) as *const __m256i); // Third two blocks
-        let data4 = _mm256_loadu_si256(input_ptr.add(96) as *const __m256i); // Fourth two blocks
+        let data2 = _mm256_loadu_si256(input_ptr.add(64) as *const __m256i); // Third two blocks
+        let data3 = _mm256_loadu_si256(input_ptr.add(96) as *const __m256i); // Fourth two blocks
         input_ptr = input_ptr.add(128);
-
-        // Setup scratch registers
-        let data2 = data0;
-        let data5 = data3;
 
         // Extract alphas using unpack low (vpunpcklqdq)
         let alphas0 = _mm256_unpacklo_epi64(data1, data0); // alpha -> ymm0 (out of order)
-        let alphas1 = _mm256_unpacklo_epi64(data4, data3); // alpha -> ymm3 (out of order)
+        let alphas1 = _mm256_unpacklo_epi64(data3, data2); // alpha -> ymm3 (out of order)
 
         // Reorder alphas to chronological order (vpermq)
         let alphas_ordered0 = _mm256_permute4x64_epi64(alphas0, 0x8D); // 10_00_11_01 -> [1,3,0,2]
@@ -50,13 +46,13 @@ unsafe fn transform_decorr<const VARIANT: u8>(
 
         // Extract colors+indices using shuffle (vshufps)
         let colors_indices0 = _mm256_castps_si256(_mm256_shuffle_ps(
-            _mm256_castsi256_ps(data2),
+            _mm256_castsi256_ps(data0),
             _mm256_castsi256_ps(data1),
             0xEE, // 11_10_11_10
         ));
         let colors_indices1 = _mm256_castps_si256(_mm256_shuffle_ps(
-            _mm256_castsi256_ps(data5),
-            _mm256_castsi256_ps(data4),
+            _mm256_castsi256_ps(data2),
+            _mm256_castsi256_ps(data3),
             0xEE, // 11_10_11_10
         ));
 

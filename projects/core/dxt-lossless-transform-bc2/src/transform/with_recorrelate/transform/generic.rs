@@ -2,34 +2,36 @@ use core::hint::unreachable_unchecked;
 use core::ptr::{read_unaligned, write_unaligned};
 use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
 
-/// Generic implementation of BC1 transform with YCoCg-R decorrelation.
+/// Generic implementation of BC2 transform with YCoCg-R decorrelation.
 ///
-/// Splits standard interleaved BC1 blocks into separate color and index buffers,
+/// Splits standard interleaved BC2 blocks into separate alpha, color, and index buffers,
 /// applying YCoCg-R decorrelation to color endpoints.
 ///
 /// # Safety
 ///
-/// - input_ptr must be valid for reads of num_blocks * 8 bytes
-/// - colours_out must be valid for writes of num_blocks * 4 bytes
+/// - input_ptr must be valid for reads of num_blocks * 16 bytes
+/// - alphas_out must be valid for writes of num_blocks * 8 bytes
+/// - colors_out must be valid for writes of num_blocks * 4 bytes
 /// - indices_out must be valid for writes of num_blocks * 4 bytes
 /// - decorrelation_mode must be a valid [`YCoCgVariant`]
 #[inline]
 pub(crate) unsafe fn transform_with_decorrelate_generic(
     input_ptr: *const u8,
-    colours_out: *mut u32,
+    alphas_out: *mut u64,
+    colors_out: *mut u32,
     indices_out: *mut u32,
     num_blocks: usize,
     decorrelation_mode: YCoCgVariant,
 ) {
     match decorrelation_mode {
         YCoCgVariant::Variant1 => {
-            transform_decorr_var1(input_ptr, colours_out, indices_out, num_blocks)
+            transform_decorr_var1(input_ptr, alphas_out, colors_out, indices_out, num_blocks)
         }
         YCoCgVariant::Variant2 => {
-            transform_decorr_var2(input_ptr, colours_out, indices_out, num_blocks)
+            transform_decorr_var2(input_ptr, alphas_out, colors_out, indices_out, num_blocks)
         }
         YCoCgVariant::Variant3 => {
-            transform_decorr_var3(input_ptr, colours_out, indices_out, num_blocks)
+            transform_decorr_var3(input_ptr, alphas_out, colors_out, indices_out, num_blocks)
         }
         YCoCgVariant::None => unreachable_unchecked(),
     }
@@ -37,16 +39,24 @@ pub(crate) unsafe fn transform_with_decorrelate_generic(
 
 unsafe fn transform_decorr<const VARIANT: u8>(
     mut input_ptr: *const u8,
-    mut colours_out: *mut u32,
+    mut alphas_out: *mut u64,
+    mut colors_out: *mut u32,
     mut indices_out: *mut u32,
     num_blocks: usize,
 ) {
-    let input_end = input_ptr.add(num_blocks * 8);
+    let input_end = input_ptr.add(num_blocks * 16);
     while input_ptr < input_end {
-        // Read color endpoints and indices
-        let color_raw = read_unaligned(input_ptr as *const u32);
-        let index_value = read_unaligned(input_ptr.add(4) as *const u32);
-        input_ptr = input_ptr.add(8);
+        // Read BC2 block (16 bytes)
+        // Offset 0-7: Alpha data (8 bytes)
+        let alpha_data = read_unaligned(input_ptr as *const u64);
+
+        // Offset 8-11: Color endpoints (4 bytes)
+        let color_raw = read_unaligned(input_ptr.add(8) as *const u32);
+
+        // Offset 12-15: Indices (4 bytes)
+        let index_value = read_unaligned(input_ptr.add(12) as *const u32);
+
+        input_ptr = input_ptr.add(16);
 
         // Extract two 16-bit colors
         let color0 = Color565::from_raw(color_raw as u16);
@@ -74,10 +84,12 @@ unsafe fn transform_decorr<const VARIANT: u8>(
             (decorr0.raw_value() as u32) | ((decorr1.raw_value() as u32) << 16);
 
         // Write to separate buffers
-        write_unaligned(colours_out, decorrelated_colors);
+        write_unaligned(alphas_out, alpha_data);
+        write_unaligned(colors_out, decorrelated_colors);
         write_unaligned(indices_out, index_value);
 
-        colours_out = colours_out.add(1);
+        alphas_out = alphas_out.add(1);
+        colors_out = colors_out.add(1);
         indices_out = indices_out.add(1);
     }
 }
@@ -86,31 +98,34 @@ unsafe fn transform_decorr<const VARIANT: u8>(
 #[inline]
 pub(crate) unsafe fn transform_decorr_var1(
     input_ptr: *const u8,
-    colours_out: *mut u32,
+    alphas_out: *mut u64,
+    colors_out: *mut u32,
     indices_out: *mut u32,
     num_blocks: usize,
 ) {
-    transform_decorr::<1>(input_ptr, colours_out, indices_out, num_blocks)
+    transform_decorr::<1>(input_ptr, alphas_out, colors_out, indices_out, num_blocks)
 }
 
 #[inline]
 pub(crate) unsafe fn transform_decorr_var2(
     input_ptr: *const u8,
-    colours_out: *mut u32,
+    alphas_out: *mut u64,
+    colors_out: *mut u32,
     indices_out: *mut u32,
     num_blocks: usize,
 ) {
-    transform_decorr::<2>(input_ptr, colours_out, indices_out, num_blocks)
+    transform_decorr::<2>(input_ptr, alphas_out, colors_out, indices_out, num_blocks)
 }
 
 #[inline]
 pub(crate) unsafe fn transform_decorr_var3(
     input_ptr: *const u8,
-    colours_out: *mut u32,
+    alphas_out: *mut u64,
+    colors_out: *mut u32,
     indices_out: *mut u32,
     num_blocks: usize,
 ) {
-    transform_decorr::<3>(input_ptr, colours_out, indices_out, num_blocks)
+    transform_decorr::<3>(input_ptr, alphas_out, colors_out, indices_out, num_blocks)
 }
 
 #[cfg(test)]

@@ -59,9 +59,12 @@
 //! [`YCoCgVariant`]: dxt_lossless_transform_common::color_565::YCoCgVariant
 //! [`Color565`]: dxt_lossless_transform_common::color_565::Color565
 
+pub mod transform;
+pub mod untransform;
+
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
-/// Transform BC2 data from standard interleaved format to separated color/index format
+/// Transform BC2 data from standard interleaved format to separated alpha/color/index format
 /// while applying YCoCg decorrelation using best known implementation for current CPU.
 ///
 /// # Safety
@@ -72,50 +75,29 @@ use dxt_lossless_transform_common::color_565::YCoCgVariant;
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
 pub(crate) unsafe fn transform_with_decorrelate(
-    _input_ptr: *const u8,
-    _output_ptr: *mut u8,
-    _len: usize,
-    _decorrelation_mode: YCoCgVariant,
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+    decorrelation_mode: YCoCgVariant,
 ) {
-    // STUB: Implementation pending
-    // TODO: Implement YCoCg decorrelation for BC2 color components while preserving alpha
-    todo!("BC2 YCoCg decorrelation transform not yet implemented")
+    transform::transform_with_decorrelate(input_ptr, output_ptr, len, decorrelation_mode);
 }
 
-/// Transform BC2 data from separated color/index format back to standard interleaved format
+/// Transform BC2 data from separated alpha/color/index format back to standard interleaved format
 /// while applying YCoCg recorrelation using best known implementation for current CPU.
-///
-/// This function reverses the operation of [`transform_with_decorrelate`], recombining
-/// split BC2 data while applying YCoCg recorrelation to restore the original color values.
 ///
 /// # Safety
 ///
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
-/// - len must be divisible by 16 (BC2 block size)
+/// - len must be divisible by 16
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
-/// - Input and output buffers must not overlap
-///
-/// # Parameters
-///
-/// - `input_ptr`: Pointer to BC2 blocks in separated format with decorrelated colors (from [`transform_with_decorrelate`])
-/// - `output_ptr`: Pointer to output buffer for standard BC2 format
-/// - `len`: Total size in bytes (must be multiple of 16)
-/// - `recorrelation_mode`: YCoCg variant to apply (must match the original decorrelation mode)
-///
-/// # Remarks
-///
-/// The recorrelation mode must exactly match the decorrelation mode used in the original
-/// [`transform_with_decorrelate`] call to ensure perfect round-trip reconstruction.
-/// The alpha data is copied unchanged during the recombination process.
 #[inline]
 pub(crate) unsafe fn untransform_with_recorrelate(
-    _input_ptr: *const u8,
-    _output_ptr: *mut u8,
-    _len: usize,
-    _recorrelation_mode: YCoCgVariant,
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
+    len: usize,
+    recorrelation_mode: YCoCgVariant,
 ) {
-    // STUB: Implementation pending
-    // TODO: Implement YCoCg recorrelation for BC2 color components while preserving alpha
-    todo!("BC2 YCoCg recorrelation untransform not yet implemented")
+    untransform::untransform_with_recorrelate(input_ptr, output_ptr, len, recorrelation_mode);
 }

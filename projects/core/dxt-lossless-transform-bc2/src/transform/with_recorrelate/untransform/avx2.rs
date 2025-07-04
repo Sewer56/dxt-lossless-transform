@@ -8,7 +8,6 @@ use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx2::{
     recorrelate_ycocg_r_var1_avx2, recorrelate_ycocg_r_var2_avx2, recorrelate_ycocg_r_var3_avx2,
 };
 
-// Permutation masks matching the original assembly implementation
 #[allow(clippy::unusual_byte_groupings)]
 static ALPHA_PERMUTE_MASK: [u32; 8] = [0, 1, 4, 5, 2, 3, 6, 7u32];
 
@@ -91,7 +90,7 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
         let alphas_raw_1 = _mm256_loadu_si256(alphas_in.add(4) as *const __m256i); // Next 32 bytes
         alphas_in = alphas_in.add(8);
 
-        // Apply alpha permutation - matching the original assembly's vpermd instructions
+        // Apply alpha permutation - (vpermd in original asm)
         let alphas_0 = _mm256_permutevar8x32_epi32(alphas_raw_0, alpha_perm_mask);
         let alphas_1 = _mm256_permutevar8x32_epi32(alphas_raw_1, alpha_perm_mask);
 
@@ -109,18 +108,17 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
             _ => unreachable_unchecked(),
         };
 
-        // Combine colors and indices using vperm2i128 - matching the original assembly
+        // Combine colors and indices (vperm2i128 in original asm)
         let colors_indices_4 = _mm256_permute2x128_si256(colors_recorrelated, indices_raw, 0x20);
         let colors_indices_5 = _mm256_permute2x128_si256(colors_recorrelated, indices_raw, 0x31);
 
-        // Apply indices/colors permutation - matching the original assembly's vpermd instructions
+        // Apply indices/colors permutation - (vpermd in original asm)
         let colors_indices_permuted_4 =
             _mm256_permutevar8x32_epi32(colors_indices_4, indcol_perm_mask);
         let colors_indices_permuted_5 =
             _mm256_permutevar8x32_epi32(colors_indices_5, indcol_perm_mask);
 
-        // Interleave alphas with colors/indices using vpunpcklqdq and vpunpckhqdq
-        // This matches the original assembly's interleaving pattern
+        // Interleave alphas with colors/indices (vpunpcklqdq and vpunpckhqdq in original asm)
         let result_0 = _mm256_unpacklo_epi64(alphas_0, colors_indices_permuted_4); // blocks 0+1
         let result_1 = _mm256_unpackhi_epi64(alphas_0, colors_indices_permuted_4); // blocks 2+3
         let result_2 = _mm256_unpacklo_epi64(alphas_1, colors_indices_permuted_5); // blocks 4+5

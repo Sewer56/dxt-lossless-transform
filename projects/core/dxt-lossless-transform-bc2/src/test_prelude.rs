@@ -28,6 +28,7 @@ pub use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 // but not re-exported due to visibility constraints
 
 // Common types from dxt_lossless_transform_common
+pub use dxt_lossless_transform_common::color_565::YCoCgVariant;
 pub use dxt_lossless_transform_common::color_8888::Color8888;
 #[allow(unused_imports)] // Might be unused in some CPU architectures, and that's ok.
 pub use dxt_lossless_transform_common::cpu_detect::*;
@@ -39,6 +40,112 @@ pub use safe_allocator_api::RawAlloc;
 
 // Re-export super for convenience in test modules
 pub use super::*;
+
+// -------------------------------------------------------------------------------------------------
+// Shared test helpers for BC2 with_recorrelate tests
+// -------------------------------------------------------------------------------------------------
+
+/// Common type alias for BC2 transform functions with decorrelation used across tests.
+pub(crate) type WithDecorrelateTransformFn =
+    unsafe fn(*const u8, *mut u64, *mut u32, *mut u32, usize);
+
+/// Common type alias for BC2 untransform functions with recorrelation used across tests.
+pub(crate) type WithRecorrelateUntransformFn =
+    unsafe fn(*const u64, *const u32, *const u32, *mut u8, usize);
+
+/// Executes a decorrelate transform → untransform round-trip on 1‥=max_blocks BC2 blocks
+/// using the specified transform function and YCoCg variant, asserting that the final data
+/// matches the original input.
+#[inline]
+pub(crate) fn run_with_decorrelate_transform_roundtrip_test(
+    transform_fn: WithDecorrelateTransformFn,
+    variant: YCoCgVariant,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_recorrelate::untransform::untransform_with_recorrelate;
+
+    for num_blocks in 1..=max_blocks {
+        let original = generate_bc2_test_data(num_blocks);
+        let len = original.len();
+
+        // Allocate combined buffer for separated data (like BC1 does)
+        let mut transformed = allocate_align_64(len);
+        let mut reconstructed = allocate_align_64(len);
+
+        unsafe {
+            // Transform with decorrelation using combined buffer layout
+            transform_fn(
+                original.as_ptr(),
+                transformed.as_mut_ptr() as *mut u64, // alphas at start
+                transformed.as_mut_ptr().add(len / 2) as *mut u32, // colors at len/2
+                transformed.as_mut_ptr().add(len / 2 + len / 4) as *mut u32, // indices at len/2 + len/4
+                num_blocks,
+            );
+
+            // Untransform with recorrelation using public dispatcher
+            untransform_with_recorrelate(
+                transformed.as_ptr(),
+                reconstructed.as_mut_ptr(),
+                len,
+                variant,
+            );
+        }
+
+        assert_eq!(
+            original.as_slice(),
+            reconstructed.as_slice(),
+            "Mismatch in {impl_name} roundtrip for {num_blocks} blocks with {variant:?}",
+        );
+    }
+}
+
+/// Executes a recorrelate untransform round-trip test by first applying the matching
+/// transform with decorrelation, then the specified untransform function, asserting
+/// that the final data matches the original input.
+#[inline]
+pub(crate) fn run_with_recorrelate_untransform_roundtrip_test(
+    untransform_fn: WithRecorrelateUntransformFn,
+    variant: YCoCgVariant,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_recorrelate::transform::transform_with_decorrelate;
+
+    for num_blocks in 1..=max_blocks {
+        let original = generate_bc2_test_data(num_blocks);
+        let len = original.len();
+
+        // Allocate buffers
+        let mut reconstructed = allocate_align_64(len);
+
+        unsafe {
+            // First transform with decorrelation using public dispatcher
+            let mut transformed = allocate_align_64(len);
+            transform_with_decorrelate(original.as_ptr(), transformed.as_mut_ptr(), len, variant);
+
+            // Extract separated pointers from the combined buffer
+            let alphas_ptr = transformed.as_ptr() as *const u64;
+            let colors_ptr = transformed.as_ptr().add(len / 2) as *const u32;
+            let indices_ptr = transformed.as_ptr().add(len / 2 + len / 4) as *const u32;
+
+            // Then untransform with recorrelation using individual function
+            untransform_fn(
+                alphas_ptr,
+                colors_ptr,
+                indices_ptr,
+                reconstructed.as_mut_ptr(),
+                num_blocks,
+            );
+        }
+
+        assert_eq!(
+            original.as_slice(),
+            reconstructed.as_slice(),
+            "Mismatch in {impl_name} roundtrip for {num_blocks} blocks with {variant:?}",
+        );
+    }
+}
 
 /// Helper to generate test data of specified size (in blocks)
 pub(crate) fn generate_bc2_test_data(num_blocks: usize) -> RawAlloc {

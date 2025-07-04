@@ -64,6 +64,7 @@ unsafe fn untransform_recorr_var3(
 }
 
 #[target_feature(enable = "avx512f")]
+#[target_feature(enable = "avx512bw")]
 #[allow(unused_assignments)]
 #[allow(clippy::zero_prefixed_literal)]
 #[allow(clippy::identity_op)]
@@ -218,7 +219,7 @@ mod tests {
         #[case] variant: YCoCgVariant,
         #[case] max_blocks: usize,
     ) {
-        if !has_avx512f() {
+        if !has_avx512f() || !has_avx512bw() {
             return;
         }
         run_with_recorrelate_untransform_roundtrip_test(func, variant, max_blocks, "AVX512");

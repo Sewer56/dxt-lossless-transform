@@ -23,6 +23,7 @@ const PERM_INDICES_BYTES: [i8; 16] = [
 ]; // For vpermt2d to gather index values
 
 #[target_feature(enable = "avx512f")]
+#[target_feature(enable = "avx512bw")]
 unsafe fn transform_decorr<const VARIANT: u8>(
     mut input_ptr: *const u8,
     mut alphas_out: *mut u64,
@@ -116,6 +117,7 @@ unsafe fn transform_decorr<const VARIANT: u8>(
 // Wrappers for asm inspection
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
+#[target_feature(enable = "avx512bw")]
 #[inline]
 pub(crate) unsafe fn transform_decorr_var1(
     input_ptr: *const u8,
@@ -129,6 +131,7 @@ pub(crate) unsafe fn transform_decorr_var1(
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
+#[target_feature(enable = "avx512bw")]
 #[inline]
 pub(crate) unsafe fn transform_decorr_var2(
     input_ptr: *const u8,
@@ -142,6 +145,7 @@ pub(crate) unsafe fn transform_decorr_var2(
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
+#[target_feature(enable = "avx512bw")]
 #[inline]
 pub(crate) unsafe fn transform_decorr_var3(
     input_ptr: *const u8,
@@ -191,7 +195,7 @@ mod tests {
         #[case] variant: YCoCgVariant,
         #[case] max_blocks: usize,
     ) {
-        if !has_avx512f() {
+        if !has_avx512f() || !has_avx512bw() {
             return;
         }
         run_with_decorrelate_transform_roundtrip_test(func, variant, max_blocks, "AVX512");

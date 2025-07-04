@@ -79,12 +79,13 @@ unsafe fn transform_decorr<const VARIANT: u8>(
             _ => unreachable_unchecked(),
         };
 
-        // Pack decorated colors into u32
-        let decorated_colors = (decorr0.raw_value() as u32) | ((decorr1.raw_value() as u32) << 16);
+        // Pack decorrelated colors into u32
+        let decorrelated_colors =
+            (decorr0.raw_value() as u32) | ((decorr1.raw_value() as u32) << 16);
 
         // Write to separate buffers
         write_unaligned(alphas_out, alpha_data);
-        write_unaligned(colors_out, decorated_colors);
+        write_unaligned(colors_out, decorrelated_colors);
         write_unaligned(indices_out, index_value);
 
         alphas_out = alphas_out.add(1);

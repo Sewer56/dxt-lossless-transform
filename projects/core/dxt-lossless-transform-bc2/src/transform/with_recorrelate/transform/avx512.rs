@@ -38,8 +38,8 @@ unsafe fn transform_decorr<const VARIANT: u8>(
         _mm512_cvtepi8_epi32(_mm_loadu_epi8(PERM_INDICES_BYTES.as_ptr() as *const _));
 
     // Process 16 BC2 blocks at a time = 256 bytes
-    let num_iterations = num_blocks / 16 * 16; // 16 blocks per iteration. Divide to round down.
-    let input_end = input_ptr.add(num_iterations * 16); // 16 bytes per block
+    let vectorized_blocks = num_blocks & !15; // Round down to multiple of 16
+    let input_end = input_ptr.add(vectorized_blocks * 16); // 16 bytes per block
 
     while input_ptr < input_end {
         // Load 256 bytes (16 blocks)

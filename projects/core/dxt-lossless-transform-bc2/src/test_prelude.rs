@@ -463,6 +463,126 @@ pub(crate) fn run_standard_untransform_unaligned_test(
     }
 }
 
+// -------------------------------------------------------------
+// Shared test helpers for split colour and recorrelate tests
+// -------------------------------------------------------------
+
+/// Common type alias for BC2 split colour and decorrelate transform functions used across tests.
+pub(crate) type SplitColourAndRecorrTransformFn =
+    unsafe fn(*const u8, *mut u64, *mut u16, *mut u16, *mut u32, usize, YCoCgVariant);
+
+/// Common type alias for BC2 split colour and recorrelate untransform functions used across tests.
+pub(crate) type SplitColourAndRecorrUntransformFn =
+    unsafe fn(*const u64, *const u16, *const u16, *const u32, *mut u8, usize, YCoCgVariant);
+
+/// Executes a split colour and decorrelate transform → untransform round-trip test
+/// using the specified transform function and YCoCg variant, asserting that the final data
+/// matches the original input.
+#[inline]
+pub(crate) fn run_split_colour_and_recorr_transform_roundtrip_test(
+    transform_fn: SplitColourAndRecorrTransformFn,
+    variant: YCoCgVariant,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_colour_and_recorr::untransform_with_split_colour_and_recorr;
+
+    for num_blocks in 1..=max_blocks {
+        let original = generate_bc2_test_data(num_blocks);
+
+        // Allocate separate arrays for split colour data
+        let mut alpha_data = allocate_align_64(num_blocks * 8);
+        let mut color0_data = allocate_align_64(num_blocks * 2);
+        let mut color1_data = allocate_align_64(num_blocks * 2);
+        let mut indices_data = allocate_align_64(num_blocks * 4);
+        let mut reconstructed = allocate_align_64(original.len());
+
+        unsafe {
+            // Transform using the function being tested
+            transform_fn(
+                original.as_ptr(),
+                alpha_data.as_mut_ptr() as *mut u64,
+                color0_data.as_mut_ptr() as *mut u16,
+                color1_data.as_mut_ptr() as *mut u16,
+                indices_data.as_mut_ptr() as *mut u32,
+                num_blocks,
+                variant,
+            );
+
+            // Untransform using the generic dispatcher
+            untransform_with_split_colour_and_recorr(
+                alpha_data.as_ptr() as *const u64,
+                color0_data.as_ptr() as *const u16,
+                color1_data.as_ptr() as *const u16,
+                indices_data.as_ptr() as *const u32,
+                reconstructed.as_mut_ptr(),
+                num_blocks,
+                variant,
+            );
+        }
+
+        assert_eq!(
+            original.as_slice(),
+            reconstructed.as_slice(),
+            "Mismatch in {impl_name} roundtrip for {num_blocks} blocks with {variant:?}",
+        );
+    }
+}
+
+/// Executes a split colour and recorrelate untransform round-trip test by first applying the matching
+/// transform, then the specified untransform function, asserting that the final data
+/// matches the original input.
+#[inline]
+pub(crate) fn run_split_colour_and_recorr_untransform_roundtrip_test(
+    untransform_fn: SplitColourAndRecorrUntransformFn,
+    variant: YCoCgVariant,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_colour_and_recorr::transform_with_split_colour_and_recorr;
+
+    for num_blocks in 1..=max_blocks {
+        let original = generate_bc2_test_data(num_blocks);
+
+        // Allocate separate arrays for split colour data
+        let mut alpha_data = allocate_align_64(num_blocks * 8);
+        let mut color0_data = allocate_align_64(num_blocks * 2);
+        let mut color1_data = allocate_align_64(num_blocks * 2);
+        let mut indices_data = allocate_align_64(num_blocks * 4);
+        let mut reconstructed = allocate_align_64(original.len());
+
+        unsafe {
+            // First transform using the generic dispatcher
+            transform_with_split_colour_and_recorr(
+                original.as_ptr(),
+                alpha_data.as_mut_ptr() as *mut u64,
+                color0_data.as_mut_ptr() as *mut u16,
+                color1_data.as_mut_ptr() as *mut u16,
+                indices_data.as_mut_ptr() as *mut u32,
+                num_blocks,
+                variant,
+            );
+
+            // Then untransform using the function being tested
+            untransform_fn(
+                alpha_data.as_ptr() as *const u64,
+                color0_data.as_ptr() as *const u16,
+                color1_data.as_ptr() as *const u16,
+                indices_data.as_ptr() as *const u32,
+                reconstructed.as_mut_ptr(),
+                num_blocks,
+                variant,
+            );
+        }
+
+        assert_eq!(
+            original.as_slice(),
+            reconstructed.as_slice(),
+            "Mismatch in {impl_name} roundtrip for {num_blocks} blocks with {variant:?}",
+        );
+    }
+}
+
 #[test]
 fn validate_bc2_test_data_generator() {
     let expected: Vec<u8> = vec![

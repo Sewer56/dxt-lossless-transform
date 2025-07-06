@@ -15,7 +15,7 @@ pub(crate) unsafe fn transform_with_split_colour(
     mut indices_out: *mut u32,
     block_count: usize,
 ) {
-    // Process 4 blocks at a time (64 bytes) with SSE2
+    // Process 8 blocks at a time (128 bytes) with SSE2
     let num_iterations = block_count / 8 * 8; // 8 blocks per iteration. Divide to round down.
     let input_end = input_ptr.add(num_iterations * 16); // * 16 bytes per block
 

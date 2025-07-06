@@ -178,15 +178,15 @@ pub(crate) unsafe fn transform_with_split_colour(
 
         // Store results
         _mm512_storeu_si512(alpha_out as *mut __m512i, alphas_0); // alphas 0
-        _mm512_storeu_si512(alpha_out.add(64) as *mut __m512i, alphas_1); // alphas 1
-        _mm512_storeu_si512(alpha_out.add(128) as *mut __m512i, alphas_2); // alphas 2
-        _mm512_storeu_si512(alpha_out.add(192) as *mut __m512i, alphas_3); // alphas 3
+        _mm512_storeu_si512(alpha_out.add(8) as *mut __m512i, alphas_1); // alphas 1 (8 u64s = 64 bytes)
+        _mm512_storeu_si512(alpha_out.add(16) as *mut __m512i, alphas_2); // alphas 2 (16 u64s = 128 bytes)
+        _mm512_storeu_si512(alpha_out.add(24) as *mut __m512i, alphas_3); // alphas 3 (24 u64s = 192 bytes)
 
         _mm512_storeu_si512(color0_out as *mut __m512i, color0_only); // colours
         _mm512_storeu_si512(color1_out as *mut __m512i, color1_only); // colours
 
         _mm512_storeu_si512(indices_out as *mut __m512i, indices_only_0); // indices
-        _mm512_storeu_si512(indices_out.add(64) as *mut __m512i, indices_only_1); // indices
+        _mm512_storeu_si512(indices_out.add(16) as *mut __m512i, indices_only_1); // indices (16 u32s = 64 bytes)
 
         // Update pointers
         alpha_out = alpha_out.add(32); // 32 u64s = 256 bytes

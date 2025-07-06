@@ -1,12 +1,10 @@
 //! Combine split BC2 data back into standard interleaved format using the best known implementation for the current CPU.
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+mod avx2;
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 mod avx512;
-
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-mod avx2;
-
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 mod sse2;
 
@@ -23,6 +21,7 @@ mod generic;
 /// - `output_ptr` must be valid for writes of `block_count * 16` bytes
 ///
 /// The buffers must not overlap.
+#[inline]
 pub(crate) unsafe fn untransform_with_split_colour(
     alpha_ptr: *const u64,
     color0_ptr: *const u16,
@@ -56,7 +55,8 @@ pub(crate) unsafe fn untransform_with_split_colour(
     }
 }
 
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[inline(always)]
 unsafe fn untransform_with_split_colour_x86(
     alpha_ptr: *const u64,
     color0_ptr: *const u16,
@@ -68,16 +68,84 @@ unsafe fn untransform_with_split_colour_x86(
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     use dxt_lossless_transform_common::cpu_detect::*;
 
-    // Temporarily disable SIMD to test generic implementation
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        // Skip SIMD for now
+        #[cfg(feature = "nightly")]
+        if has_avx512f() && has_avx512bw() {
+            avx512::untransform_with_split_colour(
+                alpha_ptr,
+                color0_ptr,
+                color1_ptr,
+                indices_ptr,
+                output_ptr,
+                block_count,
+            );
+            return;
+        }
+
+        if has_avx2() {
+            avx2::untransform_with_split_colour(
+                alpha_ptr,
+                color0_ptr,
+                color1_ptr,
+                indices_ptr,
+                output_ptr,
+                block_count,
+            );
+            return;
+        }
+
+        if has_sse2() {
+            sse2::untransform_with_split_colour(
+                alpha_ptr,
+                color0_ptr,
+                color1_ptr,
+                indices_ptr,
+                output_ptr,
+                block_count,
+            );
+            return;
+        }
     }
 
-    // Temporarily disable compile-time SIMD as well
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        // Skip SIMD for now
+        #[cfg(feature = "nightly")]
+        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512bw") {
+            avx512::untransform_with_split_colour(
+                alpha_ptr,
+                color0_ptr,
+                color1_ptr,
+                indices_ptr,
+                output_ptr,
+                block_count,
+            );
+            return;
+        }
+
+        if cfg!(target_feature = "avx2") {
+            avx2::untransform_with_split_colour(
+                alpha_ptr,
+                color0_ptr,
+                color1_ptr,
+                indices_ptr,
+                output_ptr,
+                block_count,
+            );
+            return;
+        }
+
+        if cfg!(target_feature = "sse2") {
+            sse2::untransform_with_split_colour(
+                alpha_ptr,
+                color0_ptr,
+                color1_ptr,
+                indices_ptr,
+                output_ptr,
+                block_count,
+            );
+            return;
+        }
     }
 
     generic::untransform_with_split_colour(

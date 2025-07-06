@@ -7,7 +7,6 @@ use core::arch::x86_64::*;
 /// AVX2 implementation for split-colour untransform for BC2.
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx2")]
-#[allow(dead_code)]
 pub(crate) unsafe fn untransform_with_split_colour(
     mut alpha_ptr: *const u64,
     mut color0_ptr: *const u16,

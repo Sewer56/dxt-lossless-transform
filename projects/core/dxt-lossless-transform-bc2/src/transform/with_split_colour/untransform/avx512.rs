@@ -15,7 +15,6 @@ use core::arch::x86_64::*;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
-#[allow(dead_code)]
 #[allow(unused_variables)]
 #[allow(unused_mut)]
 pub(crate) unsafe fn untransform_with_split_colour(

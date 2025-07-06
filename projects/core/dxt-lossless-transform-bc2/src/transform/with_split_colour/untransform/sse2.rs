@@ -16,7 +16,7 @@ pub(crate) unsafe fn untransform_with_split_colour(
     block_count: usize,
 ) {
     let blocks8 = block_count / 8 * 8; // round down via division
-    let output_end = output_ptr.add(blocks8 * 16); // blocks8 * 8 blocks per iteration * 16 bytes per block
+    let output_end = output_ptr.add(blocks8 * 16); // * 16 bytes per block
 
     while output_ptr < output_end {
         // Load 8 alpha values (64 bytes)

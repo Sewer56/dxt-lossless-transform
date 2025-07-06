@@ -359,57 +359,6 @@ pub(crate) fn run_split_colour_transform_roundtrip_test(
     }
 }
 
-/// Executes a split colour untransform round-trip test by first applying the matching
-/// transform, then the specified untransform function, asserting that the final data
-/// matches the original input.
-#[inline]
-pub(crate) fn run_split_colour_untransform_roundtrip_test(
-    untransform_fn: SplitColourUntransformFn,
-    max_blocks: usize,
-    impl_name: &str,
-) {
-    use crate::transform::with_split_colour::transform_with_split_colour;
-
-    for num_blocks in 1..=max_blocks {
-        let original = generate_bc2_test_data(num_blocks);
-
-        // Allocate separate arrays for split colour data
-        let mut alpha_data = allocate_align_64(num_blocks * 8);
-        let mut color0_data = allocate_align_64(num_blocks * 2);
-        let mut color1_data = allocate_align_64(num_blocks * 2);
-        let mut indices_data = allocate_align_64(num_blocks * 4);
-        let mut reconstructed = allocate_align_64(original.len());
-
-        unsafe {
-            // First transform using the generic dispatcher
-            transform_with_split_colour(
-                original.as_ptr(),
-                alpha_data.as_mut_ptr() as *mut u64,
-                color0_data.as_mut_ptr() as *mut u16,
-                color1_data.as_mut_ptr() as *mut u16,
-                indices_data.as_mut_ptr() as *mut u32,
-                num_blocks,
-            );
-
-            // Then untransform using the function being tested
-            untransform_fn(
-                alpha_data.as_ptr() as *const u64,
-                color0_data.as_ptr() as *const u16,
-                color1_data.as_ptr() as *const u16,
-                indices_data.as_ptr() as *const u32,
-                reconstructed.as_mut_ptr(),
-                num_blocks,
-            );
-        }
-
-        assert_eq!(
-            original.as_slice(),
-            reconstructed.as_slice(),
-            "Mismatch in {impl_name} roundtrip for {num_blocks} blocks",
-        );
-    }
-}
-
 /// Executes an unaligned untransform test for split colour operations.
 /// Tests a transform→untransform roundtrip with deliberately misaligned buffers.
 #[inline]

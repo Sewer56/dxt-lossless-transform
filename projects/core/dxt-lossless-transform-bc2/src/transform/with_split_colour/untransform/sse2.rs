@@ -95,6 +95,6 @@ mod tests {
         }
 
         // 64 bytes processed per main loop iteration (* 2 / 16 == 8)
-        run_split_colour_untransform_roundtrip_test(untransform_with_split_colour, 8, "SSE2");
+        run_with_split_colour_untransform_unaligned_test(untransform_with_split_colour, 8, "SSE2");
     }
 }

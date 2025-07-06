@@ -92,7 +92,7 @@ const PERM_COLOR1_EPI16: [i16; 32] = [
 
 /// AVX512 implementation for split‐colour transform for BC2.
 ///
-/// This implementation processes BC2 blocks in chunks of 8 blocks (128 bytes)
+/// This implementation processes BC2 blocks in chunks of 32 blocks (512 bytes)
 /// and splits them into separate alpha, color0, color1, and indices arrays.
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -120,7 +120,7 @@ pub(crate) unsafe fn transform_with_split_colour(
     let perm_color1_epi16 = _mm512_loadu_si512(PERM_COLOR1_EPI16.as_ptr() as *const __m512i);
 
     while input_ptr < input_end {
-        // Load 256 bytes (16 blocks)
+        // Load 512 bytes (32 blocks)
         let blocks_0 = _mm512_loadu_si512(input_ptr as *const __m512i);
         let blocks_1 = _mm512_loadu_si512(input_ptr.add(64) as *const __m512i);
         let blocks_2 = _mm512_loadu_si512(input_ptr.add(128) as *const __m512i);
@@ -220,7 +220,7 @@ mod tests {
             return;
         }
 
-        // 128 bytes processed per main loop iteration (* 2 / 16 == 16)
-        run_split_colour_transform_roundtrip_test(transform_with_split_colour, 16, "AVX512");
+        // 512 bytes processed per main loop iteration (* 2 / 16 == )
+        run_split_colour_transform_roundtrip_test(transform_with_split_colour, 64, "AVX512");
     }
 }

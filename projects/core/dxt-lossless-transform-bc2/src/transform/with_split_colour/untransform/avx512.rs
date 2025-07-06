@@ -7,10 +7,6 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 
 /// AVX512 implementation for split‐colour untransform for BC2.
-///
-/// This implementation processes BC2 blocks in chunks of 8 blocks (128 bytes)
-/// and combines separate alpha, color0, color1, and indices arrays back into
-/// standard BC2 block format.
 #[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx512f")]

@@ -17,7 +17,11 @@
 //! #include <stdlib.h>
 //!
 //! // Your BC1 texture data (8 bytes per BC1 block)
-//! uint8_t bc1_data[] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
+//! uint8_t bc1_data[] = {
+//!     0x12, 0x34,                                      // Color0 (RGB565)
+//!     0x56, 0x78,                                      // Color1 (RGB565)
+//!     0x9A, 0xBC, 0xDE, 0xF0                           // Color indices (4 bytes)
+//! };
 //! uint8_t transformed_data[8];
 //!
 //! // Create and configure manual transform builder
@@ -47,7 +51,11 @@
 //! #include <stdlib.h>
 //!
 //! // Your transformed BC1 data (after decompression)
-//! uint8_t transformed_data[] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
+//! uint8_t transformed_data[] = {
+//!     0x12, 0x34,                                      // Color0 (RGB565)
+//!     0x56, 0x78,                                      // Color1 (RGB565)
+//!     0x9A, 0xBC, 0xDE, 0xF0                           // Color indices (4 bytes)
+//! };
 //! uint8_t restored_data[8];
 //!
 //! // Create builder with SAME settings used for original transform
@@ -77,7 +85,11 @@
 //! #include <stdlib.h>
 //!
 //! // Your BC1 texture data
-//! uint8_t bc1_data[] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
+//! uint8_t bc1_data[] = {
+//!     0x12, 0x34,                                      // Color0 (RGB565)
+//!     0x56, 0x78,                                      // Color1 (RGB565)
+//!     0x9A, 0xBC, 0xDE, 0xF0                           // Color indices (4 bytes)
+//! };
 //! uint8_t transformed_data[8];
 //!
 //! // Create manual transform builder to receive the selected settings

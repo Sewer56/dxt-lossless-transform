@@ -34,6 +34,11 @@ nightly = [
     "dxt-lossless-transform-api-common/nightly",
     "safe-allocator-api/nightly",
 ]
+# Enable C exports
+c-exports = [
+    "dxt-lossless-transform-api-common/c-exports",
+    "dxt-lossless-transform-bc2/c-exports",
+]
 
 [dependencies]
 dxt-lossless-transform-bc2 = { workspace = true, default-features = false }

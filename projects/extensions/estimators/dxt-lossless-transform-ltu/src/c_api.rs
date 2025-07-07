@@ -167,7 +167,11 @@ fn create_c_size_estimator(ltu: Box<LosslessTransformUtilsSizeEstimation>) -> Dl
 /// let bc1_estimate_builder = unsafe { dltbc1_new_EstimateOptionsBuilder() };
 ///
 /// // Your BC1 texture data (8 bytes per BC1 block)
-/// let bc1_data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
+/// let bc1_data = [
+///     0x12, 0x34,                                      // Color0 (RGB565)
+///     0x56, 0x78,                                      // Color1 (RGB565)
+///     0x9A, 0xBC, 0xDE, 0xF0                           // Color indices (4 bytes)
+/// ];
 ///
 /// // Determine optimal settings using LTU for fast estimation
 /// let result = unsafe {

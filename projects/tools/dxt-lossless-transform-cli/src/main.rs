@@ -25,6 +25,8 @@ enum Commands {
     DebugBc7(commands::debug_bc7::DebugCmd),
     #[cfg(feature = "debug-bc1")]
     DebugBc1(commands::debug_bc1::DebugCmd),
+    #[cfg(feature = "debug-bc2")]
+    DebugBc2(commands::debug_bc2::DebugCmd),
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -44,6 +46,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         #[cfg(feature = "debug-bc1")]
         Commands::DebugBc1(cmd) => {
             commands::debug_bc1::handle_debug_command(cmd)?;
+        }
+        #[cfg(feature = "debug-bc2")]
+        Commands::DebugBc2(cmd) => {
+            commands::debug_bc2::handle_debug_command(cmd)?;
         }
     }
 

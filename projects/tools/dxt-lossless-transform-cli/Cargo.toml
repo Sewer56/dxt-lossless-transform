@@ -14,6 +14,8 @@ multithreaded = ["rayon"]
 debug-bc7 = ["debug"]
 # Debugging BC1 behaviour
 debug-bc1 = ["debug", "dxt-lossless-transform-bc1/experimental"]
+# Debugging BC2 behaviour
+debug-bc2 = ["debug", "dxt-lossless-transform-bc2"]
 # Common debugging utilities
 debug = ["zstd-sys", "thiserror-no-std", "xxhash-rust", "bincode", "serde", "dirs", "derive-enum-all-values", "lossless-transform-utils", "dxt-lossless-transform-dds/debug-block-extraction", "dxt-lossless-transform-file-formats-debug"]
 
@@ -26,6 +28,7 @@ rayon = { version = "1.10.0", optional = true }
 lightweight-mmap = "0.7.0"
 dxt-lossless-transform-dds = { workspace = true, default-features = true }
 dxt-lossless-transform-bc1 = { workspace = true, default-features = true }
+dxt-lossless-transform-bc2 = { workspace = true, default-features = true, optional = true }
 dxt-lossless-transform-common = { workspace = true, default-features = true }
 dxt-lossless-transform-api-common = { workspace = true, default-features = true }
 dxt-lossless-transform-bc1-api = { workspace = true, default-features = true }

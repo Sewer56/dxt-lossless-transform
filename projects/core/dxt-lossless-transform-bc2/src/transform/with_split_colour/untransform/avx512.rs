@@ -276,10 +276,10 @@ mod tests {
             return;
         }
 
-        // 512 bytes processed per main loop iteration (* 2 / 32 == 32)
+        // 512 bytes processed per main loop iteration (* 2 / 16 == 64)
         run_with_split_colour_untransform_unaligned_test(
             untransform_with_split_colour,
-            32,
+            64,
             "AVX512",
         );
     }

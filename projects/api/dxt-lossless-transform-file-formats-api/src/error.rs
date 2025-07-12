@@ -66,6 +66,10 @@ pub enum TransformError {
     #[error("BC1 transform error: {0}")]
     Bc1(#[from] dxt_lossless_transform_bc1_api::Bc1Error),
 
+    /// BC2 transform error
+    #[error("BC2 transform error: {0}")]
+    Bc2(#[from] dxt_lossless_transform_bc2_api::Bc2Error<alloc::string::String>),
+
     /// Unrecognized transform format in header - the transform header contains an unsupported format variant
     #[error("Unrecognized or unsupported transform format in header")]
     UnknownTransformFormat,

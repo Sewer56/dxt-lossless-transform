@@ -57,10 +57,9 @@ where
                     Bc1Error::InvalidLength(len) => {
                         TransformError::Bc1(Bc1Error::InvalidLength(len))
                     }
-                    dxt_lossless_transform_bc1_api::Bc1Error::OutputBufferTooSmall {
-                        needed,
-                        actual,
-                    } => TransformError::Bc1(Bc1Error::OutputBufferTooSmall { needed, actual }),
+                    Bc1Error::OutputBufferTooSmall { needed, actual } => {
+                        TransformError::Bc1(Bc1Error::OutputBufferTooSmall { needed, actual })
+                    }
                     Bc1Error::AllocationFailed => TransformError::Bc1(Bc1Error::AllocationFailed),
                     Bc1Error::SizeEstimationFailed(err) => TransformError::Bc1(
                         Bc1Error::SizeEstimationFailed(alloc::format!("{err:?}")),

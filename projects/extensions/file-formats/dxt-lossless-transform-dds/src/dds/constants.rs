@@ -2,53 +2,53 @@
 #![allow(dead_code)]
 
 /// Magic header for DDS files
-pub(crate) const DDS_MAGIC: u32 = 0x44445320_u32.to_be();
+pub(crate) const DDS_MAGIC: u32 = 0x20534444; // 'DDS ' in little-endian
 
 /// Offset of the FOURCC header used in DX9 and below.
 pub(crate) const FOURCC_OFFSET: usize = 0x54;
 
-pub(crate) const FOURCC_DXT1: u32 = 0x31545844_u32.to_le(); // 'DXT1'
-pub(crate) const FOURCC_DXT2: u32 = 0x32545844_u32.to_le(); // 'DXT2'
-pub(crate) const FOURCC_DXT3: u32 = 0x33545844_u32.to_le(); // 'DXT3'
-pub(crate) const FOURCC_DXT4: u32 = 0x34545844_u32.to_le(); // 'DXT4'
-pub(crate) const FOURCC_DXT5: u32 = 0x35545844_u32.to_le(); // 'DXT5'
-pub(crate) const FOURCC_DX10: u32 = 0x30315844_u32.to_le(); // 'DX10'
+pub(crate) const FOURCC_DXT1: u32 = 0x31545844; // 'DXT1' in little-endian
+pub(crate) const FOURCC_DXT2: u32 = 0x32545844; // 'DXT2' in little-endian
+pub(crate) const FOURCC_DXT3: u32 = 0x33545844; // 'DXT3' in little-endian
+pub(crate) const FOURCC_DXT4: u32 = 0x34545844; // 'DXT4' in little-endian
+pub(crate) const FOURCC_DXT5: u32 = 0x35545844; // 'DXT5' in little-endian
+pub(crate) const FOURCC_DX10: u32 = 0x30315844; // 'DX10' in little-endian
 
 /// Offset of the DXGI format header used in DX10 and above.
 pub(crate) const DX10_FORMAT_OFFSET: usize = 0x80;
 
 // DXGI format constants for DX10 header
-pub(crate) const DXGI_FORMAT_BC1_TYPELESS: u32 = 70_u32.to_le();
-pub(crate) const DXGI_FORMAT_BC1_UNORM: u32 = 71_u32.to_le();
-pub(crate) const DXGI_FORMAT_BC1_UNORM_SRGB: u32 = 72_u32.to_le();
+pub(crate) const DXGI_FORMAT_BC1_TYPELESS: u32 = 70;
+pub(crate) const DXGI_FORMAT_BC1_UNORM: u32 = 71;
+pub(crate) const DXGI_FORMAT_BC1_UNORM_SRGB: u32 = 72;
 
-pub(crate) const DXGI_FORMAT_BC2_TYPELESS: u32 = 73_u32.to_le();
-pub(crate) const DXGI_FORMAT_BC2_UNORM: u32 = 74_u32.to_le();
-pub(crate) const DXGI_FORMAT_BC2_UNORM_SRGB: u32 = 75_u32.to_le();
+pub(crate) const DXGI_FORMAT_BC2_TYPELESS: u32 = 73;
+pub(crate) const DXGI_FORMAT_BC2_UNORM: u32 = 74;
+pub(crate) const DXGI_FORMAT_BC2_UNORM_SRGB: u32 = 75;
 
-pub(crate) const DXGI_FORMAT_BC3_TYPELESS: u32 = 76_u32.to_le();
-pub(crate) const DXGI_FORMAT_BC3_UNORM: u32 = 77_u32.to_le();
-pub(crate) const DXGI_FORMAT_BC3_UNORM_SRGB: u32 = 78_u32.to_le();
+pub(crate) const DXGI_FORMAT_BC3_TYPELESS: u32 = 76;
+pub(crate) const DXGI_FORMAT_BC3_UNORM: u32 = 77;
+pub(crate) const DXGI_FORMAT_BC3_UNORM_SRGB: u32 = 78;
 
-pub(crate) const DXGI_FORMAT_BC6H_TYPELESS: u32 = 94_u32.to_le();
-pub(crate) const DXGI_FORMAT_BC6H_UF16: u32 = 95_u32.to_le();
-pub(crate) const DXGI_FORMAT_BC6H_SF16: u32 = 96_u32.to_le();
+pub(crate) const DXGI_FORMAT_BC6H_TYPELESS: u32 = 94;
+pub(crate) const DXGI_FORMAT_BC6H_UF16: u32 = 95;
+pub(crate) const DXGI_FORMAT_BC6H_SF16: u32 = 96;
 
-pub(crate) const DXGI_FORMAT_BC7_TYPELESS: u32 = 97_u32.to_le();
-pub(crate) const DXGI_FORMAT_BC7_UNORM: u32 = 98_u32.to_le();
-pub(crate) const DXGI_FORMAT_BC7_UNORM_SRGB: u32 = 99_u32.to_le();
+pub(crate) const DXGI_FORMAT_BC7_TYPELESS: u32 = 97;
+pub(crate) const DXGI_FORMAT_BC7_UNORM: u32 = 98;
+pub(crate) const DXGI_FORMAT_BC7_UNORM_SRGB: u32 = 99;
 
 // Additional uncompressed DXGI formats
-pub(crate) const DXGI_FORMAT_R8G8B8A8_TYPELESS: u32 = 27_u32.to_le();
-pub(crate) const DXGI_FORMAT_R8G8B8A8_UNORM: u32 = 28_u32.to_le();
-pub(crate) const DXGI_FORMAT_R8G8B8A8_UNORM_SRGB: u32 = 29_u32.to_le();
-pub(crate) const DXGI_FORMAT_R8G8B8A8_UINT: u32 = 30_u32.to_le();
-pub(crate) const DXGI_FORMAT_R8G8B8A8_SNORM: u32 = 31_u32.to_le();
-pub(crate) const DXGI_FORMAT_R8G8B8A8_SINT: u32 = 32_u32.to_le();
+pub(crate) const DXGI_FORMAT_R8G8B8A8_TYPELESS: u32 = 27;
+pub(crate) const DXGI_FORMAT_R8G8B8A8_UNORM: u32 = 28;
+pub(crate) const DXGI_FORMAT_R8G8B8A8_UNORM_SRGB: u32 = 29;
+pub(crate) const DXGI_FORMAT_R8G8B8A8_UINT: u32 = 30;
+pub(crate) const DXGI_FORMAT_R8G8B8A8_SNORM: u32 = 31;
+pub(crate) const DXGI_FORMAT_R8G8B8A8_SINT: u32 = 32;
 
-pub(crate) const DXGI_FORMAT_B8G8R8A8_UNORM: u32 = 87_u32.to_le();
-pub(crate) const DXGI_FORMAT_B8G8R8A8_TYPELESS: u32 = 90_u32.to_le();
-pub(crate) const DXGI_FORMAT_B8G8R8A8_UNORM_SRGB: u32 = 91_u32.to_le();
+pub(crate) const DXGI_FORMAT_B8G8R8A8_UNORM: u32 = 87;
+pub(crate) const DXGI_FORMAT_B8G8R8A8_TYPELESS: u32 = 90;
+pub(crate) const DXGI_FORMAT_B8G8R8A8_UNORM_SRGB: u32 = 91;
 
 // Size of the regular DDS header
 pub(crate) const DDS_HEADER_SIZE: usize = 0x80;

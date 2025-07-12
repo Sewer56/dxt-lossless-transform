@@ -140,7 +140,7 @@ impl FileFormatHandler for DdsHandler {
         }
 
         // Restore DDS magic
-        output[0..4].copy_from_slice(&DDS_MAGIC.to_ne_bytes());
+        output[0..4].copy_from_slice(&DDS_MAGIC.to_le_bytes());
 
         // Copy the rest of the header (from byte 4 to data_offset)
         output[4..data_offset].copy_from_slice(&input[4..data_offset]);

@@ -19,9 +19,11 @@ pub(crate) fn run_benchmarks(
     size: usize,
     important_benches_only: bool,
 ) {
-    group.bench_with_input(BenchmarkId::new("avx512 vbmi", size), &size, |b, _| {
-        bench_avx512_vbmi(b, input, output)
-    });
+    if is_x86_feature_detected!("avx512vbmi") {
+        group.bench_with_input(BenchmarkId::new("avx512 vbmi", size), &size, |b, _| {
+            bench_avx512_vbmi(b, input, output)
+        });
+    }
 
     if !important_benches_only {}
 }

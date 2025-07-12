@@ -1,4 +1,4 @@
-use crate::transforms::standard::untransform::portable::u32_untransform_with_separate_pointers;
+use crate::transform::standard::untransform::portable::u32_untransform_with_separate_pointers;
 
 /// # Safety
 ///

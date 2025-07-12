@@ -191,9 +191,11 @@ let bundle = TransformBundle::<LosslessTransformUtilsSizeEstimation>::new()
 
 To add support for new texture file formats, implement the handler traits.
 
-Look at `DdsHandler` from `dxt-lossless-transform-dds` crate for inspiration.
+**📖 For complete implementation guidance with step-by-step instructions, examples, and security considerations, see the [`FileFormatHandler`] trait documentation.**
 
-### Basic Handler
+Look at `DdsHandler` from `dxt-lossless-transform-dds` crate for a complete reference implementation.
+
+### Basic Handler Overview
 
 All handlers must implement [`FileFormatHandler`]:
 
@@ -214,22 +216,31 @@ impl FileFormatHandler for MyFormatHandler {
         T: SizeEstimationOperations,
         T::Error: core::fmt::Debug,
     {
-        // 0. Validate input & output buffer are large enough.
-        // 1. Parse your file format header
-        // 2. Detect BCx format (BC1, BC2, BC3, BC6H, BC7)
-        // 3. Find texture data portion
-        // 4. Call bundle.dispatch_transform() to process the texture data
-        // 5. Embed Transformheader in original file header (usually by overwriting the 'MAGIC Header')
+        // 1. Buffer Size Validation
+        // 2. Parse File Header
+        // 3. Validate Texture Data Length (CRITICAL FOR SECURITY)
+        // 4. Copy File Headers
+        // 5. Transform Texture Data
+        // 6. Preserve Leftover Data
+        // 7. Embed Transform Metadata
+        
+        // See FileFormatHandler trait documentation for complete 
+        // implementation steps with examples and security guidance
         todo!()
     }
 
     fn untransform(&self, input: &[u8], output: &mut [u8]) -> TransformResult<()> {
-        // 0. Validate input & output buffer are large enough.
-        // 1. Read the TransformHeader from the file header
-        // 2. Parse your file format header with embedded transform data
-        // 3. Extract transform details and texture data
-        // 4. Call dispatch_untransform() to restore the texture data
-        // 5. Restore original file header in output
+        // 1. Buffer Size Validation
+        // 2. Read Transform Header
+        // 3. Parse File Header (Ignoring Magic)
+        // 4. Validate Texture Data Length (CRITICAL FOR SECURITY)
+        // 5. Restore Original Magic Header
+        // 6. Copy Remaining Headers
+        // 7. Untransform Texture Data
+        // 8. Preserve Leftover Data
+        
+        // See FileFormatHandler trait documentation for complete 
+        // implementation steps with examples and security guidance
         todo!()
     }
 }

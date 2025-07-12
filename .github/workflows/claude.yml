@@ -30,6 +30,24 @@ jobs:
         with:
           fetch-depth: 1
 
+      # Install Rust toolchain and dependencies needed for the project
+      - name: Install Rust Toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          cache: false
+
+      - name: Setup Rust Caching
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: claude-rust-cache
+          cache-on-failure: true
+          cache-all-crates: true
+
+      - name: Install cross
+        shell: bash
+        run: RUSTFLAGS="" cargo install cross --git https://github.com/cross-rs/cross
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@beta

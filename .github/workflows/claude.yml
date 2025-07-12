@@ -29,6 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          submodules: recursive
 
       # Install Rust toolchain and dependencies needed for the project
       - name: Install Rust Toolchain

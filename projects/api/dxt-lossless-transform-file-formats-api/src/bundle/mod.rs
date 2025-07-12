@@ -158,7 +158,7 @@ where
                 let details = builder
                     .transform_slice_with_details(input_texture_data, output_texture_data)?;
 
-                crate::embed::formats::EmbeddableBc2Details::from_settings(details).to_header()
+                crate::embed::EmbeddableBc2Details::from_settings(details).to_header()
             }
             _ => {
                 return Err(TransformError::UnknownTransformFormat);

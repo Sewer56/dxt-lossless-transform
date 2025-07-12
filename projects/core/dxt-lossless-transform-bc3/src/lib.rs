@@ -15,7 +15,7 @@ extern crate std;
 pub mod experimental;
 
 /// Provides optimized routines to transform/untransform into various forms of the lossless transform.
-pub mod transforms;
+pub mod transform;
 
 pub mod util;
 
@@ -55,7 +55,7 @@ pub unsafe fn transform_bc3(
     len: usize,
 ) -> BC3TransformDetails {
     debug_assert!(len.is_multiple_of(16));
-    crate::transforms::standard::split_blocks(input_ptr, output_ptr, len);
+    crate::transform::standard::split_blocks(input_ptr, output_ptr, len);
     BC3TransformDetails {}
 }
 
@@ -89,7 +89,7 @@ pub unsafe fn untransform_bc3(
     _details: BC3TransformDetails,
 ) {
     debug_assert!(len.is_multiple_of(16));
-    crate::transforms::standard::unsplit_blocks(input_ptr, output_ptr, len);
+    crate::transform::standard::unsplit_blocks(input_ptr, output_ptr, len);
 }
 
 #[cfg(test)]

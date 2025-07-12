@@ -1,5 +1,5 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc3::transforms::standard::untransform::bench::{
+use dxt_lossless_transform_bc3::transform::standard::untransform::bench::{
     avx512_untransform, avx512_untransform_32_vbmi, avx512_untransform_32_vl,
 };
 use safe_allocator_api::RawAlloc;

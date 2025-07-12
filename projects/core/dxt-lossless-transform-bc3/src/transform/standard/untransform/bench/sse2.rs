@@ -4,7 +4,7 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 use core::arch::*;
 
-use crate::transforms::standard::untransform::portable::u32_untransform_with_separate_pointers;
+use crate::transform::standard::untransform::portable::u32_untransform_with_separate_pointers;
 
 /// # Safety
 ///

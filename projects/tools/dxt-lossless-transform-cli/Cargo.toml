@@ -16,6 +16,8 @@ debug-bc7 = ["debug"]
 debug-bc1 = ["debug", "dxt-lossless-transform-bc1/experimental"]
 # Debugging BC2 behaviour
 debug-bc2 = ["debug", "dxt-lossless-transform-bc2"]
+# Debugging endianness compatibility
+debug-endian = ["debug", "tempfile"]
 # Common debugging utilities
 debug = ["zstd-sys", "thiserror-no-std", "xxhash-rust", "bincode", "serde", "dirs", "derive-enum-all-values", "lossless-transform-utils", "dxt-lossless-transform-dds/debug-block-extraction", "dxt-lossless-transform-file-formats-debug"]
 
@@ -32,6 +34,7 @@ dxt-lossless-transform-bc2 = { workspace = true, default-features = true, option
 dxt-lossless-transform-common = { workspace = true, default-features = true }
 dxt-lossless-transform-api-common = { workspace = true, default-features = true }
 dxt-lossless-transform-bc1-api = { workspace = true, default-features = true }
+dxt-lossless-transform-bc2-api = { workspace = true, default-features = true }
 dxt-lossless-transform-file-formats-api = { workspace = true, default-features = true }
 dxt-lossless-transform-file-formats-debug = { workspace = true, default-features = true, optional = true }
 dxt-lossless-transform-ltu = { workspace = true, default-features = true }
@@ -49,3 +52,4 @@ serde = { optional = true, version = "1.0.215", features = ["derive"] }
 dirs = { optional = true, version = "6.0.0" }
 derive-enum-all-values = { optional = true, version = "0.2.0" }
 lossless-transform-utils = { optional = true, version = "0.1.0" }
+tempfile = { optional = true, version = "3.17.0" }

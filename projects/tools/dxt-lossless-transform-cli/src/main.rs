@@ -27,6 +27,12 @@ enum Commands {
     DebugBc1(commands::debug_bc1::DebugCmd),
     #[cfg(feature = "debug-bc2")]
     DebugBc2(commands::debug_bc2::DebugCmd),
+    #[cfg(feature = "debug-endian")]
+    DebugEndian(commands::debug_endian::DebugEndianCmd),
+    #[cfg(feature = "debug-endian")]
+    DebugEndianTransform(commands::debug_endian::DebugEndianTransformCmd),
+    #[cfg(feature = "debug-endian")]
+    DebugEndianUntransform(commands::debug_endian::DebugEndianUntransformCmd),
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -50,6 +56,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         #[cfg(feature = "debug-bc2")]
         Commands::DebugBc2(cmd) => {
             commands::debug_bc2::handle_debug_command(cmd)?;
+        }
+        #[cfg(feature = "debug-endian")]
+        Commands::DebugEndian(cmd) => {
+            commands::debug_endian::handle_debug_command(cmd)?;
+        }
+        #[cfg(feature = "debug-endian")]
+        Commands::DebugEndianTransform(cmd) => {
+            commands::debug_endian::handle_debug_endian_transform_command(cmd)?;
+        }
+        #[cfg(feature = "debug-endian")]
+        Commands::DebugEndianUntransform(cmd) => {
+            commands::debug_endian::handle_debug_endian_untransform_command(cmd)?;
         }
     }
 

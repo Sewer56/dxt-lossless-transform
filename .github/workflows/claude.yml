@@ -93,11 +93,10 @@ jobs:
             Write,
             WebSearch
           
-          # Optional: Add custom instructions for Claude to customize its behavior for your project
-          # custom_instructions: |
-          #   Follow our coding standards
-          #   Ensure all new code has tests
-          #   Use TypeScript for new files
+          # Optional: Add extra custom instructions for Claude to customize its behavior for your project
+          custom_instructions: |
+             If you modify any workflow files, then you are not able to commit them, due to GitHub
+             permissions. You must instead list the changes in the final summary.
           
           # Optional: Custom environment variables for Claude
           # claude_env: |

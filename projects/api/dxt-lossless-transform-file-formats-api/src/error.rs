@@ -19,7 +19,7 @@ pub enum FormatHandlerError {
     #[error("Unknown file format")]
     UnknownFileFormat,
 
-    /// Could not parse input file header during transform operation
+    /// Could not parse input file header during transform operation because the data is invalid/wrong.
     #[error("Invalid input file header during transform")]
     InvalidInputFileHeader,
 
@@ -42,6 +42,10 @@ pub enum FormatHandlerError {
     /// Input buffer is too short for the operation
     #[error("Input buffer too short: required at least {required} bytes, got {actual} bytes")]
     InputTooShort { required: usize, actual: usize },
+
+    /// Input buffer is too short for the texture size stated in the file header
+    #[error("Input buffer too short for stated texture size in header: required {required} bytes for texture data, got {actual} bytes")]
+    InputTooShortForStatedTextureSize { required: usize, actual: usize },
 }
 
 /// Errors that can occur during core transform operations

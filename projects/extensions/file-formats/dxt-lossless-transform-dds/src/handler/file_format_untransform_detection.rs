@@ -31,7 +31,7 @@ mod tests {
     #[test]
     fn can_handle_untransform_accepts_transformed_dds() {
         let handler = DdsHandler;
-        let mut transformed_dds = create_valid_bc1_dds(DDS_HEADER_SIZE);
+        let mut transformed_dds = create_valid_bc1_dds();
         // Overwrite magic with transform header
         transformed_dds[0..4].copy_from_slice(&[0xAB, 0xCD, 0xEF, 0x12]);
         assert!(handler.can_handle_untransform(&transformed_dds, Some("dds")));
@@ -41,7 +41,7 @@ mod tests {
     #[test]
     fn can_handle_untransform_rejects_wrong_extension() {
         let handler = DdsHandler;
-        let mut transformed_dds = create_valid_bc1_dds(DDS_HEADER_SIZE);
+        let mut transformed_dds = create_valid_bc1_dds();
         transformed_dds[0..4].copy_from_slice(&[0xAB, 0xCD, 0xEF, 0x12]);
         assert!(!handler.can_handle_untransform(&transformed_dds, Some("txt")));
     }
@@ -49,7 +49,7 @@ mod tests {
     #[test]
     fn can_handle_untransform_accepts_minimum_transformed_size() {
         let handler = DdsHandler;
-        let mut min_transformed = create_valid_bc1_dds(DDS_HEADER_SIZE);
+        let mut min_transformed = create_valid_bc1_dds();
         min_transformed[0..4].copy_from_slice(&[0xAB, 0xCD, 0xEF, 0x12]);
         assert!(handler.can_handle_untransform(&min_transformed, Some("dds")));
     }

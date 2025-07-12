@@ -27,6 +27,7 @@ debug-block-extraction = ["std", "dxt-lossless-transform-file-formats-debug"]
 [dependencies]
 dxt-lossless-transform-api-common = { workspace = true, default-features = false }
 dxt-lossless-transform-file-formats-api = { workspace = true, default-features = false }
+endian-writer = { version = "2.2" }
 
 # Optional debug dependency
 dxt-lossless-transform-file-formats-debug = { workspace = true, default-features = false, optional = true }

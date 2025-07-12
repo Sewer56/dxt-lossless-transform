@@ -5,14 +5,39 @@ use dxt_lossless_transform_dds::DdsHandler;
 use dxt_lossless_transform_file_formats_api::{
     handlers::*, transform_slice_with_bundle, untransform_slice, TransformBundle,
 };
+use endian_writer::{EndianWriter, LittleEndianWriter};
 
 fn create_test_dds_bc1() -> Vec<u8> {
-    const DDS_MAGIC: u32 = 0x44445320_u32.to_be();
+    const DDS_MAGIC: u32 = 0x20534444; // "DDS " in little-endian
+    const DDSD_CAPS: u32 = 0x1;
+    const DDSD_HEIGHT: u32 = 0x2;
+    const DDSD_WIDTH: u32 = 0x4;
+    const DDSD_PIXELFORMAT: u32 = 0x1000;
+    const DDSD_LINEARSIZE: u32 = 0x80000;
+    const DDPF_FOURCC: u32 = 0x4;
     let mut data = vec![0u8; 0x80 + 8]; // DDS header + 1 BC1 block
 
-    // DDS magic
+    // Write DDS header using little-endian writer
+    let mut writer = unsafe { LittleEndianWriter::new(data.as_mut_ptr()) };
     unsafe {
-        (data.as_mut_ptr().add(0) as *mut u32).write_unaligned(DDS_MAGIC);
+        // DDS magic
+        writer.write_u32_at(DDS_MAGIC, 0);
+
+        // Set header size (dwSize field at offset 4)
+        writer.write_u32_at(124, 4);
+
+        // Set flags to include required fields
+        writer.write_u32_at(
+            DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_LINEARSIZE,
+            8,
+        );
+
+        // Set dimensions (4x4 for 1 BC1 block = 8 bytes)
+        writer.write_u32_at(4, 0x0C); // height
+        writer.write_u32_at(4, 0x10); // width
+
+        // Set pixel format flags to indicate FOURCC format
+        writer.write_u32_at(DDPF_FOURCC, 0x50); // DDS_PIXELFORMAT_FLAGS_OFFSET
     }
 
     // Set FOURCC to DXT1

@@ -41,6 +41,7 @@ pub unsafe extern "C" fn parse_dds(ptr: *const u8, len: usize) -> DdsInfo {
         return DdsInfo {
             format: DdsFormat::NotADds,
             data_offset: 0,
+            data_length: 0,
         };
     }
 
@@ -51,11 +52,13 @@ pub unsafe extern "C" fn parse_dds(ptr: *const u8, len: usize) -> DdsInfo {
         DdsInfo {
             format: info.format,
             data_offset: info.data_offset,
+            data_length: info.data_length,
         }
     } else {
         DdsInfo {
             format: DdsFormat::NotADds,
             data_offset: 0,
+            data_length: 0,
         }
     }
 }

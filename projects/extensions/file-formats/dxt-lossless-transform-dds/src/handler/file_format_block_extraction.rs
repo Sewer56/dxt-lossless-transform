@@ -28,7 +28,7 @@ impl FileFormatBlockExtraction for super::DdsHandler {
             DdsFormat::BC3 => TransformFormat::Bc3,
             DdsFormat::BC7 => TransformFormat::Bc7,
             DdsFormat::BC6H => TransformFormat::Bc6H,
-            DdsFormat::NotADds | DdsFormat::Unknown => {
+            DdsFormat::RGBA8888 | DdsFormat::ARGB8888 | DdsFormat::NotADds | DdsFormat::Unknown => {
                 return Err(TransformError::FormatHandler(
                     dxt_lossless_transform_file_formats_api::error::FormatHandlerError::UnknownFileFormat,
                 ));
@@ -42,17 +42,21 @@ impl FileFormatBlockExtraction for super::DdsHandler {
 
         // Calculate block data location and size
         let data_offset = dds_info.data_offset as usize;
-        if data_offset >= data.len() {
+        let data_length = dds_info.data_length as usize;
+        let total_required = data_offset + data_length;
+
+        // Validate input buffer contains enough data for declared texture size
+        if data.len() < total_required {
             return Err(TransformError::FormatHandler(
-                dxt_lossless_transform_file_formats_api::error::FormatHandlerError::InputTooShort {
-                    required: data_offset + 1,
+                dxt_lossless_transform_file_formats_api::error::FormatHandlerError::InputTooShortForStatedTextureSize {
+                    required: total_required,
                     actual: data.len(),
                 },
             ));
         }
 
-        // Extract the block data slice
-        let block_data = &data[data_offset..];
+        // Extract the block data slice using calculated data length
+        let block_data = &data[data_offset..data_offset + data_length];
 
         // Create the extracted blocks result
         let extracted = ExtractedBlocks::new(block_data, transform_format);

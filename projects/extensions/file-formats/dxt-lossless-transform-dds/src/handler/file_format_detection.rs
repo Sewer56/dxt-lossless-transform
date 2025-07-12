@@ -27,7 +27,7 @@ mod tests {
     #[test]
     fn can_handle_accepts_valid_bc1_dds() {
         let handler = DdsHandler;
-        let valid_dds = create_valid_bc1_dds(DDS_HEADER_SIZE);
+        let valid_dds = create_valid_bc1_dds();
         assert!(handler.can_handle(&valid_dds, Some("dds")));
         assert!(handler.can_handle(&valid_dds, None)); // Should also work without extension
     }
@@ -42,21 +42,21 @@ mod tests {
     #[test]
     fn can_handle_rejects_wrong_extension() {
         let handler = DdsHandler;
-        let valid_dds = create_valid_bc1_dds(DDS_HEADER_SIZE);
+        let valid_dds = create_valid_bc1_dds();
         assert!(!handler.can_handle(&valid_dds, Some("txt")));
     }
 
     #[test]
     fn can_handle_accepts_minimum_valid_size() {
         let handler = DdsHandler;
-        let min_valid = create_valid_bc1_dds(DDS_HEADER_SIZE);
+        let min_valid = create_valid_bc1_dds();
         assert!(handler.can_handle(&min_valid, Some("dds")));
     }
 
     #[test]
     fn can_handle_rejects_just_under_minimum_size() {
         let handler = DdsHandler;
-        let too_small = create_valid_bc1_dds(DDS_HEADER_SIZE - 1);
+        let too_small = create_truncated_dds(DDS_HEADER_SIZE - 1);
         assert!(!handler.can_handle(&too_small, Some("dds")));
     }
 }

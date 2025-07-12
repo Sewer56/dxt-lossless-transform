@@ -8,8 +8,8 @@ use super::constants::*;
 #[inline(always)]
 pub fn likely_dds(data: &[u8]) -> bool {
     data.len() >= DDS_HEADER_SIZE
-        && u32::from_ne_bytes([data[0], data[1], data[2], data[3]]) == DDS_MAGIC
-    // from_ne_bytes has no perf impact, only for clarity, resolved to integer at compile time
+        && u32::from_le_bytes([data[0], data[1], data[2], data[3]]) == DDS_MAGIC
+    // from_le_bytes ensures correct reading on all platforms since DDS is little-endian. No perf impact, a single cmp at runtime.
 }
 
 #[cfg(test)]

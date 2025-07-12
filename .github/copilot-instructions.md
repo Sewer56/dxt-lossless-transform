@@ -88,3 +88,18 @@ may change between versions.
 ## Compilation
 
 When building the `dxt-lossless-transform-cli` project, enable all features except for `nightly`, unless asked.
+
+## Testing Requirements
+
+### Post-Change Verification
+
+**CRITICAL: After making any code changes, ALWAYS perform these verification steps in order:**
+
+1. **Run Tests**: Execute `cargo test --all-features` to ensure all functionality works correctly
+2. **Check Lints**: Run `cargo clippy --workspace --all-features -- -D warnings` to catch any warnings or issues
+3. **Verify Documentation**: Run `cargo doc --workspace --all-features` to check for documentation errors
+4. **Fix Documentation Links**: For any broken doc links, use the proper format: `` [`function_name`]: crate::function_name `` (e.g., `` [`dltbc1_free_ManualTransformBuilder`]: crate::dltbc1_free_ManualTransformBuilder ``)
+5. **Big Endian Testing**: If `cross` is installed, run `cross test --package dxt-lossless-transform-dds --target powerpc64-unknown-linux-gnu` to test big endian compatibility (skip if `cross` is not available)
+6. **Format Code**: Run `cargo fmt --all` as the final step to ensure consistent formatting
+
+These steps are mandatory and must be completed successfully before considering any change complete.

@@ -13,6 +13,7 @@ extern crate std;
 pub use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
 
 // Re-export std items for tests that need them
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub use std::is_x86_feature_detected;
 
 // External crates commonly used in tests

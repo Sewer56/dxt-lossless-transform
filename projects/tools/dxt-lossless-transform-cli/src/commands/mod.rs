@@ -7,3 +7,5 @@ pub mod debug_bc1;
 pub mod debug_bc2;
 #[cfg(feature = "debug-bc7")]
 pub mod debug_bc7;
+#[cfg(feature = "debug-endian")]
+pub mod debug_endian;

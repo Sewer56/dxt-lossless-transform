@@ -5,7 +5,9 @@
 //! primarily intended for use by file format handlers.
 
 use crate::bundle::TransformBundle;
-use crate::embed::formats::{EmbeddableBc1Details, EmbeddableTransformDetails};
+use crate::embed::formats::{
+    EmbeddableBc1Details, EmbeddableBc2Details, EmbeddableTransformDetails,
+};
 use crate::embed::{TransformFormat, TransformHeader};
 use crate::error::{FormatHandlerError, TransformError, TransformResult};
 use core::fmt::Debug;
@@ -66,6 +68,26 @@ pub fn dispatch_untransform(
                     output_texture_data.as_mut_ptr(),
                     input_texture_data.len(),
                     details.to_settings(),
+                );
+            }
+        }
+        Some(TransformFormat::Bc2) => {
+            let details = EmbeddableBc2Details::from_header(header)?;
+
+            // BC2 untransform using unsafe API with safe wrapper
+            if !input_texture_data.len().is_multiple_of(16) {
+                return Err(TransformError::InvalidDataAlignment {
+                    size: input_texture_data.len(),
+                    required_divisor: 16,
+                });
+            }
+
+            unsafe {
+                dxt_lossless_transform_bc2::untransform_bc2_with_settings(
+                    input_texture_data.as_ptr(),
+                    output_texture_data.as_mut_ptr(),
+                    input_texture_data.len(),
+                    details.get_settings(),
                 );
             }
         }

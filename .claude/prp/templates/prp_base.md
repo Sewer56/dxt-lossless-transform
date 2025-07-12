@@ -199,6 +199,7 @@ cargo test test_new_feature -- --nocapture  # For specific test with output
 - [ ] No compilation errors: `cargo check`
 - [ ] Documentation builds: `cargo doc`
 - [ ] Code is formatted: `cargo fmt`
+- [ ] Big endian testing passes (if `cross` is available): `cross test --package dxt-lossless-transform-dds --target powerpc64-unknown-linux-gnu`
 - [ ] Manual test successful: [specific cargo run command]
 - [ ] Error cases handled gracefully with proper Result types
 - [ ] Safety documentation complete for unsafe code

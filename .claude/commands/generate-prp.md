@@ -51,6 +51,9 @@ cargo check --all-features
 
 # Unit Tests
 cargo test --all-features
+
+# Big Endian Testing (if cross is available)
+cross test --package dxt-lossless-transform-dds --target powerpc64-unknown-linux-gnu
 ```
 
 *** CRITICAL AFTER YOU ARE DONE RESEARCHING AND EXPLORING THE CODEBASE BEFORE YOU START WRITING THE PRP ***

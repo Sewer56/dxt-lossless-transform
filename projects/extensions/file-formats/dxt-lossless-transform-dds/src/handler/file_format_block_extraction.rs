@@ -1,9 +1,8 @@
 //! Block extraction implementation for DDS files.
 
-use crate::dds::{parse_dds, DdsFormat};
-use dxt_lossless_transform_file_formats_api::{
-    embed::TransformFormat, error::TransformResult, TransformError,
-};
+use super::format_conversion::dds_format_to_transform_format;
+use crate::dds::parse_dds;
+use dxt_lossless_transform_file_formats_api::{error::TransformResult, TransformError};
 use dxt_lossless_transform_file_formats_debug::{
     ExtractedBlocks, FileFormatBlockExtraction, TransformFormatFilter,
 };
@@ -21,19 +20,8 @@ impl FileFormatBlockExtraction for super::DdsHandler {
             )
         })?;
 
-        // Convert DDS format to transform format
-        let transform_format = match dds_info.format {
-            DdsFormat::BC1 => TransformFormat::Bc1,
-            DdsFormat::BC2 => TransformFormat::Bc2,
-            DdsFormat::BC3 => TransformFormat::Bc3,
-            DdsFormat::BC7 => TransformFormat::Bc7,
-            DdsFormat::BC6H => TransformFormat::Bc6H,
-            DdsFormat::RGBA8888 | DdsFormat::ARGB8888 | DdsFormat::NotADds | DdsFormat::Unknown => {
-                return Err(TransformError::FormatHandler(
-                    dxt_lossless_transform_file_formats_api::error::FormatHandlerError::UnknownFileFormat,
-                ));
-            }
-        };
+        // Convert DDS format to transform format (allow unimplemented for debug/extraction)
+        let transform_format = dds_format_to_transform_format(dds_info.format, true)?;
 
         // Check if the format matches the filter
         if !filter.accepts(transform_format) {

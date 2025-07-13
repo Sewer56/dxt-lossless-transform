@@ -112,7 +112,7 @@ jobs:
       - name: Setup Rust Caching
         uses: Swatinem/rust-cache@v2
         with:
-          key: claude-rust-cache
+          key: debug-endian-rust-cache
           cache-on-failure: true
           cache-all-crates: true
 
@@ -121,7 +121,7 @@ jobs:
         run: RUSTFLAGS="" cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Validate Cross-Endian Transformations
-        run: cargo run --bin dxt-lossless-transform-cli --features debug-endian -- debug-endian
+        run: RUSTFLAGS="" cargo run --bin dxt-lossless-transform-cli --features debug-endian -- debug-endian
 
   build-cli:
     strategy:

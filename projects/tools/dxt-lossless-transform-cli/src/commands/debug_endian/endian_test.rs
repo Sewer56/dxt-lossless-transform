@@ -215,12 +215,21 @@ fn run_transform_command(
     input_file: &Path,
     output_file: &Path,
 ) -> Result<bool, EndianTestError> {
+    // Set target-specific cargo target directory to prevent artifact collisions
+    let project_root = std::env::current_dir()?;
+    let target_dir = project_root
+        .join("target")
+        .join(format!("cross-{}", target));
+
     let output = Command::new("cross")
+        .env("CARGO_TARGET_DIR", target_dir)
         .args([
             "run",
+            "--release",
             "--target",
             target,
-            "--all-features",
+            "--features",
+            "debug-endian",
             "--bin",
             "dxt-lossless-transform-cli",
             "--",
@@ -247,12 +256,21 @@ fn run_untransform_command(
     input_file: &Path,
     output_file: &Path,
 ) -> Result<bool, EndianTestError> {
+    // Set target-specific cargo target directory to prevent artifact collisions
+    let project_root = std::env::current_dir()?;
+    let target_dir = project_root
+        .join("target")
+        .join(format!("cross-{}", target));
+
     let output = Command::new("cross")
+        .env("CARGO_TARGET_DIR", target_dir)
         .args([
             "run",
+            "--release",
             "--target",
             target,
-            "--all-features",
+            "--features",
+            "debug-endian",
             "--bin",
             "dxt-lossless-transform-cli",
             "--",

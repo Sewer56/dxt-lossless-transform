@@ -17,17 +17,23 @@ pub fn generate_random_dir_name(prefix: &str) -> String {
     format!("{}_{}_{}_{}", prefix, timestamp, pid, rand_suffix())
 }
 
-/// Generate a random suffix using simple deterministic method
+/// Generate a random suffix using timestamp and thread ID
 fn rand_suffix() -> u32 {
-    // Use a combination of stack address and current time for randomness
-    let stack_var = 42u8;
-    let addr = &stack_var as *const u8 as usize;
     let time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .subsec_nanos();
 
-    (addr.wrapping_mul(31).wrapping_add(time as usize)) as u32
+    // Combine subsecond nanos with thread ID for better uniqueness
+    let thread_id = std::thread::current().id();
+    let thread_num = format!("{:?}", thread_id)
+        .chars()
+        .filter(|c| c.is_numeric())
+        .collect::<String>()
+        .parse::<u32>()
+        .unwrap_or(0);
+
+    time.wrapping_add(thread_num)
 }
 
 /// Compare two files for byte-for-byte equality

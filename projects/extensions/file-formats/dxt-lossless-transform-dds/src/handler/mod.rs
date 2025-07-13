@@ -5,10 +5,10 @@ mod file_format_handler;
 mod file_format_untransform_detection;
 mod format_conversion;
 
-#[cfg(feature = "debug-block-extraction")]
+#[cfg(feature = "debug")]
 mod file_format_block_extraction;
 
-#[cfg(feature = "debug-block-extraction")]
+#[cfg(feature = "debug")]
 mod file_format_check;
 
 /// Handler for DDS file format.

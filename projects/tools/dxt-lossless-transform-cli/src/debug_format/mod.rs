@@ -7,7 +7,6 @@ pub mod compression;
 pub mod compression_size_cache;
 pub mod estimation;
 
-use crate::util;
 use crate::{error::TransformError, util::all_handlers};
 use dxt_lossless_transform_file_formats_api::embed::TransformFormat;
 use dxt_lossless_transform_file_formats_debug::{

@@ -127,6 +127,16 @@ pub(crate) fn assert_implementation_matches_reference(
 /// Common type alias for transform/split functions used across BC3 tests.
 pub(crate) type StandardTransformFn = unsafe fn(*const u8, *mut u8, usize);
 
+// -----------------------------------------
+// Shared test helpers for split alphas tests
+// -----------------------------------------
+/// Common type alias for BC3 split alphas transform functions used across tests.
+pub(crate) type SplitAlphasTransformFn =
+    unsafe fn(*const u8, *mut u8, *mut u8, *mut u16, *mut u32, *mut u32, usize);
+/// Common type alias for BC3 split alphas untransform functions used across tests.
+pub(crate) type SplitAlphasUntransformFn =
+    unsafe fn(*const u8, *const u8, *const u16, *const u32, *const u32, *mut u8, usize);
+
 /// Executes an unaligned transform test for split operations with input unalignment.
 /// Tests transform with deliberately misaligned input and output buffers.
 ///
@@ -218,6 +228,110 @@ pub(crate) fn run_standard_untransform_unaligned_test(
             );
         }
 
+        // Verify the results match
+        assert_implementation_matches_reference(
+            original.as_slice(),
+            &unaligned_reconstructed.as_slice()[1..original.len() + 1],
+            impl_name,
+            block_count,
+        );
+    }
+}
+
+/// Executes a split alphas transform → untransform round-trip test
+/// using the specified transform function, asserting that the final data
+/// matches the original input.
+#[inline]
+pub(crate) fn run_split_alphas_transform_roundtrip_test(
+    transform_fn: SplitAlphasTransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_alphas::untransform_with_split_alphas;
+    for num_blocks in 1..=max_blocks {
+        let original = generate_bc3_test_data(num_blocks);
+        // Allocate separate arrays for split alphas data
+        let mut alpha0_data = allocate_align_64(num_blocks * 1);
+        let mut alpha1_data = allocate_align_64(num_blocks * 1);
+        let mut alpha_indices_data = allocate_align_64(num_blocks * 6);
+        let mut colors_data = allocate_align_64(num_blocks * 4);
+        let mut color_indices_data = allocate_align_64(num_blocks * 4);
+        let mut reconstructed = allocate_align_64(original.len());
+        unsafe {
+            // Transform using the function being tested
+            transform_fn(
+                original.as_ptr(),
+                alpha0_data.as_mut_ptr(),
+                alpha1_data.as_mut_ptr(),
+                alpha_indices_data.as_mut_ptr() as *mut u16,
+                colors_data.as_mut_ptr() as *mut u32,
+                color_indices_data.as_mut_ptr() as *mut u32,
+                num_blocks,
+            );
+            // Untransform using the generic dispatcher
+            untransform_with_split_alphas(
+                alpha0_data.as_ptr(),
+                alpha1_data.as_ptr(),
+                alpha_indices_data.as_ptr() as *const u16,
+                colors_data.as_ptr() as *const u32,
+                color_indices_data.as_ptr() as *const u32,
+                reconstructed.as_mut_ptr(),
+                num_blocks,
+            );
+        }
+        assert_eq!(
+            original.as_slice(),
+            reconstructed.as_slice(),
+            "Mismatch in {impl_name} roundtrip for {num_blocks} blocks",
+        );
+    }
+}
+
+/// Executes an unaligned untransform test for split alphas operations.
+/// Tests a transform→untransform roundtrip with deliberately misaligned buffers.
+///
+/// The `max_blocks` parameter should equal twice the number of bytes processed in one main loop
+/// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 16).
+#[inline]
+pub(crate) fn run_with_split_alphas_untransform_unaligned_test(
+    untransform_fn: SplitAlphasUntransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_alphas::transform_with_split_alphas;
+    for block_count in 1..=max_blocks {
+        // Generate test data
+        let original = generate_bc3_test_data(block_count);
+        // Create separate arrays for split alphas data
+        let mut alpha0_data = allocate_align_64(block_count * 1);
+        let mut alpha1_data = allocate_align_64(block_count * 1);
+        let mut alpha_indices_data = allocate_align_64(block_count * 6);
+        let mut colors_data = allocate_align_64(block_count * 4);
+        let mut color_indices_data = allocate_align_64(block_count * 4);
+        // Create unaligned reconstruction buffer
+        let mut unaligned_reconstructed = allocate_align_64(original.len() + 1);
+        unsafe {
+            // First, transform using split alphas transform
+            transform_with_split_alphas(
+                original.as_ptr(),
+                alpha0_data.as_mut_ptr(),
+                alpha1_data.as_mut_ptr(),
+                alpha_indices_data.as_mut_ptr() as *mut u16,
+                colors_data.as_mut_ptr() as *mut u32,
+                color_indices_data.as_mut_ptr() as *mut u32,
+                block_count,
+            );
+            // Then, untransform using the function being tested with unaligned output
+            untransform_fn(
+                alpha0_data.as_ptr(),
+                alpha1_data.as_ptr(),
+                alpha_indices_data.as_ptr() as *const u16,
+                colors_data.as_ptr() as *const u32,
+                color_indices_data.as_ptr() as *const u32,
+                unaligned_reconstructed.as_mut_ptr().add(1),
+                block_count,
+            );
+        }
         // Verify the results match
         assert_implementation_matches_reference(
             original.as_slice(),

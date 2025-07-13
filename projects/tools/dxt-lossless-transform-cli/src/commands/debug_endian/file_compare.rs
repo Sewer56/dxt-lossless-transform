@@ -26,7 +26,7 @@ fn rand_suffix() -> u32 {
 
     // Combine subsecond nanos with thread ID for better uniqueness
     let thread_id = std::thread::current().id();
-    let thread_num = format!("{:?}", thread_id)
+    let thread_num = format!("{thread_id:?}")
         .chars()
         .filter(|c| c.is_numeric())
         .collect::<String>()

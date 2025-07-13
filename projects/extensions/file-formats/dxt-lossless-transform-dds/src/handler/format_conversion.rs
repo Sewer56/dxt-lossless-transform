@@ -28,11 +28,13 @@ use dxt_lossless_transform_file_formats_api::{
 /// - BC1 (DXT1) - implemented
 /// - BC2 (DXT2/3) - implemented
 /// - BC3 (DXT4/5) - known but unimplemented
+/// - BC4 - known but unimplemented
+/// - BC5 - known but unimplemented
 /// - BC6H - known but unimplemented
 /// - BC7 - known but unimplemented
-/// - RGBA8888 - implemented
-/// - BGRA8888 - implemented
-/// - BGR888 - implemented
+/// - RGBA8888 - known but unimplemented
+/// - BGRA8888 - known but unimplemented
+/// - BGR888 - known but unimplemented
 ///
 /// # Unsupported Formats
 ///

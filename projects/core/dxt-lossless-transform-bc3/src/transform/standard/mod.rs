@@ -1,67 +1,48 @@
-//! # Block Splitting Process
+//! # BC3 Block Splitting Module
 //!
-//! This module contains the code used to split the BC3/DXT5 blocks into four separate arrays
-//! of alpha endpoints, alpha indices, colours and color indices.
+//! This module provides optimized functions for separating BC3 data into four distinct arrays
+//! for better compression efficiency by grouping similar data together.
 //!
-//! ## Original BC3 data layout (as received from file)
+//! Below is a description of the untransformation process.
+//! For transformation, swap the `output` and `input`.
 //!
-//! 2 bytes of alpha endpoints followed by 6 bytes of alpha indices, then two 16-bit colours
-//! (4 bytes) and 4 bytes of color indices:
+//! ## Input Format
 //!
-//! ```text
-//! Address: 0       2        8       12      16  16      18        24      28      32
-//!          +-------+--------+-------+-------+   +-------+---------+-------+-------+
-//! Data:    | A0-A1 |AIdx0-47| C0-C1 |I0-I15 |   | A2-A3 |AIdx48-95| C2-C3 |I16-I31|
-//!          +-------+--------+-------+-------+   +-------+---------+-------+-------+
-//! ```
+//! The module expects BC3 blocks in standard interleaved format:
 //!
-//! Each 16-byte block contains:
-//! - 2 bytes of alpha endpoints (min/max alpha values for interpolation)
-//! - 6 bytes of alpha indices (sixteen 3-bit indices for alpha interpolation)
-//! - 4 bytes colours (2x RGB565 values)
-//! - 4 bytes of packed color indices (sixteen 2-bit indices)
+//! ### BC3 Blocks (`input_ptr`)
+//! - Type: `*const u8`
+//! - Contains standard BC3/DXT5 compressed texture blocks
+//! - Each block is 16 bytes in the following format:
+//!   ```ignore
+//!   Offset | Size | Description
+//!   -------|------|------------
+//!   0      | 2    | alpha endpoints (2x 8-bit values for interpolation)
+//!   2      | 6    | alpha indices (16x 3-bit indices for alpha interpolation)
+//!   8      | 2    | color0 (RGB565, little-endian)
+//!   10     | 2    | color1 (RGB565, little-endian)
+//!   12     | 4    | color indices (2 bits per pixel, little-endian)
+//!   ```
 //!
-//! ## Optimized layout
+//! ## Output Format
 //!
-//! Separates alpha endpoints, alpha indices, colours and indices into continuous streams:
+//! The module outputs four separate arrays:
 //!
-//! ```text
-//! +-------+-------+-------+     +-------+  } Alpha endpoints section
-//! | A0-A1 | A2-A3 | A4-A5 | ... | AN    |  } (2 bytes per block: 2x 8-bit)
-//! +-------+-------+-------+     +-------+
-//! +-------+-------+-------+     +-------+  } Alpha indices section
-//! |AI0-47 |AI48-95|  ...  | ... |AI N   |  } (6 bytes per block: 16x 3-bit)
-//! +-------+-------+-------+     +-------+
-//! +-------+-------+-------+     +-------+  } Colours section
-//! |C0  C1 |C2  C3 |C4  C5 | ... |CN CN+1|  } (4 bytes per block: 2x RGB565)
-//! +-------+-------+-------+     +-------+
-//! +-------+-------+-------+     +-------+  } Indices section
-//! | Idx0  | Idx1  | Idx2  | ... | IdxN  |  } (4 bytes per block: 16x 2-bit)
-//! +-------+-------+-------+     +-------+
-//! ```
+//! ### Alpha Endpoints Array (`alpha_byte_ptr`)
+//! - Type: `*mut u16`
+//! - Contains the alpha endpoint pairs for each BC3 block (2 bytes per block)
 //!
-//! In addition, decompression speed increases, as LZ matches are more likely
-//! to be in the lower levels (L1, L2) of CPU cache. The match length is often longer, too.
+//! ### Alpha Indices Array (`alpha_bit_ptr`)
+//! - Type: `*mut u16`
+//! - Contains the alpha indices for each BC3 block (6 bytes per block)
 //!
-//! ## Key differences from BC1/DXT1 and BC2/DXT3
+//! ### Colors Array (`color_ptr`)
+//! - Type: `*mut u32`
+//! - Contains the color endpoints for each BC3 block (4 bytes per block)
 //!
-//! - Blocks are 16 bytes like BC2
-//! - Uses interpolated alpha (8 interpolated values from 2 endpoints) rather than explicit alpha values
-//! - Alpha indices use 3 bits per texel (8 possible values) rather than 4 bits in BC2
-//! - Color part is identical to BC1/BC2 (4 bytes colors + 4 bytes indices)
-//!
-//! ## Requirements
-//!
-//! A second, separate buffer to receive the results.
-//!
-//! While doing it in-place is technically possible, and would be beneficial in the sense that there
-//! would be improved cache locality; unfortunately, that is not possible to do in a 'single pass'
-//! while maintaining the spatial coherency/order.
-//!
-//! Introducing a second pass meanwhile would be a performance hit.
-//!
-//! This is possible to do with either allocating half of a buffer, and then copying the other half back,
-//! or outputting it all to a single buffer. Outputting all to single buffer is faster.
+//! ### Color Indices Array (`index_ptr`)
+//! - Type: `*mut u32`
+//! - Contains the 2-bit per pixel color indices for each BC3 block
 
 /// See [`super`] for the exact details.
 pub mod transform;

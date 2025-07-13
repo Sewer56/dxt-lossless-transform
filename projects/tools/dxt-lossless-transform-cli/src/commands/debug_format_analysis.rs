@@ -13,7 +13,7 @@ use std::{
 
 #[derive(FromArgs, Debug)]
 #[argh(subcommand, name = "analyze-formats")]
-/// Analyze files recursively and group by their TransformFormat
+/// Analyze files recursively and group by their [`TransformFormat`]
 pub struct DebugFormatAnalysisCmd {
     #[argh(positional)]
     /// directory to analyze recursively
@@ -26,8 +26,8 @@ struct FormatStats {
     total_size: u64,
 }
 
-/// Format key that explicitly lists all TransformFormat variants for HashMap compatibility.
-/// Unknown is first so TransformFormat conversion is just format as u8 + 1.
+/// Format key that explicitly lists all [`TransformFormat`] variants for HashMap compatibility.
+/// Unknown is first so [`TransformFormat`] conversion is just format as u8 + 1.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 enum FormatKey {
     /// Unknown or unsupported format

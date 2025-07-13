@@ -21,8 +21,8 @@ pub enum DdsFormat {
     BC7 = 6,
     /// RGBA8888 format (32-bit with alpha)
     RGBA8888 = 7,
-    /// ARGB8888 format (32-bit with alpha, different byte order)
-    ARGB8888 = 8,
+    /// BGRA8888 format (32-bit with alpha, different byte order)
+    BGRA8888 = 8,
 }
 
 /// The information of the DDS file supplied to the reader.
@@ -113,7 +113,7 @@ pub fn parse_dds_ignore_magic(data: &[u8]) -> Option<DdsInfo> {
             | DXGI_FORMAT_R8G8B8A8_SINT => DdsFormat::RGBA8888,
             DXGI_FORMAT_B8G8R8A8_UNORM
             | DXGI_FORMAT_B8G8R8A8_TYPELESS
-            | DXGI_FORMAT_B8G8R8A8_UNORM_SRGB => DdsFormat::ARGB8888,
+            | DXGI_FORMAT_B8G8R8A8_UNORM_SRGB => DdsFormat::BGRA8888,
             _ => DdsFormat::Unknown,
         };
 
@@ -183,13 +183,13 @@ fn detect_uncompressed_format(data: &[u8]) -> DdsFormat {
                 {
                     DdsFormat::RGBA8888
                 }
-                // Check for ARGB8888 (B8G8R8A8_UNORM)
-                else if r_mask == ARGB8888_RED_MASK
-                    && g_mask == ARGB8888_GREEN_MASK
-                    && b_mask == ARGB8888_BLUE_MASK
-                    && a_mask == ARGB8888_ALPHA_MASK
+                // Check for BGRA8888 (B8G8R8A8_UNORM)
+                else if r_mask == BGRA8888_RED_MASK
+                    && g_mask == BGRA8888_GREEN_MASK
+                    && b_mask == BGRA8888_BLUE_MASK
+                    && a_mask == BGRA8888_ALPHA_MASK
                 {
-                    DdsFormat::ARGB8888
+                    DdsFormat::BGRA8888
                 } else {
                     DdsFormat::Unknown
                 }
@@ -229,7 +229,7 @@ fn calculate_data_length(format: DdsFormat, data: &[u8]) -> Option<u32> {
         DdsFormat::BC1 | DdsFormat::BC2 | DdsFormat::BC3 | DdsFormat::BC6H | DdsFormat::BC7 => {
             calculate_data_length_for_block_compression(format, width, height, mipmap_count)
         }
-        DdsFormat::RGBA8888 | DdsFormat::ARGB8888 => {
+        DdsFormat::RGBA8888 | DdsFormat::BGRA8888 => {
             // 32-bit formats (4 bytes per pixel)
             calculate_data_length_for_pixel_formats(width, height, mipmap_count, 4)
         }
@@ -285,7 +285,7 @@ pub(crate) fn calculate_data_length_for_block_compression(
 
             Some(total_size)
         }
-        DdsFormat::RGBA8888 | DdsFormat::ARGB8888 => {
+        DdsFormat::RGBA8888 | DdsFormat::BGRA8888 => {
             // 32-bit uncompressed formats
             calculate_data_length_for_pixel_formats(width, height, mipmap_count, 4)
         }

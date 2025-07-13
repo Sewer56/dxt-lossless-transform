@@ -103,13 +103,13 @@ mod tests {
     }
 
     #[test]
-    fn test_get_transform_format_argb8888_supported() {
+    fn test_get_transform_format_bgra8888_supported() {
         let handler = super::super::DdsHandler;
-        let dds_data = create_valid_argb8888_dds_with_dimensions(64, 64, 1);
+        let dds_data = create_valid_bgra8888_dds_with_dimensions(64, 64, 1);
 
         let result = handler.get_transform_format(&dds_data, TransformFormatFilter::All);
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), Some(TransformFormat::Argb8888));
+        assert_eq!(result.unwrap(), Some(TransformFormat::Bgra8888));
     }
 }

@@ -44,8 +44,8 @@ enum FormatKey {
     Bc6H = 5,
     /// RGBA8888 format transform (TransformFormat::Rgba8888 = 0x05 -> FormatKey = 6)
     Rgba8888 = 6,
-    /// ARGB8888 format transform (TransformFormat::Argb8888 = 0x06 -> FormatKey = 7)
-    Argb8888 = 7,
+    /// BGRA8888 format transform (TransformFormat::Bgra8888 = 0x06 -> FormatKey = 7)
+    Bgra8888 = 7,
 }
 
 impl From<Option<TransformFormat>> for FormatKey {
@@ -60,7 +60,7 @@ impl From<Option<TransformFormat>> for FormatKey {
                     TransformFormat::Bc7 => Self::Bc7,           // 0x03 -> 4
                     TransformFormat::Bc6H => Self::Bc6H,         // 0x04 -> 5
                     TransformFormat::Rgba8888 => Self::Rgba8888, // 0x05 -> 6
-                    TransformFormat::Argb8888 => Self::Argb8888, // 0x06 -> 7
+                    TransformFormat::Bgra8888 => Self::Bgra8888, // 0x06 -> 7
                     _ => Self::Unknown, // Handle any future variants as unknown
                 }
             }
@@ -80,7 +80,7 @@ impl FormatKey {
             Self::Bc7 => "Bc7",
             Self::Bc6H => "Bc6H",
             Self::Rgba8888 => "Rgba8888",
-            Self::Argb8888 => "Argb8888",
+            Self::Bgra8888 => "Bgra8888",
         }
     }
 }

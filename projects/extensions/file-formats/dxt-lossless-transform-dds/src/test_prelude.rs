@@ -147,7 +147,7 @@ pub fn create_valid_dds_with_dimensions(
                 .unwrap_or(0) as usize,
             true,
         ),
-        DdsFormat::RGBA8888 | DdsFormat::ARGB8888 => {
+        DdsFormat::RGBA8888 | DdsFormat::BGRA8888 => {
             // 32-bit uncompressed formats
             (
                 calculate_data_length_for_pixel_formats(width, height, mipmap_count, 4).unwrap_or(0)
@@ -198,13 +198,13 @@ pub fn create_valid_dds_with_dimensions(
                 RGBA8888_ALPHA_MASK,
             );
         }
-        DdsFormat::ARGB8888 => {
+        DdsFormat::BGRA8888 => {
             write_uncompressed_pixel_format(
                 &mut data,
-                ARGB8888_RED_MASK,
-                ARGB8888_GREEN_MASK,
-                ARGB8888_BLUE_MASK,
-                ARGB8888_ALPHA_MASK,
+                BGRA8888_RED_MASK,
+                BGRA8888_GREEN_MASK,
+                BGRA8888_BLUE_MASK,
+                BGRA8888_ALPHA_MASK,
             );
         }
         DdsFormat::Unknown => {
@@ -239,13 +239,13 @@ pub fn create_valid_rgba8888_dds_with_dimensions(
     create_valid_dds_with_dimensions(DdsFormat::RGBA8888, width, height, mipmap_count)
 }
 
-/// Helper function to create a valid ARGB8888 DDS with proper dimensions and data length
-pub fn create_valid_argb8888_dds_with_dimensions(
+/// Helper function to create a valid BGRA8888 DDS with proper dimensions and data length
+pub fn create_valid_bgra8888_dds_with_dimensions(
     width: u32,
     height: u32,
     mipmap_count: u32,
 ) -> Vec<u8> {
-    create_valid_dds_with_dimensions(DdsFormat::ARGB8888, width, height, mipmap_count)
+    create_valid_dds_with_dimensions(DdsFormat::BGRA8888, width, height, mipmap_count)
 }
 
 // Semantic helper functions for clearer test intent

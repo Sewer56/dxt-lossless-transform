@@ -94,8 +94,8 @@ pub(crate) const RGBA8888_GREEN_MASK: u32 = 0x0000FF00;
 pub(crate) const RGBA8888_BLUE_MASK: u32 = 0x00FF0000;
 pub(crate) const RGBA8888_ALPHA_MASK: u32 = 0xFF000000;
 
-// B8G8R8A8_UNORM: R=byte2, G=byte1, B=byte0, A=byte3 (0xAAGGRRBB)
-pub(crate) const ARGB8888_RED_MASK: u32 = 0x00FF0000;
-pub(crate) const ARGB8888_GREEN_MASK: u32 = 0x0000FF00;
-pub(crate) const ARGB8888_BLUE_MASK: u32 = 0x000000FF;
-pub(crate) const ARGB8888_ALPHA_MASK: u32 = 0xFF000000;
+// B8G8R8A8_UNORM: R=byte2, G=byte1, B=byte0, A=byte3 (0xAARRGGBB)
+pub(crate) const BGRA8888_RED_MASK: u32 = 0x00FF0000;
+pub(crate) const BGRA8888_GREEN_MASK: u32 = 0x0000FF00;
+pub(crate) const BGRA8888_BLUE_MASK: u32 = 0x000000FF;
+pub(crate) const BGRA8888_ALPHA_MASK: u32 = 0xFF000000;

@@ -1,22 +1,22 @@
-//! ARGB8888 format file format support.
+//! BGRA8888 format file format support.
 //!
-//! This module provides ARGB8888-specific implementations of the file format traits.
-//! Since ARGB8888 is an uncompressed format, no actual transformation is performed,
+//! This module provides BGRA8888-specific implementations of the file format traits.
+//! Since BGRA8888 is an uncompressed format, no actual transformation is performed,
 //! but decorrelation can still be applied.
 
 use super::EmbeddableTransformDetails;
 use crate::embed::{EmbedError, TransformFormat, TransformHeader};
 use bitfield::bitfield;
 
-/// Header version for ARGB8888 format
+/// Header version for BGRA8888 format
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
-enum Argb8888HeaderVersion {
+enum Bgra8888HeaderVersion {
     /// Initial version - supports decorrelation
     InitialVersion = 0,
 }
 
-impl Argb8888HeaderVersion {
+impl Bgra8888HeaderVersion {
     /// Convert from u32 value
     fn from_u32(value: u32) -> Result<Self, EmbedError> {
         match value {
@@ -32,14 +32,14 @@ impl Argb8888HeaderVersion {
 }
 
 bitfield! {
-    /// Packed ARGB8888 transform data for storage in headers.
+    /// Packed BGRA8888 transform data for storage in headers.
     ///
     /// Bit layout (within the 28-bit format data):
     /// - Bits 0-1: Header version (2 bits)
     /// - Bit 2: Decorrelation flag (1 bit)
     /// - Bits 3-27: Reserved for future use (25 bits)
     #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
-    struct Argb8888TransformHeaderData(u32);
+    struct Bgra8888TransformHeaderData(u32);
     impl Debug;
     u32;
 
@@ -51,22 +51,22 @@ bitfield! {
     reserved, set_reserved: 27, 3;
 }
 
-/// ARGB8888 transform details for embedding in headers.
+/// BGRA8888 transform details for embedding in headers.
 ///
-/// Contains settings for ARGB8888 pixel processing, primarily decorrelation options.
+/// Contains settings for BGRA8888 pixel processing, primarily decorrelation options.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct EmbeddableArgb8888Details(Argb8888TransformHeaderData);
+pub(crate) struct EmbeddableBgra8888Details(Bgra8888TransformHeaderData);
 
-impl EmbeddableArgb8888Details {
-    /// Create new ARGB8888 details with default settings (no decorrelation)
+impl EmbeddableBgra8888Details {
+    /// Create new BGRA8888 details with default settings (no decorrelation)
     pub fn new() -> Self {
         Self::with_decorrelation(false)
     }
 
-    /// Create new ARGB8888 details with specified decorrelation setting
+    /// Create new BGRA8888 details with specified decorrelation setting
     pub fn with_decorrelation(decorrelation: bool) -> Self {
-        let mut data = Argb8888TransformHeaderData::default();
-        data.set_header_version(Argb8888HeaderVersion::InitialVersion.to_u32());
+        let mut data = Bgra8888TransformHeaderData::default();
+        data.set_header_version(Bgra8888HeaderVersion::InitialVersion.to_u32());
         data.set_decorrelation(decorrelation);
         data.set_reserved(0);
         Self(data)
@@ -78,24 +78,24 @@ impl EmbeddableArgb8888Details {
     }
 }
 
-impl Default for EmbeddableArgb8888Details {
+impl Default for EmbeddableBgra8888Details {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl EmbeddableTransformDetails for EmbeddableArgb8888Details {
-    const FORMAT: TransformFormat = TransformFormat::Argb8888;
+impl EmbeddableTransformDetails for EmbeddableBgra8888Details {
+    const FORMAT: TransformFormat = TransformFormat::Bgra8888;
 
     fn pack(&self) -> u32 {
         self.0 .0
     }
 
     fn unpack(data: u32) -> Result<Self, EmbedError> {
-        let header_data = Argb8888TransformHeaderData(data);
+        let header_data = Bgra8888TransformHeaderData(data);
 
         // Validate header version
-        Argb8888HeaderVersion::from_u32(header_data.header_version())?;
+        Bgra8888HeaderVersion::from_u32(header_data.header_version())?;
 
         // Reserved bits should be zero for forward compatibility
         if header_data.reserved() != 0 {
@@ -111,41 +111,41 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_argb8888_details_default() {
-        let details = EmbeddableArgb8888Details::new();
+    fn test_bgra8888_details_default() {
+        let details = EmbeddableBgra8888Details::new();
         // Test that default details can be created
         assert_eq!(
             details,
-            EmbeddableArgb8888Details::with_decorrelation(false)
+            EmbeddableBgra8888Details::with_decorrelation(false)
         );
     }
 
     #[test]
-    fn test_argb8888_details_with_decorrelation() {
-        let details_true = EmbeddableArgb8888Details::with_decorrelation(true);
-        let details_false = EmbeddableArgb8888Details::with_decorrelation(false);
+    fn test_bgra8888_details_with_decorrelation() {
+        let details_true = EmbeddableBgra8888Details::with_decorrelation(true);
+        let details_false = EmbeddableBgra8888Details::with_decorrelation(false);
 
         // Test that different decorrelation settings create different details
         assert_ne!(details_true, details_false);
     }
 
     #[test]
-    fn test_argb8888_pack_unpack_roundtrip() {
-        let original = EmbeddableArgb8888Details::with_decorrelation(true);
+    fn test_bgra8888_pack_unpack_roundtrip() {
+        let original = EmbeddableBgra8888Details::with_decorrelation(true);
         let packed = original.pack();
-        let unpacked = EmbeddableArgb8888Details::unpack(packed).unwrap();
+        let unpacked = EmbeddableBgra8888Details::unpack(packed).unwrap();
 
         assert_eq!(original, unpacked);
     }
 
     #[test]
-    fn test_argb8888_header_roundtrip() {
-        let details = EmbeddableArgb8888Details::with_decorrelation(true);
+    fn test_bgra8888_header_roundtrip() {
+        let details = EmbeddableBgra8888Details::with_decorrelation(true);
         let header = details.to_header();
 
-        assert_eq!(header.format(), Some(TransformFormat::Argb8888));
+        assert_eq!(header.format(), Some(TransformFormat::Bgra8888));
 
-        let recovered = EmbeddableArgb8888Details::from_header(header).unwrap();
+        let recovered = EmbeddableBgra8888Details::from_header(header).unwrap();
         assert_eq!(details, recovered);
     }
 }

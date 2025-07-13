@@ -53,7 +53,7 @@ pub unsafe fn u32_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 
     // Handle remaining blocks
     let alpha_byte_end_ptr = output_ptr.add(len / 16 * 2) as *mut u16;
-    crate::transforms::standard::transform::portable32::u32_with_separate_endpoints(
+    crate::transform::standard::transform::portable32::u32_with_separate_endpoints(
         current_input_ptr,
         alpha_byte_out_ptr,
         alpha_bit_out_ptr,

@@ -71,6 +71,7 @@ pub use transform_format::TransformFormat;
 // Internal re-exports (used only within file-formats-api crate)
 pub(super) use embed_error::EmbedError;
 pub(super) use formats::EmbeddableBc1Details;
+pub(super) use formats::EmbeddableBc2Details;
 
 /// Size of the transform header in bytes.
 ///

@@ -1,5 +1,5 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc3::transforms::standard::untransform::bench::{
+use dxt_lossless_transform_bc3::transform::standard::untransform::bench::{
     avx512_untransform, avx512_untransform_32_vbmi, avx512_untransform_32_vl,
 };
 use safe_allocator_api::RawAlloc;
@@ -41,11 +41,13 @@ pub(crate) fn run_benchmarks(
     size: usize,
     important_benches_only: bool,
 ) {
-    group.bench_with_input(
-        BenchmarkId::new("avx512 32bit vbmi", size),
-        &size,
-        |b, _| bench_avx512_32_vbmi(b, input, output),
-    );
+    if is_x86_feature_detected!("avx512vbmi") {
+        group.bench_with_input(
+            BenchmarkId::new("avx512 32bit vbmi", size),
+            &size,
+            |b, _| bench_avx512_32_vbmi(b, input, output),
+        );
+    }
 
     if is_x86_feature_detected!("avx512vl") {
         group.bench_with_input(BenchmarkId::new("avx512 32bit vl", size), &size, |b, _| {

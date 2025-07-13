@@ -18,9 +18,6 @@ pub use std::is_x86_feature_detected;
 // External crates commonly used in tests
 pub use rstest::rstest;
 
-// Core functionality from this crate
-pub use crate::{transform_bc3, untransform_bc3, BC3TransformDetails};
-
 // Test utilities from transforms module are used internally
 // but not re-exported due to visibility constraints
 

@@ -100,8 +100,12 @@ pub fn run_all_endian_tests() -> Result<Vec<EndianTestResult>, EndianTestError> 
 
 /// Run endianness test for a single file
 fn run_single_endian_test(test_file: &fs::DirEntry) -> Result<EndianTestResult, EndianTestError> {
-    // Create isolated temporary directories with random names
-    let temp_dir = TempDir::new()?;
+    // Create isolated temporary directories with random names in project-relative location
+    let project_root = std::env::current_dir()?;
+    let tmp_base = project_root.join("tmp");
+    fs::create_dir_all(&tmp_base)?;
+
+    let temp_dir = TempDir::new_in(&tmp_base)?;
     let base_name = file_compare::generate_random_dir_name("endian_test");
 
     let little_endian_dir = temp_dir.path().join(format!("{base_name}_le"));

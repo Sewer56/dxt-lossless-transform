@@ -1,5 +1,7 @@
 use super::file_compare;
-use dxt_lossless_transform_dds::dds::{parse_dds, DdsFormat};
+use dxt_lossless_transform_dds::DdsHandler;
+use dxt_lossless_transform_file_formats_api::embed::TransformFormat;
+use dxt_lossless_transform_file_formats_debug::{get_file_format, TransformFormatFilter};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -45,20 +47,27 @@ impl EndianTestResult {
 const LITTLE_ENDIAN_TARGET: &str = "x86_64-unknown-linux-gnu";
 const BIG_ENDIAN_TARGET: &str = "powerpc64-unknown-linux-gnu";
 
-/// Check if a DDS file is a supported format for endian testing
+/// Check if a file is a supported format for endian testing using handlers
 /// Currently supports BC1 and BC2, excludes BC3 and BC7 (not ready yet)
 fn is_supported_format(file_path: &Path) -> Result<bool, EndianTestError> {
-    let file_data = fs::read(file_path)?;
+    let handlers = [DdsHandler];
 
-    match parse_dds(&file_data) {
-        Some(dds_info) => {
-            match dds_info.format {
-                DdsFormat::BC1 | DdsFormat::BC2 => Ok(true),
-                DdsFormat::BC3 | DdsFormat::BC7 => Ok(false), // Not ready yet
-                _ => Ok(false),                               // Other formats not supported
+    match get_file_format(file_path, &handlers, TransformFormatFilter::All) {
+        Ok(Some(format)) => {
+            match format {
+                TransformFormat::Bc1 | TransformFormat::Bc2 => Ok(true),
+                TransformFormat::Bc3 | TransformFormat::Bc7 => Ok(false), // Not ready yet
+                _ => Ok(false), // Other formats not supported
             }
         }
-        None => Ok(false), // Not a valid DDS file
+        Ok(None) => Ok(false), // Not a supported format
+        Err(e) => {
+            // Convert file operation error to EndianTestError
+            Err(EndianTestError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Failed to detect file format: {e}"),
+            )))
+        }
     }
 }
 
@@ -75,7 +84,7 @@ fn get_test_files() -> Result<Vec<fs::DirEntry>, EndianTestError> {
 
     find_all_files(&assets_dir, &mut entries)?;
 
-    let mut dds_files: Vec<fs::DirEntry> = entries
+    let mut supported_files: Vec<fs::DirEntry> = entries
         .into_iter()
         .filter(|entry| {
             let path = entry.path();
@@ -86,7 +95,7 @@ fn get_test_files() -> Result<Vec<fs::DirEntry>, EndianTestError> {
                     return false;
                 }
 
-                // Then check if it's a supported format (BC1/BC2) by parsing the file content
+                // Then check if it's a supported format (BC1/BC2) using handlers
                 is_supported_format(&path).unwrap_or_default()
             } else {
                 false
@@ -95,8 +104,8 @@ fn get_test_files() -> Result<Vec<fs::DirEntry>, EndianTestError> {
         .collect();
 
     // Sort by file name for consistent ordering
-    dds_files.sort_by_key(|a| a.file_name());
-    Ok(dds_files)
+    supported_files.sort_by_key(|a| a.file_name());
+    Ok(supported_files)
 }
 
 /// Run comprehensive endianness tests for all files
@@ -104,8 +113,8 @@ pub fn run_all_endian_tests() -> Result<Vec<EndianTestResult>, EndianTestError> 
     let mut results = Vec::new();
     let test_files = get_test_files()?;
 
-    println!("Testing endianness for all .dds files in assets directory");
-    println!("Found {} .dds files", test_files.len());
+    println!("Testing endianness for all supported files in assets directory");
+    println!("Found {} supported files", test_files.len());
 
     // Test each .dds file in the assets/tests directory
     for test_file in &test_files {

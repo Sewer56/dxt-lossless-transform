@@ -17,7 +17,7 @@ debug-bc1 = ["debug-format", "dxt-lossless-transform-bc1/experimental"]
 # Debugging BC2 behaviour
 debug-bc2 = ["debug-format", "dxt-lossless-transform-bc2"]
 # Debugging endianness compatibility
-debug-endian = ["tempfile"]
+debug-endian = ["tempfile", "dxt-lossless-transform-file-formats-debug", "dxt-lossless-transform-dds/debug-block-extraction"]
 # Common debugging utilities for file format analysis
 debug-format = ["zstd-sys", "thiserror-no-std", "xxhash-rust", "bincode", "serde", "dirs", "derive-enum-all-values", "lossless-transform-utils", "dxt-lossless-transform-dds/debug-block-extraction", "dxt-lossless-transform-file-formats-debug"]
 

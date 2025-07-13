@@ -133,11 +133,8 @@ impl EmbeddableBc2Details {
         Self(settings)
     }
 
-    /// Get the BC2 transform settings from the embeddable details.
-    ///
-    /// # Returns
-    /// The BC2 transform settings contained in this instance
-    pub(crate) fn get_settings(&self) -> Bc2TransformSettings {
+    /// Convert to core BC1 transform settings (internal use only)
+    pub(crate) fn to_settings(self) -> Bc2TransformSettings {
         self.0
     }
 }
@@ -155,7 +152,7 @@ mod tests {
             let recovered = EmbeddableBc2Details::unpack(packed).unwrap();
             assert_eq!(
                 settings,
-                recovered.get_settings(),
+                recovered.to_settings(),
                 "Failed for settings {settings:?}",
             );
         }

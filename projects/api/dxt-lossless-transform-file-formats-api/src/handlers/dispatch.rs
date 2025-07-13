@@ -87,7 +87,7 @@ pub fn dispatch_untransform(
                     input_texture_data.as_ptr(),
                     output_texture_data.as_mut_ptr(),
                     input_texture_data.len(),
-                    details.get_settings(),
+                    details.to_settings(),
                 );
             }
         }

@@ -1,8 +1,6 @@
-use crate::util::Throughput;
-use crate::util::{canonicalize_cli_path, find_all_files};
+use crate::util::{all_handlers, canonicalize_cli_path, find_all_files, Throughput};
 use argh::FromArgs;
 use bytesize::ByteSize;
-use dxt_lossless_transform_dds::DdsHandler;
 use dxt_lossless_transform_file_formats_api::file_io;
 
 use std::{
@@ -127,9 +125,7 @@ fn process_file_untransform(
 
     // Try different file format handlers in sequence using detection
     // Use the new wrapper API that handles multiple handlers automatically
-    let handlers = [DdsHandler];
-
-    let _ = file_io::untransform_file_with_multiple_handlers(handlers, &path, &target_path)?;
+    let _ = file_io::untransform_file_with_multiple_handlers(all_handlers(), &path, &target_path)?;
 
     Ok(bytes)
 }

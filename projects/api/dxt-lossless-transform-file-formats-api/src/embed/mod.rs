@@ -70,8 +70,12 @@ pub use transform_format::TransformFormat;
 
 // Internal re-exports (used only within file-formats-api crate)
 pub(super) use embed_error::EmbedError;
+#[allow(unused_imports)]
+pub(super) use formats::EmbeddableArgb8888Details;
 pub(super) use formats::EmbeddableBc1Details;
 pub(super) use formats::EmbeddableBc2Details;
+#[allow(unused_imports)]
+pub(super) use formats::EmbeddableRgba8888Details;
 
 /// Size of the transform header in bytes.
 ///
@@ -162,6 +166,14 @@ mod tests {
         assert_eq!(TransformFormat::from_u8(0x02), Some(TransformFormat::Bc3));
         assert_eq!(TransformFormat::from_u8(0x03), Some(TransformFormat::Bc7));
         assert_eq!(TransformFormat::from_u8(0x04), Some(TransformFormat::Bc6H));
+        assert_eq!(
+            TransformFormat::from_u8(0x05),
+            Some(TransformFormat::Rgba8888)
+        );
+        assert_eq!(
+            TransformFormat::from_u8(0x06),
+            Some(TransformFormat::Argb8888)
+        );
         assert_eq!(TransformFormat::from_u8(0x0F), None);
 
         assert_eq!(TransformFormat::Bc1.to_u8(), 0x00);
@@ -169,6 +181,8 @@ mod tests {
         assert_eq!(TransformFormat::Bc3.to_u8(), 0x02);
         assert_eq!(TransformFormat::Bc7.to_u8(), 0x03);
         assert_eq!(TransformFormat::Bc6H.to_u8(), 0x04);
+        assert_eq!(TransformFormat::Rgba8888.to_u8(), 0x05);
+        assert_eq!(TransformFormat::Argb8888.to_u8(), 0x06);
     }
 
     #[test]

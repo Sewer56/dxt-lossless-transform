@@ -30,10 +30,11 @@ use dxt_lossless_transform_file_formats_api::{
 /// - BC3 (DXT4/5) - known but unimplemented
 /// - BC6H - known but unimplemented
 /// - BC7 - known but unimplemented
+/// - RGBA8888 - implemented
+/// - ARGB8888 - implemented
 ///
 /// # Unsupported Formats
 ///
-/// - RGBA8888, ARGB8888 (uncompressed formats)
 /// - Unknown or invalid formats
 #[inline(always)]
 pub(crate) fn dds_format_to_transform_format(
@@ -70,9 +71,11 @@ pub(crate) fn dds_format_to_transform_format(
                 ))
             }
         }
-        DdsFormat::RGBA8888 | DdsFormat::ARGB8888 | DdsFormat::NotADds | DdsFormat::Unknown => Err(
-            TransformError::FormatHandler(FormatHandlerError::UnknownFileFormat),
-        ),
+        DdsFormat::RGBA8888 => Ok(TransformFormat::Rgba8888),
+        DdsFormat::ARGB8888 => Ok(TransformFormat::Argb8888),
+        DdsFormat::NotADds | DdsFormat::Unknown => Err(TransformError::FormatHandler(
+            FormatHandlerError::UnknownFileFormat,
+        )),
     }
 }
 
@@ -91,12 +94,28 @@ mod tests {
             TransformFormat::Bc2
         );
         assert_eq!(
+            dds_format_to_transform_format(DdsFormat::RGBA8888, false).unwrap(),
+            TransformFormat::Rgba8888
+        );
+        assert_eq!(
+            dds_format_to_transform_format(DdsFormat::ARGB8888, false).unwrap(),
+            TransformFormat::Argb8888
+        );
+        assert_eq!(
             dds_format_to_transform_format(DdsFormat::BC1, true).unwrap(),
             TransformFormat::Bc1
         );
         assert_eq!(
             dds_format_to_transform_format(DdsFormat::BC2, true).unwrap(),
             TransformFormat::Bc2
+        );
+        assert_eq!(
+            dds_format_to_transform_format(DdsFormat::RGBA8888, true).unwrap(),
+            TransformFormat::Rgba8888
+        );
+        assert_eq!(
+            dds_format_to_transform_format(DdsFormat::ARGB8888, true).unwrap(),
+            TransformFormat::Argb8888
         );
     }
 
@@ -140,24 +159,6 @@ mod tests {
 
     #[test]
     fn test_unsupported_formats() {
-        assert!(matches!(
-            dds_format_to_transform_format(DdsFormat::RGBA8888, false),
-            Err(TransformError::FormatHandler(
-                FormatHandlerError::UnknownFileFormat
-            ))
-        ));
-        assert!(matches!(
-            dds_format_to_transform_format(DdsFormat::RGBA8888, true),
-            Err(TransformError::FormatHandler(
-                FormatHandlerError::UnknownFileFormat
-            ))
-        ));
-        assert!(matches!(
-            dds_format_to_transform_format(DdsFormat::ARGB8888, false),
-            Err(TransformError::FormatHandler(
-                FormatHandlerError::UnknownFileFormat
-            ))
-        ));
         assert!(matches!(
             dds_format_to_transform_format(DdsFormat::Unknown, false),
             Err(TransformError::FormatHandler(

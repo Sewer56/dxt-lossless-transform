@@ -3,7 +3,7 @@
 //! This module provides file I/O operations for extracting raw block data from files
 //! for debug, analysis, and testing purposes.
 
-use crate::{FileFormatBlockExtraction, TransformFormatFilter};
+use crate::{FileFormatBlockExtraction, TransformFormatCheck, TransformFormatFilter};
 use dxt_lossless_transform_file_formats_api::{
     embed::TransformFormat,
     file_io::{extract_lowercase_extension, FileOperationError, FileOperationResult},
@@ -118,4 +118,85 @@ where
     Err(FileOperationError::Transform(
         TransformError::NoSupportedHandler,
     ))
+}
+
+/// Extracts the [`TransformFormat`] from a file using the file-formats-api.
+///
+/// This function uses memory mapping for optimal performance and supports any file format handler
+/// that implements both [`FileFormatDetection`] and [`TransformFormatCheck`].
+///
+/// # Arguments
+///
+/// * `file_path` - Path to the file to inspect
+/// * `handlers` - Array of file format handlers to try for format detection
+/// * `filter` - Filter specifying which block formats to accept
+///
+/// # Returns
+///
+/// * `Ok(Some(format))` - Successfully identified format matching the filter
+/// * `Ok(None)` - File format doesn't match the filter or no handler supports it
+/// * `Err(error)` - File I/O error or format detection failed
+///
+/// # Example
+///
+/// ```rust,ignore
+/// // Note: This example requires dxt-lossless-transform-dds with the
+/// // "debug-block-extraction" feature enabled
+/// use dxt_lossless_transform_file_formats_debug::{
+///     get_file_format,
+///     TransformFormatFilter,
+/// };
+/// use dxt_lossless_transform_file_formats_api::embed::TransformFormat;
+/// use dxt_lossless_transform_dds::DdsHandler;
+/// use std::path::Path;
+///
+/// fn example_get_format(file_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+///     let handlers = [DdsHandler];
+///     let result = get_file_format(
+///         file_path,
+///         &handlers,
+///         TransformFormatFilter::All,
+///     );
+///     match result {
+///         Ok(Some(format)) => println!("File format: {:?}", format),
+///         Ok(None) => println!("No supported format found or doesn't match filter"),
+///         Err(e) => println!("Failed to detect format: {:?}", e),
+///     }
+///     Ok(())
+/// }
+/// ```
+pub fn get_file_format<H>(
+    file_path: &Path,
+    handlers: &[H],
+    filter: TransformFormatFilter,
+) -> FileOperationResult<Option<TransformFormat>>
+where
+    H: FileFormatDetection + TransformFormatCheck,
+{
+    // Use file-formats-api to open the file
+    let source_handle = ReadOnlyFileHandle::open(file_path)?;
+    let source_size = source_handle.size()? as usize;
+    let source_mapping = ReadOnlyMmap::new(&source_handle, 0, source_size)?;
+    let data = source_mapping.as_slice();
+
+    // Get file extension for handler detection
+    let file_extension = extract_lowercase_extension(file_path);
+    let file_extension_ref = file_extension.as_deref();
+
+    // Try each handler until one can process the file
+    for handler in handlers {
+        if handler.can_handle(data, file_extension_ref) {
+            // Get format using the format detection trait
+            match handler.get_transform_format(data, filter) {
+                Ok(format_opt) => return Ok(format_opt),
+                Err(api_err) => {
+                    // Convert file-formats-api error to file operation error
+                    return Err(FileOperationError::Transform(api_err));
+                }
+            }
+        }
+    }
+
+    // No handler could process the file
+    Ok(None)
 }

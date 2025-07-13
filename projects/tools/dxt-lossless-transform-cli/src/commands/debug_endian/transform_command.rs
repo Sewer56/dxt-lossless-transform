@@ -4,11 +4,9 @@ use std::path::{Path, PathBuf};
 use dxt_lossless_transform_api_common::estimate::NoEstimation;
 use dxt_lossless_transform_bc1_api::{Bc1ManualTransformBuilder, YCoCgVariant};
 use dxt_lossless_transform_bc2_api::Bc2ManualTransformBuilder;
-use dxt_lossless_transform_dds::{
-    dds::parse_dds::{parse_dds, DdsFormat},
-    DdsHandler,
-};
-use dxt_lossless_transform_file_formats_api::{file_io, TransformBundle};
+use dxt_lossless_transform_dds::DdsHandler;
+use dxt_lossless_transform_file_formats_api::{embed::TransformFormat, file_io, TransformBundle};
+use dxt_lossless_transform_file_formats_debug::{get_file_format, TransformFormatFilter};
 
 /// Handle transform of a single file with all manual combinations
 pub fn handle_transform_single_file(
@@ -22,36 +20,27 @@ pub fn handle_transform_single_file(
     let input_filename = input_file.file_name().ok_or("Invalid input file path")?;
     let output_file = output_dir.join(input_filename);
 
-    // Detect the format of the input file
-    let file_data = std::fs::read(&input_file)?;
-    let detected_format = match parse_dds(&file_data) {
-        Some(dds_info) => match dds_info.format {
-            DdsFormat::BC1 => dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc1,
-            DdsFormat::BC2 => dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc2,
-            DdsFormat::BC3 => dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc3,
-            DdsFormat::BC7 => dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc7,
-            DdsFormat::BC6H => {
-                dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc6H
-            }
-            _ => {
-                return Err(format!(
-                    "Unsupported DDS format in file: {} (format: {:?})",
-                    input_file.display(),
-                    dds_info.format
-                )
-                .into())
-            }
-        },
-        None => return Err(format!("Failed to parse DDS file: {}", input_file.display()).into()),
+    // Detect the format of the input file using handlers
+    let handlers = [DdsHandler];
+    let detected_format = match get_file_format(&input_file, &handlers, TransformFormatFilter::All)?
+    {
+        Some(format) => format,
+        None => {
+            return Err(format!(
+                "Unable to detect supported transform format in file: {}",
+                input_file.display()
+            )
+            .into())
+        }
     };
 
     // Process all formats
     match detected_format {
-        dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc1 => {
+        TransformFormat::Bc1 => {
             // Test all manual combinations for BC1
             test_all_bc1_combinations(&input_file, &output_file)
         }
-        dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc2 => {
+        TransformFormat::Bc2 => {
             // Test all manual combinations for BC2
             test_all_bc2_combinations(&input_file, &output_file)
         }

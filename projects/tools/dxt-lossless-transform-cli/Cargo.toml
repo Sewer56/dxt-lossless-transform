@@ -17,9 +17,9 @@ debug-bc1 = ["debug-format", "dxt-lossless-transform-bc1/experimental"]
 # Debugging BC2 behaviour
 debug-bc2 = ["debug-format", "dxt-lossless-transform-bc2"]
 # Debugging endianness compatibility
-debug-endian = ["tempfile"]
+debug-endian = ["tempfile", "dxt-lossless-transform-file-formats-debug", "dxt-lossless-transform-dds/debug"]
 # Common debugging utilities for file format analysis
-debug-format = ["zstd-sys", "thiserror-no-std", "xxhash-rust", "bincode", "serde", "dirs", "derive-enum-all-values", "lossless-transform-utils", "dxt-lossless-transform-dds/debug-block-extraction", "dxt-lossless-transform-file-formats-debug"]
+debug-format = ["zstd-sys", "thiserror-no-std", "xxhash-rust", "bincode", "serde", "dirs", "derive-enum-all-values", "lossless-transform-utils", "dxt-lossless-transform-dds/debug", "dxt-lossless-transform-file-formats-debug"]
 
 nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/nightly", 
            "dxt-lossless-transform-api-common/nightly", "safe-allocator-api/nightly"]

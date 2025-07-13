@@ -1,37 +1,16 @@
-use super::DdsHandler;
+use super::{format_conversion::dds_format_to_transform_format, DdsHandler};
 use crate::dds::{
     constants::DDS_MAGIC,
-    parse_dds::{parse_dds, parse_dds_ignore_magic, DdsFormat},
+    parse_dds::{parse_dds, parse_dds_ignore_magic},
 };
 use core::fmt::Debug;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use dxt_lossless_transform_file_formats_api::{
     bundle::TransformBundle,
-    embed::{TransformFormat, TransformHeader, TRANSFORM_HEADER_SIZE},
+    embed::{TransformHeader, TRANSFORM_HEADER_SIZE},
     error::{FormatHandlerError, TransformResult},
     handlers::FileFormatHandler,
 };
-
-/// Convert DdsFormat to TransformFormat for dispatch
-fn dds_format_to_transform_format(
-    format: DdsFormat,
-) -> Result<TransformFormat, FormatHandlerError> {
-    match format {
-        DdsFormat::BC1 => Ok(TransformFormat::Bc1),
-        DdsFormat::BC2 => Ok(TransformFormat::Bc2),
-        DdsFormat::BC3 => Err(FormatHandlerError::FormatNotImplemented(
-            TransformFormat::Bc3,
-        )),
-        DdsFormat::BC6H => Err(FormatHandlerError::FormatNotImplemented(
-            TransformFormat::Bc6H,
-        )),
-        DdsFormat::BC7 => Err(FormatHandlerError::FormatNotImplemented(
-            TransformFormat::Bc7,
-        )),
-        DdsFormat::RGBA8888 | DdsFormat::ARGB8888 => Err(FormatHandlerError::UnknownFileFormat),
-        DdsFormat::Unknown | DdsFormat::NotADds => Err(FormatHandlerError::UnknownFileFormat),
-    }
-}
 
 impl FileFormatHandler for DdsHandler {
     fn transform_bundle<T>(
@@ -72,7 +51,7 @@ impl FileFormatHandler for DdsHandler {
         output[..data_offset].copy_from_slice(&input[..data_offset]);
 
         // Convert DDS format to transform format and dispatch (only texture data)
-        let transform_format = dds_format_to_transform_format(info.format)?;
+        let transform_format = dds_format_to_transform_format(info.format, false)?;
         let header = dxt_lossless_transform_file_formats_api::dispatch_transform(
             transform_format,
             &input[data_offset..data_offset + data_length],

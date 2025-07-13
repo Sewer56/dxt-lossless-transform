@@ -70,10 +70,10 @@ pub use transform_format::TransformFormat;
 
 // Internal re-exports (used only within file-formats-api crate)
 pub(super) use embed_error::EmbedError;
-#[allow(unused_imports)]
-pub(super) use formats::EmbeddableArgb8888Details;
 pub(super) use formats::EmbeddableBc1Details;
 pub(super) use formats::EmbeddableBc2Details;
+#[allow(unused_imports)]
+pub(super) use formats::EmbeddableBgra8888Details;
 #[allow(unused_imports)]
 pub(super) use formats::EmbeddableRgba8888Details;
 
@@ -172,7 +172,7 @@ mod tests {
         );
         assert_eq!(
             TransformFormat::from_u8(0x06),
-            Some(TransformFormat::Argb8888)
+            Some(TransformFormat::Bgra8888)
         );
         assert_eq!(TransformFormat::from_u8(0x0F), None);
 
@@ -182,7 +182,7 @@ mod tests {
         assert_eq!(TransformFormat::Bc7.to_u8(), 0x03);
         assert_eq!(TransformFormat::Bc6H.to_u8(), 0x04);
         assert_eq!(TransformFormat::Rgba8888.to_u8(), 0x05);
-        assert_eq!(TransformFormat::Argb8888.to_u8(), 0x06);
+        assert_eq!(TransformFormat::Bgra8888.to_u8(), 0x06);
     }
 
     #[test]

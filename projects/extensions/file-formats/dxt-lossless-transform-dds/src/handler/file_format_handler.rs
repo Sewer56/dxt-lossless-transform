@@ -298,7 +298,7 @@ mod tests {
         let mut output = vec![0u8; bc2_input.len()];
 
         let result = handler.transform_bundle(&bc2_input, &mut output, &bundle);
-        assert!(result.is_ok(), "BC2 transform should succeed: {:?}", result);
+        assert!(result.is_ok(), "BC2 transform should succeed: {result:?}");
     }
 
     // Format not implemented tests

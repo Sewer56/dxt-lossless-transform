@@ -1,6 +1,6 @@
 use super::{determine_best_transform_details_with_estimator, BenchmarkDetermineBestCmd};
 use crate::{
-    debug::{
+    debug_format::{
         benchmark_common::{
             self, print_overall_statistics, BenchmarkResult, BenchmarkScenarioResult,
         },

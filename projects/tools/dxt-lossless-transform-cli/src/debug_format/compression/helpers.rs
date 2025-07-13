@@ -10,7 +10,7 @@ use super::super::{
 use super::compress_with_algorithm;
 use super::decompress_with_algorithm;
 use super::CompressionAlgorithm;
-use crate::debug::estimation::create_size_estimator;
+use crate::debug_format::estimation::create_size_estimator;
 use crate::error::TransformError;
 use std::sync::Mutex;
 

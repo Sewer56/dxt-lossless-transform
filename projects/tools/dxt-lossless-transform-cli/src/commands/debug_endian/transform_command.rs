@@ -4,9 +4,11 @@ use std::path::{Path, PathBuf};
 use dxt_lossless_transform_api_common::estimate::NoEstimation;
 use dxt_lossless_transform_bc1_api::{Bc1ManualTransformBuilder, YCoCgVariant};
 use dxt_lossless_transform_bc2_api::Bc2ManualTransformBuilder;
-use dxt_lossless_transform_dds::DdsHandler;
+use dxt_lossless_transform_dds::{
+    dds::parse_dds::{parse_dds, DdsFormat},
+    DdsHandler,
+};
 use dxt_lossless_transform_file_formats_api::{file_io, TransformBundle};
-use dxt_lossless_transform_file_formats_debug::{FileFormatBlockExtraction, TransformFormatFilter};
 
 /// Handle transform of a single file with all manual combinations
 pub fn handle_transform_single_file(
@@ -22,21 +24,25 @@ pub fn handle_transform_single_file(
 
     // Detect the format of the input file
     let file_data = std::fs::read(&input_file)?;
-    let detected_format = match DdsHandler.extract_blocks(&file_data, TransformFormatFilter::All) {
-        Ok(Some(extracted)) => extracted.format,
-        Ok(None) => {
-            return Err(
-                format!("Could not detect format for file: {}", input_file.display()).into(),
-            )
-        }
-        Err(e) => {
-            return Err(format!(
-                "Failed to extract blocks from file {}: {}",
-                input_file.display(),
-                e
-            )
-            .into())
-        }
+    let detected_format = match parse_dds(&file_data) {
+        Some(dds_info) => match dds_info.format {
+            DdsFormat::BC1 => dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc1,
+            DdsFormat::BC2 => dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc2,
+            DdsFormat::BC3 => dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc3,
+            DdsFormat::BC7 => dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc7,
+            DdsFormat::BC6H => {
+                dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc6H
+            }
+            _ => {
+                return Err(format!(
+                    "Unsupported DDS format in file: {} (format: {:?})",
+                    input_file.display(),
+                    dds_info.format
+                )
+                .into())
+            }
+        },
+        None => return Err(format!("Failed to parse DDS file: {}", input_file.display()).into()),
     };
 
     // Process all formats
@@ -59,9 +65,16 @@ pub fn handle_transform_single_file(
     }
 }
 
-/// Test all manual combinations for BC1 and use the first successful one
-fn test_all_bc1_combinations(input_file: &Path, output_file: &Path) -> Result<(), Box<dyn Error>> {
-    // Generate all manual combinations
+/// Test all manual combinations for a given format and use the first successful one
+fn test_all_combinations<F>(
+    input_file: &Path,
+    output_file: &Path,
+    format_name: &str,
+    mut build_bundle: F,
+) -> Result<(), Box<dyn Error>>
+where
+    F: FnMut(YCoCgVariant, bool) -> TransformBundle<NoEstimation>,
+{
     let decorrelation_variants = [
         YCoCgVariant::None,
         YCoCgVariant::Variant1,
@@ -72,11 +85,7 @@ fn test_all_bc1_combinations(input_file: &Path, output_file: &Path) -> Result<()
 
     for variant in decorrelation_variants {
         for split in split_options {
-            let builder = Bc1ManualTransformBuilder::new()
-                .decorrelation_mode(variant)
-                .split_colour_endpoints(split);
-
-            let bundle = TransformBundle::<NoEstimation>::new().with_bc1_manual(builder);
+            let bundle = build_bundle(variant, split);
 
             // Try to transform with this combination
             match file_io::transform_file_with_multiple_handlers(
@@ -97,48 +106,27 @@ fn test_all_bc1_combinations(input_file: &Path, output_file: &Path) -> Result<()
         }
     }
 
-    Err("All manual transform combinations failed".into())
+    Err(format!("All manual transform combinations failed for {format_name}").into())
+}
+
+/// Test all manual combinations for BC1 and use the first successful one
+fn test_all_bc1_combinations(input_file: &Path, output_file: &Path) -> Result<(), Box<dyn Error>> {
+    test_all_combinations(input_file, output_file, "BC1", |variant, split| {
+        let builder = Bc1ManualTransformBuilder::new()
+            .decorrelation_mode(variant)
+            .split_colour_endpoints(split);
+        TransformBundle::<NoEstimation>::new().with_bc1_manual(builder)
+    })
 }
 
 /// Test all manual combinations for BC2 and use the first successful one
 fn test_all_bc2_combinations(input_file: &Path, output_file: &Path) -> Result<(), Box<dyn Error>> {
-    // Generate all manual combinations
-    let decorrelation_variants = [
-        YCoCgVariant::None,
-        YCoCgVariant::Variant1,
-        YCoCgVariant::Variant2,
-        YCoCgVariant::Variant3,
-    ];
-    let split_options = [false, true];
-
-    for variant in decorrelation_variants {
-        for split in split_options {
-            let builder = Bc2ManualTransformBuilder::new()
-                .decorrelation_mode(variant)
-                .split_colour_endpoints(split);
-
-            let bundle = TransformBundle::<NoEstimation>::new().with_bc2_manual(builder);
-
-            // Try to transform with this combination
-            match file_io::transform_file_with_multiple_handlers(
-                [DdsHandler],
-                input_file,
-                output_file,
-                &bundle,
-            ) {
-                Ok(_) => {
-                    println!("✓ Success with combination: decorrelation={variant:?}, split_endpoints={split}");
-                    // Use the first successful combination for endian testing
-                    return Ok(());
-                }
-                Err(e) => {
-                    println!("✗ Failed with combination: decorrelation={variant:?}, split_endpoints={split}: {e}");
-                }
-            }
-        }
-    }
-
-    Err("All manual transform combinations failed".into())
+    test_all_combinations(input_file, output_file, "BC2", |variant, split| {
+        let builder = Bc2ManualTransformBuilder::new()
+            .decorrelation_mode(variant)
+            .split_colour_endpoints(split);
+        TransformBundle::<NoEstimation>::new().with_bc2_manual(builder)
+    })
 }
 
 /// Handle untransform of all files in input directory

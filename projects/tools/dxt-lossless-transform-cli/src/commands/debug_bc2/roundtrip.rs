@@ -2,7 +2,7 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use std::fs;
 
 use super::RoundtripCmd;
-use crate::{debug::extract_blocks_from_file, error::TransformError, util::find_all_files};
+use crate::{debug_format::extract_blocks_from_file, error::TransformError, util::find_all_files};
 use dxt_lossless_transform_bc2::Bc2TransformSettings;
 use dxt_lossless_transform_file_formats_api::embed::TransformFormat;
 use dxt_lossless_transform_file_formats_debug::TransformFormatFilter;

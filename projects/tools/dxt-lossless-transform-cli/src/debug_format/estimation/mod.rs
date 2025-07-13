@@ -1,7 +1,7 @@
 //! Size estimation operations for compression algorithms.
 
-use crate::debug::compression_size_cache::CompressionSizeCache;
-use crate::debug::{calculate_content_hash, compression::CompressionAlgorithm};
+use crate::debug_format::compression_size_cache::CompressionSizeCache;
+use crate::debug_format::{calculate_content_hash, compression::CompressionAlgorithm};
 use crate::error::TransformError;
 use dxt_lossless_transform_api_common::estimate::SizeEstimationOperations;
 use std::sync::Mutex;

@@ -23,8 +23,8 @@ pub enum DdsFormat {
     RGBA8888 = 7,
     /// BGRA8888 format (32-bit with alpha, different byte order)
     BGRA8888 = 8,
-    /// RGB888 format (24-bit RGB)
-    RGB888 = 9,
+    /// BGR888 format (24-bit RGB)
+    BGR888 = 9,
 }
 
 /// The information of the DDS file supplied to the reader.
@@ -175,13 +175,13 @@ fn detect_uncompressed_format(data: &[u8]) -> DdsFormat {
 
     match rgb_bit_count {
         24 => {
-            // RGB888: 24-bit RGB format
-            if r_mask == RGB888_RED_MASK
-                && g_mask == RGB888_GREEN_MASK
-                && b_mask == RGB888_BLUE_MASK
+            // BGR888: 24-bit RGB format
+            if r_mask == BGR888_RED_MASK
+                && g_mask == BGR888_GREEN_MASK
+                && b_mask == BGR888_BLUE_MASK
                 && a_mask == 0x00000000
             {
-                DdsFormat::RGB888
+                DdsFormat::BGR888
             } else {
                 DdsFormat::Unknown
             }
@@ -247,7 +247,7 @@ fn calculate_data_length(format: DdsFormat, data: &[u8]) -> Option<u32> {
             // 32-bit formats (4 bytes per pixel)
             calculate_data_length_for_pixel_formats(width, height, mipmap_count, 4)
         }
-        DdsFormat::RGB888 => {
+        DdsFormat::BGR888 => {
             // 24-bit format (3 bytes per pixel)
             calculate_data_length_for_pixel_formats(width, height, mipmap_count, 3)
         }
@@ -307,7 +307,7 @@ pub(crate) fn calculate_data_length_for_block_compression(
             // 32-bit uncompressed formats
             calculate_data_length_for_pixel_formats(width, height, mipmap_count, 4)
         }
-        DdsFormat::RGB888 => {
+        DdsFormat::BGR888 => {
             // 24-bit uncompressed format
             calculate_data_length_for_pixel_formats(width, height, mipmap_count, 3)
         }

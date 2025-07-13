@@ -32,7 +32,7 @@ use dxt_lossless_transform_file_formats_api::{
 /// - BC7 - known but unimplemented
 /// - RGBA8888 - implemented
 /// - BGRA8888 - implemented
-/// - RGB888 - implemented
+/// - BGR888 - implemented
 ///
 /// # Unsupported Formats
 ///
@@ -74,7 +74,7 @@ pub(crate) fn dds_format_to_transform_format(
         }
         DdsFormat::RGBA8888 => Ok(TransformFormat::Rgba8888),
         DdsFormat::BGRA8888 => Ok(TransformFormat::Bgra8888),
-        DdsFormat::RGB888 => Ok(TransformFormat::Rgb888),
+        DdsFormat::BGR888 => Ok(TransformFormat::Bgr888),
         DdsFormat::NotADds | DdsFormat::Unknown => Err(TransformError::FormatHandler(
             FormatHandlerError::UnknownFileFormat,
         )),
@@ -104,8 +104,8 @@ mod tests {
             TransformFormat::Bgra8888
         );
         assert_eq!(
-            dds_format_to_transform_format(DdsFormat::RGB888, false).unwrap(),
-            TransformFormat::Rgb888
+            dds_format_to_transform_format(DdsFormat::BGR888, false).unwrap(),
+            TransformFormat::Bgr888
         );
         assert_eq!(
             dds_format_to_transform_format(DdsFormat::BC1, true).unwrap(),
@@ -124,8 +124,8 @@ mod tests {
             TransformFormat::Bgra8888
         );
         assert_eq!(
-            dds_format_to_transform_format(DdsFormat::RGB888, true).unwrap(),
-            TransformFormat::Rgb888
+            dds_format_to_transform_format(DdsFormat::BGR888, true).unwrap(),
+            TransformFormat::Bgr888
         );
     }
 

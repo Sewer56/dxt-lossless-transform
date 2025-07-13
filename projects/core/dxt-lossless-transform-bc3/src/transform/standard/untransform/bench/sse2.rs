@@ -2,7 +2,6 @@
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
-use core::arch::*;
 
 use crate::transform::standard::untransform::portable::u32_untransform_with_separate_pointers;
 
@@ -65,18 +64,19 @@ pub(crate) unsafe fn u32_untransform_sse2(input_ptr: *const u8, output_ptr: *mut
             let low = _mm_unpacklo_epi32(colors, indices);
             let high = _mm_unpackhi_epi32(colors, indices);
 
-            asm!(
-                "movq [{out}], {low}",
-                "movhps [{out_high}], {low}",
-                "movq [{out_mid}], {high}",
-                "movhps [{out_high_mid}], {high}",
-                out = in(reg) current_output_ptr.add(8),
-                out_high = in(reg) current_output_ptr.add(24),
-                out_mid = in(reg) current_output_ptr.add(40),
-                out_high_mid = in(reg) current_output_ptr.add(56),
-                low = in(xmm_reg) low,
-                high = in(xmm_reg) high,
-                options(nostack, preserves_flags)
+            // Store interleaved colors+indices for first block half
+            _mm_storel_epi64(current_output_ptr.add(8) as *mut __m128i, low);
+            // Store interleaved colors+indices for second block half  
+            _mm_storeh_pd(
+                current_output_ptr.add(24) as *mut f64,
+                _mm_castsi128_pd(low),
+            );
+            // Store interleaved colors+indices for third block half
+            _mm_storel_epi64(current_output_ptr.add(40) as *mut __m128i, high);
+            // Store interleaved colors+indices for fourth block half
+            _mm_storeh_pd(
+                current_output_ptr.add(56) as *mut f64,
+                _mm_castsi128_pd(high),
             );
 
             color_byte_in_ptr = color_byte_in_ptr.add(1);

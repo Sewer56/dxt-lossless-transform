@@ -1,10 +1,10 @@
 use std::error::Error;
 use std::path::{Path, PathBuf};
 
+use crate::util::all_handlers;
 use dxt_lossless_transform_api_common::estimate::NoEstimation;
 use dxt_lossless_transform_bc1_api::{Bc1ManualTransformBuilder, YCoCgVariant};
 use dxt_lossless_transform_bc2_api::Bc2ManualTransformBuilder;
-use dxt_lossless_transform_dds::DdsHandler;
 use dxt_lossless_transform_file_formats_api::{embed::TransformFormat, file_io, TransformBundle};
 use dxt_lossless_transform_file_formats_debug::{get_transform_format, TransformFormatFilter};
 
@@ -21,13 +21,12 @@ pub fn handle_transform_single_file(
     let output_file = output_dir.join(input_filename);
 
     // Detect the format of the input file using handlers
-    let handlers = [DdsHandler];
     let detected_format =
-        match get_transform_format(&input_file, &handlers, TransformFormatFilter::All)? {
+        match get_transform_format(&input_file, &all_handlers(), TransformFormatFilter::All)? {
             Some(format) => format,
             None => {
                 return Err(format!(
-                    "Unable to detect supported TransformFormat in file: {}",
+                    "Unable to detect supported transform format in file: {}",
                     input_file.display()
                 )
                 .into())
@@ -78,7 +77,7 @@ where
 
             // Try to transform with this combination
             match file_io::transform_file_with_multiple_handlers(
-                [DdsHandler],
+                all_handlers(),
                 input_file,
                 output_file,
                 &bundle,
@@ -135,8 +134,11 @@ pub fn handle_untransform_single_file(
             let filename = input_path.file_name().ok_or("Invalid file name")?;
             let output_path = output_dir.join(filename);
 
-            let handlers = [DdsHandler];
-            file_io::untransform_file_with_multiple_handlers(handlers, &input_path, &output_path)?;
+            file_io::untransform_file_with_multiple_handlers(
+                all_handlers(),
+                &input_path,
+                &output_path,
+            )?;
             println!(
                 "Untransformed: {} -> {}",
                 input_path.display(),

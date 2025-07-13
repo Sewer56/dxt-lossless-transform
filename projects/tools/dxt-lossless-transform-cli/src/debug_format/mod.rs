@@ -7,8 +7,7 @@ pub mod compression;
 pub mod compression_size_cache;
 pub mod estimation;
 
-use crate::error::TransformError;
-use dxt_lossless_transform_dds::DdsHandler;
+use crate::{error::TransformError, util::all_handlers};
 use dxt_lossless_transform_file_formats_api::embed::TransformFormat;
 use dxt_lossless_transform_file_formats_debug::{
     extract_blocks_from_file_format, TransformFormatFilter,
@@ -27,8 +26,6 @@ pub(crate) fn extract_blocks_from_file<TFunction>(
 where
     TFunction: FnMut(&[u8], TransformFormat) -> Result<(), TransformError>,
 {
-    let handlers = [DdsHandler];
-
     // Convert CLI TransformError to file-formats-api TransformError
     let transform_format_fn = |data: &[u8], transform_format: TransformFormat| {
         test_fn(data, transform_format).map_err(|_e| {
@@ -38,7 +35,7 @@ where
     };
 
     // Use the file-formats-debug function and convert the error
-    extract_blocks_from_file_format(file_path, &handlers, filter, transform_format_fn)
+    extract_blocks_from_file_format(file_path, &all_handlers(), filter, transform_format_fn)
         .map_err(TransformError::FileOperationError)
 }
 

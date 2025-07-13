@@ -66,7 +66,7 @@ pub(crate) unsafe fn u32_untransform_sse2(input_ptr: *const u8, output_ptr: *mut
 
             // Store interleaved colors+indices for first block half
             _mm_storel_epi64(current_output_ptr.add(8) as *mut __m128i, low);
-            // Store interleaved colors+indices for second block half  
+            // Store interleaved colors+indices for second block half
             _mm_storeh_pd(
                 current_output_ptr.add(24) as *mut f64,
                 _mm_castsi128_pd(low),

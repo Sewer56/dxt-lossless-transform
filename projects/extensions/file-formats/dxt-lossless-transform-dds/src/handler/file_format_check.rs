@@ -92,12 +92,13 @@ mod tests {
     }
 
     #[test]
-    fn test_get_transform_format_unsupported_format() {
+    fn test_get_transform_format_rgba8888_supported() {
         let handler = super::super::DdsHandler;
         let dds_data = create_valid_rgba8888_dds_with_dimensions(64, 64, 1);
 
         let result = handler.get_transform_format(&dds_data, TransformFormatFilter::All);
 
-        assert!(result.is_err());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Some(TransformFormat::Rgba8888));
     }
 }

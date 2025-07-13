@@ -55,8 +55,7 @@ impl From<Option<TransformFormat>> for FormatKey {
                     TransformFormat::Bc3 => Self::Bc3,   // 0x02 -> 3
                     TransformFormat::Bc7 => Self::Bc7,   // 0x03 -> 4
                     TransformFormat::Bc6H => Self::Bc6H, // 0x04 -> 5
-                    // This catch-all is required for non-exhaustive enums
-                    _ => Self::Unknown,
+                    _ => todo!("Add missing format to FormatKey"),
                 }
             }
             None => Self::Unknown,

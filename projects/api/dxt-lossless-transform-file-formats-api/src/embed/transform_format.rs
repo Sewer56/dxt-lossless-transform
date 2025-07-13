@@ -18,6 +18,8 @@ pub enum TransformFormat {
     Bc7 = 0x03,
     /// BC6H format transform
     Bc6H = 0x04,
+    /// RGBA8888 format transform
+    Rgba8888 = 0x05,
 }
 
 impl TransformFormat {
@@ -33,6 +35,7 @@ impl TransformFormat {
             0x02 => Some(Self::Bc3),
             0x03 => Some(Self::Bc7),
             0x04 => Some(Self::Bc6H),
+            0x05 => Some(Self::Rgba8888),
             _ => None,
         }
     }
@@ -45,6 +48,7 @@ impl TransformFormat {
             Self::Bc3 => 0x02,
             Self::Bc7 => 0x03,
             Self::Bc6H => 0x04,
+            Self::Rgba8888 => 0x05,
         }
     }
 }

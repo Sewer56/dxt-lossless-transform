@@ -70,6 +70,7 @@ harness = false
 name = "normalize_blocks"
 path = "benches/normalize_blocks/main.rs"
 harness = false
+required-features = ["experimental"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }

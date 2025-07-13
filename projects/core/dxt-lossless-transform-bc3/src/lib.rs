@@ -19,6 +19,15 @@ pub mod transform;
 
 pub mod util;
 
+// Re-export the new transform infrastructure
+pub use transform::settings::{Bc3TransformSettings, Bc3UntransformSettings};
+pub use transform::transform_auto::{
+    transform_bc3_auto, Bc3EstimateSettings, DetermineBestTransformError,
+};
+pub use transform::transform_with_settings::{
+    transform_bc3_with_settings, untransform_bc3_with_settings,
+};
+
 /// The information about the BC3 transform that was just performed.
 /// Each item transformed via [`transform_bc3`] will produce an instance of this struct.
 /// To undo the transform, you'll need to pass the same instance to [`untransform_bc3`].

@@ -4,4 +4,8 @@ pub mod transform_auto;
 pub mod transform_with_settings;
 pub mod with_recorrelate;
 pub mod with_split_alphas;
+pub mod with_split_alphas_and_colour;
+pub mod with_split_alphas_and_recorr;
+pub mod with_split_alphas_colour_and_recorr;
 pub mod with_split_colour;
+pub mod with_split_colour_and_recorr;

@@ -17,7 +17,7 @@ production builds.
 This crate provides:
 
 - **Block extraction utilities**: Extract raw block data from file formats for analysis
-- **Format detection utilities**: Determine the [`TransformFormat`] of texture files without extracting block data
+- **Format detection utilities**: Determine the `TransformFormat` of texture files without extracting block data
 
 ## Usage
 
@@ -45,6 +45,9 @@ use dxt_lossless_transform_file_formats_api::{
     embed::TransformFormat,
     error::TransformResult,
 };
+
+// Example custom handler  
+struct MyFormatHandler;
 
 // File format handlers can optionally implement debug traits
 impl TransformFormatCheck for MyFormatHandler {

@@ -24,7 +24,7 @@ use std::path::Path;
 ///
 /// * `file_path` - Path to the file to extract blocks from
 /// * `handlers` - Array of file format handlers to try for block extraction
-/// * `filter` - Filter specifying which block formats to extract
+/// * `filter` - Filter specifying which [`TransformFormat`]s to extract
 /// * `test_fn` - Callback function that receives the extracted block data as a slice
 ///
 /// # Returns
@@ -129,7 +129,7 @@ where
 ///
 /// * `file_path` - Path to the file to inspect
 /// * `handlers` - Array of file format handlers to try for format detection
-/// * `filter` - Filter specifying which block formats to accept
+/// * `filter` - Filter specifying which [`TransformFormat`]s to accept
 ///
 /// # Returns
 ///
@@ -143,7 +143,7 @@ where
 /// // Note: This example requires dxt-lossless-transform-dds with the
 /// // "debug-block-extraction" feature enabled
 /// use dxt_lossless_transform_file_formats_debug::{
-///     get_file_format,
+///     get_transform_format,
 ///     TransformFormatFilter,
 /// };
 /// use dxt_lossless_transform_file_formats_api::embed::TransformFormat;
@@ -152,20 +152,20 @@ where
 ///
 /// fn example_get_format(file_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
 ///     let handlers = [DdsHandler];
-///     let result = get_file_format(
+///     let result = get_transform_format(
 ///         file_path,
 ///         &handlers,
 ///         TransformFormatFilter::All,
 ///     );
 ///     match result {
-///         Ok(Some(format)) => println!("File format: {:?}", format),
-///         Ok(None) => println!("No supported format found or doesn't match filter"),
-///         Err(e) => println!("Failed to detect format: {:?}", e),
+///         Ok(Some(format)) => println!("TransformFormat: {:?}", format),
+///         Ok(None) => println!("No supported [`TransformFormat`] found or doesn't match filter"),
+///         Err(e) => println!("Failed to detect [`TransformFormat`]: {:?}", e),
 ///     }
 ///     Ok(())
 /// }
 /// ```
-pub fn get_file_format<H>(
+pub fn get_transform_format<H>(
     file_path: &Path,
     handlers: &[H],
     filter: TransformFormatFilter,

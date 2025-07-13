@@ -9,7 +9,7 @@ use dxt_lossless_transform_file_formats_api::{
 /// Convert a [`DdsFormat`] to a [`TransformFormat`].
 ///
 /// This function provides a centralized conversion from DDS-specific formats
-/// to the generic transform format used by the lossless transform API.
+/// to the generic [`TransformFormat`] used by the lossless transform API.
 ///
 /// # Parameters
 ///
@@ -19,7 +19,7 @@ use dxt_lossless_transform_file_formats_api::{
 ///
 /// # Returns
 ///
-/// - `Ok(format)`: Successfully converted to a transform format
+/// - `Ok(format)`: Successfully converted to a [`TransformFormat`]
 /// - `Err(TransformError::FormatHandler(FormatNotImplemented))`: Format is known but not implemented (when `allow_unimplemented` is `false`)
 /// - `Err(TransformError::FormatHandler(UnknownFileFormat))`: DDS format is not supported
 ///

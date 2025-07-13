@@ -27,6 +27,8 @@ pub enum DdsFormat {
     BGR888 = 9,
     /// BC4 format (single channel)
     BC4 = 10,
+    /// BC5 format (dual channel)
+    BC5 = 11,
 }
 
 /// The information of the DDS file supplied to the reader.
@@ -103,6 +105,12 @@ pub fn parse_dds_ignore_magic(data: &[u8]) -> Option<DdsInfo> {
             DXGI_FORMAT_BC3_TYPELESS | DXGI_FORMAT_BC3_UNORM | DXGI_FORMAT_BC3_UNORM_SRGB => {
                 DdsFormat::BC3
             }
+            DXGI_FORMAT_BC4_TYPELESS | DXGI_FORMAT_BC4_UNORM | DXGI_FORMAT_BC4_SNORM => {
+                DdsFormat::BC4
+            }
+            DXGI_FORMAT_BC5_TYPELESS | DXGI_FORMAT_BC5_UNORM | DXGI_FORMAT_BC5_SNORM => {
+                DdsFormat::BC5
+            }
             DXGI_FORMAT_BC6H_TYPELESS | DXGI_FORMAT_BC6H_UF16 | DXGI_FORMAT_BC6H_SF16 => {
                 DdsFormat::BC6H
             }
@@ -134,6 +142,7 @@ pub fn parse_dds_ignore_magic(data: &[u8]) -> Option<DdsInfo> {
                 FOURCC_DXT2 | FOURCC_DXT3 => DdsFormat::BC2,
                 FOURCC_DXT4 | FOURCC_DXT5 => DdsFormat::BC3,
                 FOURCC_BC4U | FOURCC_BC4S | FOURCC_ATI1 => DdsFormat::BC4,
+                FOURCC_BC5U | FOURCC_BC5S | FOURCC_ATI2 => DdsFormat::BC5,
                 _ => DdsFormat::Unknown,
             }
         } else if (pixel_flags & DDPF_RGB) != 0 {
@@ -247,6 +256,7 @@ fn calculate_data_length(format: DdsFormat, data: &[u8]) -> Option<u32> {
         | DdsFormat::BC2
         | DdsFormat::BC3
         | DdsFormat::BC4
+        | DdsFormat::BC5
         | DdsFormat::BC6H
         | DdsFormat::BC7 => {
             calculate_data_length_for_block_compression(format, width, height, mipmap_count)
@@ -284,6 +294,7 @@ pub(crate) fn calculate_data_length_for_block_compression(
         | DdsFormat::BC2
         | DdsFormat::BC3
         | DdsFormat::BC4
+        | DdsFormat::BC5
         | DdsFormat::BC6H
         | DdsFormat::BC7 => {
             // Block-compressed formats
@@ -292,6 +303,7 @@ pub(crate) fn calculate_data_length_for_block_compression(
                 DdsFormat::BC2 => 16,  // DXT2/3: 16 bytes per 4x4 block
                 DdsFormat::BC3 => 16,  // DXT4/5: 16 bytes per 4x4 block
                 DdsFormat::BC4 => 8,   // BC4: 8 bytes per 4x4 block
+                DdsFormat::BC5 => 16,  // BC5: 16 bytes per 4x4 block
                 DdsFormat::BC6H => 16, // BC6H: 16 bytes per 4x4 block
                 DdsFormat::BC7 => 16,  // BC7: 16 bytes per 4x4 block
                 _ => unsafe { unreachable_unchecked() },

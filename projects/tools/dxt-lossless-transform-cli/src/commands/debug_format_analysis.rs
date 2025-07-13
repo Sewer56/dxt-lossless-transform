@@ -50,6 +50,8 @@ enum FormatKey {
     Bgr888 = 8,
     /// BC4 format transform (TransformFormat::Bc4 = 0x08 -> FormatKey = 9)
     Bc4 = 9,
+    /// BC5 format transform (TransformFormat::Bc5 = 0x09 -> FormatKey = 10)
+    Bc5 = 10,
 }
 
 impl From<Option<TransformFormat>> for FormatKey {
@@ -67,6 +69,7 @@ impl From<Option<TransformFormat>> for FormatKey {
                     TransformFormat::Bgra8888 => Self::Bgra8888, // 0x06 -> 7
                     TransformFormat::Bgr888 => Self::Bgr888,     // 0x07 -> 8
                     TransformFormat::Bc4 => Self::Bc4,           // 0x08 -> 9
+                    TransformFormat::Bc5 => Self::Bc5,           // 0x09 -> 10
                     _ => Self::Unknown, // Handle any future variants as unknown
                 }
             }
@@ -89,6 +92,7 @@ impl FormatKey {
             Self::Bgra8888 => "Bgra8888",
             Self::Bgr888 => "Bgr888",
             Self::Bc4 => "Bc4",
+            Self::Bc5 => "Bc5",
         }
     }
 }

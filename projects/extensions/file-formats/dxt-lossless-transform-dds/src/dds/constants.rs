@@ -7,6 +7,7 @@ pub(crate) const DDS_MAGIC: u32 = 0x20534444; // 'DDS ' in little-endian
 /// Offset of the FOURCC header used in DX9 and below.
 pub(crate) const FOURCC_OFFSET: usize = 0x54;
 
+// https://learn.microsoft.com/en-us/windows/win32/direct3ddds/dx-graphics-dds-pguide
 pub(crate) const FOURCC_DXT1: u32 = 0x31545844; // 'DXT1' in little-endian
 pub(crate) const FOURCC_DXT2: u32 = 0x32545844; // 'DXT2' in little-endian
 pub(crate) const FOURCC_DXT3: u32 = 0x33545844; // 'DXT3' in little-endian
@@ -14,9 +15,13 @@ pub(crate) const FOURCC_DXT4: u32 = 0x34545844; // 'DXT4' in little-endian
 pub(crate) const FOURCC_DXT5: u32 = 0x35545844; // 'DXT5' in little-endian
 pub(crate) const FOURCC_BC4U: u32 = 0x55344342; // 'BC4U' in little-endian
 pub(crate) const FOURCC_BC4S: u32 = 0x53344342; // 'BC4S' in little-endian
+
 /// 'ATI1' in little-endian - unofficial FourCC used by some 3rd party libraries,
 /// but not recognized by D3DX
 pub(crate) const FOURCC_ATI1: u32 = 0x31495441;
+pub(crate) const FOURCC_BC5U: u32 = 0x55354342; // 'BC5U' in little-endian - unofficial FourCC
+pub(crate) const FOURCC_BC5S: u32 = 0x53354342; // 'BC5S' in little-endian
+pub(crate) const FOURCC_ATI2: u32 = 0x32495441; // 'ATI2' in little-endian
 pub(crate) const FOURCC_DX10: u32 = 0x30315844; // 'DX10' in little-endian
 
 /// Offset of the DXGI format header used in DX10 and above.
@@ -38,6 +43,10 @@ pub(crate) const DXGI_FORMAT_BC3_UNORM_SRGB: u32 = 78;
 pub(crate) const DXGI_FORMAT_BC4_TYPELESS: u32 = 79;
 pub(crate) const DXGI_FORMAT_BC4_UNORM: u32 = 80;
 pub(crate) const DXGI_FORMAT_BC4_SNORM: u32 = 81;
+
+pub(crate) const DXGI_FORMAT_BC5_TYPELESS: u32 = 82;
+pub(crate) const DXGI_FORMAT_BC5_UNORM: u32 = 83;
+pub(crate) const DXGI_FORMAT_BC5_SNORM: u32 = 84;
 
 pub(crate) const DXGI_FORMAT_BC6H_TYPELESS: u32 = 94;
 pub(crate) const DXGI_FORMAT_BC6H_UF16: u32 = 95;
@@ -98,7 +107,7 @@ pub(crate) const DDS_PIXELFORMAT_ABITMASK_OFFSET: usize = 0x68;
 
 // Because of Little Endian, the masks here are reversed.
 // Common pixel format bit masks (verified with TexConv)
-// R8G8B8A8_UNORM: R=byte0, G=byte1, B=byte2, A=byte3
+// R8G8B8A8_UNORM / D3DFMT_A8B8G8R8: R=byte0, G=byte1, B=byte2, A=byte3
 pub(crate) const RGBA8888_RED_MASK: u32 = 0x000000FF;
 pub(crate) const RGBA8888_GREEN_MASK: u32 = 0x0000FF00;
 pub(crate) const RGBA8888_BLUE_MASK: u32 = 0x00FF0000;
@@ -110,7 +119,7 @@ pub(crate) const BGRA8888_GREEN_MASK: u32 = 0x0000FF00;
 pub(crate) const BGRA8888_BLUE_MASK: u32 = 0x000000FF;
 pub(crate) const BGRA8888_ALPHA_MASK: u32 = 0xFF000000;
 
-// B8G8R8 (BGR888): R=byte2, G=byte1, B=byte0
+// B8G8R8 (BGR888): R=byte2, G=byte1, B=byte0 (D3DFMT_R8G8B8 : From D3D9 Big Endian Naming Era)
 pub(crate) const BGR888_RED_MASK: u32 = 0x00FF0000;
 pub(crate) const BGR888_GREEN_MASK: u32 = 0x0000FF00;
 pub(crate) const BGR888_BLUE_MASK: u32 = 0x000000FF;

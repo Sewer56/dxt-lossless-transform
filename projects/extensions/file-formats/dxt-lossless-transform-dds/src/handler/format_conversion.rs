@@ -63,6 +63,15 @@ pub(crate) fn dds_format_to_transform_format(
                 ))
             }
         }
+        DdsFormat::BC5 => {
+            if allow_unimplemented {
+                Ok(TransformFormat::Bc5)
+            } else {
+                Err(TransformError::FormatHandler(
+                    FormatHandlerError::FormatNotImplemented(TransformFormat::Bc5),
+                ))
+            }
+        }
         DdsFormat::BC6H => {
             if allow_unimplemented {
                 Ok(TransformFormat::Bc6H)
@@ -149,6 +158,10 @@ mod tests {
             TransformFormat::Bc4
         );
         assert_eq!(
+            dds_format_to_transform_format(DdsFormat::BC5, true).unwrap(),
+            TransformFormat::Bc5
+        );
+        assert_eq!(
             dds_format_to_transform_format(DdsFormat::BC6H, true).unwrap(),
             TransformFormat::Bc6H
         );
@@ -171,6 +184,12 @@ mod tests {
                 TransformFormat::Bc4,
             ))) => {}
             _ => panic!("Expected FormatNotImplemented for BC4"),
+        }
+        match dds_format_to_transform_format(DdsFormat::BC5, false) {
+            Err(TransformError::FormatHandler(FormatHandlerError::FormatNotImplemented(
+                TransformFormat::Bc5,
+            ))) => {}
+            _ => panic!("Expected FormatNotImplemented for BC5"),
         }
         match dds_format_to_transform_format(DdsFormat::BC6H, false) {
             Err(TransformError::FormatHandler(FormatHandlerError::FormatNotImplemented(

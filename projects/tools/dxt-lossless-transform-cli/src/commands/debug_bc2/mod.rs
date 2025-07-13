@@ -3,10 +3,10 @@ pub(crate) mod benchmark_determine_best;
 pub(crate) mod calc_compression_stats;
 pub(crate) mod roundtrip;
 
-use crate::debug::compression::CompressionAlgorithm;
-use crate::debug::compression_size_cache::CompressionSizeCache;
-use crate::debug::estimation::create_size_estimator;
-use crate::debug::estimation::CachedSizeEstimator;
+use crate::debug_format::compression::CompressionAlgorithm;
+use crate::debug_format::compression_size_cache::CompressionSizeCache;
+use crate::debug_format::estimation::create_size_estimator;
+use crate::debug_format::estimation::CachedSizeEstimator;
 use crate::error::TransformError;
 use argh::FromArgs;
 use benchmark::handle_benchmark_command;

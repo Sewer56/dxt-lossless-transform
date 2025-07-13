@@ -1,6 +1,6 @@
 use super::{determine_best_transform_details_with_estimator_cached, CompressionStatsCmd};
 use crate::{
-    debug::{
+    debug_format::{
         calc_compression_stats_common,
         compression::{
             helpers::{

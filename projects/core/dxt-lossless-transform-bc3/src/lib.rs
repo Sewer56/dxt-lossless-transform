@@ -17,9 +17,6 @@ pub mod experimental;
 /// Provides optimized routines to transform/untransform into various forms of the lossless transform.
 pub mod transform;
 
-/// Convenient unaligned read/write operations for pointer types.
-pub mod unaligned_rw;
-
 pub mod util;
 
 /// The information about the BC3 transform that was just performed.

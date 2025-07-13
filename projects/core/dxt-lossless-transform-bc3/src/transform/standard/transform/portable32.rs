@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 
-use crate::unaligned_rw::{UnalignedReadWrite, UnalignedWrite};
+use ptr_utils::{UnalignedRead, UnalignedWrite};
 
 /// # Safety
 ///

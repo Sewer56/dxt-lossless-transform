@@ -262,8 +262,8 @@ pub(crate) fn run_split_alphas_transform_roundtrip_test(
     for num_blocks in 1..=max_blocks {
         let original = generate_bc3_test_data(num_blocks);
         // Allocate separate arrays for split alphas data
-        let mut alpha0_data = allocate_align_64(num_blocks * 1);
-        let mut alpha1_data = allocate_align_64(num_blocks * 1);
+        let mut alpha0_data = allocate_align_64(num_blocks);
+        let mut alpha1_data = allocate_align_64(num_blocks);
         let mut alpha_indices_data = allocate_align_64(num_blocks * 6);
         let mut colors_data = allocate_align_64(num_blocks * 4);
         let mut color_indices_data = allocate_align_64(num_blocks * 4);
@@ -314,8 +314,8 @@ pub(crate) fn run_with_split_alphas_untransform_unaligned_test(
         // Generate test data
         let original = generate_bc3_test_data(block_count);
         // Create separate arrays for split alphas data
-        let mut alpha0_data = allocate_align_64(block_count * 1);
-        let mut alpha1_data = allocate_align_64(block_count * 1);
+        let mut alpha0_data = allocate_align_64(block_count);
+        let mut alpha1_data = allocate_align_64(block_count);
         let mut alpha_indices_data = allocate_align_64(block_count * 6);
         let mut colors_data = allocate_align_64(block_count * 4);
         let mut color_indices_data = allocate_align_64(block_count * 4);

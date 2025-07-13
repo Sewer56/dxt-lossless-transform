@@ -15,7 +15,6 @@ use ptr_utils::{UnalignedRead, UnalignedWrite};
 /// - colors_out must be valid for writes of num_blocks * 4 bytes
 /// - color_indices_out must be valid for writes of num_blocks * 4 bytes
 /// - decorrelation_mode must be a valid [`YCoCgVariant`]
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn transform_with_decorrelate_generic(
     input_ptr: *const u8,
@@ -55,7 +54,6 @@ pub(crate) unsafe fn transform_with_decorrelate_generic(
     }
 }
 
-#[allow(dead_code)]
 unsafe fn transform_decorr<const VARIANT: u8>(
     mut input_ptr: *const u8,
     mut alpha_endpoints_out: *mut u16,
@@ -122,7 +120,6 @@ unsafe fn transform_decorr<const VARIANT: u8>(
 }
 
 // Wrapper functions for testing with specific variants
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn transform_decorr_var1(
     input_ptr: *const u8,
@@ -142,7 +139,6 @@ pub(crate) unsafe fn transform_decorr_var1(
     )
 }
 
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn transform_decorr_var2(
     input_ptr: *const u8,
@@ -162,7 +158,6 @@ pub(crate) unsafe fn transform_decorr_var2(
     )
 }
 
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn transform_decorr_var3(
     input_ptr: *const u8,

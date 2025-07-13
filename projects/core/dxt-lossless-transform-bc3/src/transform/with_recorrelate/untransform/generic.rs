@@ -15,7 +15,6 @@ use ptr_utils::{UnalignedRead, UnalignedWrite};
 /// - color_indices_in must be valid for reads of num_blocks * 4 bytes
 /// - output_ptr must be valid for writes of num_blocks * 16 bytes
 /// - recorrelation_mode must be a valid [`YCoCgVariant`]
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn untransform_with_recorrelate_generic(
     alpha_endpoints_in: *const u16,
@@ -62,7 +61,6 @@ pub(crate) unsafe fn untransform_with_recorrelate_generic(
 }
 
 // Wrapper functions for assembly inspection using `cargo asm`
-#[allow(dead_code)]
 unsafe fn untransform_recorr_var1(
     alpha_endpoints_in: *const u16,
     alpha_indices_in: *const u16,
@@ -81,7 +79,6 @@ unsafe fn untransform_recorr_var1(
     )
 }
 
-#[allow(dead_code)]
 unsafe fn untransform_recorr_var2(
     alpha_endpoints_in: *const u16,
     alpha_indices_in: *const u16,
@@ -100,7 +97,6 @@ unsafe fn untransform_recorr_var2(
     )
 }
 
-#[allow(dead_code)]
 unsafe fn untransform_recorr_var3(
     alpha_endpoints_in: *const u16,
     alpha_indices_in: *const u16,
@@ -119,7 +115,6 @@ unsafe fn untransform_recorr_var3(
     )
 }
 
-#[allow(dead_code)]
 unsafe fn untransform_recorr<const VARIANT: u8>(
     mut alpha_endpoints_in: *const u16,
     mut alpha_indices_in: *const u16,

@@ -125,7 +125,6 @@ pub mod untransform;
 /// alpha endpoints are split into separate arrays, color endpoints are split
 /// into separate arrays and decorrelated using the specified YCoCg variant,
 /// providing maximum compression efficiency for BC3 data.
-#[allow(dead_code)]
 #[allow(clippy::too_many_arguments)]
 #[inline]
 pub(crate) unsafe fn transform_with_split_alphas_colour_and_recorr(
@@ -199,7 +198,6 @@ pub(crate) unsafe fn transform_with_split_alphas_colour_and_recorr(
 /// This function is the exact inverse of [`transform_with_split_alphas_colour_and_recorr`].
 /// Applying transform followed by untransform (or vice versa) with the same
 /// decorrelation/recorrelation mode should produce the original data.
-#[allow(dead_code)]
 #[allow(clippy::too_many_arguments)]
 #[inline]
 pub(crate) unsafe fn untransform_with_split_alphas_colour_and_recorr(

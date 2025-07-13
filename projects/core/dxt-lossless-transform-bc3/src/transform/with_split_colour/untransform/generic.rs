@@ -11,7 +11,6 @@ use ptr_utils::{UnalignedRead, UnalignedWrite};
 /// - `color1_out` must be valid for reads of `block_count * 2` bytes
 /// - `color_indices_out` must be valid for reads of `block_count * 4` bytes
 /// - `output_ptr` must be valid for writes of `block_count * 16` bytes
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn untransform_with_split_colour(
     mut alpha_endpoints_ptr: *const u16,

@@ -81,7 +81,6 @@ use dxt_lossless_transform_common::color_565::YCoCgVariant;
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn transform_with_decorrelate(
     input_ptr: *const u8,
@@ -101,7 +100,6 @@ pub(crate) unsafe fn transform_with_decorrelate(
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn untransform_with_recorrelate(
     input_ptr: *const u8,

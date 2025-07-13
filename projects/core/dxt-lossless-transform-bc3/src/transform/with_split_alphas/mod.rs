@@ -85,7 +85,6 @@ pub(crate) mod untransform;
 /// # Remarks
 ///
 /// This function automatically selects the best available SIMD implementation
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn transform_with_split_alphas(
     input_ptr: *const u8,
@@ -146,7 +145,6 @@ pub(crate) unsafe fn transform_with_split_alphas(
 /// This function is the exact inverse of [`transform_with_split_alphas`].
 /// Applying transform followed by untransform (or vice versa) should
 /// produce the original data.
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn untransform_with_split_alphas(
     alpha0_out: *const u8,

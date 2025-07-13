@@ -103,7 +103,6 @@ pub mod untransform;
 /// for the current CPU architecture. Both alpha and color endpoints are split
 /// into separate arrays, providing optimal compression efficiency for both
 /// alpha and color data.
-#[allow(dead_code)]
 #[allow(clippy::too_many_arguments)]
 #[inline]
 pub(crate) unsafe fn transform_with_split_alphas_and_colour(
@@ -170,7 +169,6 @@ pub(crate) unsafe fn transform_with_split_alphas_and_colour(
 /// This function is the exact inverse of [`transform_with_split_alphas_and_colour`].
 /// Applying transform followed by untransform (or vice versa) should
 /// produce the original data.
-#[allow(dead_code)]
 #[allow(clippy::too_many_arguments)]
 #[inline]
 pub(crate) unsafe fn untransform_with_split_alphas_and_colour(

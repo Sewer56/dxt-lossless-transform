@@ -62,4 +62,4 @@ pub use format_detection::TransformFormatCheck;
 pub mod file_io;
 
 #[cfg(feature = "file-io")]
-pub use file_io::extract_blocks_from_file_format;
+pub use file_io::{extract_blocks_from_file_format, get_file_format};

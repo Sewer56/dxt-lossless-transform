@@ -1,12 +1,11 @@
 //! Format inspection implementation for DDS files.
 
+use super::format_conversion::dds_format_to_transform_format;
 use crate::dds::parse_dds;
 use dxt_lossless_transform_file_formats_api::{
     embed::TransformFormat, error::TransformResult, TransformError,
 };
 use dxt_lossless_transform_file_formats_debug::{TransformFormatCheck, TransformFormatFilter};
-
-use super::format_conversion::dds_format_to_transform_format;
 
 impl TransformFormatCheck for super::DdsHandler {
     fn get_transform_format(

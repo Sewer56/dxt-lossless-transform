@@ -9,7 +9,7 @@ mod format_conversion;
 mod file_format_block_extraction;
 
 #[cfg(feature = "debug-block-extraction")]
-mod file_format_inspection;
+mod file_format_check;
 
 /// Handler for DDS file format.
 ///

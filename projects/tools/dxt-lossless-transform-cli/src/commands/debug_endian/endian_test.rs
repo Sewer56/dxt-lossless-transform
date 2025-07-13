@@ -1,7 +1,7 @@
 use super::file_compare;
 use dxt_lossless_transform_dds::DdsHandler;
 use dxt_lossless_transform_file_formats_api::embed::TransformFormat;
-use dxt_lossless_transform_file_formats_debug::{get_file_format, TransformFormatFilter};
+use dxt_lossless_transform_file_formats_debug::{get_transform_format, TransformFormatFilter};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -47,12 +47,12 @@ impl EndianTestResult {
 const LITTLE_ENDIAN_TARGET: &str = "x86_64-unknown-linux-gnu";
 const BIG_ENDIAN_TARGET: &str = "powerpc64-unknown-linux-gnu";
 
-/// Check if a file is a supported format for endian testing using handlers
+/// Check if a file is a supported [`TransformFormat`] for endian testing using handlers
 /// Currently supports BC1 and BC2, excludes BC3 and BC7 (not ready yet)
 fn is_supported_format(file_path: &Path) -> Result<bool, EndianTestError> {
     let handlers = [DdsHandler];
 
-    match get_file_format(file_path, &handlers, TransformFormatFilter::All) {
+    match get_transform_format(file_path, &handlers, TransformFormatFilter::All) {
         Ok(Some(format)) => {
             match format {
                 TransformFormat::Bc1 | TransformFormat::Bc2 => Ok(true),
@@ -65,7 +65,7 @@ fn is_supported_format(file_path: &Path) -> Result<bool, EndianTestError> {
             // Convert file operation error to EndianTestError
             Err(EndianTestError::Io(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                format!("Failed to detect file format: {e}"),
+                format!("Failed to detect TransformFormat: {e}"),
             )))
         }
     }

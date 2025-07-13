@@ -6,7 +6,7 @@ use dxt_lossless_transform_bc1_api::{Bc1ManualTransformBuilder, YCoCgVariant};
 use dxt_lossless_transform_bc2_api::Bc2ManualTransformBuilder;
 use dxt_lossless_transform_dds::DdsHandler;
 use dxt_lossless_transform_file_formats_api::{embed::TransformFormat, file_io, TransformBundle};
-use dxt_lossless_transform_file_formats_debug::{get_file_format, TransformFormatFilter};
+use dxt_lossless_transform_file_formats_debug::{get_transform_format, TransformFormatFilter};
 
 /// Handle transform of a single file with all manual combinations
 pub fn handle_transform_single_file(
@@ -22,17 +22,17 @@ pub fn handle_transform_single_file(
 
     // Detect the format of the input file using handlers
     let handlers = [DdsHandler];
-    let detected_format = match get_file_format(&input_file, &handlers, TransformFormatFilter::All)?
-    {
-        Some(format) => format,
-        None => {
-            return Err(format!(
-                "Unable to detect supported transform format in file: {}",
-                input_file.display()
-            )
-            .into())
-        }
-    };
+    let detected_format =
+        match get_transform_format(&input_file, &handlers, TransformFormatFilter::All)? {
+            Some(format) => format,
+            None => {
+                return Err(format!(
+                    "Unable to detect supported TransformFormat in file: {}",
+                    input_file.display()
+                )
+                .into())
+            }
+        };
 
     // Process all formats
     match detected_format {
@@ -47,7 +47,7 @@ pub fn handle_transform_single_file(
         _ => {
             // BC3, BC7 and other formats are not yet supported for manual transform testing
             Err(format!(
-                "Manual transform testing not yet implemented for format: {detected_format:?}"
+                "Manual transform testing not yet implemented for TransformFormat: {detected_format:?}"
             )
             .into())
         }

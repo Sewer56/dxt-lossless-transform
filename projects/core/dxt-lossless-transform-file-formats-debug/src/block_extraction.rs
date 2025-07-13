@@ -31,7 +31,7 @@ impl<'a> ExtractedBlocks<'a> {
     }
 }
 
-/// Filter for specifying which transform formats to extract.
+/// Filter for specifying which [`TransformFormat`]s to extract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TransformFormatFilter {
     /// Extract only BC1 blocks
@@ -44,7 +44,7 @@ pub enum TransformFormatFilter {
     Bc7,
     /// Extract only BC6H blocks
     Bc6H,
-    /// Extract all supported block formats
+    /// Extract all supported [`TransformFormat`]s
     All,
 }
 
@@ -75,7 +75,7 @@ impl core::str::FromStr for TransformFormatFilter {
             "bc6h" => Ok(TransformFormatFilter::Bc6H),
             "all" => Ok(TransformFormatFilter::All),
             _ => Err(format!(
-                "Invalid transform format filter: {s}. Valid types are: bc1, bc2, bc3, bc7, bc6h, all"
+                "Invalid TransformFormat filter: {s}. Valid types are: bc1, bc2, bc3, bc7, bc6h, all"
             )),
         }
     }
@@ -146,7 +146,7 @@ pub trait FileFormatBlockExtraction {
     /// # Parameters
     ///
     /// - `data`: The complete file data to extract blocks from
-    /// - `filter`: Filter specifying which block formats to extract
+    /// - `filter`: Filter specifying which [`TransformFormat`]s to extract
     ///
     /// # Returns
     ///

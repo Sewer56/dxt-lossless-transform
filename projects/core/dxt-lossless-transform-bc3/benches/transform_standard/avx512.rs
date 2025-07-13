@@ -1,5 +1,5 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc3::transform::standard::transform::bench::avx512_vbmi_transform;
+use dxt_lossless_transform_bc3::bench::transform::standard::avx512_vbmi_transform;
 use safe_allocator_api::RawAlloc;
 
 fn bench_avx512_vbmi(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {

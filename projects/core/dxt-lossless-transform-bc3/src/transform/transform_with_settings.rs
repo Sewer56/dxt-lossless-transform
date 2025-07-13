@@ -2,7 +2,11 @@
 //!
 //! This module provides the core transformation functions for BC3 data.
 
-use crate::transform::standard;
+use crate::transform::{
+    standard, with_recorrelate, with_split_alphas, with_split_alphas_and_colour,
+    with_split_alphas_and_recorr, with_split_alphas_colour_and_recorr, with_split_colour,
+    with_split_colour_and_recorr,
+};
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
 use super::settings::{Bc3TransformSettings, Bc3UntransformSettings};
@@ -33,29 +37,106 @@ pub unsafe fn transform_bc3_with_settings(
 ) {
     debug_assert!(len.is_multiple_of(16));
 
-    // For now, we only have the standard transform implementation
-    // TODO: Implement the various transform variants based on settings
-    match (
-        transform_options.split_alpha_endpoints,
-        transform_options.split_colour_endpoints,
-        transform_options.decorrelation_mode,
-    ) {
+    let has_split_alphas = transform_options.split_alpha_endpoints;
+    let has_split_colours = transform_options.split_colour_endpoints;
+    let has_decorrelation = transform_options.decorrelation_mode != YCoCgVariant::None;
+
+    match (has_split_alphas, has_split_colours, has_decorrelation) {
         // Standard transform – no split-alpha, no split-colour and no decorrelation.
-        (false, false, YCoCgVariant::None) => {
+        (false, false, false) => {
             standard::split_blocks(input_ptr, output_ptr, len);
         }
-        // All other combinations will need dedicated transform implementations
-        // For now, fall back to standard transform
-        _ => {
-            // TODO: Implement remaining transform variants:
-            // - with_split_alphas
-            // - with_recorrelate
-            // - with_split_colour
-            // - with_split_alphas_and_recorr
-            // - with_split_alphas_and_colour
-            // - with_split_colour_and_recorr
-            // - with_split_alphas_colour_and_recorr
-            standard::split_blocks(input_ptr, output_ptr, len);
+        // Split alphas only
+        (true, false, false) => {
+            let block_count = len / 16;
+            with_split_alphas::transform_with_split_alphas(
+                input_ptr,
+                output_ptr,                                   // alpha0 (1 byte per block)
+                output_ptr.add(block_count),                  // alpha1 (1 byte per block)
+                output_ptr.add(block_count * 2) as *mut u16,  // alpha_indices (6 bytes per block)
+                output_ptr.add(block_count * 8) as *mut u32,  // colors (4 bytes per block)
+                output_ptr.add(block_count * 12) as *mut u32, // color_indices (4 bytes per block)
+                block_count,
+            );
+        }
+        // Decorrelation only
+        (false, false, true) => {
+            with_recorrelate::transform_with_decorrelate(
+                input_ptr,
+                output_ptr,
+                len,
+                transform_options.decorrelation_mode,
+            );
+        }
+        // Split colours only
+        (false, true, false) => {
+            let block_count = len / 16;
+            with_split_colour::transform_with_split_colour(
+                input_ptr,
+                output_ptr as *mut u16, // alpha_endpoints (2 bytes per block)
+                output_ptr.add(block_count * 2) as *mut u16, // alpha_indices (6 bytes per block)
+                output_ptr.add(block_count * 8) as *mut u16, // color0 (2 bytes per block)
+                output_ptr.add(block_count * 10) as *mut u16, // color1 (2 bytes per block)
+                output_ptr.add(block_count * 12) as *mut u32, // color_indices (4 bytes per block)
+                block_count,
+            );
+        }
+        // Split alphas + decorrelation
+        (true, false, true) => {
+            let block_count = len / 16;
+            with_split_alphas_and_recorr::transform_with_split_alphas_and_recorr(
+                input_ptr,
+                output_ptr,                                   // alpha0 (1 byte per block)
+                output_ptr.add(block_count),                  // alpha1 (1 byte per block)
+                output_ptr.add(block_count * 2) as *mut u16,  // alpha_indices (6 bytes per block)
+                output_ptr.add(block_count * 8) as *mut u32,  // colors (4 bytes per block)
+                output_ptr.add(block_count * 12) as *mut u32, // color_indices (4 bytes per block)
+                block_count,
+                transform_options.decorrelation_mode,
+            );
+        }
+        // Split alphas + split colours
+        (true, true, false) => {
+            let block_count = len / 16;
+            with_split_alphas_and_colour::transform_with_split_alphas_and_colour(
+                input_ptr,
+                output_ptr,                                   // alpha0 (1 byte per block)
+                output_ptr.add(block_count),                  // alpha1 (1 byte per block)
+                output_ptr.add(block_count * 2) as *mut u16,  // alpha_indices (6 bytes per block)
+                output_ptr.add(block_count * 8) as *mut u16,  // color0 (2 bytes per block)
+                output_ptr.add(block_count * 10) as *mut u16, // color1 (2 bytes per block)
+                output_ptr.add(block_count * 12) as *mut u32, // color_indices (4 bytes per block)
+                block_count,
+            );
+        }
+        // Split colours + decorrelation
+        (false, true, true) => {
+            let block_count = len / 16;
+            with_split_colour_and_recorr::transform_with_split_colour_and_recorr(
+                input_ptr,
+                output_ptr as *mut u16, // alpha_endpoints (2 bytes per block)
+                output_ptr.add(block_count * 2) as *mut u16, // alpha_indices (6 bytes per block)
+                output_ptr.add(block_count * 8) as *mut u16, // color0 (2 bytes per block)
+                output_ptr.add(block_count * 10) as *mut u16, // color1 (2 bytes per block)
+                output_ptr.add(block_count * 12) as *mut u32, // color_indices (4 bytes per block)
+                block_count,
+                transform_options.decorrelation_mode,
+            );
+        }
+        // Split alphas + split colours + decorrelation
+        (true, true, true) => {
+            let block_count = len / 16;
+            with_split_alphas_colour_and_recorr::transform_with_split_alphas_colour_and_recorr(
+                input_ptr,
+                output_ptr,                                   // alpha0 (1 byte per block)
+                output_ptr.add(block_count),                  // alpha1 (1 byte per block)
+                output_ptr.add(block_count * 2) as *mut u16,  // alpha_indices (6 bytes per block)
+                output_ptr.add(block_count * 8) as *mut u16,  // color0 (2 bytes per block)
+                output_ptr.add(block_count * 10) as *mut u16, // color1 (2 bytes per block)
+                output_ptr.add(block_count * 12) as *mut u32, // color_indices (4 bytes per block)
+                block_count,
+                transform_options.decorrelation_mode,
+            );
         }
     }
 }
@@ -86,29 +167,106 @@ pub unsafe fn untransform_bc3_with_settings(
 ) {
     debug_assert!(len.is_multiple_of(16));
 
-    // For now, we only have the standard transform implementation
-    // TODO: Implement the various untransform variants based on settings
-    match (
-        untransform_options.split_alpha_endpoints,
-        untransform_options.split_colour_endpoints,
-        untransform_options.decorrelation_mode,
-    ) {
+    let has_split_alphas = untransform_options.split_alpha_endpoints;
+    let has_split_colours = untransform_options.split_colour_endpoints;
+    let has_decorrelation = untransform_options.decorrelation_mode != YCoCgVariant::None;
+
+    match (has_split_alphas, has_split_colours, has_decorrelation) {
         // Standard transform – no split-alpha, no split-colour and no decorrelation.
-        (false, false, YCoCgVariant::None) => {
+        (false, false, false) => {
             standard::unsplit_blocks(input_ptr, output_ptr, len);
         }
-        // All other combinations will need dedicated untransform implementations
-        // For now, fall back to standard untransform
-        _ => {
-            // TODO: Implement remaining untransform variants:
-            // - with_split_alphas
-            // - with_recorrelate
-            // - with_split_colour
-            // - with_split_alphas_and_recorr
-            // - with_split_alphas_and_colour
-            // - with_split_colour_and_recorr
-            // - with_split_alphas_colour_and_recorr
-            standard::unsplit_blocks(input_ptr, output_ptr, len);
+        // Split alphas only
+        (true, false, false) => {
+            let block_count = len / 16;
+            with_split_alphas::untransform_with_split_alphas(
+                input_ptr,                                     // alpha0 (1 byte per block)
+                input_ptr.add(block_count),                    // alpha1 (1 byte per block)
+                input_ptr.add(block_count * 2) as *const u16,  // alpha_indices (6 bytes per block)
+                input_ptr.add(block_count * 8) as *const u32,  // colors (4 bytes per block)
+                input_ptr.add(block_count * 12) as *const u32, // color_indices (4 bytes per block)
+                output_ptr,
+                block_count,
+            );
+        }
+        // Decorrelation only
+        (false, false, true) => {
+            with_recorrelate::untransform_with_recorrelate(
+                input_ptr,
+                output_ptr,
+                len,
+                untransform_options.decorrelation_mode,
+            );
+        }
+        // Split colours only
+        (false, true, false) => {
+            let block_count = len / 16;
+            with_split_colour::untransform_with_split_colour(
+                input_ptr as *const u16, // alpha_endpoints (2 bytes per block)
+                input_ptr.add(block_count * 2) as *const u16, // alpha_indices (6 bytes per block)
+                input_ptr.add(block_count * 8) as *const u16, // color0 (2 bytes per block)
+                input_ptr.add(block_count * 10) as *const u16, // color1 (2 bytes per block)
+                input_ptr.add(block_count * 12) as *const u32, // color_indices (4 bytes per block)
+                output_ptr,
+                block_count,
+            );
+        }
+        // Split alphas + decorrelation
+        (true, false, true) => {
+            let block_count = len / 16;
+            with_split_alphas_and_recorr::untransform_with_split_alphas_and_recorr(
+                input_ptr,                                     // alpha0 (1 byte per block)
+                input_ptr.add(block_count),                    // alpha1 (1 byte per block)
+                input_ptr.add(block_count * 2) as *const u16,  // alpha_indices (6 bytes per block)
+                input_ptr.add(block_count * 8) as *const u32,  // colors (4 bytes per block)
+                input_ptr.add(block_count * 12) as *const u32, // color_indices (4 bytes per block)
+                output_ptr,
+                block_count,
+                untransform_options.decorrelation_mode,
+            );
+        }
+        // Split alphas + split colours
+        (true, true, false) => {
+            let block_count = len / 16;
+            with_split_alphas_and_colour::untransform_with_split_alphas_and_colour(
+                input_ptr,                                     // alpha0 (1 byte per block)
+                input_ptr.add(block_count),                    // alpha1 (1 byte per block)
+                input_ptr.add(block_count * 2) as *const u16,  // alpha_indices (6 bytes per block)
+                input_ptr.add(block_count * 8) as *const u16,  // color0 (2 bytes per block)
+                input_ptr.add(block_count * 10) as *const u16, // color1 (2 bytes per block)
+                input_ptr.add(block_count * 12) as *const u32, // color_indices (4 bytes per block)
+                output_ptr,
+                block_count,
+            );
+        }
+        // Split colours + decorrelation
+        (false, true, true) => {
+            let block_count = len / 16;
+            with_split_colour_and_recorr::untransform_with_split_colour_and_recorr(
+                input_ptr as *const u16, // alpha_endpoints (2 bytes per block)
+                input_ptr.add(block_count * 2) as *const u16, // alpha_indices (6 bytes per block)
+                input_ptr.add(block_count * 8) as *const u16, // color0 (2 bytes per block)
+                input_ptr.add(block_count * 10) as *const u16, // color1 (2 bytes per block)
+                input_ptr.add(block_count * 12) as *const u32, // color_indices (4 bytes per block)
+                output_ptr,
+                block_count,
+                untransform_options.decorrelation_mode,
+            );
+        }
+        // Split alphas + split colours + decorrelation
+        (true, true, true) => {
+            let block_count = len / 16;
+            with_split_alphas_colour_and_recorr::untransform_with_split_alphas_colour_and_recorr(
+                input_ptr,                                     // alpha0 (1 byte per block)
+                input_ptr.add(block_count),                    // alpha1 (1 byte per block)
+                input_ptr.add(block_count * 2) as *const u16,  // alpha_indices (6 bytes per block)
+                input_ptr.add(block_count * 8) as *const u16,  // color0 (2 bytes per block)
+                input_ptr.add(block_count * 10) as *const u16, // color1 (2 bytes per block)
+                input_ptr.add(block_count * 12) as *const u32, // color_indices (4 bytes per block)
+                output_ptr,
+                block_count,
+                untransform_options.decorrelation_mode,
+            );
         }
     }
 }

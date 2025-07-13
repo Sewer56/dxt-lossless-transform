@@ -28,6 +28,12 @@ pub use transform::transform_with_settings::{
     transform_bc3_with_settings, untransform_bc3_with_settings,
 };
 
+// Re-export safe module functions
+pub use transform::{
+    transform_bc3_auto_safe, transform_bc3_with_settings_safe, untransform_bc3_with_settings_safe,
+    Bc3AutoTransformError, Bc3ValidationError,
+};
+
 /// The information about the BC3 transform that was just performed.
 /// Each item transformed via [`transform_bc3`] will produce an instance of this struct.
 /// To undo the transform, you'll need to pass the same instance to [`untransform_bc3`].
@@ -100,6 +106,10 @@ pub unsafe fn untransform_bc3(
     debug_assert!(len.is_multiple_of(16));
     crate::transform::standard::unsplit_blocks(input_ptr, output_ptr, len);
 }
+
+// Re-export functions for benchmarking when the 'bench' feature is enabled
+#[cfg(feature = "bench")]
+pub mod bench;
 
 #[cfg(test)]
 pub mod test_prelude;

@@ -71,6 +71,7 @@ pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usi
 }
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[allow(dead_code)]
 #[inline(always)]
 unsafe fn unsplit_block_with_separate_pointers_x86(
     alpha_byte_ptr: *const u8,
@@ -153,6 +154,7 @@ unsafe fn unsplit_block_with_separate_pointers_x86(
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
 /// - It is recommended that input pointers are at least 16-byte aligned (recommended 32-byte align)
+#[allow(dead_code)]
 #[inline]
 pub unsafe fn unsplit_block_with_separate_pointers(
     alpha_byte_ptr: *const u8,

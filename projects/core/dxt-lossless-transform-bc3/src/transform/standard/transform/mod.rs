@@ -44,6 +44,7 @@ unsafe fn split_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 }
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[allow(dead_code)]
 #[inline(always)]
 unsafe fn split_blocks_with_separate_pointers_x86(
     input_ptr: *const u8,
@@ -168,6 +169,7 @@ pub unsafe fn split_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 /// - `len` must be divisible by 16 (BC3 block size)
 /// - It is recommended that all pointers are at least 16-byte aligned (recommended 32-byte align)
 /// - The component buffers must not overlap with each other or the input buffer
+#[allow(dead_code)]
 #[inline]
 pub unsafe fn split_blocks_with_separate_pointers(
     input_ptr: *const u8,

@@ -1,5 +1,5 @@
 use criterion::{black_box, BenchmarkId};
-use dxt_lossless_transform_bc3::transform::standard::untransform::bench::u64_untransform;
+use dxt_lossless_transform_bc3::bench::untransform::standard::u64_untransform;
 use safe_allocator_api::RawAlloc;
 
 fn bench_portable64(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {

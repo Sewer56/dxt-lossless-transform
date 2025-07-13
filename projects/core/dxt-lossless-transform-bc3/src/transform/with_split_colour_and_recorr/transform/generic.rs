@@ -19,23 +19,15 @@ use ptr_utils::{UnalignedRead, UnalignedWrite};
 #[allow(clippy::too_many_arguments)]
 #[inline]
 pub(crate) unsafe fn transform_with_split_colour_and_recorr(
-    input_ptr: *const u8,
-    alpha_endpoints_out: *mut u16,
-    alpha_indices_out: *mut u16,
-    decorrelated_color0_out: *mut u16,
-    decorrelated_color1_out: *mut u16,
-    color_indices_out: *mut u32,
+    mut input_ptr: *const u8,
+    mut alpha_endpoints_out: *mut u16,
+    mut alpha_indices_out: *mut u16,
+    mut decorrelated_color0_out: *mut u16,
+    mut decorrelated_color1_out: *mut u16,
+    mut color_indices_out: *mut u32,
     block_count: usize,
     decorrelation_mode: YCoCgVariant,
 ) {
-    // Initialize pointers
-    let mut input_ptr = input_ptr;
-    let mut alpha_endpoints_ptr = alpha_endpoints_out;
-    let mut alpha_indices_ptr = alpha_indices_out;
-    let mut decorrelated_color0_ptr = decorrelated_color0_out;
-    let mut decorrelated_color1_ptr = decorrelated_color1_out;
-    let mut color_indices_ptr = color_indices_out;
-
     // Process each block
     let input_end = input_ptr.add(block_count * 16);
     while input_ptr < input_end {
@@ -70,24 +62,24 @@ pub(crate) unsafe fn transform_with_split_colour_and_recorr(
         };
 
         // Write to separate arrays
-        alpha_endpoints_ptr.write_u16_at(0, alpha_endpoints);
+        alpha_endpoints_out.write_u16_at(0, alpha_endpoints);
 
         // Write alpha indices (6 bytes) through three u16 writes
-        alpha_indices_ptr.write_u16_at(0, alpha_idx0);
-        alpha_indices_ptr.write_u16_at(2, alpha_idx1);
-        alpha_indices_ptr.write_u16_at(4, alpha_idx2);
+        alpha_indices_out.write_u16_at(0, alpha_idx0);
+        alpha_indices_out.write_u16_at(2, alpha_idx1);
+        alpha_indices_out.write_u16_at(4, alpha_idx2);
 
-        decorrelated_color0_ptr.write_u16_at(0, decorr_color0.raw_value());
-        decorrelated_color1_ptr.write_u16_at(0, decorr_color1.raw_value());
-        color_indices_ptr.write_u32_at(0, color_indices);
+        decorrelated_color0_out.write_u16_at(0, decorr_color0.raw_value());
+        decorrelated_color1_out.write_u16_at(0, decorr_color1.raw_value());
+        color_indices_out.write_u32_at(0, color_indices);
 
         // Advance all pointers
         input_ptr = input_ptr.add(16);
-        alpha_endpoints_ptr = alpha_endpoints_ptr.add(1);
-        alpha_indices_ptr = alpha_indices_ptr.add(3); // 6 bytes = 3 u16
-        decorrelated_color0_ptr = decorrelated_color0_ptr.add(1);
-        decorrelated_color1_ptr = decorrelated_color1_ptr.add(1);
-        color_indices_ptr = color_indices_ptr.add(1);
+        alpha_endpoints_out = alpha_endpoints_out.add(1);
+        alpha_indices_out = alpha_indices_out.add(3); // 6 bytes = 3 u16
+        decorrelated_color0_out = decorrelated_color0_out.add(1);
+        decorrelated_color1_out = decorrelated_color1_out.add(1);
+        color_indices_out = color_indices_out.add(1);
     }
 }
 
@@ -99,6 +91,10 @@ mod tests {
     #[rstest]
     fn generic_transform_roundtrip() {
         // Generic processes 16 bytes per iteration (* 2 / 16 == 2)
-        run_split_colour_and_recorr_transform_roundtrip_test(transform_with_split_colour_and_recorr, 2, "Generic");
+        run_split_colour_and_recorr_transform_roundtrip_test(
+            transform_with_split_colour_and_recorr,
+            2,
+            "Generic",
+        );
     }
 }

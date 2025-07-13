@@ -18,9 +18,7 @@ fn dds_format_to_transform_format(
 ) -> Result<TransformFormat, FormatHandlerError> {
     match format {
         DdsFormat::BC1 => Ok(TransformFormat::Bc1),
-        DdsFormat::BC2 => Err(FormatHandlerError::FormatNotImplemented(
-            TransformFormat::Bc2,
-        )),
+        DdsFormat::BC2 => Ok(TransformFormat::Bc2),
         DdsFormat::BC3 => Err(FormatHandlerError::FormatNotImplemented(
             TransformFormat::Bc3,
         )),
@@ -313,30 +311,18 @@ mod tests {
         }
     }
 
-    // Format not implemented tests
-
     #[test]
-    fn transform_bundle_rejects_bc2_format_not_implemented() {
+    fn transform_bundle_accepts_bc2_format() {
         let handler = DdsHandler;
         let bundle = TransformBundle::<NoEstimation>::default_all();
-        let bc2_input = create_valid_bc2_dds(); // Valid BC2 DDS for testing format not implemented
+        let bc2_input = create_valid_bc2_dds(); // Valid BC2 DDS for testing format support
         let mut output = vec![0u8; bc2_input.len()];
 
         let result = handler.transform_bundle(&bc2_input, &mut output, &bundle);
-        assert!(result.is_err());
-
-        if let Err(TransformError::FormatHandler(FormatHandlerError::FormatNotImplemented(
-            TransformFormat::Bc2,
-        ))) = result
-        {
-            // Expected
-        } else {
-            panic!(
-                "Expected FormatNotImplemented(Bc2) error, got: {:?}",
-                result
-            );
-        }
+        assert!(result.is_ok(), "BC2 transform should succeed: {:?}", result);
     }
+
+    // Format not implemented tests
 
     #[test]
     fn transform_bundle_rejects_bc3_format_not_implemented() {

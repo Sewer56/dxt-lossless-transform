@@ -13,22 +13,22 @@ use bitfield::bitfield;
 /// This is a placeholder structure until the BC5 core crate is implemented.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Bc5TransformSettings {
-    /// Whether to apply endpoint optimization
-    pub optimize_endpoints: bool,
+    /// Whether to split alpha_0 and alpha_1 into separate arrays
+    pub split_endpoints: bool,
 }
 
 impl Bc5TransformSettings {
     /// Create default BC5 transform settings
     pub fn new() -> Self {
         Self {
-            optimize_endpoints: false,
+            split_endpoints: false,
         }
     }
 
-    /// Create BC5 settings with specified endpoint optimization
-    pub fn with_endpoint_optimization(optimize: bool) -> Self {
+    /// Create BC5 settings with specified endpoint splitting
+    pub fn with_split_endpoints(split: bool) -> Self {
         Self {
-            optimize_endpoints: optimize,
+            split_endpoints: split,
         }
     }
 
@@ -36,7 +36,7 @@ impl Bc5TransformSettings {
     pub fn all_combinations() -> impl Iterator<Item = Self> {
         [false, true]
             .into_iter()
-            .map(|optimize_endpoints| Self { optimize_endpoints })
+            .map(|split_endpoints| Self { split_endpoints })
     }
 }
 
@@ -50,7 +50,7 @@ impl Default for Bc5TransformSettings {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 enum Bc5HeaderVersion {
-    /// Initial version - supports endpoint optimization
+    /// Initial version - supports endpoint splitting
     InitialVersion = 0,
 }
 
@@ -74,7 +74,7 @@ bitfield! {
     ///
     /// Bit layout (within the 28-bit format data):
     /// - Bits 0-1: Header version (2 bits)
-    /// - Bit 2: Optimize endpoints flag (1 bit)
+    /// - Bit 2: Split endpoints flag (1 bit)
     /// - Bits 3-27: Reserved for future use (25 bits)
     #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
     struct Bc5TransformHeaderData(u32);
@@ -83,8 +83,8 @@ bitfield! {
 
     /// Header version (2 bits)
     header_version, set_header_version: 1, 0;
-    /// Whether to optimize endpoints (1 bit)
-    optimize_endpoints, set_optimize_endpoints: 2;
+    /// Whether to split endpoints (1 bit)
+    split_endpoints, set_split_endpoints: 2;
     /// Reserved for future use (25 bits)
     reserved, set_reserved: 27, 3;
 }
@@ -94,7 +94,7 @@ impl Bc5TransformHeaderData {
     fn from_transform_settings(settings: &Bc5TransformSettings) -> Self {
         let mut header = Self::default();
         header.set_header_version(Bc5HeaderVersion::InitialVersion.to_u32());
-        header.set_optimize_endpoints(settings.optimize_endpoints);
+        header.set_split_endpoints(settings.split_endpoints);
         header.set_reserved(0);
         header
     }
@@ -110,7 +110,7 @@ impl Bc5TransformHeaderData {
         }
 
         Ok(Bc5TransformSettings {
-            optimize_endpoints: self.optimize_endpoints(),
+            split_endpoints: self.split_endpoints(),
         })
     }
 }
@@ -134,14 +134,14 @@ impl EmbeddableTransformDetails for EmbeddableBc5Details {
 }
 
 impl EmbeddableBc5Details {
-    /// Create new BC5 details with default settings (no optimization)
+    /// Create new BC5 details with default settings (no endpoint splitting)
     pub fn new() -> Self {
         Self(Bc5TransformSettings::new())
     }
 
-    /// Create new BC5 details with specified endpoint optimization setting
-    pub fn with_endpoint_optimization(optimize: bool) -> Self {
-        Self(Bc5TransformSettings::with_endpoint_optimization(optimize))
+    /// Create new BC5 details with specified endpoint splitting setting
+    pub fn with_split_endpoints(split: bool) -> Self {
+        Self(Bc5TransformSettings::with_split_endpoints(split))
     }
 
     /// Convert to a [`TransformHeader`]
@@ -174,24 +174,21 @@ mod tests {
     fn test_bc5_details_default() {
         let details = EmbeddableBc5Details::new();
         // Test that default details can be created
-        assert_eq!(
-            details,
-            EmbeddableBc5Details::with_endpoint_optimization(false)
-        );
+        assert_eq!(details, EmbeddableBc5Details::with_split_endpoints(false));
     }
 
     #[test]
     fn test_bc5_details_with_optimization() {
-        let details_true = EmbeddableBc5Details::with_endpoint_optimization(true);
-        let details_false = EmbeddableBc5Details::with_endpoint_optimization(false);
+        let details_true = EmbeddableBc5Details::with_split_endpoints(true);
+        let details_false = EmbeddableBc5Details::with_split_endpoints(false);
 
-        // Test that different optimization settings create different details
+        // Test that different split settings create different details
         assert_ne!(details_true, details_false);
     }
 
     #[test]
     fn test_bc5_pack_unpack_roundtrip() {
-        let original = EmbeddableBc5Details::with_endpoint_optimization(true);
+        let original = EmbeddableBc5Details::with_split_endpoints(true);
         let packed = original.pack();
         let unpacked = EmbeddableBc5Details::unpack(packed).unwrap();
 
@@ -200,7 +197,7 @@ mod tests {
 
     #[test]
     fn test_bc5_header_roundtrip() {
-        let details = EmbeddableBc5Details::with_endpoint_optimization(true);
+        let details = EmbeddableBc5Details::with_split_endpoints(true);
         let header = details.to_header();
 
         assert_eq!(header.format(), Some(TransformFormat::Bc5));
@@ -227,7 +224,7 @@ mod tests {
     #[test]
     fn test_header_version_and_reserved_fields() {
         let settings = Bc5TransformSettings {
-            optimize_endpoints: true,
+            split_endpoints: true,
         };
 
         let header = Bc5TransformHeaderData::from_transform_settings(&settings);
@@ -241,7 +238,7 @@ mod tests {
         assert_eq!(header.reserved(), 0);
 
         // Verify actual data fields are set correctly
-        assert!(header.optimize_endpoints());
+        assert!(header.split_endpoints());
     }
 
     #[test]

@@ -17,6 +17,7 @@ production builds.
 This crate provides:
 
 - **Block extraction utilities**: Extract raw block data from file formats for analysis
+- **Format detection utilities**: Determine the [`TransformFormat`] of texture files without extracting block data
 
 ## Usage
 
@@ -36,18 +37,35 @@ This crate is primarily used by:
 ```rust
 use dxt_lossless_transform_file_formats_debug::{
     FileFormatBlockExtraction,
+    TransformFormatCheck,
     TransformFormatFilter,
     ExtractedBlocks,
 };
+use dxt_lossless_transform_file_formats_api::{
+    embed::TransformFormat,
+    error::TransformResult,
+};
 
 // File format handlers can optionally implement debug traits
+impl TransformFormatCheck for MyFormatHandler {
+    fn get_transform_format(
+        &self,
+        data: &[u8],
+        filter: TransformFormatFilter,
+    ) -> TransformResult<Option<TransformFormat>> {
+        // Implementation for format detection
+        Ok(Some(TransformFormat::Bc1))
+    }
+}
+
 impl FileFormatBlockExtraction for MyFormatHandler {
     fn extract_blocks<'a>(
         &self,
         data: &'a [u8],
         filter: TransformFormatFilter,
-    ) -> Result<Option<ExtractedBlocks<'a>>> {
+    ) -> TransformResult<Option<ExtractedBlocks<'a>>> {
         // Implementation for extracting raw blocks
+        Ok(None)
     }
 }
 ```

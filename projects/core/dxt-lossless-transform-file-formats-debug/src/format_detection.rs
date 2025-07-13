@@ -1,4 +1,4 @@
-//! Format inspection trait for debug and analysis operations.
+//! Format detection trait for debug and analysis operations.
 //!
 //! This module provides a trait for determining the [`TransformFormat`] of texture files
 //! without extracting the actual block data, useful for format detection and validation.

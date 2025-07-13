@@ -50,12 +50,12 @@ extern crate alloc;
 // Core module with block extraction functionality
 pub mod block_extraction;
 
-// Format inspection functionality
-pub mod format_inspection;
+// Format detection functionality
+pub mod format_detection;
 
 // Re-export main types and traits
 pub use block_extraction::{ExtractedBlocks, FileFormatBlockExtraction, TransformFormatFilter};
-pub use format_inspection::TransformFormatCheck;
+pub use format_detection::TransformFormatCheck;
 
 // File I/O operations for block extraction
 #[cfg(feature = "file-io")]

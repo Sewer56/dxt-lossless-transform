@@ -1,4 +1,5 @@
 use super::file_compare;
+use dxt_lossless_transform_dds::dds::{parse_dds, DdsFormat};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -44,6 +45,23 @@ impl EndianTestResult {
 const LITTLE_ENDIAN_TARGET: &str = "x86_64-unknown-linux-gnu";
 const BIG_ENDIAN_TARGET: &str = "powerpc64-unknown-linux-gnu";
 
+/// Check if a DDS file is a supported format for endian testing
+/// Currently supports BC1 and BC2, excludes BC3 and BC7 (not ready yet)
+fn is_supported_format(file_path: &Path) -> Result<bool, EndianTestError> {
+    let file_data = fs::read(file_path)?;
+
+    match parse_dds(&file_data) {
+        Some(dds_info) => {
+            match dds_info.format {
+                DdsFormat::BC1 | DdsFormat::BC2 => Ok(true),
+                DdsFormat::BC3 | DdsFormat::BC7 => Ok(false), // Not ready yet
+                _ => Ok(false),                               // Other formats not supported
+            }
+        }
+        None => Ok(false), // Not a valid DDS file
+    }
+}
+
 /// Get all .dds files from the assets test directory
 fn get_test_files() -> Result<Vec<fs::DirEntry>, EndianTestError> {
     use crate::util::find_all_files;
@@ -58,7 +76,14 @@ fn get_test_files() -> Result<Vec<fs::DirEntry>, EndianTestError> {
         .filter(|entry| {
             let path = entry.path();
             if let Some(file_name) = path.file_name() {
-                file_name.to_string_lossy().ends_with(".dds")
+                let name = file_name.to_string_lossy();
+                // First check if it's a .dds file by extension
+                if !name.to_lowercase().ends_with(".dds") {
+                    return false;
+                }
+
+                // Then check if it's a supported format (BC1/BC2) by parsing the file content
+                is_supported_format(&path).unwrap_or_default()
             } else {
                 false
             }

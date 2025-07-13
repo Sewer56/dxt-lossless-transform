@@ -24,6 +24,10 @@ pub enum TransformFormat {
     Bgra8888 = 0x06,
     /// BGR888 format transform
     Bgr888 = 0x07,
+    /// BC4 format transform
+    Bc4 = 0x08,
+    /// BC5 format transform
+    Bc5 = 0x09,
 }
 
 impl TransformFormat {
@@ -42,6 +46,8 @@ impl TransformFormat {
             0x05 => Some(Self::Rgba8888),
             0x06 => Some(Self::Bgra8888),
             0x07 => Some(Self::Bgr888),
+            0x08 => Some(Self::Bc4),
+            0x09 => Some(Self::Bc5),
             _ => None,
         }
     }
@@ -57,6 +63,8 @@ impl TransformFormat {
             Self::Rgba8888 => 0x05,
             Self::Bgra8888 => 0x06,
             Self::Bgr888 => 0x07,
+            Self::Bc4 => 0x08,
+            Self::Bc5 => 0x09,
         }
     }
 }

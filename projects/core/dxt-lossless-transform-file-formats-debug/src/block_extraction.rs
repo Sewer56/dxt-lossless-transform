@@ -40,6 +40,10 @@ pub enum TransformFormatFilter {
     Bc2,
     /// Extract only BC3 blocks
     Bc3,
+    /// Extract only BC4 blocks
+    Bc4,
+    /// Extract only BC5 blocks
+    Bc5,
     /// Extract only BC7 blocks
     Bc7,
     /// Extract only BC6H blocks
@@ -62,6 +66,8 @@ impl TransformFormatFilter {
             (TransformFormatFilter::Bc1, TransformFormat::Bc1)
                 | (TransformFormatFilter::Bc2, TransformFormat::Bc2)
                 | (TransformFormatFilter::Bc3, TransformFormat::Bc3)
+                | (TransformFormatFilter::Bc4, TransformFormat::Bc4)
+                | (TransformFormatFilter::Bc5, TransformFormat::Bc5)
                 | (TransformFormatFilter::Bc7, TransformFormat::Bc7)
                 | (TransformFormatFilter::Bc6H, TransformFormat::Bc6H)
                 | (TransformFormatFilter::Rgba8888, TransformFormat::Rgba8888)
@@ -80,6 +86,8 @@ impl core::str::FromStr for TransformFormatFilter {
             "bc1" => Ok(TransformFormatFilter::Bc1),
             "bc2" => Ok(TransformFormatFilter::Bc2),
             "bc3" => Ok(TransformFormatFilter::Bc3),
+            "bc4" => Ok(TransformFormatFilter::Bc4),
+            "bc5" => Ok(TransformFormatFilter::Bc5),
             "bc7" => Ok(TransformFormatFilter::Bc7),
             "bc6h" => Ok(TransformFormatFilter::Bc6H),
             "rgba8888" => Ok(TransformFormatFilter::Rgba8888),
@@ -87,7 +95,7 @@ impl core::str::FromStr for TransformFormatFilter {
             "bgr888" => Ok(TransformFormatFilter::Bgr888),
             "all" => Ok(TransformFormatFilter::All),
             _ => Err(format!(
-                "Invalid TransformFormat filter: {s}. Valid types are: bc1, bc2, bc3, bc7, bc6h, rgba8888, bgra8888, bgr888, all"
+                "Invalid TransformFormat filter: {s}. Valid types are: bc1, bc2, bc3, bc4, bc5, bc7, bc6h, rgba8888, bgra8888, bgr888, all"
             )),
         }
     }

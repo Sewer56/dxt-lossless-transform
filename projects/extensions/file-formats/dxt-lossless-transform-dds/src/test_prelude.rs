@@ -154,6 +154,16 @@ pub fn create_valid_dds_with_dimensions(
                 .unwrap_or(0) as usize,
             false,
         ),
+        DdsFormat::BC4 => (
+            calculate_data_length_for_block_compression(format, width, height, mipmap_count)
+                .unwrap_or(0) as usize,
+            false,
+        ),
+        DdsFormat::BC5 => (
+            calculate_data_length_for_block_compression(format, width, height, mipmap_count)
+                .unwrap_or(0) as usize,
+            false,
+        ),
         DdsFormat::BC6H => (
             calculate_data_length_for_block_compression(format, width, height, mipmap_count)
                 .unwrap_or(0) as usize,
@@ -207,6 +217,12 @@ pub fn create_valid_dds_with_dimensions(
         }
         DdsFormat::BC3 => {
             write_fourcc_pixel_format(&mut data, b"DXT5");
+        }
+        DdsFormat::BC4 => {
+            write_fourcc_pixel_format(&mut data, b"BC4U");
+        }
+        DdsFormat::BC5 => {
+            write_fourcc_pixel_format(&mut data, b"BC5U");
         }
         DdsFormat::BC6H => {
             write_dx10_format(&mut data, DXGI_FORMAT_BC6H_UF16);
@@ -308,6 +324,28 @@ pub fn create_valid_bc2_dds() -> Vec<u8> {
 /// Use this when you just need any valid BC3 DDS for testing
 pub fn create_valid_bc3_dds() -> Vec<u8> {
     create_valid_dds_with_dimensions(DdsFormat::BC3, 4, 4, 1)
+}
+
+/// Helper function to create a valid BC4 DDS with proper dimensions and data length
+pub fn create_valid_bc4_dds_with_dimensions(width: u32, height: u32, mipmap_count: u32) -> Vec<u8> {
+    create_valid_dds_with_dimensions(DdsFormat::BC4, width, height, mipmap_count)
+}
+
+/// Creates a minimal valid BC4 DDS file (4x4, single mipmap)
+/// Use this when you just need any valid BC4 DDS for testing
+pub fn create_valid_bc4_dds() -> Vec<u8> {
+    create_valid_dds_with_dimensions(DdsFormat::BC4, 4, 4, 1)
+}
+
+/// Helper function to create a valid BC5 DDS with proper dimensions and data length
+pub fn create_valid_bc5_dds_with_dimensions(width: u32, height: u32, mipmap_count: u32) -> Vec<u8> {
+    create_valid_dds_with_dimensions(DdsFormat::BC5, width, height, mipmap_count)
+}
+
+/// Creates a minimal valid BC5 DDS file (4x4, single mipmap)
+/// Use this when you just need any valid BC5 DDS for testing
+pub fn create_valid_bc5_dds() -> Vec<u8> {
+    create_valid_dds_with_dimensions(DdsFormat::BC5, 4, 4, 1)
 }
 
 /// Creates a minimal valid BC6H DDS file (4x4, single mipmap)

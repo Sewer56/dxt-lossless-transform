@@ -66,7 +66,11 @@ fn is_supported_format(file_path: &Path) -> Result<bool, EndianTestError> {
 fn get_test_files() -> Result<Vec<fs::DirEntry>, EndianTestError> {
     use crate::util::find_all_files;
 
-    let assets_dir = std::env::current_dir()?.join("assets").join("tests");
+    let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(3)
+        .unwrap();
+    let assets_dir = workspace_root.join("assets").join("tests");
     let mut entries = Vec::new();
 
     find_all_files(&assets_dir, &mut entries)?;
@@ -126,7 +130,10 @@ pub fn run_all_endian_tests() -> Result<Vec<EndianTestResult>, EndianTestError> 
 /// Run endianness test for a single file
 fn run_single_endian_test(test_file: &fs::DirEntry) -> Result<EndianTestResult, EndianTestError> {
     // Create isolated temporary directories with random names in project-relative location
-    let project_root = std::env::current_dir()?;
+    let project_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(3)
+        .unwrap();
     let tmp_base = project_root.join("tmp");
     fs::create_dir_all(&tmp_base)?;
 
@@ -216,7 +223,10 @@ fn run_transform_command(
     output_file: &Path,
 ) -> Result<bool, EndianTestError> {
     // Set target-specific cargo target directory to prevent artifact collisions
-    let project_root = std::env::current_dir()?;
+    let project_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(3)
+        .unwrap();
     let target_dir = project_root.join("target").join(format!("cross-{target}"));
 
     let output = Command::new("cross")
@@ -255,7 +265,10 @@ fn run_untransform_command(
     output_file: &Path,
 ) -> Result<bool, EndianTestError> {
     // Set target-specific cargo target directory to prevent artifact collisions
-    let project_root = std::env::current_dir()?;
+    let project_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(3)
+        .unwrap();
     let target_dir = project_root.join("target").join(format!("cross-{target}"));
 
     let output = Command::new("cross")

@@ -99,3 +99,8 @@ pub(crate) const BGRA8888_RED_MASK: u32 = 0x00FF0000;
 pub(crate) const BGRA8888_GREEN_MASK: u32 = 0x0000FF00;
 pub(crate) const BGRA8888_BLUE_MASK: u32 = 0x000000FF;
 pub(crate) const BGRA8888_ALPHA_MASK: u32 = 0xFF000000;
+
+// R8G8B8 (RGB888): R=byte2, G=byte1, B=byte0 (0x00RRGGBB)
+pub(crate) const RGB888_RED_MASK: u32 = 0x00FF0000;
+pub(crate) const RGB888_GREEN_MASK: u32 = 0x0000FF00;
+pub(crate) const RGB888_BLUE_MASK: u32 = 0x000000FF;

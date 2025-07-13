@@ -33,6 +33,8 @@ enum Commands {
     DebugEndianTransform(commands::debug_endian::DebugEndianTransformCmd),
     #[cfg(feature = "debug-endian")]
     DebugEndianUntransform(commands::debug_endian::DebugEndianUntransformCmd),
+    #[cfg(feature = "debug-format")]
+    DebugFormatAnalysis(commands::debug_format_analysis::DebugFormatAnalysisCmd),
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -68,6 +70,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         #[cfg(feature = "debug-endian")]
         Commands::DebugEndianUntransform(cmd) => {
             commands::debug_endian::handle_debug_endian_untransform_command(cmd)?;
+        }
+        #[cfg(feature = "debug-format")]
+        Commands::DebugFormatAnalysis(cmd) => {
+            commands::debug_format_analysis::handle_debug_format_analysis_command(cmd)?;
         }
     }
 

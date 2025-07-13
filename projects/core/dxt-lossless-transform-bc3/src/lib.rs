@@ -70,7 +70,7 @@ pub unsafe fn transform_bc3(
     len: usize,
 ) -> BC3TransformDetails {
     debug_assert!(len.is_multiple_of(16));
-    crate::transform::standard::split_blocks(input_ptr, output_ptr, len);
+    crate::transform::standard::transform(input_ptr, output_ptr, len);
     BC3TransformDetails {}
 }
 
@@ -104,7 +104,7 @@ pub unsafe fn untransform_bc3(
     _details: BC3TransformDetails,
 ) {
     debug_assert!(len.is_multiple_of(16));
-    crate::transform::standard::unsplit_blocks(input_ptr, output_ptr, len);
+    crate::transform::standard::untransform(input_ptr, output_ptr, len);
 }
 
 // Re-export functions for benchmarking when the 'bench' feature is enabled

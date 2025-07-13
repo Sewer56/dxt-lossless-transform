@@ -44,7 +44,7 @@ pub unsafe fn transform_bc3_with_settings(
     match (has_split_alphas, has_split_colours, has_decorrelation) {
         // Standard transform – no split-alpha, no split-colour and no decorrelation.
         (false, false, false) => {
-            standard::split_blocks(input_ptr, output_ptr, len);
+            standard::transform(input_ptr, output_ptr, len);
         }
         // Split alphas only
         (true, false, false) => {
@@ -174,7 +174,7 @@ pub unsafe fn untransform_bc3_with_settings(
     match (has_split_alphas, has_split_colours, has_decorrelation) {
         // Standard transform – no split-alpha, no split-colour and no decorrelation.
         (false, false, false) => {
-            standard::unsplit_blocks(input_ptr, output_ptr, len);
+            standard::untransform(input_ptr, output_ptr, len);
         }
         // Split alphas only
         (true, false, false) => {

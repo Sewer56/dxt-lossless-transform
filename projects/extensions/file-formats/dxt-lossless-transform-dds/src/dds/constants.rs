@@ -87,15 +87,21 @@ pub(crate) const DDS_PIXELFORMAT_GBITMASK_OFFSET: usize = 0x60;
 pub(crate) const DDS_PIXELFORMAT_BBITMASK_OFFSET: usize = 0x64;
 pub(crate) const DDS_PIXELFORMAT_ABITMASK_OFFSET: usize = 0x68;
 
+// Because of Little Endian, the masks here are reversed.
 // Common pixel format bit masks (verified with TexConv)
-// R8G8B8A8_UNORM: R=byte0, G=byte1, B=byte2, A=byte3 (0xAABBGGRR)
+// R8G8B8A8_UNORM: R=byte0, G=byte1, B=byte2, A=byte3
 pub(crate) const RGBA8888_RED_MASK: u32 = 0x000000FF;
 pub(crate) const RGBA8888_GREEN_MASK: u32 = 0x0000FF00;
 pub(crate) const RGBA8888_BLUE_MASK: u32 = 0x00FF0000;
 pub(crate) const RGBA8888_ALPHA_MASK: u32 = 0xFF000000;
 
-// B8G8R8A8_UNORM: R=byte2, G=byte1, B=byte0, A=byte3 (0xAARRGGBB)
+// B8G8R8A8_UNORM: R=byte2, G=byte1, B=byte0, A=byte3
 pub(crate) const BGRA8888_RED_MASK: u32 = 0x00FF0000;
 pub(crate) const BGRA8888_GREEN_MASK: u32 = 0x0000FF00;
 pub(crate) const BGRA8888_BLUE_MASK: u32 = 0x000000FF;
 pub(crate) const BGRA8888_ALPHA_MASK: u32 = 0xFF000000;
+
+// B8G8R8 (BGR888): R=byte2, G=byte1, B=byte0
+pub(crate) const BGR888_RED_MASK: u32 = 0x00FF0000;
+pub(crate) const BGR888_GREEN_MASK: u32 = 0x0000FF00;
+pub(crate) const BGR888_BLUE_MASK: u32 = 0x000000FF;

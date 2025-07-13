@@ -23,6 +23,8 @@ pub enum DdsFormat {
     RGBA8888 = 7,
     /// BGRA8888 format (32-bit with alpha, different byte order)
     BGRA8888 = 8,
+    /// BGR888 format (24-bit RGB)
+    BGR888 = 9,
 }
 
 /// The information of the DDS file supplied to the reader.
@@ -172,6 +174,18 @@ fn detect_uncompressed_format(data: &[u8]) -> DdsFormat {
     let a_mask = unsafe { reader.read_u32_at(DDS_PIXELFORMAT_ABITMASK_OFFSET as isize) };
 
     match rgb_bit_count {
+        24 => {
+            // BGR888: 24-bit RGB format
+            if r_mask == BGR888_RED_MASK
+                && g_mask == BGR888_GREEN_MASK
+                && b_mask == BGR888_BLUE_MASK
+                && a_mask == 0x00000000
+            {
+                DdsFormat::BGR888
+            } else {
+                DdsFormat::Unknown
+            }
+        }
         32 => {
             // For 32-bit formats, check if alpha channel is present
             if (pixel_flags & DDPF_ALPHAPIXELS) != 0 {
@@ -233,6 +247,10 @@ fn calculate_data_length(format: DdsFormat, data: &[u8]) -> Option<u32> {
             // 32-bit formats (4 bytes per pixel)
             calculate_data_length_for_pixel_formats(width, height, mipmap_count, 4)
         }
+        DdsFormat::BGR888 => {
+            // 24-bit format (3 bytes per pixel)
+            calculate_data_length_for_pixel_formats(width, height, mipmap_count, 3)
+        }
         DdsFormat::Unknown => {
             // Try to determine from pixel format for uncompressed formats
             calculate_uncompressed_data_length(data, width, height, mipmap_count)
@@ -288,6 +306,10 @@ pub(crate) fn calculate_data_length_for_block_compression(
         DdsFormat::RGBA8888 | DdsFormat::BGRA8888 => {
             // 32-bit uncompressed formats
             calculate_data_length_for_pixel_formats(width, height, mipmap_count, 4)
+        }
+        DdsFormat::BGR888 => {
+            // 24-bit uncompressed format
+            calculate_data_length_for_pixel_formats(width, height, mipmap_count, 3)
         }
         DdsFormat::Unknown => {
             // Don't make assumptions about unknown formats - return 0

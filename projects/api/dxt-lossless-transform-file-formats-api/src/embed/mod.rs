@@ -73,6 +73,8 @@ pub(super) use embed_error::EmbedError;
 pub(super) use formats::EmbeddableBc1Details;
 pub(super) use formats::EmbeddableBc2Details;
 #[allow(unused_imports)]
+pub(super) use formats::EmbeddableBgr888Details;
+#[allow(unused_imports)]
 pub(super) use formats::EmbeddableBgra8888Details;
 #[allow(unused_imports)]
 pub(super) use formats::EmbeddableRgba8888Details;
@@ -174,6 +176,10 @@ mod tests {
             TransformFormat::from_u8(0x06),
             Some(TransformFormat::Bgra8888)
         );
+        assert_eq!(
+            TransformFormat::from_u8(0x07),
+            Some(TransformFormat::Bgr888)
+        );
         assert_eq!(TransformFormat::from_u8(0x0F), None);
 
         assert_eq!(TransformFormat::Bc1.to_u8(), 0x00);
@@ -183,6 +189,7 @@ mod tests {
         assert_eq!(TransformFormat::Bc6H.to_u8(), 0x04);
         assert_eq!(TransformFormat::Rgba8888.to_u8(), 0x05);
         assert_eq!(TransformFormat::Bgra8888.to_u8(), 0x06);
+        assert_eq!(TransformFormat::Bgr888.to_u8(), 0x07);
     }
 
     #[test]

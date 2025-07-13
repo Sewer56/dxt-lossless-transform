@@ -114,6 +114,23 @@ fn write_uncompressed_pixel_format(
     }
 }
 
+/// Helper function to write BGR888 pixel format information (24-bit, no alpha)
+fn write_bgr888_pixel_format(data: &mut [u8], red_mask: u32, green_mask: u32, blue_mask: u32) {
+    data[FOURCC_OFFSET..FOURCC_OFFSET + 4].copy_from_slice(b"\0\0\0\0");
+    unsafe {
+        let mut writer = LittleEndianWriter::new(data.as_mut_ptr());
+        writer.write_u32_at(
+            DDPF_RGB, // No alpha pixels flag for BGR888
+            DDS_PIXELFORMAT_FLAGS_OFFSET as isize,
+        );
+        writer.write_u32_at(24, DDS_PIXELFORMAT_RGBBITCOUNT_OFFSET as isize); // 24-bit
+        writer.write_u32_at(red_mask, DDS_PIXELFORMAT_RBITMASK_OFFSET as isize);
+        writer.write_u32_at(green_mask, DDS_PIXELFORMAT_GBITMASK_OFFSET as isize);
+        writer.write_u32_at(blue_mask, DDS_PIXELFORMAT_BBITMASK_OFFSET as isize);
+        writer.write_u32_at(0, DDS_PIXELFORMAT_ABITMASK_OFFSET as isize); // No alpha mask
+    }
+}
+
 /// Helper function to create a valid DDS with specified format and dimensions
 pub fn create_valid_dds_with_dimensions(
     format: DdsFormat,
@@ -151,6 +168,14 @@ pub fn create_valid_dds_with_dimensions(
             // 32-bit uncompressed formats
             (
                 calculate_data_length_for_pixel_formats(width, height, mipmap_count, 4).unwrap_or(0)
+                    as usize,
+                false, // Use legacy format for uncompressed formats
+            )
+        }
+        DdsFormat::BGR888 => {
+            // 24-bit uncompressed format
+            (
+                calculate_data_length_for_pixel_formats(width, height, mipmap_count, 3).unwrap_or(0)
                     as usize,
                 false, // Use legacy format for uncompressed formats
             )
@@ -207,6 +232,14 @@ pub fn create_valid_dds_with_dimensions(
                 BGRA8888_ALPHA_MASK,
             );
         }
+        DdsFormat::BGR888 => {
+            write_bgr888_pixel_format(
+                &mut data,
+                BGR888_RED_MASK,
+                BGR888_GREEN_MASK,
+                BGR888_BLUE_MASK,
+            );
+        }
         DdsFormat::Unknown => {
             write_fourcc_pixel_format(&mut data, b"UNKN");
         }
@@ -246,6 +279,15 @@ pub fn create_valid_bgra8888_dds_with_dimensions(
     mipmap_count: u32,
 ) -> Vec<u8> {
     create_valid_dds_with_dimensions(DdsFormat::BGRA8888, width, height, mipmap_count)
+}
+
+/// Helper function to create a valid BGR888 DDS with proper dimensions and data length
+pub fn create_valid_bgr888_dds_with_dimensions(
+    width: u32,
+    height: u32,
+    mipmap_count: u32,
+) -> Vec<u8> {
+    create_valid_dds_with_dimensions(DdsFormat::BGR888, width, height, mipmap_count)
 }
 
 // Semantic helper functions for clearer test intent

@@ -48,6 +48,8 @@ pub enum TransformFormatFilter {
     Rgba8888,
     /// Extract only BGRA8888 pixels
     Bgra8888,
+    /// Extract only BGR888 pixels
+    Bgr888,
     /// Extract all supported [`TransformFormat`]s
     All,
 }
@@ -64,6 +66,7 @@ impl TransformFormatFilter {
                 | (TransformFormatFilter::Bc6H, TransformFormat::Bc6H)
                 | (TransformFormatFilter::Rgba8888, TransformFormat::Rgba8888)
                 | (TransformFormatFilter::Bgra8888, TransformFormat::Bgra8888)
+                | (TransformFormatFilter::Bgr888, TransformFormat::Bgr888)
                 | (TransformFormatFilter::All, _)
         )
     }
@@ -81,9 +84,10 @@ impl core::str::FromStr for TransformFormatFilter {
             "bc6h" => Ok(TransformFormatFilter::Bc6H),
             "rgba8888" => Ok(TransformFormatFilter::Rgba8888),
             "bgra8888" => Ok(TransformFormatFilter::Bgra8888),
+            "bgr888" => Ok(TransformFormatFilter::Bgr888),
             "all" => Ok(TransformFormatFilter::All),
             _ => Err(format!(
-                "Invalid TransformFormat filter: {s}. Valid types are: bc1, bc2, bc3, bc7, bc6h, rgba8888, bgra8888, all"
+                "Invalid TransformFormat filter: {s}. Valid types are: bc1, bc2, bc3, bc7, bc6h, rgba8888, bgra8888, bgr888, all"
             )),
         }
     }

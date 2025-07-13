@@ -12,7 +12,7 @@ pub enum TransformError {
         #[from] dxt_lossless_transform_file_formats_api::file_io::FileOperationError,
     ),
     /// Reserved for arbitrary errors in debug/test functionality, not runtime/end user stuff.
-    #[cfg(feature = "debug")]
+    #[cfg(feature = "debug-format")]
     #[error("{0}")]
     Debug(String),
 }

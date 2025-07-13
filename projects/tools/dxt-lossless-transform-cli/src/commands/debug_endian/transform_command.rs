@@ -4,9 +4,11 @@ use std::path::{Path, PathBuf};
 use dxt_lossless_transform_api_common::estimate::NoEstimation;
 use dxt_lossless_transform_bc1_api::{Bc1ManualTransformBuilder, YCoCgVariant};
 use dxt_lossless_transform_bc2_api::Bc2ManualTransformBuilder;
-use dxt_lossless_transform_dds::DdsHandler;
+use dxt_lossless_transform_dds::{
+    dds::parse_dds::{parse_dds, DdsFormat},
+    DdsHandler,
+};
 use dxt_lossless_transform_file_formats_api::{file_io, TransformBundle};
-use dxt_lossless_transform_file_formats_debug::{FileFormatBlockExtraction, TransformFormatFilter};
 
 /// Handle transform of a single file with all manual combinations
 pub fn handle_transform_single_file(
@@ -22,21 +24,25 @@ pub fn handle_transform_single_file(
 
     // Detect the format of the input file
     let file_data = std::fs::read(&input_file)?;
-    let detected_format = match DdsHandler.extract_blocks(&file_data, TransformFormatFilter::All) {
-        Ok(Some(extracted)) => extracted.format,
-        Ok(None) => {
-            return Err(
-                format!("Could not detect format for file: {}", input_file.display()).into(),
-            )
-        }
-        Err(e) => {
-            return Err(format!(
-                "Failed to extract blocks from file {}: {}",
-                input_file.display(),
-                e
-            )
-            .into())
-        }
+    let detected_format = match parse_dds(&file_data) {
+        Some(dds_info) => match dds_info.format {
+            DdsFormat::BC1 => dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc1,
+            DdsFormat::BC2 => dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc2,
+            DdsFormat::BC3 => dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc3,
+            DdsFormat::BC7 => dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc7,
+            DdsFormat::BC6H => {
+                dxt_lossless_transform_file_formats_api::embed::TransformFormat::Bc6H
+            }
+            _ => {
+                return Err(format!(
+                    "Unsupported DDS format in file: {} (format: {:?})",
+                    input_file.display(),
+                    dds_info.format
+                )
+                .into())
+            }
+        },
+        None => return Err(format!("Failed to parse DDS file: {}", input_file.display()).into()),
     };
 
     // Process all formats

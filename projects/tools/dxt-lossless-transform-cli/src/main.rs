@@ -2,8 +2,8 @@
 #![cfg(not(tarpaulin_include))]
 
 mod commands;
-#[cfg(feature = "debug")]
-mod debug;
+#[cfg(feature = "debug-format")]
+mod debug_format;
 mod error;
 mod util;
 use argh::FromArgs;

@@ -25,6 +25,8 @@ pub enum DdsFormat {
     BGRA8888 = 8,
     /// BGR888 format (24-bit RGB)
     BGR888 = 9,
+    /// BC4 format (single channel)
+    BC4 = 10,
 }
 
 /// The information of the DDS file supplied to the reader.
@@ -131,6 +133,7 @@ pub fn parse_dds_ignore_magic(data: &[u8]) -> Option<DdsInfo> {
                 FOURCC_DXT1 => DdsFormat::BC1,
                 FOURCC_DXT2 | FOURCC_DXT3 => DdsFormat::BC2,
                 FOURCC_DXT4 | FOURCC_DXT5 => DdsFormat::BC3,
+                FOURCC_BC4U | FOURCC_BC4S | FOURCC_ATI1 => DdsFormat::BC4,
                 _ => DdsFormat::Unknown,
             }
         } else if (pixel_flags & DDPF_RGB) != 0 {
@@ -240,7 +243,12 @@ fn calculate_data_length(format: DdsFormat, data: &[u8]) -> Option<u32> {
 
     // For block-compressed formats, use the dimension-based calculation
     match format {
-        DdsFormat::BC1 | DdsFormat::BC2 | DdsFormat::BC3 | DdsFormat::BC6H | DdsFormat::BC7 => {
+        DdsFormat::BC1
+        | DdsFormat::BC2
+        | DdsFormat::BC3
+        | DdsFormat::BC4
+        | DdsFormat::BC6H
+        | DdsFormat::BC7 => {
             calculate_data_length_for_block_compression(format, width, height, mipmap_count)
         }
         DdsFormat::RGBA8888 | DdsFormat::BGRA8888 => {
@@ -272,12 +280,18 @@ pub(crate) fn calculate_data_length_for_block_compression(
 ) -> Option<u32> {
     // Calculate data size based on format type
     match format {
-        DdsFormat::BC1 | DdsFormat::BC2 | DdsFormat::BC3 | DdsFormat::BC6H | DdsFormat::BC7 => {
+        DdsFormat::BC1
+        | DdsFormat::BC2
+        | DdsFormat::BC3
+        | DdsFormat::BC4
+        | DdsFormat::BC6H
+        | DdsFormat::BC7 => {
             // Block-compressed formats
             let block_size = match format {
                 DdsFormat::BC1 => 8,   // DXT1: 8 bytes per 4x4 block
                 DdsFormat::BC2 => 16,  // DXT2/3: 16 bytes per 4x4 block
                 DdsFormat::BC3 => 16,  // DXT4/5: 16 bytes per 4x4 block
+                DdsFormat::BC4 => 8,   // BC4: 8 bytes per 4x4 block
                 DdsFormat::BC6H => 16, // BC6H: 16 bytes per 4x4 block
                 DdsFormat::BC7 => 16,  // BC7: 16 bytes per 4x4 block
                 _ => unsafe { unreachable_unchecked() },

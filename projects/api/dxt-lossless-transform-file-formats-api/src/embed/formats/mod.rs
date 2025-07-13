@@ -5,6 +5,8 @@ mod bc2;
 #[allow(dead_code)]
 mod bc3; // code not ready, placeholder
 #[allow(dead_code)]
+mod bc4; // code not ready, placeholder
+#[allow(dead_code)]
 mod bc7; // code not ready, placeholder
 #[allow(dead_code)]
 mod bgr888;
@@ -15,6 +17,7 @@ mod rgba8888;
 
 pub(crate) use bc1::EmbeddableBc1Details;
 pub(crate) use bc2::EmbeddableBc2Details;
+pub(crate) use bc4::EmbeddableBc4Details;
 pub(crate) use bgr888::EmbeddableBgr888Details;
 pub(crate) use bgra8888::EmbeddableBgra8888Details;
 pub(crate) use rgba8888::EmbeddableRgba8888Details;

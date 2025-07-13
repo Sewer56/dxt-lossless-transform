@@ -12,6 +12,11 @@ pub(crate) const FOURCC_DXT2: u32 = 0x32545844; // 'DXT2' in little-endian
 pub(crate) const FOURCC_DXT3: u32 = 0x33545844; // 'DXT3' in little-endian
 pub(crate) const FOURCC_DXT4: u32 = 0x34545844; // 'DXT4' in little-endian
 pub(crate) const FOURCC_DXT5: u32 = 0x35545844; // 'DXT5' in little-endian
+pub(crate) const FOURCC_BC4U: u32 = 0x55344342; // 'BC4U' in little-endian
+pub(crate) const FOURCC_BC4S: u32 = 0x53344342; // 'BC4S' in little-endian
+/// 'ATI1' in little-endian - unofficial FourCC used by some 3rd party libraries,
+/// but not recognized by D3DX
+pub(crate) const FOURCC_ATI1: u32 = 0x31495441;
 pub(crate) const FOURCC_DX10: u32 = 0x30315844; // 'DX10' in little-endian
 
 /// Offset of the DXGI format header used in DX10 and above.
@@ -29,6 +34,10 @@ pub(crate) const DXGI_FORMAT_BC2_UNORM_SRGB: u32 = 75;
 pub(crate) const DXGI_FORMAT_BC3_TYPELESS: u32 = 76;
 pub(crate) const DXGI_FORMAT_BC3_UNORM: u32 = 77;
 pub(crate) const DXGI_FORMAT_BC3_UNORM_SRGB: u32 = 78;
+
+pub(crate) const DXGI_FORMAT_BC4_TYPELESS: u32 = 79;
+pub(crate) const DXGI_FORMAT_BC4_UNORM: u32 = 80;
+pub(crate) const DXGI_FORMAT_BC4_SNORM: u32 = 81;
 
 pub(crate) const DXGI_FORMAT_BC6H_TYPELESS: u32 = 94;
 pub(crate) const DXGI_FORMAT_BC6H_UF16: u32 = 95;

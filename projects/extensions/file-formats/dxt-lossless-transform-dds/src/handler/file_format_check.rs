@@ -123,4 +123,15 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Some(TransformFormat::Bgr888));
     }
+
+    #[test]
+    fn test_get_transform_format_bc4_supported() {
+        let handler = super::super::DdsHandler;
+        let dds_data = create_valid_bc4_dds_with_dimensions(64, 64, 1);
+
+        let result = handler.get_transform_format(&dds_data, TransformFormatFilter::All);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Some(TransformFormat::Bc4));
+    }
 }

@@ -16,10 +16,6 @@ pub enum EndianTestError {
     #[error("Command execution failed: {0}")]
     CommandFailed(String),
 
-    #[error("File comparison failed: {expected} != {actual}")]
-    #[allow(dead_code)]
-    FilesDiffer { expected: String, actual: String },
-
     #[error("Tests failed: {0}")]
     TestsFailed(String),
 

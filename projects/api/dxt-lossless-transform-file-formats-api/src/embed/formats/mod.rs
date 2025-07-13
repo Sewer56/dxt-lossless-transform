@@ -6,11 +6,12 @@ mod bc2;
 mod bc3; // code not ready, placeholder
 #[allow(dead_code)]
 mod bc7; // code not ready, placeholder
-mod rgba8888;
+#[allow(dead_code)]
+mod rgba8888; // code not ready, placeholder
 
 pub(crate) use bc1::EmbeddableBc1Details;
 pub(crate) use bc2::EmbeddableBc2Details;
-pub(crate) use rgba8888::EmbeddableRgba8888Details;
+//pub(crate) use rgba8888::EmbeddableRgba8888Details;
 
 use super::{EmbedError, TransformFormat, TransformHeader};
 

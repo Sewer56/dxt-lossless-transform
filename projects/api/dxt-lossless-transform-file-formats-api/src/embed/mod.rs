@@ -72,7 +72,7 @@ pub use transform_format::TransformFormat;
 pub(super) use embed_error::EmbedError;
 pub(super) use formats::EmbeddableBc1Details;
 pub(super) use formats::EmbeddableBc2Details;
-pub(super) use formats::EmbeddableRgba8888Details;
+//pub(super) use formats::EmbeddableRgba8888Details;
 
 /// Size of the transform header in bytes.
 ///

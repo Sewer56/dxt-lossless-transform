@@ -4,11 +4,11 @@ use crate::dds::parse_dds;
 use dxt_lossless_transform_file_formats_api::{
     embed::TransformFormat, error::TransformResult, TransformError,
 };
-use dxt_lossless_transform_file_formats_debug::{FileFormatInspection, TransformFormatFilter};
+use dxt_lossless_transform_file_formats_debug::{TransformFormatCheck, TransformFormatFilter};
 
 use super::format_conversion::dds_format_to_transform_format;
 
-impl FileFormatInspection for super::DdsHandler {
+impl TransformFormatCheck for super::DdsHandler {
     fn get_transform_format(
         &self,
         data: &[u8],

@@ -17,7 +17,7 @@ use crate::TransformFormatFilter;
 ///
 /// ```rust
 /// use dxt_lossless_transform_file_formats_debug::{
-///     FileFormatInspection, TransformFormatFilter,
+///     TransformFormatCheck, TransformFormatFilter,
 /// };
 /// use dxt_lossless_transform_file_formats_api::{
 ///     embed::TransformFormat,
@@ -27,7 +27,7 @@ use crate::TransformFormatFilter;
 /// // Example custom handler
 /// struct MyFormatHandler;
 ///
-/// impl FileFormatInspection for MyFormatHandler {
+/// impl TransformFormatCheck for MyFormatHandler {
 ///     fn get_transform_format(
 ///         &self,
 ///         data: &[u8],
@@ -51,7 +51,7 @@ use crate::TransformFormatFilter;
 ///     }
 /// }
 /// ```
-pub trait FileFormatInspection {
+pub trait TransformFormatCheck {
     /// Get the [`TransformFormat`] of the texture file format.
     ///
     /// This method parses the file format header to determine the compression

@@ -8,7 +8,7 @@
 //!
 //! ```rust
 //! use dxt_lossless_transform_file_formats_debug::{
-//!     FileFormatBlockExtraction, FileFormatInspection, TransformFormatFilter, ExtractedBlocks,
+//!     FileFormatBlockExtraction, TransformFormatCheck, TransformFormatFilter, ExtractedBlocks,
 //! };
 //! use dxt_lossless_transform_file_formats_api::{
 //!     embed::TransformFormat,
@@ -18,7 +18,7 @@
 //! // Example custom handler
 //! struct MyFormatHandler;
 //!
-//! impl FileFormatInspection for MyFormatHandler {
+//! impl TransformFormatCheck for MyFormatHandler {
 //!     fn get_transform_format(
 //!         &self,
 //!         data: &[u8],
@@ -55,7 +55,7 @@ pub mod format_inspection;
 
 // Re-export main types and traits
 pub use block_extraction::{ExtractedBlocks, FileFormatBlockExtraction, TransformFormatFilter};
-pub use format_inspection::FileFormatInspection;
+pub use format_inspection::TransformFormatCheck;
 
 // File I/O operations for block extraction
 #[cfg(feature = "file-io")]

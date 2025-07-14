@@ -42,7 +42,7 @@ pub(crate) unsafe fn u32_untransform_with_separate_pointers(
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
 #[cfg_attr(target_arch = "x86_64", allow(dead_code))] // x86_64 does not use this path.
-pub(crate) unsafe fn u32_untransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub(crate) unsafe fn u32_untransform_v2(input_ptr: *const u8, mut output_ptr: *mut u8, len: usize) {
     debug_assert!(len.is_multiple_of(16));
     const BYTES_PER_ITERATION: usize = 32;
     let aligned_len = len - (len % BYTES_PER_ITERATION);
@@ -53,7 +53,6 @@ pub(crate) unsafe fn u32_untransform_v2(input_ptr: *const u8, output_ptr: *mut u
     let mut alpha_bit_in_ptr = input_ptr.add(len / 16 * 2) as *const u16;
     let mut color_byte_in_ptr = input_ptr.add(len / 16 * 8) as *const u32;
     let mut index_byte_in_ptr = input_ptr.add(len / 16 * 12) as *const u32;
-    let mut current_output_ptr = output_ptr;
 
     if aligned_len > 0 {
         let alpha_byte_aligned_end_ptr = input_ptr.add(aligned_len / 16 * 2) as *const u32;
@@ -64,33 +63,33 @@ pub(crate) unsafe fn u32_untransform_v2(input_ptr: *const u8, output_ptr: *mut u
             // Alpha bytes (2 bytes). Write in 2 blocks in 1 shot.
             #[cfg(target_endian = "little")]
             {
-                current_output_ptr.write_u16_at(0, alpha_bytes as u16);
-                current_output_ptr.write_u16_at(16, (alpha_bytes >> 16) as u16);
+                output_ptr.write_u16_at(0, alpha_bytes as u16);
+                output_ptr.write_u16_at(16, (alpha_bytes >> 16) as u16);
             }
             #[cfg(target_endian = "big")]
             {
-                current_output_ptr.write_u16_at(0, (alpha_bytes >> 16) as u16);
-                current_output_ptr.write_u16_at(16, alpha_bytes as u16);
+                output_ptr.write_u16_at(0, (alpha_bytes >> 16) as u16);
+                output_ptr.write_u16_at(16, alpha_bytes as u16);
             }
 
             // Alpha bits (6 bytes)
-            current_output_ptr.write_u16_at(2, alpha_bit_in_ptr.read_u16_at(0));
-            current_output_ptr.write_u32_at(4, alpha_bit_in_ptr.read_u32_at(2));
-            current_output_ptr.write_u16_at(2 + 16, alpha_bit_in_ptr.read_u16_at(6));
-            current_output_ptr.write_u32_at(4 + 16, alpha_bit_in_ptr.read_u32_at(8));
+            output_ptr.write_u16_at(2, alpha_bit_in_ptr.read_u16_at(0));
+            output_ptr.write_u32_at(4, alpha_bit_in_ptr.read_u32_at(2));
+            output_ptr.write_u16_at(2 + 16, alpha_bit_in_ptr.read_u16_at(6));
+            output_ptr.write_u32_at(4 + 16, alpha_bit_in_ptr.read_u32_at(8));
             alpha_bit_in_ptr = alpha_bit_in_ptr.add(6);
 
             // Color bytes (4 bytes)
-            current_output_ptr.write_u32_at(8, color_byte_in_ptr.read_u32_at(0));
-            current_output_ptr.write_u32_at(8 + 16, color_byte_in_ptr.read_u32_at(4));
+            output_ptr.write_u32_at(8, color_byte_in_ptr.read_u32_at(0));
+            output_ptr.write_u32_at(8 + 16, color_byte_in_ptr.read_u32_at(4));
             color_byte_in_ptr = color_byte_in_ptr.add(2);
 
             // Index bytes (4 bytes)
-            current_output_ptr.write_u32_at(12, index_byte_in_ptr.read_u32_at(0));
-            current_output_ptr.write_u32_at(12 + 16, index_byte_in_ptr.read_u32_at(4));
+            output_ptr.write_u32_at(12, index_byte_in_ptr.read_u32_at(0));
+            output_ptr.write_u32_at(12 + 16, index_byte_in_ptr.read_u32_at(4));
             index_byte_in_ptr = index_byte_in_ptr.add(2);
 
-            current_output_ptr = current_output_ptr.add(32);
+            output_ptr = output_ptr.add(32);
         }
     }
 
@@ -100,7 +99,7 @@ pub(crate) unsafe fn u32_untransform_v2(input_ptr: *const u8, output_ptr: *mut u
         alpha_bit_in_ptr,
         color_byte_in_ptr,
         index_byte_in_ptr,
-        current_output_ptr,
+        output_ptr,
         len - aligned_len,
     );
 }

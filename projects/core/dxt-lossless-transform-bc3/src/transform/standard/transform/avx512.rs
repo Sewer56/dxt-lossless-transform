@@ -48,7 +48,7 @@ pub(crate) unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len:
 #[allow(clippy::identity_op)]
 #[allow(clippy::erasing_op)]
 pub(crate) unsafe fn avx512_vbmi_with_separate_pointers(
-    input_ptr: *const u8,
+    mut input_ptr: *const u8,
     mut alpha_byte_out_ptr: *mut u8,
     mut alpha_bit_out_ptr: *mut u8,
     mut color_out_ptr: *mut u8,
@@ -65,8 +65,6 @@ pub(crate) unsafe fn avx512_vbmi_with_separate_pointers(
     // of data.
     aligned_len = aligned_len.saturating_sub(128);
     let remaining_len = len - aligned_len;
-
-    let mut current_input_ptr = input_ptr;
     let input_aligned_end_ptr = input_ptr.add(aligned_len);
 
     // Note(sewer): We need to pre-calculate this because `alpha_byte_out_ptr` will advance later on.
@@ -221,11 +219,11 @@ pub(crate) unsafe fn avx512_vbmi_with_separate_pointers(
         12 + (16 * 0), // block 0
     );
 
-    while current_input_ptr < input_aligned_end_ptr {
+    while input_ptr < input_aligned_end_ptr {
         // Read 8 blocks (128 bytes)
-        let block_0 = _mm512_loadu_si512(current_input_ptr as *const __m512i);
-        let block_1 = _mm512_loadu_si512(current_input_ptr.add(64) as *const __m512i);
-        current_input_ptr = current_input_ptr.add(128); // Move forward 8 blocks
+        let block_0 = _mm512_loadu_si512(input_ptr as *const __m512i);
+        let block_1 = _mm512_loadu_si512(input_ptr.add(64) as *const __m512i);
+        input_ptr = input_ptr.add(128); // Move forward 8 blocks
 
         let alpha_bytes_0 = _mm512_permutex2var_epi8(block_0, alpha_bytes_permute_mask, block_1);
         let alpha_bits_0 = _mm512_permutex2var_epi8(block_0, alpha_bits_permute_mask, block_1);
@@ -256,7 +254,7 @@ pub(crate) unsafe fn avx512_vbmi_with_separate_pointers(
     // Process any remaining blocks (less than 8)
     if remaining_len > 0 {
         u32_with_separate_endpoints(
-            current_input_ptr,              // Start of remaining input data
+            input_ptr,                      // Start of remaining input data
             alpha_byte_out_ptr as *mut u16, // Start of remaining alpha byte output
             alpha_bit_out_ptr as *mut u16,  // Start of alpha bits
             color_out_ptr as *mut u32,      // Start of remaining color output

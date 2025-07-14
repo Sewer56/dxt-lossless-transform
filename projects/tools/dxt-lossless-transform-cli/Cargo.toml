@@ -16,6 +16,8 @@ debug-bc7 = ["debug-format"]
 debug-bc1 = ["debug-format", "dxt-lossless-transform-bc1/experimental"]
 # Debugging BC2 behaviour
 debug-bc2 = ["debug-format", "dxt-lossless-transform-bc2"]
+# Debugging BC3 behaviour
+debug-bc3 = ["debug-format", "dxt-lossless-transform-bc3/experimental"]
 # Debugging endianness compatibility
 debug-endian = ["tempfile", "dxt-lossless-transform-file-formats-debug", "dxt-lossless-transform-dds/debug"]
 # Common debugging utilities for file format analysis
@@ -31,6 +33,7 @@ lightweight-mmap = "0.7.0"
 dxt-lossless-transform-dds = { workspace = true, default-features = true }
 dxt-lossless-transform-bc1 = { workspace = true, default-features = true }
 dxt-lossless-transform-bc2 = { workspace = true, default-features = true, optional = true }
+dxt-lossless-transform-bc3 = { workspace = true, default-features = true, optional = true }
 dxt-lossless-transform-common = { workspace = true, default-features = true }
 dxt-lossless-transform-api-common = { workspace = true, default-features = true }
 dxt-lossless-transform-bc1-api = { workspace = true, default-features = true }

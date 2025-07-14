@@ -1,3 +1,4 @@
+use crate::utils::combine_u16_pair_to_u32;
 use core::hint::unreachable_unchecked;
 use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
 use ptr_utils::{UnalignedRead, UnalignedWrite};
@@ -37,10 +38,9 @@ pub(crate) unsafe fn untransform_with_split_alphas_colour_and_recorr(
         let alpha0 = alpha0_out.read();
         let alpha1 = alpha1_out.read();
 
-        // Read alpha indices (6 bytes) through three u16 reads
-        let alpha_idx0 = alpha_indices_out.read_u16_at(0);
-        let alpha_idx1 = alpha_indices_out.read_u16_at(2);
-        let alpha_idx2 = alpha_indices_out.read_u16_at(4);
+        // Read alpha indices (6 bytes) through optimized reads
+        let alpha_indices_part1 = alpha_indices_out.read_u16_at(0);
+        let alpha_indices_part2 = alpha_indices_out.read_u32_at(2);
 
         let decorr_color0_raw = decorrelated_color0_out.read_u16_at(0);
         let decorr_color1_raw = decorrelated_color1_out.read_u16_at(0);
@@ -68,13 +68,12 @@ pub(crate) unsafe fn untransform_with_split_alphas_colour_and_recorr(
         output_ptr.write(alpha0);
         output_ptr.add(1).write(alpha1);
 
-        // Write alpha indices (6 bytes) through three u16 writes
-        output_ptr.write_u16_at(2, alpha_idx0);
-        output_ptr.write_u16_at(4, alpha_idx1);
-        output_ptr.write_u16_at(6, alpha_idx2);
+        // Write alpha indices (6 bytes) through optimized writes
+        output_ptr.write_u16_at(2, alpha_indices_part1);
+        output_ptr.write_u32_at(4, alpha_indices_part2);
 
-        output_ptr.write_u16_at(8, color0.raw_value());
-        output_ptr.write_u16_at(10, color1.raw_value());
+        let colors_combined = combine_u16_pair_to_u32(color0.raw_value(), color1.raw_value());
+        output_ptr.write_u32_at(8, colors_combined);
         output_ptr.write_u32_at(12, color_indices);
 
         // Advance all pointers

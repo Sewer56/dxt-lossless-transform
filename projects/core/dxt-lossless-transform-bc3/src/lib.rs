@@ -19,6 +19,8 @@ pub mod transform;
 
 pub mod util;
 
+mod utils;
+
 // Re-export the new transform infrastructure
 pub use transform::settings::{Bc3TransformSettings, Bc3UntransformSettings};
 pub use transform::transform_auto::{

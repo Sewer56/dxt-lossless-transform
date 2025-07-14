@@ -580,24 +580,58 @@ pub(crate) type SplitAlphasAndRecorrTransformFn =
     unsafe fn(*const u8, *mut u8, *mut u8, *mut u16, *mut u32, *mut u32, usize, YCoCgVariant);
 
 /// Common type alias for BC3 split alphas and recorrelate untransform functions used across tests.
-pub(crate) type SplitAlphasAndRecorrUntransformFn =
-    unsafe fn(*const u8, *const u8, *const u16, *const u32, *const u32, *mut u8, usize, YCoCgVariant);
+pub(crate) type SplitAlphasAndRecorrUntransformFn = unsafe fn(
+    *const u8,
+    *const u8,
+    *const u16,
+    *const u32,
+    *const u32,
+    *mut u8,
+    usize,
+    YCoCgVariant,
+);
 
 /// Common type alias for BC3 split colour and recorrelate transform functions used across tests.
 pub(crate) type SplitColourAndRecorrTransformFn =
     unsafe fn(*const u8, *mut u16, *mut u16, *mut u16, *mut u16, *mut u32, usize, YCoCgVariant);
 
 /// Common type alias for BC3 split colour and recorrelate untransform functions used across tests.
-pub(crate) type SplitColourAndRecorrUntransformFn =
-    unsafe fn(*const u16, *const u16, *const u16, *const u16, *const u32, *mut u8, usize, YCoCgVariant);
+pub(crate) type SplitColourAndRecorrUntransformFn = unsafe fn(
+    *const u16,
+    *const u16,
+    *const u16,
+    *const u16,
+    *const u32,
+    *mut u8,
+    usize,
+    YCoCgVariant,
+);
 
 /// Common type alias for BC3 split alphas, colour and recorrelate transform functions used across tests.
-pub(crate) type SplitAlphasColourAndRecorrTransformFn =
-    unsafe fn(*const u8, *mut u8, *mut u8, *mut u16, *mut u16, *mut u16, *mut u32, usize, YCoCgVariant);
+pub(crate) type SplitAlphasColourAndRecorrTransformFn = unsafe fn(
+    *const u8,
+    *mut u8,
+    *mut u8,
+    *mut u16,
+    *mut u16,
+    *mut u16,
+    *mut u32,
+    usize,
+    YCoCgVariant,
+);
 
 /// Common type alias for BC3 split alphas, colour and recorrelate untransform functions used across tests.
-pub(crate) type SplitAlphasColourAndRecorrUntransformFn =
-    unsafe fn(*const u8, *const u8, *const u16, *const u16, *const u16, *const u32, *mut u8, usize, YCoCgVariant);
+pub(crate) type SplitAlphasColourAndRecorrUntransformFn = unsafe fn(
+    *const u8,
+    *const u8,
+    *const u16,
+    *const u16,
+    *const u16,
+    *const u32,
+    *mut u8,
+    usize,
+    YCoCgVariant,
+);
 
 /// Executes a split alphas and colour transform → untransform round-trip on 1‥=max_blocks BC3 blocks
 /// using the specified transform function, asserting that the final data matches the original input.
@@ -708,7 +742,11 @@ pub(crate) fn run_split_alphas_and_recorr_transform_roundtrip_test(
     impl_name: &str,
 ) {
     use crate::transform::with_split_alphas_and_recorr::untransform_with_split_alphas_and_recorr;
-    for variant in [YCoCgVariant::Variant1, YCoCgVariant::Variant2, YCoCgVariant::Variant3] {
+    for variant in [
+        YCoCgVariant::Variant1,
+        YCoCgVariant::Variant2,
+        YCoCgVariant::Variant3,
+    ] {
         for num_blocks in 1..=max_blocks {
             let original = generate_bc3_test_data(num_blocks);
             let mut alpha0_data = allocate_align_64(num_blocks);
@@ -756,7 +794,11 @@ pub(crate) fn run_with_split_alphas_and_recorr_untransform_unaligned_test(
     impl_name: &str,
 ) {
     use crate::transform::with_split_alphas_and_recorr::transform_with_split_alphas_and_recorr;
-    for variant in [YCoCgVariant::Variant1, YCoCgVariant::Variant2, YCoCgVariant::Variant3] {
+    for variant in [
+        YCoCgVariant::Variant1,
+        YCoCgVariant::Variant2,
+        YCoCgVariant::Variant3,
+    ] {
         for num_blocks in 1..=max_blocks {
             let original = generate_bc3_test_data(num_blocks);
             let mut alpha0_data = allocate_align_64(num_blocks);
@@ -805,7 +847,11 @@ pub(crate) fn run_split_colour_and_recorr_transform_roundtrip_test(
     impl_name: &str,
 ) {
     use crate::transform::with_split_colour_and_recorr::untransform_with_split_colour_and_recorr;
-    for variant in [YCoCgVariant::Variant1, YCoCgVariant::Variant2, YCoCgVariant::Variant3] {
+    for variant in [
+        YCoCgVariant::Variant1,
+        YCoCgVariant::Variant2,
+        YCoCgVariant::Variant3,
+    ] {
         for num_blocks in 1..=max_blocks {
             let original = generate_bc3_test_data(num_blocks);
             let mut alpha_endpoints_data = allocate_align_64(num_blocks * 2);
@@ -853,7 +899,11 @@ pub(crate) fn run_with_split_colour_and_recorr_untransform_unaligned_test(
     impl_name: &str,
 ) {
     use crate::transform::with_split_colour_and_recorr::transform_with_split_colour_and_recorr;
-    for variant in [YCoCgVariant::Variant1, YCoCgVariant::Variant2, YCoCgVariant::Variant3] {
+    for variant in [
+        YCoCgVariant::Variant1,
+        YCoCgVariant::Variant2,
+        YCoCgVariant::Variant3,
+    ] {
         for num_blocks in 1..=max_blocks {
             let original = generate_bc3_test_data(num_blocks);
             let mut alpha_endpoints_data = allocate_align_64(num_blocks * 2);
@@ -902,7 +952,11 @@ pub(crate) fn run_split_alphas_colour_and_recorr_transform_roundtrip_test(
     impl_name: &str,
 ) {
     use crate::transform::with_split_alphas_colour_and_recorr::untransform_with_split_alphas_colour_and_recorr;
-    for variant in [YCoCgVariant::Variant1, YCoCgVariant::Variant2, YCoCgVariant::Variant3] {
+    for variant in [
+        YCoCgVariant::Variant1,
+        YCoCgVariant::Variant2,
+        YCoCgVariant::Variant3,
+    ] {
         for num_blocks in 1..=max_blocks {
             let original = generate_bc3_test_data(num_blocks);
             let mut alpha0_data = allocate_align_64(num_blocks);
@@ -953,7 +1007,11 @@ pub(crate) fn run_with_split_alphas_colour_and_recorr_untransform_unaligned_test
     impl_name: &str,
 ) {
     use crate::transform::with_split_alphas_colour_and_recorr::transform_with_split_alphas_colour_and_recorr;
-    for variant in [YCoCgVariant::Variant1, YCoCgVariant::Variant2, YCoCgVariant::Variant3] {
+    for variant in [
+        YCoCgVariant::Variant1,
+        YCoCgVariant::Variant2,
+        YCoCgVariant::Variant3,
+    ] {
         for num_blocks in 1..=max_blocks {
             let original = generate_bc3_test_data(num_blocks);
             let mut alpha0_data = allocate_align_64(num_blocks);

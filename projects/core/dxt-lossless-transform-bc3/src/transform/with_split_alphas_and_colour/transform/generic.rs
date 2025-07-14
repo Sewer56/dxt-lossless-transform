@@ -1,3 +1,4 @@
+use crate::utils::{get_first_u16_from_u32, get_second_u16_from_u32};
 use ptr_utils::{UnalignedRead, UnalignedWrite};
 
 /// Generic fallback implementation of split-alphas and split-colour transform for BC3.
@@ -32,23 +33,22 @@ pub(crate) unsafe fn transform_with_split_alphas_and_colour(
         let alpha0 = input_ptr.read();
         let alpha1 = input_ptr.add(1).read();
 
-        // Read alpha indices (6 bytes) through three u16 reads
-        let alpha_idx0 = input_ptr.read_u16_at(2);
-        let alpha_idx1 = input_ptr.read_u16_at(4);
-        let alpha_idx2 = input_ptr.read_u16_at(6);
+        // Read alpha indices (6 bytes) through optimized reads
+        let alpha_indices_part1 = input_ptr.read_u16_at(2);
+        let alpha_indices_part2 = input_ptr.read_u32_at(4);
 
-        let color0 = input_ptr.read_u16_at(8);
-        let color1 = input_ptr.read_u16_at(10);
+        let colors_combined = input_ptr.read_u32_at(8);
+        let color0 = get_first_u16_from_u32(colors_combined);
+        let color1 = get_second_u16_from_u32(colors_combined);
         let color_indices = input_ptr.read_u32_at(12);
 
         // Write to separate arrays
         alpha0_out.write(alpha0);
         alpha1_out.write(alpha1);
 
-        // Write alpha indices (6 bytes) through three u16 writes
-        alpha_indices_out.write_u16_at(0, alpha_idx0);
-        alpha_indices_out.write_u16_at(2, alpha_idx1);
-        alpha_indices_out.write_u16_at(4, alpha_idx2);
+        // Write alpha indices (6 bytes) through optimized writes
+        alpha_indices_out.write_u16_at(0, alpha_indices_part1);
+        alpha_indices_out.write_u32_at(2, alpha_indices_part2);
 
         color0_out.write_u16_at(0, color0);
         color1_out.write_u16_at(0, color1);

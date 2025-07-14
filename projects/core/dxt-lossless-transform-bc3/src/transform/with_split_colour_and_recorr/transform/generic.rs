@@ -1,3 +1,4 @@
+use crate::utils::{get_first_u16_from_u32, get_second_u16_from_u32};
 use core::hint::unreachable_unchecked;
 use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
 use ptr_utils::{UnalignedRead, UnalignedWrite};
@@ -34,13 +35,13 @@ pub(crate) unsafe fn transform_with_split_colour_and_recorr(
         // Read BC3 block format: [alpha0: u8, alpha1: u8, alpha_indices: 6 bytes, color0: u16, color1: u16, color_indices: u32]
         let alpha_endpoints = input_ptr.read_u16_at(0);
 
-        // Read alpha indices (6 bytes) through three u16 reads
-        let alpha_idx0 = input_ptr.read_u16_at(2);
-        let alpha_idx1 = input_ptr.read_u16_at(4);
-        let alpha_idx2 = input_ptr.read_u16_at(6);
+        // Read alpha indices (6 bytes) through optimized reads
+        let alpha_indices_part1 = input_ptr.read_u16_at(2);
+        let alpha_indices_part2 = input_ptr.read_u32_at(4);
 
-        let color0_raw = input_ptr.read_u16_at(8);
-        let color1_raw = input_ptr.read_u16_at(10);
+        let colors_combined = input_ptr.read_u32_at(8);
+        let color0_raw = get_first_u16_from_u32(colors_combined);
+        let color1_raw = get_second_u16_from_u32(colors_combined);
         let color_indices = input_ptr.read_u32_at(12);
 
         // Apply YCoCg decorrelation to colors
@@ -64,10 +65,9 @@ pub(crate) unsafe fn transform_with_split_colour_and_recorr(
         // Write to separate arrays
         alpha_endpoints_out.write_u16_at(0, alpha_endpoints);
 
-        // Write alpha indices (6 bytes) through three u16 writes
-        alpha_indices_out.write_u16_at(0, alpha_idx0);
-        alpha_indices_out.write_u16_at(2, alpha_idx1);
-        alpha_indices_out.write_u16_at(4, alpha_idx2);
+        // Write alpha indices (6 bytes) through optimized writes
+        alpha_indices_out.write_u16_at(0, alpha_indices_part1);
+        alpha_indices_out.write_u32_at(2, alpha_indices_part2);
 
         decorrelated_color0_out.write_u16_at(0, decorr_color0.raw_value());
         decorrelated_color1_out.write_u16_at(0, decorr_color1.raw_value());

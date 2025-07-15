@@ -105,9 +105,17 @@ where
 /// ## Performance Optimization
 ///
 /// The transform options are tested in order of decreasing probability of being optimal,
-/// based on [TODO: BC3-specific analysis]:
+/// based on BC3-specific analysis of 107,019 texture files:
+/// - YCoCg1/NoSplitAlpha/NoSplitColour (29259 files, 27.3%)
+/// - None/NoSplitAlpha/NoSplitColour (21185 files, 19.8%)
+/// - YCoCg1/NoSplitAlpha/SplitColour (19509 files, 18.2%)
+/// - None/SplitAlpha/SplitColour (12479 files, 11.7%)
+/// - None/NoSplitAlpha/SplitColour (8633 files, 8.1%)
+/// - None/SplitAlpha/NoSplitColour (8005 files, 7.5%)
+/// - YCoCg1/SplitAlpha/SplitColour (4126 files, 3.9%)
+/// - YCoCg1/SplitAlpha/NoSplitColour (3823 files, 3.6%)
 ///
-/// Since YCoCg1 with both splitting options is expected to be optimal for the majority of textures,
+/// Since YCoCg1/NoSplitAlpha/NoSplitColour is optimal for 27.3% of textures,
 /// testing it last means we avoid a final redundant transform in the majority of cases.
 ///
 /// # Safety

@@ -86,35 +86,36 @@ impl Bc3TransformSettings {
     }
 }
 
-// TODO: Set this order based on real file results.
 /// Test order for fast mode optimization (tests most important combinations)
+/// Ordered by frequency from least common to most common (most common tested last)
 pub(crate) static FAST_TEST_ORDER: &[(YCoCgVariant, bool, bool)] = &[
-    (YCoCgVariant::None, false, false), // Standard/None/NoSplit/NoSplit
-    (YCoCgVariant::None, true, false),  // Standard/None/SplitAlpha/NoSplit
-    (YCoCgVariant::None, false, true),  // Standard/None/NoSplit/SplitColour
-    (YCoCgVariant::None, true, true),   // Standard/None/SplitAlpha/SplitColour
-    (YCoCgVariant::Variant1, false, false), // YCoCg1/NoSplit/NoSplit
-    (YCoCgVariant::Variant1, true, false), // YCoCg1/SplitAlpha/NoSplit
-    (YCoCgVariant::Variant1, false, true), // YCoCg1/NoSplit/SplitColour
-    (YCoCgVariant::Variant1, true, true), // YCoCg1/SplitAlpha/SplitColour - most common, test last
+    (YCoCgVariant::Variant1, true, false), // YCoCg1/SplitAlpha/NoSplitColour (3.6%)
+    (YCoCgVariant::Variant1, true, true),  // YCoCg1/SplitAlpha/SplitColour (3.9%)
+    (YCoCgVariant::None, true, false),     // None/SplitAlpha/NoSplitColour (7.5%)
+    (YCoCgVariant::None, false, true),     // None/NoSplitAlpha/SplitColour (8.1%)
+    (YCoCgVariant::None, true, true),      // None/SplitAlpha/SplitColour (11.7%)
+    (YCoCgVariant::Variant1, false, true), // YCoCg1/NoSplitAlpha/SplitColour (18.2%)
+    (YCoCgVariant::None, false, false),    // None/NoSplitAlpha/NoSplitColour (19.8%)
+    (YCoCgVariant::Variant1, false, false), // YCoCg1/NoSplitAlpha/NoSplitColour (27.3%)
 ];
 
 /// Test order for comprehensive mode optimization (tests all combinations)
+/// Ordered by frequency from least common to most common (most common tested last)
 pub(crate) static COMPREHENSIVE_TEST_ORDER: &[(YCoCgVariant, bool, bool)] = &[
-    (YCoCgVariant::Variant2, false, false), // YCoCg2/NoSplit/NoSplit
-    (YCoCgVariant::Variant2, true, false),  // YCoCg2/SplitAlpha/NoSplit
-    (YCoCgVariant::Variant2, false, true),  // YCoCg2/NoSplit/SplitColour
-    (YCoCgVariant::Variant2, true, true),   // YCoCg2/SplitAlpha/SplitColour
-    (YCoCgVariant::Variant3, false, false), // YCoCg3/NoSplit/NoSplit
-    (YCoCgVariant::Variant3, true, false),  // YCoCg3/SplitAlpha/NoSplit
-    (YCoCgVariant::Variant3, false, true),  // YCoCg3/NoSplit/SplitColour
-    (YCoCgVariant::Variant3, true, true),   // YCoCg3/SplitAlpha/SplitColour
-    (YCoCgVariant::None, false, false),     // Standard/None/NoSplit/NoSplit
-    (YCoCgVariant::None, true, false),      // Standard/None/SplitAlpha/NoSplit
-    (YCoCgVariant::None, false, true),      // Standard/None/NoSplit/SplitColour
-    (YCoCgVariant::None, true, true),       // Standard/None/SplitAlpha/SplitColour
-    (YCoCgVariant::Variant1, false, false), // YCoCg1/NoSplit/NoSplit
-    (YCoCgVariant::Variant1, true, false),  // YCoCg1/SplitAlpha/NoSplit
-    (YCoCgVariant::Variant1, false, true),  // YCoCg1/NoSplit/SplitColour
-    (YCoCgVariant::Variant1, true, true), // YCoCg1/SplitAlpha/SplitColour - most common, test last
+    (YCoCgVariant::Variant2, true, false), // YCoCg2/SplitAlpha/NoSplitColour (0.5%)
+    (YCoCgVariant::Variant2, true, true),  // YCoCg2/SplitAlpha/SplitColour (0.5%)
+    (YCoCgVariant::Variant3, true, true),  // YCoCg3/SplitAlpha/SplitColour (0.8%)
+    (YCoCgVariant::Variant3, true, false), // YCoCg3/SplitAlpha/NoSplitColour (1.0%)
+    (YCoCgVariant::Variant1, true, false), // YCoCg1/SplitAlpha/NoSplitColour (2.4%)
+    (YCoCgVariant::Variant3, false, true), // YCoCg3/NoSplitAlpha/SplitColour (2.5%)
+    (YCoCgVariant::Variant1, true, true),  // YCoCg1/SplitAlpha/SplitColour (2.8%)
+    (YCoCgVariant::Variant2, false, true), // YCoCg2/NoSplitAlpha/SplitColour (3.1%)
+    (YCoCgVariant::Variant2, false, false), // YCoCg2/NoSplitAlpha/NoSplitColour (5.8%)
+    (YCoCgVariant::Variant3, false, false), // YCoCg3/NoSplitAlpha/NoSplitColour (6.2%)
+    (YCoCgVariant::None, true, false),     // None/SplitAlpha/NoSplitColour (7.1%)
+    (YCoCgVariant::None, false, true),     // None/NoSplitAlpha/SplitColour (7.8%)
+    (YCoCgVariant::None, true, true),      // None/SplitAlpha/SplitColour (11.4%)
+    (YCoCgVariant::Variant1, false, true), // YCoCg1/NoSplitAlpha/SplitColour (12.9%)
+    (YCoCgVariant::None, false, false),    // None/NoSplitAlpha/NoSplitColour (17.4%)
+    (YCoCgVariant::Variant1, false, false), // YCoCg1/NoSplitAlpha/NoSplitColour (17.6%)
 ];

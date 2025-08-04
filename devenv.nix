@@ -6,6 +6,7 @@
   ...
 }: {
   env = {
+    # Needed for zstandard (native C/C++ library)
     LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
   };
 

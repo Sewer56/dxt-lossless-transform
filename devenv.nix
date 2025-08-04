@@ -13,7 +13,6 @@
   # Essential build dependencies
   packages = with pkgs; [
     clang # zstd
-    rustup # required for cross-rs
   ];
 
   # Rust language configuration with nightly toolchain

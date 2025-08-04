@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://devenv.sh/devenv.schema.json
+
+# DXT Lossless Transform Development Environment
+# This YAML config complements the comprehensive devenv.nix
+
+inputs:
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
+  rust-overlay:
+    url: github:oxalica/rust-overlay
+
+# Allow unfree packages for some development tools
+allowUnfree: true
+
+# Environment variables for Rust development
+env:
+  PROJECT_NAME: "DXT Lossless Transform"
+  RUST_ENV: "development"
+# Documentation
+# This YAML config provides a simpler alternative to devenv.nix
+# Use devenv.nix for the full-featured development environment
+# Use this YAML for simpler, CI-friendly setups

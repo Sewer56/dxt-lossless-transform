@@ -18,7 +18,7 @@ bincode = { version = "2.0.1", default-features = false, features = ["alloc", "d
 dxt-lossless-transform-common = { workspace = true, default-features = false }
 
 # Provides aligned memory allocation
-safe-allocator-api = { version = "0.4.0", default-features = false }
+safe-allocator-api = { version = "0.5.0", default-features = false }
 
 # Error handling for allocate module
 thiserror = { version = "2.0.12", default-features = false }

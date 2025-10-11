@@ -64,8 +64,8 @@ jobs:
           - { label: "Windows x86", os: windows-latest, target: i686-pc-windows-msvc, use-cross: false, rust-toolchain: 'stable' }
           
           # macOS
-          - { label: "macOS Intel", os: macos-13, target: x86_64-apple-darwin, use-cross: false, rust-toolchain: 'stable' }
-          - { label: "macOS Apple Silicon", os: macos-14, target: aarch64-apple-darwin, use-cross: false, rust-toolchain: 'stable' }
+          - { label: "macOS Intel", os: macos-15-intel, target: x86_64-apple-darwin, use-cross: false, rust-toolchain: 'stable' }
+          - { label: "macOS Apple Silicon", os: macos-latest, target: aarch64-apple-darwin, use-cross: false, rust-toolchain: 'stable' }
 
           # Android (Mobile)
           - { label: "Android ARM64", os: ubuntu-latest, target: aarch64-linux-android, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
@@ -136,8 +136,8 @@ jobs:
           - { label: "Build CLI Windows x86", os: windows-latest, target: i686-pc-windows-msvc, use-cross: false }
           
           # macOS Targets
-          - { label: "Build CLI macOS Intel", os: macos-13, target: x86_64-apple-darwin, use-cross: false }
-          - { label: "Build CLI macOS Apple Silicon", os: macos-14, target: aarch64-apple-darwin, use-cross: false }
+          - { label: "Build CLI macOS Intel", os: macos-15-intel, target: x86_64-apple-darwin, use-cross: false }
+          - { label: "Build CLI macOS Apple Silicon", os: macos-latest, target: aarch64-apple-darwin, use-cross: false }
 
           # Android
           - { label: "Build CLI Android ARM64", os: ubuntu-latest, target: aarch64-linux-android, use-cross: true }
@@ -174,8 +174,8 @@ jobs:
           - { label: "Build C API Windows x86", os: windows-latest, target: i686-pc-windows-msvc, use-cross: false }
           
           # macOS Targets
-          - { label: "Build C API macOS Intel", os: macos-13, target: x86_64-apple-darwin, use-cross: false }
-          - { label: "Build C API macOS Apple Silicon", os: macos-14, target: aarch64-apple-darwin, use-cross: false }
+          - { label: "Build C API macOS Intel", os: macos-15-intel, target: x86_64-apple-darwin, use-cross: false }
+          - { label: "Build C API macOS Apple Silicon", os: macos-latest, target: aarch64-apple-darwin, use-cross: false }
 
           # Android
           - { label: "Build C API Android ARM64", os: ubuntu-latest, target: aarch64-linux-android, use-cross: true }

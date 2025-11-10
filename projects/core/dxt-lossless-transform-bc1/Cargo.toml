@@ -45,7 +45,7 @@ dxt-lossless-transform-bc1-api = { workspace = true, default-features = true }
 dxt-lossless-transform-ltu = { workspace = true, default-features = true }
 
 [target.'cfg(all(any(target_os = "linux", target_os = "macos"), any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))'.dev-dependencies]
-pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
+pprof = { version = "0.15", features = ["flamegraph", "criterion"] }
 
 # Benchmark Stuff
 [[bench]]

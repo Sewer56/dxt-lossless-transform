@@ -36,7 +36,7 @@ ptr-utils = { version = "0.1.0", default-features = false, features = ["std"] }
 
 [dev-dependencies]
 criterion = "0.5.1"
-rstest = "0.25.0"
+rstest = "0.26.1"
 safe-allocator-api = "0.4.0"
 
 [target.'cfg(all(any(target_os = "linux", target_os = "macos"), any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))'.dev-dependencies]

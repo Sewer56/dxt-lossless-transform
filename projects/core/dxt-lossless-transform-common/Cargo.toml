@@ -40,7 +40,7 @@ cpufeatures = "0.2.17"
 
 [dev-dependencies]
 rstest = "0.25.0"
-criterion = "0.5.1"
+criterion = "0.8.1"
 
 [target.'cfg(all(any(target_os = "linux", target_os = "macos"), any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))'.dev-dependencies]
 pprof = { version = "0.14", features = ["flamegraph", "criterion"] }

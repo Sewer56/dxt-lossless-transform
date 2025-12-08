@@ -38,7 +38,7 @@ thiserror = { version = "2.0.12", default-features = false }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dev-dependencies]
-criterion = "0.5.1"
+criterion = "0.8.1"
 rstest = "0.25.0"
 safe-allocator-api = "0.4.0"
 dxt-lossless-transform-bc1-api = { workspace = true, default-features = true }

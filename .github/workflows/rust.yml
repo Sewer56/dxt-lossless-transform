@@ -159,6 +159,7 @@ jobs:
           use-cross: ${{ matrix.use-cross }}
           additional-rustc-args: "--all-features"
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
+          rust-toolchain: "nightly-2025-12-08"
 
   build-c-libraries:
     strategy:
@@ -200,6 +201,7 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: true
           build-library: true
+          rust-toolchain: "nightly-2025-12-08"
 
       - name: Build C API (Common)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
@@ -214,6 +216,7 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false # Cache setup is inherited from first call.
           build-library: true
+          rust-toolchain: "nightly-2025-12-08"
 
       - name: Build C API (BC1)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
@@ -228,6 +231,7 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false # Cache setup is inherited from first call.
           build-library: true
+          rust-toolchain: "nightly-2025-12-08"
 
       - name: Build C API (BC1 Core)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
@@ -242,6 +246,7 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false # Cache setup is inherited from first call.
           build-library: true
+          rust-toolchain: "nightly-2025-12-08"
 
       - name: Build C API (LTU)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
@@ -256,6 +261,7 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false # Cache setup is inherited from first call.
           build-library: true
+          rust-toolchain: "nightly-2025-12-08"
 
   build-c-cpp-headers:
     runs-on: ubuntu-latest

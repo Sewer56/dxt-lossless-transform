@@ -36,8 +36,8 @@ jobs:
       matrix:
         include:
           # Linux All features (nightly)
-          - { label: "Linux x64 (All Features, Nightly)", os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
-          - { label: "Linux x86 (All Features, Nightly)", os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
+          - { label: "Linux x64 (All Features, Nightly)", os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, additional-test-args: "--all-features", rust-toolchain: 'nightly-2025-12-08' }
+          - { label: "Linux x86 (All Features, Nightly)", os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, additional-test-args: "--all-features", rust-toolchain: 'nightly-2025-12-08' }
           
           # Linux No features (stable)
           - { label: "Linux x64 (Stable)", os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, rust-toolchain: 'stable' }
@@ -68,8 +68,8 @@ jobs:
           - { label: "macOS Apple Silicon", os: macos-latest, target: aarch64-apple-darwin, use-cross: false, rust-toolchain: 'stable' }
 
           # Android (Mobile)
-          - { label: "Android ARM64", os: ubuntu-latest, target: aarch64-linux-android, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
-          - { label: "Android ARM v7", os: ubuntu-latest, target: armv7-linux-androideabi, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
+          - { label: "Android ARM64", os: ubuntu-latest, target: aarch64-linux-android, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly-2025-12-08' }
+          - { label: "Android ARM v7", os: ubuntu-latest, target: armv7-linux-androideabi, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly-2025-12-08' }
           # - { label: "Android x64", os: ubuntu-latest, target: x86_64-linux-android, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
 
     runs-on: ${{ matrix.os }}

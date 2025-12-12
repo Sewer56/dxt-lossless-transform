@@ -14,7 +14,6 @@ mod generic;
 /// - `color_indices_out` must be valid for reads of `block_count * 4` bytes
 /// - `output_ptr` must be valid for writes of `block_count * 16` bytes
 /// - `recorrelation_mode` must be a valid [`YCoCgVariant`] (not [`YCoCgVariant::None`])
-#[allow(dead_code)]
 #[allow(clippy::too_many_arguments)]
 #[inline]
 pub(crate) unsafe fn untransform_with_split_colour_and_recorr(

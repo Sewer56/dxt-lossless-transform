@@ -15,7 +15,6 @@ mod generic;
 /// - `decorrelated_color1_out` must be valid for writes of `block_count * 2` bytes
 /// - `color_indices_out` must be valid for writes of `block_count * 4` bytes
 /// - `decorrelation_mode` must be a valid [`YCoCgVariant`] (not [`YCoCgVariant::None`])
-#[allow(dead_code)]
 #[allow(clippy::too_many_arguments)]
 #[inline]
 pub(crate) unsafe fn transform_with_split_alphas_colour_and_recorr(

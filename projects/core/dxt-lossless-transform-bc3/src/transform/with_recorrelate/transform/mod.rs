@@ -17,7 +17,6 @@ mod sse2;
 /// - `input_ptr` must be valid for reads of `len` bytes
 /// - `output_ptr` must be valid for writes of `len` bytes
 /// - `len` must be divisible by 16
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn transform_with_decorrelate(
     input_ptr: *const u8,
@@ -62,7 +61,6 @@ pub(crate) unsafe fn transform_with_decorrelate(
 }
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-#[allow(dead_code)]
 #[inline(always)]
 unsafe fn transform_with_decorrelate_x86(
     input_ptr: *const u8,

@@ -10,7 +10,6 @@ use dxt_lossless_transform_common::color_565::YCoCgVariant;
 /// - colors_out must be valid for writes of num_blocks * 4 bytes
 /// - color_indices_out must be valid for writes of num_blocks * 4 bytes
 /// - decorrelation_mode must be a valid [`YCoCgVariant`]
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn transform_with_decorrelate(
     input_ptr: *const u8,

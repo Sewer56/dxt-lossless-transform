@@ -16,7 +16,6 @@ mod generic;
 /// - `output_ptr` must be valid for writes of `block_count * 16` bytes
 ///
 /// The buffers must not overlap.
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn untransform_with_split_alphas(
     alpha0_out: *const u8,

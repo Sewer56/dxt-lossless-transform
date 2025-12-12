@@ -20,7 +20,6 @@ mod avx512;
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 /// - len must be divisible by 16
-#[allow(dead_code)]
 #[inline(always)]
 pub(crate) unsafe fn untransform_with_recorrelate(
     input_ptr: *const u8,
@@ -65,7 +64,6 @@ pub(crate) unsafe fn untransform_with_recorrelate(
 }
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-#[allow(dead_code)]
 unsafe fn untransform_with_recorrelate_x86(
     alpha_endpoints_ptr: *const u16,
     alpha_indices_ptr: *const u16,

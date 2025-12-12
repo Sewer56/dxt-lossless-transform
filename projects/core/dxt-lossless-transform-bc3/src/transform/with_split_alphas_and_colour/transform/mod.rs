@@ -12,7 +12,6 @@ mod generic;
 /// - `color0_out` must be valid for writes of `block_count * 2` bytes
 /// - `color1_out` must be valid for writes of `block_count * 2` bytes
 /// - `color_indices_out` must be valid for writes of `block_count * 4` bytes
-#[allow(dead_code)]
 #[allow(clippy::too_many_arguments)]
 #[inline]
 pub(crate) unsafe fn transform_with_split_alphas_and_colour(

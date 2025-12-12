@@ -10,7 +10,6 @@ use dxt_lossless_transform_common::color_565::YCoCgVariant;
 /// - color_indices_in must be valid for reads of num_blocks * 4 bytes
 /// - output_ptr must be valid for writes of num_blocks * 16 bytes
 /// - recorrelation_mode must be a valid [`YCoCgVariant`]
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn untransform_with_recorrelate(
     alpha_endpoints_in: *const u16,

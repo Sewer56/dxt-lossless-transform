@@ -16,7 +16,6 @@ mod generic;
 /// - `color_indices_out` must be valid for writes of `block_count * 4` bytes
 ///
 /// The buffers must not overlap.
-#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn transform_with_split_alphas(
     input_ptr: *const u8,

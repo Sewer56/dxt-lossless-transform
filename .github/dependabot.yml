@@ -1,0 +1,64 @@
+version: 2
+updates:
+  # Enable version updates for Cargo
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Etc/UTC"
+    # Limit the number of open pull requests for version updates
+    open-pull-requests-limit: 5
+    # Add reviewers (optional - you can customize this)
+    # reviewers:
+    #   - "your-username"
+    # Add labels to categorize the PRs
+    labels:
+      - "dependencies"
+      - "rust"
+    # Group updates to reduce noise
+    groups:
+      # Group dev dependencies together
+      dev-dependencies:
+        patterns:
+          - "criterion*"
+          - "rstest*"
+          - "pprof*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Group patch updates for all dependencies
+      patch-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+    # Customize commit messages
+    commit-message:
+      prefix: "Updated:"
+      prefix-development: "Updated:"
+      include: "scope"
+    # Allow automatic rebasing when conflicts occur
+    rebase-strategy: "auto"
+  
+  # Enable version updates for Git submodules
+  - package-ecosystem: "gitsubmodule"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Etc/UTC"
+    # Limit the number of open pull requests for version updates
+    open-pull-requests-limit: 3
+    # Add labels to categorize the PRs
+    labels:
+      - "dependencies"
+      - "submodule"
+    # Customize commit messages
+    commit-message:
+      prefix: "Updated:"
+      include: "scope"
+    # Allow automatic rebasing when conflicts occur
+    rebase-strategy: "auto" 

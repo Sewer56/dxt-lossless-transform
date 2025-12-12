@@ -1,4 +1,4 @@
-use crate::utils::{get_first_u16_from_u32, get_second_u16_from_u32};
+use crate::utils::{combine_u16_pair_to_u32, get_first_u16_from_u32, get_second_u16_from_u32};
 use core::hint::unreachable_unchecked;
 use dxt_lossless_transform_common::color_565::{Color565, YCoCgVariant};
 use ptr_utils::{UnalignedRead, UnalignedWrite};
@@ -64,7 +64,7 @@ pub(crate) unsafe fn transform_with_split_alphas_and_recorr(
 
         // Pack decorrelated colors into a single u32
         let packed_colors =
-            (decorr_color1.raw_value() as u32) << 16 | (decorr_color0.raw_value() as u32);
+            combine_u16_pair_to_u32(decorr_color0.raw_value(), decorr_color1.raw_value());
 
         // Write to separate arrays
         alpha0_out.write(alpha0);

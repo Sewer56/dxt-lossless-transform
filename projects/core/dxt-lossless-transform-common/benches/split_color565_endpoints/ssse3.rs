@@ -1,10 +1,11 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
-use criterion::{black_box, BenchmarkId};
+use criterion::BenchmarkId;
 use dxt_lossless_transform_common::transforms::split_565_color_endpoints::bench::{
     ssse3_pshufb_unroll2_impl, ssse3_pshufb_unroll4_impl,
 };
 use safe_allocator_api::RawAlloc;
+use std::hint::black_box;
 
 // Benchmark for SSSE3 implementation with unroll factor of 2 (32 bytes at once)
 fn bench_ssse3_unroll_2(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {

@@ -1,6 +1,7 @@
-use criterion::{black_box, BenchmarkId};
+use criterion::BenchmarkId;
 use dxt_lossless_transform_bc1::bench::transform::standard::*;
 use safe_allocator_api::RawAlloc;
+use std::hint::black_box;
 
 fn bench_avx512_permute_unroll_2(
     b: &mut criterion::Bencher,

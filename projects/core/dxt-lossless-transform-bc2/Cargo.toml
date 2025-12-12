@@ -42,9 +42,6 @@ criterion = { workspace = true }
 rstest = { workspace = true }
 safe-allocator-api = { workspace = true }
 
-[target.'cfg(all(any(target_os = "linux", target_os = "macos"), any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))'.dev-dependencies]
-pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
-
 # Benchmark Stuff
 [lib]
 bench = false

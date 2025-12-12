@@ -1,6 +1,7 @@
-use criterion::{black_box, BenchmarkId};
+use criterion::BenchmarkId;
 use dxt_lossless_transform_bc3::bench::transform::standard::avx512_vbmi_transform;
 use safe_allocator_api::RawAlloc;
+use std::hint::black_box;
 
 fn bench_avx512_vbmi(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {

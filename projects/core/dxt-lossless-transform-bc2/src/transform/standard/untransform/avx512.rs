@@ -34,7 +34,7 @@ pub(crate) unsafe fn avx512_shuffle(input_ptr: *const u8, output_ptr: *mut u8, l
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512f")]
 #[allow(unused_assignments)]
-#[allow(dead_code)] // Reference code. Inline assembly has Zen optimizations; this can be used to generate for other arches.
+#[allow(dead_code)] // Reference intrinsics implementation; only used in tests. Can generate code for non-Zen arches.
 pub(crate) unsafe fn avx512_shuffle_intrinsics(
     input_ptr: *const u8,
     output_ptr: *mut u8,

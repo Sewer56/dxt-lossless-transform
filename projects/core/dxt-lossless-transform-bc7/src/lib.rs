@@ -6,7 +6,7 @@
 extern crate std;
 
 /// Used by BC7, since that has unusual non-standard bit order.
-#[allow(dead_code)]
+#[allow(dead_code)] // BC7 transform not yet implemented; utilities ready for future use.
 pub(crate) mod util {
     pub(crate) mod msb_extract_bits;
     pub(crate) mod msb_insert_bits;

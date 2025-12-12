@@ -30,17 +30,17 @@ nightly = ["safe-allocator-api/nightly"]
 bench = []
 
 [dependencies]
-multiversion = { version = "0.8.0", default-features = false }
-thiserror = { version = "2.0.12", default-features = false }
-safe-allocator-api = { version = "0.4.0", default-features = false }
-derive-enum-all-values = "0.2.1"
+multiversion = { workspace = true }
+thiserror = { workspace = true }
+safe-allocator-api = { workspace = true }
+derive-enum-all-values = { workspace = true }
 
 [target.'cfg(any(target_arch = "x86_64", target_arch = "x86"))'.dependencies]
 cpufeatures = "0.2.17"
 
 [dev-dependencies]
-rstest = "0.25.0"
-criterion = "0.5.1"
+rstest = { workspace = true }
+criterion = { workspace = true }
 
 [target.'cfg(all(any(target_os = "linux", target_os = "macos"), any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))'.dev-dependencies]
 pprof = { version = "0.14", features = ["flamegraph", "criterion"] }

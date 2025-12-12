@@ -70,9 +70,10 @@ use derive_enum_all_values::AllValues;
 /// On real files, the compression differences are negligible. These variants exist primarily for
 /// brute-forcing the absolute best possible compression result in specific scenarios.
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, AllValues, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, AllValues, Hash, Default)]
 pub enum YCoCgVariant {
     /// None: No transformation (original RGB values preserved)
+    #[default]
     None = 0,
     /// Variant 1: Standard bit arrangement
     Variant1 = 1,
@@ -80,12 +81,6 @@ pub enum YCoCgVariant {
     Variant2 = 2,
     /// Variant 3: Alternative bit arrangement with low bit at bottom
     Variant3 = 3,
-}
-
-impl Default for YCoCgVariant {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 impl Color565 {

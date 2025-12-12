@@ -8,8 +8,8 @@ description = "Lossless Transform Utils size estimation implementation for DXT l
 [dependencies]
 dxt-lossless-transform-api-common = { workspace = true, default-features = false }
 dxt-lossless-transform-common = { workspace = true, default-features = false }
-lossless-transform-utils = "0.1.0"
-thiserror = { version = "2.0", default-features = false }
+lossless-transform-utils = { workspace = true }
+thiserror = { workspace = true }
 
 [features]
 default = ["std"]

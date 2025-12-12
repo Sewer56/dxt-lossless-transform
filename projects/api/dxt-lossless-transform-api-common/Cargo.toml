@@ -12,16 +12,16 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 # Only used for serialization/deserialization of certain data types, which is optional and would not
 # reflect on binary size when unused.
-bincode = { version = "2.0.1", default-features = false, features = ["alloc", "derive"] }
+bincode = { workspace = true }
 
 # Internal common crate for conversion functions
 dxt-lossless-transform-common = { workspace = true, default-features = false }
 
 # Provides aligned memory allocation
-safe-allocator-api = { version = "0.4.0", default-features = false }
+safe-allocator-api = { workspace = true }
 
 # Error handling for allocate module
-thiserror = { version = "2.0.12", default-features = false }
+thiserror = { workspace = true }
 
 [features]
 default = ["std"]

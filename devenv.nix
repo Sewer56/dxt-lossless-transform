@@ -34,6 +34,7 @@
     # Cross-compilation targets for testing
     targets = [
       "x86_64-unknown-linux-gnu"
+      "i686-unknown-linux-gnu"
       "powerpc64-unknown-linux-gnu" # For big-endian testing
     ];
   };

@@ -3,7 +3,7 @@ use dxt_lossless_transform_common::color_565::YCoCgVariant;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-mod avx512;
+mod avx512bw;
 pub(crate) mod generic;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod sse2;
@@ -71,7 +71,7 @@ unsafe fn transform_with_decorrelate_x86(
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         if has_avx512bw() {
-            avx512::transform_with_decorrelate(
+            avx512bw::transform_with_decorrelate(
                 input_ptr,
                 alphas_out,
                 colors_out,
@@ -110,7 +110,7 @@ unsafe fn transform_with_decorrelate_x86(
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
         if cfg!(target_feature = "avx512bw") {
-            avx512::transform_with_decorrelate(
+            avx512bw::transform_with_decorrelate(
                 input_ptr,
                 alphas_out,
                 colors_out,

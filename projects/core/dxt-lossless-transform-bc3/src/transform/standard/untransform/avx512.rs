@@ -39,6 +39,7 @@ pub(crate) unsafe fn avx512_untransform(input_ptr: *const u8, output_ptr: *mut u
 /// - Same safety requirements as the scalar version:
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
+#[cfg(any(target_arch = "x86", feature = "bench", test))]
 #[target_feature(enable = "avx512vbmi")]
 pub(crate) unsafe fn avx512_untransform_32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len.is_multiple_of(16));
@@ -485,6 +486,7 @@ pub(crate) unsafe fn avx512_untransform_separate_components(
 /// - `current_output_ptr` must be valid for writes for `len` bytes.
 /// - `len` must be a multiple of 16 (the size of a BC3 block).
 /// - Pointers do not need to be aligned; unaligned loads/reads are used.
+#[cfg(any(target_arch = "x86", feature = "bench", test))]
 #[allow(clippy::erasing_op)]
 #[allow(clippy::identity_op)]
 #[target_feature(enable = "avx512vbmi")]

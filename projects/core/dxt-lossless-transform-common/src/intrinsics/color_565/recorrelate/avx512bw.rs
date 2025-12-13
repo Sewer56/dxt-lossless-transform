@@ -21,7 +21,7 @@ use core::arch::x86_64::*;
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]
-pub unsafe fn recorrelate_ycocg_r_var1_avx512(colors_raw: __m512i) -> __m512i {
+pub unsafe fn recorrelate_ycocg_r_var1_avx512bw(colors_raw: __m512i) -> __m512i {
     // === Constants from assembly ===
     let mask_15 = _mm512_set1_epi16(15); // .LCPI18_4: mask for 4-bit values (0x000F)
     let const_1984 = _mm512_set1_epi32(0x07C007C0); // .LCPI18_5: pattern 1984,1984
@@ -75,7 +75,7 @@ pub unsafe fn recorrelate_ycocg_r_var1_avx512(colors_raw: __m512i) -> __m512i {
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]
-pub unsafe fn recorrelate_ycocg_r_var2_avx512(colors_raw: __m512i) -> __m512i {
+pub unsafe fn recorrelate_ycocg_r_var2_avx512bw(colors_raw: __m512i) -> __m512i {
     // === Constants from assembly ===
     let mask_15 = _mm512_set1_epi16(15); // .LCPI18_4: mask for 4-bit values (0x000F)
     let const_1984 = _mm512_set1_epi32(0x07C007C0); // .LCPI18_5: pattern 1984,1984
@@ -137,7 +137,7 @@ pub unsafe fn recorrelate_ycocg_r_var2_avx512(colors_raw: __m512i) -> __m512i {
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]
-pub unsafe fn recorrelate_ycocg_r_var3_avx512(colors_raw: __m512i) -> __m512i {
+pub unsafe fn recorrelate_ycocg_r_var3_avx512bw(colors_raw: __m512i) -> __m512i {
     // === Constants from assembly ===
     let mask_15 = _mm512_set1_epi16(15); // .LCPI18_4: mask for 4-bit values (0x000F)
     let const_1984 = _mm512_set1_epi32(0x07C007C0); // .LCPI18_5: pattern 1984,1984

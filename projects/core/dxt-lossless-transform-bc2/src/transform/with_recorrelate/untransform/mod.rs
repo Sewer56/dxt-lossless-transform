@@ -9,7 +9,7 @@ mod sse2;
 mod avx2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-mod avx512;
+mod avx512bw;
 
 /// Transform BC2 data from separated alpha/color/index format back to standard interleaved format
 /// while applying YCoCg recorrelation.
@@ -73,8 +73,8 @@ unsafe fn untransform_with_recorrelate_x86(
 
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        if has_avx512f() && has_avx512bw() {
-            avx512::untransform_with_recorrelate(
+        if has_avx512bw() {
+            avx512bw::untransform_with_recorrelate(
                 alphas_ptr,
                 colors_ptr,
                 indices_ptr,
@@ -112,8 +112,8 @@ unsafe fn untransform_with_recorrelate_x86(
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512bw") {
-            avx512::untransform_with_recorrelate(
+        if cfg!(target_feature = "avx512bw") {
+            avx512bw::untransform_with_recorrelate(
                 alphas_ptr,
                 colors_ptr,
                 indices_ptr,

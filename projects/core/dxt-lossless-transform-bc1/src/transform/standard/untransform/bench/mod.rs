@@ -10,7 +10,7 @@ pub mod sse2;
 pub mod avx2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod avx512;
+pub mod avx512f;
 
 // Wrapper functions for benchmarks
 pub(crate) unsafe fn u32_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
@@ -41,5 +41,5 @@ pub(crate) unsafe fn permute_512_untransform_unroll_2(
     output_ptr: *mut u8,
     len: usize,
 ) {
-    super::avx512::permute_512_untransform_unroll_2(input_ptr, output_ptr, len)
+    super::avx512f::permute_512_untransform_unroll_2(input_ptr, output_ptr, len)
 }

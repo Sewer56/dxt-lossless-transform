@@ -5,9 +5,9 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 use core::hint::unreachable_unchecked;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
-use dxt_lossless_transform_common::intrinsics::color_565::decorrelate::avx512::{
-    decorrelate_ycocg_r_var1_avx512, decorrelate_ycocg_r_var2_avx512,
-    decorrelate_ycocg_r_var3_avx512,
+use dxt_lossless_transform_common::intrinsics::color_565::decorrelate::avx512bw::{
+    decorrelate_ycocg_r_var1_avx512bw, decorrelate_ycocg_r_var2_avx512bw,
+    decorrelate_ycocg_r_var3_avx512bw,
 };
 
 // Add local byte-index constants for AVX512 permutations
@@ -15,6 +15,7 @@ const PERM_COLORS_BYTES: [i8; 16] = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 
 const PERM_INDICES_BYTES: [i8; 16] = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31];
 
 #[target_feature(enable = "avx512f")]
+#[target_feature(enable = "avx512bw")]
 unsafe fn transform_decorr<const VARIANT: u8>(
     mut input_ptr: *const u8,
     mut colours_out: *mut u32,
@@ -41,18 +42,18 @@ unsafe fn transform_decorr<const VARIANT: u8>(
         // Split and decorrelate colors
         let col0 = _mm512_permutex2var_epi32(in0, perm_colors, in1);
         let col0 = match VARIANT {
-            1 => decorrelate_ycocg_r_var1_avx512(col0),
-            2 => decorrelate_ycocg_r_var2_avx512(col0),
-            3 => decorrelate_ycocg_r_var3_avx512(col0),
+            1 => decorrelate_ycocg_r_var1_avx512bw(col0),
+            2 => decorrelate_ycocg_r_var2_avx512bw(col0),
+            3 => decorrelate_ycocg_r_var3_avx512bw(col0),
             _ => unreachable_unchecked(),
         };
         _mm512_storeu_si512(colours_out as *mut __m512i, col0);
 
         let col1 = _mm512_permutex2var_epi32(in2, perm_colors, in3);
         let col1 = match VARIANT {
-            1 => decorrelate_ycocg_r_var1_avx512(col1),
-            2 => decorrelate_ycocg_r_var2_avx512(col1),
-            3 => decorrelate_ycocg_r_var3_avx512(col1),
+            1 => decorrelate_ycocg_r_var1_avx512bw(col1),
+            2 => decorrelate_ycocg_r_var2_avx512bw(col1),
+            3 => decorrelate_ycocg_r_var3_avx512bw(col1),
             _ => unreachable_unchecked(),
         };
         _mm512_storeu_si512(colours_out.add(16) as *mut __m512i, col1);
@@ -85,6 +86,7 @@ unsafe fn transform_decorr<const VARIANT: u8>(
 // Wrappers for asm inspection
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
+#[target_feature(enable = "avx512bw")]
 #[inline]
 pub(crate) unsafe fn transform_decorr_var1(
     input_ptr: *const u8,
@@ -97,6 +99,7 @@ pub(crate) unsafe fn transform_decorr_var1(
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
+#[target_feature(enable = "avx512bw")]
 #[inline]
 pub(crate) unsafe fn transform_decorr_var2(
     input_ptr: *const u8,
@@ -109,6 +112,7 @@ pub(crate) unsafe fn transform_decorr_var2(
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
+#[target_feature(enable = "avx512bw")]
 #[inline]
 pub(crate) unsafe fn transform_decorr_var3(
     input_ptr: *const u8,
@@ -156,7 +160,7 @@ mod tests {
         #[case] variant: YCoCgVariant,
         #[case] max_blocks: usize,
     ) {
-        if !has_avx512f() {
+        if !has_avx512bw() {
             return;
         }
 

@@ -5,9 +5,9 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 use core::hint::unreachable_unchecked;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
-use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx512::{
-    recorrelate_ycocg_r_var1_avx512, recorrelate_ycocg_r_var2_avx512,
-    recorrelate_ycocg_r_var3_avx512,
+use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx512bw::{
+    recorrelate_ycocg_r_var1_avx512bw, recorrelate_ycocg_r_var2_avx512bw,
+    recorrelate_ycocg_r_var3_avx512bw,
 };
 
 pub(crate) unsafe fn untransform_with_recorrelate(
@@ -157,9 +157,9 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
 
         // Apply recorrelation to colors based on variant
         match VARIANT {
-            1 => colors = recorrelate_ycocg_r_var1_avx512(colors),
-            2 => colors = recorrelate_ycocg_r_var2_avx512(colors),
-            3 => colors = recorrelate_ycocg_r_var3_avx512(colors),
+            1 => colors = recorrelate_ycocg_r_var1_avx512bw(colors),
+            2 => colors = recorrelate_ycocg_r_var2_avx512bw(colors),
+            3 => colors = recorrelate_ycocg_r_var3_avx512bw(colors),
             _ => unreachable_unchecked(),
         }
 
@@ -219,7 +219,7 @@ mod tests {
         #[case] variant: YCoCgVariant,
         #[case] max_blocks: usize,
     ) {
-        if !has_avx512f() || !has_avx512bw() {
+        if !has_avx512bw() {
             return;
         }
         run_with_recorrelate_untransform_roundtrip_test(func, variant, max_blocks, "AVX512");

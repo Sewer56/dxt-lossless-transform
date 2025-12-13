@@ -1,19 +1,128 @@
-#![allow(unused_imports)]
-
-use crate::transform::with_split_colour::untransform::generic;
+use crate::transform::with_split_colour_and_recorr::untransform::generic;
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
+use core::hint::unreachable_unchecked;
+use dxt_lossless_transform_common::color_565::YCoCgVariant;
+use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx512bw::{
+    recorrelate_ycocg_r_var1_avx512bw, recorrelate_ycocg_r_var2_avx512bw,
+    recorrelate_ycocg_r_var3_avx512bw,
+};
 
-/// AVX512 implementation for split‐colour untransform for BC2.
+/// AVX512 implementation for split-colour and recorrelate untransform for BC2.
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[target_feature(enable = "avx512f")]
+#[target_feature(enable = "avx512bw")]
+pub(crate) unsafe fn untransform_with_split_colour_and_recorr(
+    alpha_ptr: *const u64,
+    color0_ptr: *const u16,
+    color1_ptr: *const u16,
+    indices_ptr: *const u32,
+    output_ptr: *mut u8,
+    block_count: usize,
+    recorrelation_mode: YCoCgVariant,
+) {
+    match recorrelation_mode {
+        YCoCgVariant::Variant1 => {
+            untransform_split_colour_recorr_var1(
+                alpha_ptr,
+                color0_ptr,
+                color1_ptr,
+                indices_ptr,
+                output_ptr,
+                block_count,
+            );
+        }
+        YCoCgVariant::Variant2 => {
+            untransform_split_colour_recorr_var2(
+                alpha_ptr,
+                color0_ptr,
+                color1_ptr,
+                indices_ptr,
+                output_ptr,
+                block_count,
+            );
+        }
+        YCoCgVariant::Variant3 => {
+            untransform_split_colour_recorr_var3(
+                alpha_ptr,
+                color0_ptr,
+                color1_ptr,
+                indices_ptr,
+                output_ptr,
+                block_count,
+            );
+        }
+        YCoCgVariant::None => unreachable_unchecked(),
+    }
+}
+
+// Wrapper functions for assembly inspection using `cargo asm`
+unsafe fn untransform_split_colour_recorr_var1(
+    alpha_ptr: *const u64,
+    color0_ptr: *const u16,
+    color1_ptr: *const u16,
+    indices_ptr: *const u32,
+    output_ptr: *mut u8,
+    block_count: usize,
+) {
+    untransform_split_colour_recorr::<1>(
+        alpha_ptr,
+        color0_ptr,
+        color1_ptr,
+        indices_ptr,
+        output_ptr,
+        block_count,
+    )
+}
+
+unsafe fn untransform_split_colour_recorr_var2(
+    alpha_ptr: *const u64,
+    color0_ptr: *const u16,
+    color1_ptr: *const u16,
+    indices_ptr: *const u32,
+    output_ptr: *mut u8,
+    block_count: usize,
+) {
+    untransform_split_colour_recorr::<2>(
+        alpha_ptr,
+        color0_ptr,
+        color1_ptr,
+        indices_ptr,
+        output_ptr,
+        block_count,
+    )
+}
+
+unsafe fn untransform_split_colour_recorr_var3(
+    alpha_ptr: *const u64,
+    color0_ptr: *const u16,
+    color1_ptr: *const u16,
+    indices_ptr: *const u32,
+    output_ptr: *mut u8,
+    block_count: usize,
+) {
+    untransform_split_colour_recorr::<3>(
+        alpha_ptr,
+        color0_ptr,
+        color1_ptr,
+        indices_ptr,
+        output_ptr,
+        block_count,
+    )
+}
+
+/// AVX512 implementation for split-colour and recorrelate untransform for BC2.
+/// Combines separate arrays of alpha, colour0, colour1 and indices back into standard interleaved BC2 blocks
+/// while applying YCoCg recorrelation to the color endpoints.
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[allow(unused_assignments)]
 #[allow(clippy::zero_prefixed_literal)]
 #[allow(clippy::identity_op)]
-pub(crate) unsafe fn untransform_with_split_colour(
+unsafe fn untransform_split_colour_recorr<const VARIANT: u8>(
     mut alpha_ptr: *const u64,
     mut color0_ptr: *const u16,
     mut color1_ptr: *const u16,
@@ -195,7 +304,7 @@ pub(crate) unsafe fn untransform_with_split_colour(
         16 + 0,  // C0_8,
     );
 
-    // Main SIMD processing loop - handles 16 blocks per iteration
+    // Main SIMD processing loop - handles 32 blocks per iteration
     while alpha_ptr < alphas_end {
         // Load 32 blocks worth of data
         // Alpha data: 32 blocks * 8 bytes = 256 bytes
@@ -211,14 +320,31 @@ pub(crate) unsafe fn untransform_with_split_colour(
         let color1 = _mm512_loadu_si512(color1_ptr as *const __m512i);
         color1_ptr = color1_ptr.add(32);
 
+        // Apply YCoCg recorrelation to colors
+        let recorr_color0 = match VARIANT {
+            1 => recorrelate_ycocg_r_var1_avx512bw(color0),
+            2 => recorrelate_ycocg_r_var2_avx512bw(color0),
+            3 => recorrelate_ycocg_r_var3_avx512bw(color0),
+            _ => unreachable_unchecked(),
+        };
+
+        let recorr_color1 = match VARIANT {
+            1 => recorrelate_ycocg_r_var1_avx512bw(color1),
+            2 => recorrelate_ycocg_r_var2_avx512bw(color1),
+            3 => recorrelate_ycocg_r_var3_avx512bw(color1),
+            _ => unreachable_unchecked(),
+        };
+
         // Indices: 32 blocks * 4 bytes = 128 bytes
         let indices0 = _mm512_loadu_si512(indices_ptr as *const __m512i);
         let indices1 = _mm512_loadu_si512(indices_ptr.add(16) as *const __m512i);
         indices_ptr = indices_ptr.add(32);
 
         // Interleave color0 and color1 into alternating pairs (first 16 blocks)
-        let colors_0 = _mm512_permutex2var_epi16(color0, perm_color_interleave_low, color1);
-        let colors_1 = _mm512_permutex2var_epi16(color0, perm_color_interleave_high, color1);
+        let colors_0 =
+            _mm512_permutex2var_epi16(recorr_color0, perm_color_interleave_low, recorr_color1);
+        let colors_1 =
+            _mm512_permutex2var_epi16(recorr_color0, perm_color_interleave_high, recorr_color1);
 
         // re-mix lower & upper colour+index halves
         let colors_indices_0 = _mm512_permutex2var_epi16(colors_0, perm_color_index_low, indices0);
@@ -236,7 +362,7 @@ pub(crate) unsafe fn untransform_with_split_colour(
         let output_6 = _mm512_permutex2var_epi64(alpha_3, perm_block_low, colors_indices_3);
         let output_7 = _mm512_permutex2var_epi64(alpha_3, perm_block_high, colors_indices_3);
 
-        // Store all 16 blocks (256 bytes total)
+        // Store all 32 blocks (512 bytes total)
         _mm512_storeu_si512(output_ptr as *mut __m512i, output_0);
         _mm512_storeu_si512(output_ptr.add(64) as *mut __m512i, output_1);
         _mm512_storeu_si512(output_ptr.add(128) as *mut __m512i, output_2);
@@ -253,13 +379,20 @@ pub(crate) unsafe fn untransform_with_split_colour(
     // Process any remaining blocks using generic implementation
     let remaining_blocks = block_count - vectorized_blocks;
     if remaining_blocks > 0 {
-        generic::untransform_with_split_colour(
+        let variant = match VARIANT {
+            1 => YCoCgVariant::Variant1,
+            2 => YCoCgVariant::Variant2,
+            3 => YCoCgVariant::Variant3,
+            _ => unreachable_unchecked(),
+        };
+        generic::untransform_with_split_colour_and_recorr(
             alpha_ptr,
             color0_ptr,
             color1_ptr,
             indices_ptr,
             output_ptr,
             remaining_blocks,
+            variant,
         );
     }
 }
@@ -270,14 +403,18 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    fn avx512_untransform_roundtrip() {
-        if !has_avx512bw() || !has_avx512f() {
+    #[case(YCoCgVariant::Variant1)]
+    #[case(YCoCgVariant::Variant2)]
+    #[case(YCoCgVariant::Variant3)]
+    fn avx512_untransform_roundtrip(#[case] variant: YCoCgVariant) {
+        if !has_avx512bw() {
             return;
         }
 
-        // 512 bytes processed per main loop iteration (* 2 / 16 == 64)
-        run_with_split_colour_untransform_unaligned_test(
-            untransform_with_split_colour,
+        // AVX512 processes 512 bytes per iteration (* 2 / 16 == 64)
+        run_split_colour_and_recorr_untransform_roundtrip_test(
+            untransform_with_split_colour_and_recorr,
+            variant,
             64,
             "AVX512",
         );

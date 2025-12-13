@@ -5,9 +5,9 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 use core::hint::unreachable_unchecked;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
-use dxt_lossless_transform_common::intrinsics::color_565::decorrelate::avx512::{
-    decorrelate_ycocg_r_var1_avx512, decorrelate_ycocg_r_var2_avx512,
-    decorrelate_ycocg_r_var3_avx512,
+use dxt_lossless_transform_common::intrinsics::color_565::decorrelate::avx512bw::{
+    decorrelate_ycocg_r_var1_avx512bw, decorrelate_ycocg_r_var2_avx512bw,
+    decorrelate_ycocg_r_var3_avx512bw,
 };
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
@@ -136,15 +136,15 @@ unsafe fn transform_impl<const VARIANT: u8>(
 
         // Decorrelate
         let decorr_c0 = match VARIANT {
-            1 => decorrelate_ycocg_r_var1_avx512(color0_only),
-            2 => decorrelate_ycocg_r_var2_avx512(color0_only),
-            3 => decorrelate_ycocg_r_var3_avx512(color0_only),
+            1 => decorrelate_ycocg_r_var1_avx512bw(color0_only),
+            2 => decorrelate_ycocg_r_var2_avx512bw(color0_only),
+            3 => decorrelate_ycocg_r_var3_avx512bw(color0_only),
             _ => unreachable_unchecked(),
         };
         let decorr_c1 = match VARIANT {
-            1 => decorrelate_ycocg_r_var1_avx512(color1_only),
-            2 => decorrelate_ycocg_r_var2_avx512(color1_only),
-            3 => decorrelate_ycocg_r_var3_avx512(color1_only),
+            1 => decorrelate_ycocg_r_var1_avx512bw(color1_only),
+            2 => decorrelate_ycocg_r_var2_avx512bw(color1_only),
+            3 => decorrelate_ycocg_r_var3_avx512bw(color1_only),
             _ => unreachable_unchecked(),
         };
 
@@ -255,7 +255,7 @@ mod tests {
     #[case(YCoCgVariant::Variant2)]
     #[case(YCoCgVariant::Variant3)]
     fn avx512_transform_roundtrip(#[case] variant: YCoCgVariant) {
-        if !has_avx512f() || !has_avx512bw() {
+        if !has_avx512bw() {
             return;
         }
         // 128 bytes processed per main loop iteration (* 2 / 8 == 32)

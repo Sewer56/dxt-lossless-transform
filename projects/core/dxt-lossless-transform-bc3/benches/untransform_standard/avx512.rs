@@ -1,23 +1,13 @@
 use criterion::BenchmarkId;
 use dxt_lossless_transform_bc3::bench::untransform::standard::{
-    avx512_untransform, avx512_untransform_32_vbmi, avx512_untransform_32_vl,
+    avx512_untransform, avx512_untransform_32,
 };
 use safe_allocator_api::RawAlloc;
 use std::hint::black_box;
 
-fn bench_avx512_32_vbmi(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
+fn bench_avx512_32(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
     b.iter(|| unsafe {
-        avx512_untransform_32_vbmi(
-            black_box(input.as_ptr()),
-            black_box(output.as_mut_ptr()),
-            black_box(input.len()),
-        )
-    });
-}
-
-fn bench_avx512_32_vl(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {
-    b.iter(|| unsafe {
-        avx512_untransform_32_vl(
+        avx512_untransform_32(
             black_box(input.as_ptr()),
             black_box(output.as_mut_ptr()),
             black_box(input.len()),
@@ -43,22 +33,14 @@ pub(crate) fn run_benchmarks(
     important_benches_only: bool,
 ) {
     if is_x86_feature_detected!("avx512vbmi") {
-        group.bench_with_input(
-            BenchmarkId::new("avx512 32bit vbmi", size),
-            &size,
-            |b, _| bench_avx512_32_vbmi(b, input, output),
-        );
-    }
+        group.bench_with_input(BenchmarkId::new("avx512 32bit", size), &size, |b, _| {
+            bench_avx512_32(b, input, output)
+        });
 
-    if is_x86_feature_detected!("avx512vl") {
-        group.bench_with_input(BenchmarkId::new("avx512 32bit vl", size), &size, |b, _| {
-            bench_avx512_32_vl(b, input, output)
+        group.bench_with_input(BenchmarkId::new("avx512 64bit", size), &size, |b, _| {
+            bench_avx512_64(b, input, output)
         });
     }
-
-    group.bench_with_input(BenchmarkId::new("avx512 64bit", size), &size, |b, _| {
-        bench_avx512_64(b, input, output)
-    });
 
     if !important_benches_only {}
 }

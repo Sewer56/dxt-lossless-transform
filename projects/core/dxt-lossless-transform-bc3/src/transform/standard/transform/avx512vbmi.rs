@@ -45,6 +45,7 @@ pub(crate) unsafe fn avx512_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len:
 /// - All output buffers must not overlap with each other or the input buffer
 /// - len must be divisible by 16 (BC3 block size)
 #[target_feature(enable = "avx512vbmi")]
+#[target_feature(enable = "avx512f")]
 #[allow(clippy::identity_op)]
 #[allow(clippy::erasing_op)]
 pub(crate) unsafe fn avx512_vbmi_with_separate_pointers(
@@ -271,7 +272,7 @@ mod tests {
 
     #[rstest]
     fn test_avx512_unaligned() {
-        if !has_avx512vbmi() || !has_avx512f() {
+        if !has_avx512vbmi() {
             return;
         }
 

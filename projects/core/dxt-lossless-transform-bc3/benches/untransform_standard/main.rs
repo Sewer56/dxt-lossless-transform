@@ -26,7 +26,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     group.throughput(criterion::Throughput::Bytes(size as u64));
     group.warm_up_time(Duration::from_secs(3));
-    group.measurement_time(Duration::from_secs(5));
+    group.measurement_time(Duration::from_secs(10));
 
     // Run architecture-specific benchmarks
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]

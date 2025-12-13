@@ -1,4 +1,4 @@
-#![doc = include_str!("../README.MD")]
+#![doc = include_str!(concat!("../", env!("CARGO_PKG_README")))]
 #![no_std]
 #![warn(missing_docs)]
 

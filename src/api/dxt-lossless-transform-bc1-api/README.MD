@@ -337,7 +337,6 @@ For C/C++/FFI usage, see the `C API documentation` in the `c_api` module.
 
 ## Development
 
-For information on how to work with this codebase, see [README-DEV.MD][readme-dev].
+For information on how to work with this codebase, see the [Developer Manual](https://reloaded-project.github.io/reloaded-templates-rust/manual/).
 
-[reloaded-license]: https://reloaded-project.github.io/Reloaded.MkDocsMaterial.Themes.R2/Pages/license.html
-[readme-dev]: https://github.com/Sewer56/dxt-lossless-transform/blob/main/README-DEV.MD
+[reloaded-license]: https://reloaded-project.github.io/License/GPLv3/about.html

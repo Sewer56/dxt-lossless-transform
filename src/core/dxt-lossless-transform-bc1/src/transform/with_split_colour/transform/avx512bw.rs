@@ -6,7 +6,7 @@ use core::arch::x86_64::*;
 
 /// AVX512 implementation for split‐colour transform.
 ///
-/// This uses the same permutation approach as [`permute_512_with_separate_pointers`]
+/// This uses the same permutation approach as the standard AVX512 transform
 /// but additionally splits the joined colour dword into separate `color0` and
 /// `color1` arrays.
 ///

@@ -1,0 +1,12 @@
+C-Library:
+  patterns:
+    - "C-Library-*"
+    - "C-Bindings-*"
+  flattens:
+    - "C-Bindings-*"
+  renames:
+    - "C-Library-": ""
+Symbols:
+  patterns: "*.symbols"
+  renames:
+    - ".symbols": ""

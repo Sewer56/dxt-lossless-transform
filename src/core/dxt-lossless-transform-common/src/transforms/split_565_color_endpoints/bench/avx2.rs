@@ -22,7 +22,7 @@ use core::arch::x86_64::*;
 ///
 /// # Remarks
 ///
-/// See the [`avx2_shuf_impl_asm`] for inline assembly implementation, which should be preferred.
+/// For best performance, use the unrolled variant [`avx2_shuf_impl_unroll_2`].
 #[target_feature(enable = "avx2")]
 pub(crate) unsafe fn avx2_shuf_impl(
     colors: *const u8,

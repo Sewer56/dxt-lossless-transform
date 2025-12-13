@@ -2,7 +2,7 @@ ignore:
   - "tests"
   - "benches"
   - "examples"
-  - "projects/dxt-lossless-transform-cli"
+  - "src/tools/dxt-lossless-transform-cli"
 
 comment:
   layout: "reach, diff, flags, files"

@@ -6,14 +6,17 @@
   ...
 }: {
   env = {
+    # fix bindgen
     # Needed for zstandard (native C/C++ library)
     LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
 
+    # fix general build of i686-unknown-linux-gnu targets
     # Use multilib clang as linker for i686 target.
     # Required because Rust's bundled LLD doesn't know about Nix's multilib sysroot paths.
     # clang_multi has the correct 32-bit library paths (glibc_multi) baked into its driver.
     CARGO_TARGET_I686_UNKNOWN_LINUX_GNU_LINKER = "${pkgs.clang_multi}/bin/clang";
 
+    # Fix `cargo bench` for i686-unknown-linux-gnu
     # Disable LTO for C/C++ code compiled by the `cc` crate for i686.
     # Some crates (like `alloca`) add -flto when CC=clang, but binutils ld can't
     # process LLVM IR bitcode. Using -fno-lto ensures native object files.

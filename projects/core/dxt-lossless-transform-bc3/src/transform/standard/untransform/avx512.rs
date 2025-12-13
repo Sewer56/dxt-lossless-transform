@@ -4,7 +4,8 @@
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
-use std::is_x86_feature_detected;
+#[cfg(not(target_feature = "avx512vl"))]
+use dxt_lossless_transform_common::cpu_detect::has_avx512vl;
 
 use crate::transform::standard::untransform::portable::u32_untransform_with_separate_pointers;
 
@@ -53,7 +54,7 @@ pub(crate) unsafe fn avx512_untransform_32(input_ptr: *const u8, output_ptr: *mu
     let is_vl_supported = true;
 
     #[cfg(not(target_feature = "avx512vl"))]
-    let is_vl_supported = is_x86_feature_detected!("avx512vl");
+    let is_vl_supported = has_avx512vl();
 
     if is_vl_supported {
         avx512_untransform_32_vl(input_ptr, output_ptr, len);

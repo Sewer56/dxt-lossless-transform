@@ -5,7 +5,7 @@
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 mod avx2;
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-mod avx512;
+mod avx512bw;
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 mod sse2;
 
@@ -72,7 +72,7 @@ unsafe fn transform_with_split_colour_x86(
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         if has_avx512bw() {
-            avx512::transform_with_split_colour(
+            avx512bw::transform_with_split_colour(
                 input_ptr,
                 alpha_ptr,
                 color0_ptr,
@@ -111,7 +111,7 @@ unsafe fn transform_with_split_colour_x86(
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
         if cfg!(target_feature = "avx512bw") {
-            avx512::transform_with_split_colour(
+            avx512bw::transform_with_split_colour(
                 input_ptr,
                 alpha_ptr,
                 color0_ptr,

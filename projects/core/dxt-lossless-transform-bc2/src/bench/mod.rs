@@ -59,14 +59,12 @@ pub mod transform {
         }
 
         // AVX512 functions
-        #[cfg(feature = "nightly")]
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         pub unsafe fn permute_512_v2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
             crate::transform::standard::transform::bench::permute_512_v2(input_ptr, output_ptr, len)
         }
 
         // Additional AVX512 function that was removed from benchmarks
-        #[cfg(feature = "nightly")]
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         pub unsafe fn permute_512(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
             crate::transform::standard::transform::bench::permute_512(input_ptr, output_ptr, len)
@@ -101,7 +99,6 @@ pub mod untransform {
         }
 
         // AVX512 functions
-        #[cfg(feature = "nightly")]
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         pub unsafe fn avx512_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
             crate::transform::standard::untransform::bench::avx512_shuffle(

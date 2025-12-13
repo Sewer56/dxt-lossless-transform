@@ -11,7 +11,6 @@ use core::arch::x86_64::*;
 /// `color1` arrays.
 ///
 /// Safety invariants are identical to the generic implementation.
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]

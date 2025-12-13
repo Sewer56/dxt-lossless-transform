@@ -3,7 +3,6 @@ pub mod portable;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod sse2;
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx512;
 
@@ -15,7 +14,6 @@ pub mod bench;
 unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        #[cfg(feature = "nightly")]
         #[cfg(target_arch = "x86_64")]
         if dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
             avx512::avx512_untransform(input_ptr, output_ptr, len);
@@ -26,7 +24,6 @@ unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
         #[cfg(target_arch = "x86_64")]
-        #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512vbmi") {
             avx512::avx512_untransform(input_ptr, output_ptr, len);
             return;
@@ -83,7 +80,6 @@ unsafe fn untransform_with_separate_pointers_x86(
 ) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        #[cfg(feature = "nightly")]
         #[cfg(target_arch = "x86_64")]
         if dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
             avx512::avx512_untransform_separate_components(
@@ -101,7 +97,6 @@ unsafe fn untransform_with_separate_pointers_x86(
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
         #[cfg(target_arch = "x86_64")]
-        #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512vbmi") {
             avx512::avx512_untransform_separate_components(
                 alpha_byte_ptr,

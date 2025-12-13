@@ -16,7 +16,6 @@
 /// # Returns
 /// `true` if the CPU supports AVX512F instructions, `false` otherwise.
 #[inline]
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub fn has_avx512f() -> bool {
     cpufeatures::new!(cpuid_avx512, "avx512f");
@@ -32,7 +31,6 @@ pub fn has_avx512f() -> bool {
 /// # Returns
 /// `true` if the CPU supports AVX512VBMI instructions, `false` otherwise.
 #[inline]
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub fn has_avx512vbmi() -> bool {
     cpufeatures::new!(cpuid_avx512vbmi, "avx512vbmi");
@@ -48,7 +46,6 @@ pub fn has_avx512vbmi() -> bool {
 /// # Returns
 /// `true` if the CPU supports AVX512VL instructions, `false` otherwise.
 #[inline]
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub fn has_avx512vl() -> bool {
     cpufeatures::new!(cpuid_avx512vl, "avx512vl");
@@ -64,7 +61,6 @@ pub fn has_avx512vl() -> bool {
 /// # Returns
 /// `true` if the CPU supports AVX512BW instructions, `false` otherwise.
 #[inline]
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub fn has_avx512bw() -> bool {
     cpufeatures::new!(cpuid_avx512bw, "avx512bw");

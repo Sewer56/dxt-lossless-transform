@@ -27,9 +27,8 @@ no-runtime-cpu-detection = [
     "dxt-lossless-transform-bc1/no-runtime-cpu-detection",
     "dxt-lossless-transform-common/no-runtime-cpu-detection",
 ]
-# Use nightly compiler features (AVX512)
+# Use nightly compiler features (allocator_api)
 nightly = [
-    "dxt-lossless-transform-bc1/nightly",
     "dxt-lossless-transform-common/nightly",
     "dxt-lossless-transform-api-common/nightly",
     "safe-allocator-api/nightly",

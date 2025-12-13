@@ -8,7 +8,6 @@ mod sse2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx512;
 
@@ -74,7 +73,6 @@ unsafe fn untransform_with_recorrelate_x86(
 
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        #[cfg(feature = "nightly")]
         if has_avx512f() && has_avx512bw() {
             avx512::untransform_with_recorrelate(
                 alphas_ptr,
@@ -114,7 +112,6 @@ unsafe fn untransform_with_recorrelate_x86(
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512bw") {
             avx512::untransform_with_recorrelate(
                 alphas_ptr,

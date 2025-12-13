@@ -12,7 +12,6 @@ use core::arch::x86::*;
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 #[allow(unused_assignments)]
-#[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 pub(crate) unsafe fn permute_512_untransform_unroll_2(
     input_ptr: *const u8,
@@ -33,7 +32,6 @@ pub(crate) unsafe fn permute_512_untransform_unroll_2(
 /// - indices_ptr must be valid for reads of len/2 bytes
 /// - colors_ptr must be valid for reads of len/2 bytes
 #[allow(unused_assignments)]
-#[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 pub(crate) unsafe fn permute_512_untransform_unroll_2_with_components(
     mut output_ptr: *mut u8,

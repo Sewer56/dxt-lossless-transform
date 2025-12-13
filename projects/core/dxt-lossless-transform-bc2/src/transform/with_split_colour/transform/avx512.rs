@@ -94,7 +94,6 @@ const PERM_COLOR1_EPI16: [i16; 32] = [
 ///
 /// This implementation processes BC2 blocks in chunks of 32 blocks (512 bytes)
 /// and splits them into separate alpha, color0, color1, and indices arrays.
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]

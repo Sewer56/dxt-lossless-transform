@@ -27,7 +27,7 @@ thiserror = { workspace = true }
 default = ["std"]
 # Enable use of standard library.
 std = ["bincode/std", "safe-allocator-api/std", "dxt-lossless-transform-common/std", "thiserror/std"]
-# Use nightly compiler features
+# Use nightly compiler features (allocator_api)
 nightly = ["safe-allocator-api/nightly", "dxt-lossless-transform-common/nightly"]
 # Compiles the public C API for the crate.
 c-exports = []

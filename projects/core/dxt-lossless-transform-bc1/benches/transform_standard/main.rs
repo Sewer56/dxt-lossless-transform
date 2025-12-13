@@ -10,7 +10,6 @@ mod portable64;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod sse2;
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx512;
 
@@ -53,7 +52,6 @@ fn criterion_benchmark(c: &mut Criterion) {
             );
         }
 
-        #[cfg(feature = "nightly")]
         if has_avx512f() {
             avx512::run_benchmarks(
                 &mut group,

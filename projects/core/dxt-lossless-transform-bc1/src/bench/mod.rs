@@ -36,7 +36,6 @@ pub mod transform {
             crate::transform::standard::transform::bench::u32(input_ptr, output_ptr, len)
         }
 
-        #[cfg(feature = "nightly")]
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         pub unsafe fn permute_512(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
             crate::transform::standard::transform::bench::permute_512(input_ptr, output_ptr, len)
@@ -90,14 +89,14 @@ pub mod transform {
         }
 
         // AVX512 functions
-        #[cfg(all(feature = "nightly", any(target_arch = "x86_64", target_arch = "x86")))]
+        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         pub unsafe fn permute_512_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
             crate::transform::standard::transform::bench::avx512::permute_512_unroll_2(
                 input_ptr, output_ptr, len,
             )
         }
 
-        #[cfg(all(feature = "nightly", any(target_arch = "x86_64", target_arch = "x86")))]
+        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         pub unsafe fn permute_512_unroll_2_with_separate_pointers(
             input_ptr: *const u8,
             colors_ptr: *mut u32,
@@ -233,7 +232,7 @@ pub mod untransform {
             )
         }
 
-        #[cfg(all(feature = "nightly", any(target_arch = "x86_64", target_arch = "x86")))]
+        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         pub unsafe fn permute_512_untransform_unroll_2(
             input_ptr: *const u8,
             output_ptr: *mut u8,
@@ -294,7 +293,7 @@ pub mod untransform {
         }
 
         // AVX512 functions
-        #[cfg(all(feature = "nightly", any(target_arch = "x86_64", target_arch = "x86")))]
+        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         pub unsafe fn permute_512_untransform_unroll_2_intrinsics(
             input_ptr: *const u8,
             output_ptr: *mut u8,
@@ -303,7 +302,7 @@ pub mod untransform {
             crate::transform::standard::untransform::bench::avx512::permute_512_untransform_unroll_2_intrinsics(input_ptr, output_ptr, len)
         }
 
-        #[cfg(all(feature = "nightly", any(target_arch = "x86_64", target_arch = "x86")))]
+        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         pub unsafe fn permute_512_untransform_unroll_2_with_components_intrinsics(
             output_ptr: *mut u8,
             len: usize,

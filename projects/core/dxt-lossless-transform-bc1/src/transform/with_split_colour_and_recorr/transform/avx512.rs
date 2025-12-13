@@ -10,7 +10,6 @@ use dxt_lossless_transform_common::intrinsics::color_565::decorrelate::avx512::{
     decorrelate_ycocg_r_var3_avx512,
 };
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
@@ -180,7 +179,6 @@ unsafe fn transform_impl<const VARIANT: u8>(
 }
 
 // Variant wrappers for asm inspection
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
@@ -195,7 +193,6 @@ pub(crate) unsafe fn transform_decorr_var1(
     transform_impl::<1>(input_ptr, color0_out, color1_out, indices_out, blocks)
 }
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
@@ -210,7 +207,6 @@ pub(crate) unsafe fn transform_decorr_var2(
     transform_impl::<2>(input_ptr, color0_out, color1_out, indices_out, blocks)
 }
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]

@@ -6,7 +6,6 @@ mod sse2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx512;
 
@@ -45,7 +44,6 @@ unsafe fn transform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         // Runtime feature detection
-        #[cfg(feature = "nightly")]
         if dxt_lossless_transform_common::cpu_detect::has_avx512f() {
             avx512::permute_512_v2(input_ptr, output_ptr, len);
             return;
@@ -71,7 +69,6 @@ unsafe fn transform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") {
             avx512::permute_512_v2(input_ptr, output_ptr, len);
             return;

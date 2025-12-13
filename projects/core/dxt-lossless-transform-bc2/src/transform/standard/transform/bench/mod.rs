@@ -8,11 +8,9 @@ pub mod sse2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub use sse2::*;
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx512;
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub use avx512::*;
 
@@ -46,7 +44,6 @@ pub unsafe fn u32_unroll_4(input_ptr: *const u8, output_ptr: *mut u8, len: usize
     portable32::u32_unroll_4(input_ptr, output_ptr, len)
 }
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub unsafe fn permute_512_v2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     super::avx512::permute_512_v2(input_ptr, output_ptr, len)

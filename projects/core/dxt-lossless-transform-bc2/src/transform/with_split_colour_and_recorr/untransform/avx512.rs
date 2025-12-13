@@ -11,7 +11,6 @@ use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx512::{
 };
 
 /// AVX512 implementation for split-colour and recorrelate untransform for BC2.
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
@@ -117,7 +116,6 @@ unsafe fn untransform_split_colour_recorr_var3(
 /// AVX512 implementation for split-colour and recorrelate untransform for BC2.
 /// Combines separate arrays of alpha, colour0, colour1 and indices back into standard interleaved BC2 blocks
 /// while applying YCoCg recorrelation to the color endpoints.
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]

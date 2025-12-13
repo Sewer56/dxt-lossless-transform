@@ -2,25 +2,25 @@ name: Test, Coverage, Release on Tag
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
     paths:
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "projects/**"
-      - "fuzz/**"
-      - "assets/tests/**"
-      - ".github/workflows/rust.yml"
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'projects/**'
+      - 'fuzz/**'
+      - 'assets/tests/**'
+      - '.github/workflows/rust.yml'
     tags:
-      - "*"
+      - '*'
   pull_request:
-    branches: [main]
+    branches: [ main ]
     paths:
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "projects/**"
-      - "fuzz/**"
-      - "assets/tests/**"
-      - ".github/workflows/rust.yml"
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'projects/**'
+      - 'fuzz/**'
+      - 'assets/tests/**'
+      - '.github/workflows/rust.yml'
   workflow_dispatch:
 
 concurrency:
@@ -36,143 +36,40 @@ jobs:
       matrix:
         include:
           # Linux All features (nightly)
-          - {
-              label: "Linux x64 (All Features, Nightly)",
-              os: ubuntu-latest,
-              target: x86_64-unknown-linux-gnu,
-              use-cross: false,
-              additional-test-args: "--all-features",
-              rust-toolchain: "nightly-2025-12-01",
-            }
-          - {
-              label: "Linux x86 (All Features, Nightly)",
-              os: ubuntu-latest,
-              target: i686-unknown-linux-gnu,
-              use-cross: false,
-              additional-test-args: "--all-features",
-              rust-toolchain: "nightly-2025-12-01",
-            }
-
+          - { label: "Linux x64 (All Features, Nightly)", os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, additional-test-args: "--all-features", rust-toolchain: 'nightly-2025-12-08' }
+          - { label: "Linux x86 (All Features, Nightly)", os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, additional-test-args: "--all-features", rust-toolchain: 'nightly-2025-12-08' }
+          
           # Linux No features (stable)
-          - {
-              label: "Linux x64 (Stable)",
-              os: ubuntu-latest,
-              target: x86_64-unknown-linux-gnu,
-              use-cross: false,
-              rust-toolchain: "stable",
-            }
-          - {
-              label: "Linux x86 (Stable)",
-              os: ubuntu-latest,
-              target: i686-unknown-linux-gnu,
-              use-cross: false,
-              rust-toolchain: "stable",
-            }
-
+          - { label: "Linux x64 (Stable)", os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, rust-toolchain: 'stable' }
+          - { label: "Linux x86 (Stable)", os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, rust-toolchain: 'stable' }
+          
           # No CPU detection (on x86)
-          - {
-              label: "Linux x64 (No CPU Detection)",
-              os: ubuntu-latest,
-              target: x86_64-unknown-linux-gnu,
-              use-cross: false,
-              features: "no-runtime-cpu-detection",
-              rust-toolchain: "stable",
-            }
-          - {
-              label: "Linux x86 (No CPU Detection)",
-              os: ubuntu-latest,
-              target: i686-unknown-linux-gnu,
-              use-cross: false,
-              features: "no-runtime-cpu-detection",
-              rust-toolchain: "stable",
-            }
-
+          - { label: "Linux x64 (No CPU Detection)", os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false, features: "no-runtime-cpu-detection", rust-toolchain: 'stable' }
+          - { label: "Linux x86 (No CPU Detection)", os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false, features: "no-runtime-cpu-detection", rust-toolchain: 'stable' }
+          
           # 32-bit ARM (e.g. Raspberry Pi, Legacy Android)
-          - {
-              label: "Linux 32-bit ARMv7",
-              os: ubuntu-latest,
-              target: armv7-unknown-linux-gnueabihf,
-              use-cross: true,
-              rust-toolchain: "stable",
-            }
-
+          - { label: "Linux 32-bit ARMv7", os: ubuntu-latest, target: armv7-unknown-linux-gnueabihf, use-cross: true, rust-toolchain: 'stable' }
+          
           # 64-bit ARM (e.g. Raspberry Pi 4+, Modern ARM servers)
-          - {
-              label: "Linux 64-bit ARM64",
-              os: ubuntu-latest,
-              target: aarch64-unknown-linux-gnu,
-              use-cross: true,
-              rust-toolchain: "stable",
-            }
+          - { label: "Linux 64-bit ARM64", os: ubuntu-latest, target: aarch64-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable' }
 
           # Big Endian (32-bit)
-          - {
-              label: "Linux + Big Endian 32-bit",
-              os: ubuntu-latest,
-              target: powerpc-unknown-linux-gnu,
-              use-cross: true,
-              rust-toolchain: "stable",
-              no-default-features: true,
-            }
-
+          - { label: "Linux + Big Endian 32-bit", os: ubuntu-latest, target: powerpc-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable', no-default-features: true }
+          
           # Big Endian (64-bit)
-          - {
-              label: "Linux + Big Endian 64-bit",
-              os: ubuntu-latest,
-              target: powerpc64-unknown-linux-gnu,
-              use-cross: true,
-              rust-toolchain: "stable",
-            }
+          - { label: "Linux + Big Endian 64-bit", os: ubuntu-latest, target: powerpc64-unknown-linux-gnu, use-cross: true, rust-toolchain: 'stable' }
 
           # Windows
-          - {
-              label: "Windows x64",
-              os: windows-latest,
-              target: x86_64-pc-windows-msvc,
-              use-cross: false,
-              rust-toolchain: "stable",
-            }
-          - {
-              label: "Windows x86",
-              os: windows-latest,
-              target: i686-pc-windows-msvc,
-              use-cross: false,
-              rust-toolchain: "stable",
-            }
-
+          - { label: "Windows x64", os: windows-latest, target: x86_64-pc-windows-msvc, use-cross: false, rust-toolchain: 'stable' }
+          - { label: "Windows x86", os: windows-latest, target: i686-pc-windows-msvc, use-cross: false, rust-toolchain: 'stable' }
+          
           # macOS
-          - {
-              label: "macOS Intel",
-              os: macos-15-intel,
-              target: x86_64-apple-darwin,
-              use-cross: false,
-              rust-toolchain: "stable",
-            }
-          - {
-              label: "macOS Apple Silicon",
-              os: macos-latest,
-              target: aarch64-apple-darwin,
-              use-cross: false,
-              rust-toolchain: "stable",
-            }
+          - { label: "macOS Intel", os: macos-15-intel, target: x86_64-apple-darwin, use-cross: false, rust-toolchain: 'stable' }
+          - { label: "macOS Apple Silicon", os: macos-latest, target: aarch64-apple-darwin, use-cross: false, rust-toolchain: 'stable' }
 
           # Android (Mobile)
-          - {
-              label: "Android ARM64",
-              os: ubuntu-latest,
-              target: aarch64-linux-android,
-              use-cross: true,
-              additional-test-args: "--all-features",
-              rust-toolchain: "nightly-2025-12-01",
-            }
-          - {
-              label: "Android ARM v7",
-              os: ubuntu-latest,
-              target: armv7-linux-androideabi,
-              use-cross: true,
-              additional-test-args: "--all-features",
-              rust-toolchain: "nightly-2025-12-01",
-            }
+          - { label: "Android ARM64", os: ubuntu-latest, target: aarch64-linux-android, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly-2025-12-08' }
+          - { label: "Android ARM v7", os: ubuntu-latest, target: armv7-linux-androideabi, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly-2025-12-08' }
           # - { label: "Android x64", os: ubuntu-latest, target: x86_64-linux-android, use-cross: true, additional-test-args: "--all-features", rust-toolchain: 'nightly' }
 
     runs-on: ${{ matrix.os }}
@@ -233,11 +130,11 @@ jobs:
           - { label: "Build CLI Linux x64", os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false }
           - { label: "Build CLI Linux x86", os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false }
           - { label: "Build CLI Linux ARM64", os: ubuntu-latest, target: aarch64-unknown-linux-gnu, use-cross: true }
-
+          
           # Windows Targets
           - { label: "Build CLI Windows x64", os: windows-latest, target: x86_64-pc-windows-msvc, use-cross: false }
           - { label: "Build CLI Windows x86", os: windows-latest, target: i686-pc-windows-msvc, use-cross: false }
-
+          
           # macOS Targets
           - { label: "Build CLI macOS Intel", os: macos-15-intel, target: x86_64-apple-darwin, use-cross: false }
           - { label: "Build CLI macOS Apple Silicon", os: macos-latest, target: aarch64-apple-darwin, use-cross: false }
@@ -262,7 +159,7 @@ jobs:
           use-cross: ${{ matrix.use-cross }}
           additional-rustc-args: "--all-features"
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
-          rust-toolchain: "nightly-2025-12-01"
+          rust-toolchain: "nightly-2025-12-08"
 
   build-c-libraries:
     strategy:
@@ -272,19 +169,14 @@ jobs:
           - { label: "Build C API Linux x64", os: ubuntu-latest, target: x86_64-unknown-linux-gnu, use-cross: false }
           - { label: "Build C API Linux x86", os: ubuntu-latest, target: i686-unknown-linux-gnu, use-cross: false }
           - { label: "Build C API Linux ARM64", os: ubuntu-latest, target: aarch64-unknown-linux-gnu, use-cross: true }
-
+          
           # Windows Targets
           - { label: "Build C API Windows x64", os: windows-latest, target: x86_64-pc-windows-msvc, use-cross: false }
           - { label: "Build C API Windows x86", os: windows-latest, target: i686-pc-windows-msvc, use-cross: false }
-
+          
           # macOS Targets
           - { label: "Build C API macOS Intel", os: macos-15-intel, target: x86_64-apple-darwin, use-cross: false }
-          - {
-              label: "Build C API macOS Apple Silicon",
-              os: macos-latest,
-              target: aarch64-apple-darwin,
-              use-cross: false,
-            }
+          - { label: "Build C API macOS Apple Silicon", os: macos-latest, target: aarch64-apple-darwin, use-cross: false }
 
           # Android
           - { label: "Build C API Android ARM64", os: ubuntu-latest, target: aarch64-linux-android, use-cross: true }
@@ -309,7 +201,7 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: true
           build-library: true
-          rust-toolchain: "nightly-2025-12-01"
+          rust-toolchain: "nightly-2025-12-08"
 
       - name: Build C API (Common)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
@@ -324,7 +216,7 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false # Cache setup is inherited from first call.
           build-library: true
-          rust-toolchain: "nightly-2025-12-01"
+          rust-toolchain: "nightly-2025-12-08"
 
       - name: Build C API (BC1)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
@@ -339,7 +231,7 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false # Cache setup is inherited from first call.
           build-library: true
-          rust-toolchain: "nightly-2025-12-01"
+          rust-toolchain: "nightly-2025-12-08"
 
       - name: Build C API (BC1 Core)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
@@ -354,7 +246,7 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false # Cache setup is inherited from first call.
           build-library: true
-          rust-toolchain: "nightly-2025-12-01"
+          rust-toolchain: "nightly-2025-12-08"
 
       - name: Build C API (LTU)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
@@ -369,7 +261,7 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false # Cache setup is inherited from first call.
           build-library: true
-          rust-toolchain: "nightly-2025-12-01"
+          rust-toolchain: "nightly-2025-12-08"
 
   build-c-cpp-headers:
     runs-on: ubuntu-latest
@@ -380,7 +272,7 @@ jobs:
       - name: C bindings - API Common
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: "projects/api/dxt-lossless-transform-api-common/"
+          rust-project-path: 'projects/api/dxt-lossless-transform-api-common/'
           config-file: ../../../cbindgen_c.toml
           output-header-file: dxt-lossless-transform-api-common.h
           artifact-prefix: ""
@@ -389,7 +281,7 @@ jobs:
       - name: C++ bindings - API Common
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: "projects/api/dxt-lossless-transform-api-common/"
+          rust-project-path: 'projects/api/dxt-lossless-transform-api-common/'
           config-file: ../../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-api-common.hpp
           artifact-prefix: ""
@@ -398,7 +290,7 @@ jobs:
       - name: C bindings - DDS
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: "projects/extensions/file-formats/dxt-lossless-transform-dds/"
+          rust-project-path: 'projects/extensions/file-formats/dxt-lossless-transform-dds/'
           config-file: ../../../../cbindgen_c.toml
           output-header-file: dxt-lossless-transform-dds.h
           artifact-prefix: ""
@@ -407,7 +299,7 @@ jobs:
       - name: C++ bindings - DDS
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: "projects/extensions/file-formats/dxt-lossless-transform-dds/"
+          rust-project-path: 'projects/extensions/file-formats/dxt-lossless-transform-dds/'
           config-file: ../../../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-dds.hpp
           artifact-prefix: ""
@@ -416,7 +308,7 @@ jobs:
       - name: C bindings - BC1 API
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: "projects/api/dxt-lossless-transform-bc1-api/"
+          rust-project-path: 'projects/api/dxt-lossless-transform-bc1-api/'
           config-file: ../../../cbindgen_c.toml
           output-header-file: dxt-lossless-transform-bc1-api.h
           artifact-prefix: ""
@@ -425,7 +317,7 @@ jobs:
       - name: C++ bindings - BC1 API
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: "projects/api/dxt-lossless-transform-bc1-api/"
+          rust-project-path: 'projects/api/dxt-lossless-transform-bc1-api/'
           config-file: ../../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-bc1-api.hpp
           artifact-prefix: ""
@@ -434,7 +326,7 @@ jobs:
       - name: C bindings - BC1 Core
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: "projects/core/dxt-lossless-transform-bc1/"
+          rust-project-path: 'projects/core/dxt-lossless-transform-bc1/'
           config-file: ../../../cbindgen_c.toml
           output-header-file: dxt-lossless-transform-bc1.h
           artifact-prefix: ""
@@ -443,7 +335,7 @@ jobs:
       - name: C++ bindings - BC1 Core
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: "projects/core/dxt-lossless-transform-bc1/"
+          rust-project-path: 'projects/core/dxt-lossless-transform-bc1/'
           config-file: ../../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-bc1.hpp
           artifact-prefix: ""
@@ -452,7 +344,7 @@ jobs:
       - name: C bindings - LTU
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: "projects/extensions/estimators/dxt-lossless-transform-ltu/"
+          rust-project-path: 'projects/extensions/estimators/dxt-lossless-transform-ltu/'
           config-file: ../../../../cbindgen_c.toml
           output-header-file: dxt-lossless-transform-ltu.h
           artifact-prefix: ""
@@ -461,7 +353,7 @@ jobs:
       - name: C++ bindings - LTU
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
-          rust-project-path: "projects/extensions/estimators/dxt-lossless-transform-ltu/"
+          rust-project-path: 'projects/extensions/estimators/dxt-lossless-transform-ltu/'
           config-file: ../../../../cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-ltu.hpp
           artifact-prefix: ""
@@ -476,7 +368,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-      - name: Publish Rust Crate and Artifacts
+      - name: Publish Rust Crate and Artifacts  
         uses: Reloaded-Project/devops-publish-action@v1
         with:
           crates-io-token: ${{ secrets.CRATES_IO_TOKEN }}

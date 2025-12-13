@@ -4,7 +4,7 @@ pub mod portable32;
 pub mod avx2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod avx512;
+pub mod avx512vbmi;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
@@ -13,7 +13,7 @@ unsafe fn transform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     {
         // Runtime feature detection
         if dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
-            avx512::avx512_vbmi(input_ptr, output_ptr, len);
+            avx512vbmi::avx512_vbmi(input_ptr, output_ptr, len);
             return;
         }
 
@@ -26,7 +26,7 @@ unsafe fn transform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
         if cfg!(target_feature = "avx512vbmi") {
-            avx512::avx512_vbmi(input_ptr, output_ptr, len);
+            avx512vbmi::avx512_vbmi(input_ptr, output_ptr, len);
             return;
         }
 

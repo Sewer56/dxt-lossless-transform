@@ -6,7 +6,7 @@ use safe_allocator_api::RawAlloc;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-mod avx512;
+mod avx512vbmi;
 mod portable32;
 mod portable64;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -52,7 +52,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         }
 
         if has_avx512vbmi() {
-            avx512::run_benchmarks(
+            avx512vbmi::run_benchmarks(
                 &mut group,
                 &input,
                 &mut output,

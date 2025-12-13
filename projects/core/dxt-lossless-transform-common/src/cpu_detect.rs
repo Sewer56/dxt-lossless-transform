@@ -9,7 +9,6 @@
 
 /// Checks if the CPU supports AVX512F (AVX-512 Foundation) instructions.
 ///
-/// This function is only available when compiling with the `nightly` feature enabled.
 /// AVX-512F provides 512-bit wide vectors and operations which can significantly
 /// accelerate compression transforms when available.
 ///
@@ -24,7 +23,6 @@ pub fn has_avx512f() -> bool {
 
 /// Checks if the CPU supports AVX512VBMI (AVX-512 Vector Byte Manipulation Instructions) instructions.
 ///
-/// This function is only available when compiling with the `nightly` feature enabled.
 /// AVX512VBMI extends AVX-512 with additional byte manipulation instructions, which can
 /// be beneficial for certain block formats.
 ///
@@ -39,7 +37,6 @@ pub fn has_avx512vbmi() -> bool {
 
 /// Checks if the CPU supports AVX512VL (AVX-512 Vector Length) instructions.
 ///
-/// This function is only available when compiling with the `nightly` feature enabled.
 /// AVX512VL extends AVX-512 with additional vector length instructions, giving AVX-512
 /// instructions to smaller register sizes. This can be beneficial for certain block formats.
 ///
@@ -54,7 +51,6 @@ pub fn has_avx512vl() -> bool {
 
 /// Checks if the CPU supports AVX512BW (AVX-512 Byte and Word) instructions.
 ///
-/// This function is only available when compiling with the `nightly` feature enabled.
 /// AVX512BW extends AVX-512 with byte and word operations, enabling more efficient
 /// processing of 8-bit and 16-bit data types. This can be beneficial for color processing.
 ///

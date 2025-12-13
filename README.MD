@@ -15,18 +15,18 @@ compressed, and improve load speed, by making the data faster to decompress.
 ## Project Layout
 
 > [!TIP]
-> The project is organized into several main directories under `/projects/`:
+> The project is organized into several main directories under `/src/`:
 
 ### Project Structure
 
-- **`/projects/core/`** - Houses the **unstable API** implementations (low-level crates without API stability guarantees)
-- **`/projects/api/`** - Houses the **stable API** (recommended for external users)
-- **`/projects/extensions/`** - Contains extensions that build on top of the stable API
-- **`/projects/tools/`** - Contains miscellaneous programs and utilities
+- **`/src/core/`** - Houses the **unstable API** implementations (low-level crates without API stability guarantees)
+- **`/src/api/`** - Houses the **stable API** (recommended for external users)
+- **`/src/extensions/`** - Contains extensions that build on top of the stable API
+- **`/src/tools/`** - Contains miscellaneous programs and utilities
 
 Click on a project to navigate to its description.
 
-### Stable API (`/projects/api/`)
+### Stable API (`/src/api/`)
 
 > [!TIP]
 > These provide stable, backwards-compatible interfaces. Recommended for external users.
@@ -38,7 +38,7 @@ Click on a project to navigate to its description.
 - [dxt-lossless-transform-bc7-api]: A stable API for [dxt-lossless-transform-bc7].
 - [dxt-lossless-transform-file-formats-api]: File format handling with stable API.
 
-### Extensions (`/projects/extensions/`)
+### Extensions (`/src/extensions/`)
 
 #### File Format Support
 
@@ -68,7 +68,7 @@ Speeds are based on a single core on a Ryzen 9950X3D CPU, and are approximate va
 
 For more information, [refer to my blog post](https://sewer56.dev/blog/2025/03/11/a-program-for-helping-create-lossless-transforms.html#estimator-accuracy-high-compression-level).
 
-### Core Implementations (`/projects/core/`) - Unstable API
+### Core Implementations (`/src/core/`) - Unstable API
 
 > [!WARNING]
 > These crates have the concrete implementations but **no stable API**. Use the stable API crates instead.
@@ -81,7 +81,7 @@ For more information, [refer to my blog post](https://sewer56.dev/blog/2025/03/1
 
 They are low level crates optimized for maximum performance with frequent breaking changes.
 
-### Tools (`/projects/tools/`)
+### Tools (`/src/tools/`)
 
 - CLI tools and debugging utilities
 - Development and testing applications
@@ -129,31 +129,33 @@ You can either:
    cargo run --release --bin dxt-lossless-transform-cli --features "debug-bc1" transform --input textures --output textures-transformed
    ```
 
-## Development
+## Developer Manual
 
-For information on how to work with this codebase, see [README-DEV.MD](README-DEV.MD).
+For step-by-step development guidance, see the [Developer Manual](https://reloaded-project.github.io/reloaded-templates-rust/manual/).
+
+## Contributing
+
+We welcome contributions! See the [Contributing Guide](https://reloaded-project.github.io/reloaded-templates-rust/manual/#contributing) for details.
 
 ## License
 
-Licensed under [GPL v3 (with Reloaded FAQ)](./LICENSE).  
-[Learn more about Reloaded's general choice of licensing for projects.][reloaded-license].  
+Licensed under [GPL v3 (with Reloaded FAQ)](./LICENSE).
 
 [codecov]: https://about.codecov.io/
 [crates-io-key]: https://crates.io/settings/tokens
 [nuget-key]: https://www.nuget.org/account/apikeys
 [docs]: https://dxt-lossless-transform.github.io/dxt-lossless-transform
-[reloaded-license]: https://reloaded-project.github.io/Reloaded.MkDocsMaterial.Themes.R2/Pages/license.html
-[dxt-lossless-transform-common]: projects/dxt-lossless-transform-common/README.MD
-[dxt-lossless-transform-bc1]: projects/dxt-lossless-transform-bc1/README.MD
-[dxt-lossless-transform-bc2]: projects/dxt-lossless-transform-bc2/README.MD
-[dxt-lossless-transform-bc3]: projects/dxt-lossless-transform-bc3/README.MD
-[dxt-lossless-transform-bc7]: projects/dxt-lossless-transform-bc7/README.MD
-[dxt-lossless-transform-api-common]: projects/dxt-lossless-transform-api-common/README.MD
-[dxt-lossless-transform-bc1-api]: projects/dxt-lossless-transform-bc1-api/README.MD
-[dxt-lossless-transform-bc2-api]: projects/dxt-lossless-transform-bc2-api/README.MD
-[dxt-lossless-transform-bc3-api]: projects/dxt-lossless-transform-bc3-api/README.MD
-[dxt-lossless-transform-bc7-api]: projects/dxt-lossless-transform-bc7-api/README.MD
-[dxt-lossless-transform-dds]: projects/dxt-lossless-transform-dds/README.MD
-[dxt-lossless-transform-file-formats-api]: projects/api/dxt-lossless-transform-file-formats-api/README.md
-[dxt-lossless-transform-zstd]: projects/extensions/dxt-lossless-transform-zstd/README.MD
-[dxt-lossless-transform-ltu]: projects/extensions/dxt-lossless-transform-ltu/README.MD
+[dxt-lossless-transform-common]: src/core/dxt-lossless-transform-common/README.MD
+[dxt-lossless-transform-bc1]: src/core/dxt-lossless-transform-bc1/README.MD
+[dxt-lossless-transform-bc2]: src/core/dxt-lossless-transform-bc2/README.MD
+[dxt-lossless-transform-bc3]: src/core/dxt-lossless-transform-bc3/README.MD
+[dxt-lossless-transform-bc7]: src/core/dxt-lossless-transform-bc7/README.MD
+[dxt-lossless-transform-api-common]: src/api/dxt-lossless-transform-api-common/README.MD
+[dxt-lossless-transform-bc1-api]: src/api/dxt-lossless-transform-bc1-api/README.MD
+[dxt-lossless-transform-bc2-api]: src/api/dxt-lossless-transform-bc2-api/README.MD
+[dxt-lossless-transform-bc3-api]: src/api/dxt-lossless-transform-bc3-api/README.MD
+[dxt-lossless-transform-bc7-api]: src/api/dxt-lossless-transform-bc7-api/README.MD
+[dxt-lossless-transform-dds]: src/extensions/file-formats/dxt-lossless-transform-dds/README.MD
+[dxt-lossless-transform-file-formats-api]: src/api/dxt-lossless-transform-file-formats-api/README.md
+[dxt-lossless-transform-zstd]: src/extensions/compressors/dxt-lossless-transform-zstd/README.MD
+[dxt-lossless-transform-ltu]: src/extensions/estimators/dxt-lossless-transform-ltu/README.MD

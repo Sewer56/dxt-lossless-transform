@@ -13,3 +13,9 @@ devenv.local.nix
 
 # pre-commit
 .pre-commit-config.yaml
+
+# LLM Prompts
+PROMPT.md
+PROMPT-*.md
+PROMPT.MD
+PROMPT-*.MD

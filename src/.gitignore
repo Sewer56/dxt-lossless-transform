@@ -1,0 +1,13 @@
+target
+/fuzz/hfuzz_target
+/fuzz/corpus
+/fuzz/artifacts
+
+# Profiling files
+perf.data.old
+perf.data
+flamegraph.svg
+
+# Code Coverage
+cobertura.xml
+tarpaulin-report.html

@@ -148,8 +148,6 @@ mod tests {
             .unwrap()
             .parent()
             .unwrap()
-            .parent()
-            .unwrap()
             .join("assets/tests/r2-256-bc2.dds");
 
         // Verify the test file exists

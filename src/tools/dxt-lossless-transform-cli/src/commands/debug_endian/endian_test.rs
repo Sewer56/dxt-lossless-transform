@@ -71,7 +71,7 @@ fn get_test_files() -> Result<Vec<fs::DirEntry>, EndianTestError> {
 
     let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(3)
+        .nth(2)
         .unwrap();
     let assets_dir = workspace_root.join("assets").join("tests");
     let mut entries = Vec::new();
@@ -135,7 +135,7 @@ fn run_single_endian_test(test_file: &fs::DirEntry) -> Result<EndianTestResult, 
     // Create isolated temporary directories with random names in project-relative location
     let project_root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(3)
+        .nth(2)
         .unwrap();
     let tmp_base = project_root.join("tmp");
     fs::create_dir_all(&tmp_base)?;
@@ -228,7 +228,7 @@ fn run_transform_command(
     // Set target-specific cargo target directory to prevent artifact collisions
     let project_root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(3)
+        .nth(2)
         .unwrap();
     let target_dir = project_root.join("target").join(format!("cross-{target}"));
 
@@ -270,7 +270,7 @@ fn run_untransform_command(
     // Set target-specific cargo target directory to prevent artifact collisions
     let project_root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(3)
+        .nth(2)
         .unwrap();
     let target_dir = project_root.join("target").join(format!("cross-{target}"));
 

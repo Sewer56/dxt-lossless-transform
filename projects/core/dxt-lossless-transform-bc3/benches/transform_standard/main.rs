@@ -25,7 +25,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let important_benches_only = false; // Set to false to enable extra benches, unrolls, etc.
 
     group.throughput(criterion::Throughput::Bytes(size as u64));
-    group.warm_up_time(Duration::from_secs(10));
+    group.warm_up_time(Duration::from_secs(3));
     group.measurement_time(Duration::from_secs(10));
 
     // Run architecture-specific benchmarks

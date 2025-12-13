@@ -60,50 +60,9 @@ pub mod untransform;
 /// - len must be divisible by 16
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn split_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub unsafe fn transform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len.is_multiple_of(16));
-    transform::split_blocks(input_ptr, output_ptr, len);
-}
-
-/// Transform BC3 data from standard interleaved format to separated component format
-/// using separate pointers for each component section.
-///
-/// # Arguments
-///
-/// * `input_ptr` - Pointer to the input buffer containing interleaved BC3 block data
-/// * `alpha_byte_ptr` - Pointer to the output buffer for alpha endpoint data (2 bytes per block)
-/// * `alpha_bit_ptr` - Pointer to the output buffer for alpha index data (6 bytes per block)  
-/// * `color_ptr` - Pointer to the output buffer for color endpoint data (4 bytes per block)
-/// * `index_ptr` - Pointer to the output buffer for color index data (4 bytes per block)
-/// * `len` - The length of the input buffer in bytes
-///
-/// # Safety
-///
-/// - `input_ptr` must be valid for reads of `len` bytes
-/// - `alpha_byte_ptr` must be valid for writes of `len * 2 / 16` bytes
-/// - `alpha_bit_ptr` must be valid for writes of `len * 6 / 16` bytes
-/// - `color_ptr` must be valid for writes of `len * 4 / 16` bytes
-/// - `index_ptr` must be valid for writes of `len * 4 / 16` bytes
-/// - `len` must be divisible by 16 (BC3 block size)
-/// - It is recommended that all pointers are at least 16-byte aligned (recommended 32-byte align)
-/// - The component buffers must not overlap with each other or the input buffer
-#[inline]
-pub unsafe fn split_blocks_with_separate_pointers(
-    input_ptr: *const u8,
-    alpha_byte_ptr: *mut u16,
-    alpha_bit_ptr: *mut u16,
-    color_ptr: *mut u32,
-    index_ptr: *mut u32,
-    len: usize,
-) {
-    transform::split_blocks_with_separate_pointers(
-        input_ptr,
-        alpha_byte_ptr,
-        alpha_bit_ptr,
-        color_ptr,
-        index_ptr,
-        len,
-    );
+    transform::transform(input_ptr, output_ptr, len);
 }
 
 /// Transform bc3 data from separated alpha/color/index format back to standard interleaved format
@@ -116,7 +75,7 @@ pub unsafe fn split_blocks_with_separate_pointers(
 /// - len must be divisible by 16
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn unsplit_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub unsafe fn untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len.is_multiple_of(16));
-    untransform::unsplit_blocks(input_ptr, output_ptr, len);
+    untransform::untransform(input_ptr, output_ptr, len);
 }

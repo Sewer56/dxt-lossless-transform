@@ -15,7 +15,7 @@ const PERM_ALPHA_BYTES: [i8; 8] = [0, 2, 4, 6, 8, 10, 12, 14]; // For vpermt2q t
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512f")]
 #[allow(unused_assignments)]
-#[allow(dead_code)] // reference implementation
+#[allow(dead_code)] // Reference intrinsics implementation; only used in tests.
 pub(crate) unsafe fn permute_512_v2_intrinsics(
     mut input_ptr: *const u8,
     output_ptr: *mut u8,

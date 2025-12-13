@@ -8,8 +8,8 @@ description = "ZStandard size estimation implementation for DXT lossless transfo
 [dependencies]
 dxt-lossless-transform-api-common = { workspace = true, default-features = false }
 dxt-lossless-transform-common = { workspace = true, default-features = false }
-zstd-sys = { version = "2.0.15", features = ["experimental"] } # 1.5.7
-thiserror = { version = "2.0", default-features = false }
+zstd-sys = { workspace = true } # 1.5.7
+thiserror = { workspace = true }
 
 [features]
 default = ["std"]

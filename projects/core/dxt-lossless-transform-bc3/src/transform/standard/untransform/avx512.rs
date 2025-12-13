@@ -47,7 +47,7 @@ pub(crate) unsafe fn avx512_untransform(input_ptr: *const u8, output_ptr: *mut u
 /// - input_ptr must be valid for reads of len bytes
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512vbmi")]
-#[allow(dead_code)] // This should be faster on 32-bit builds, but somehow it only trades blows.
+#[allow(dead_code)] // 32-bit optimized variant; only used in tests. Trades blows with 64-bit path.
 pub(crate) unsafe fn avx512_untransform_32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(target_feature = "avx512vl")]
     let is_vl_supported = true;

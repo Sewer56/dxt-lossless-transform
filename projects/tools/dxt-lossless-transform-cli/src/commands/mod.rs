@@ -5,6 +5,8 @@ pub mod untransform;
 pub mod debug_bc1;
 #[cfg(feature = "debug-bc2")]
 pub mod debug_bc2;
+#[cfg(feature = "debug-bc3")]
+pub mod debug_bc3;
 #[cfg(feature = "debug-bc7")]
 pub mod debug_bc7;
 #[cfg(feature = "debug-endian")]

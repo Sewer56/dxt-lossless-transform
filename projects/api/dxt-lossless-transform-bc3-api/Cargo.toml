@@ -39,8 +39,8 @@ nightly = [
 dxt-lossless-transform-bc3 = { workspace = true, default-features = false }
 dxt-lossless-transform-api-common = { workspace = true, default-features = false }
 dxt-lossless-transform-common = { workspace = true, default-features = false }
-safe-allocator-api = { version = "0.4.0", default-features = false }
-thiserror = { version = "2.0.12", default-features = false }
+safe-allocator-api = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 dxt-lossless-transform-ltu = { workspace = true, default-features = true }

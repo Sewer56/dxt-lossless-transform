@@ -16,8 +16,8 @@
 
 use core::alloc::{Layout, LayoutError};
 use core::mem::MaybeUninit;
-use safe_allocator_api::allocator_api::*;
 use safe_allocator_api::RawAlloc;
+use safe_allocator_api::*;
 use thiserror::Error;
 
 /// Represents a fixed-size array of [`RawAlloc`]s.

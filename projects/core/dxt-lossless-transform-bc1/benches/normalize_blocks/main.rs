@@ -7,12 +7,6 @@ use dxt_lossless_transform_bc1::experimental::normalize_blocks::*;
 use safe_allocator_api::RawAlloc;
 use std::fs;
 
-#[cfg(all(
-    any(target_os = "linux", target_os = "macos"),
-    any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")
-))]
-use pprof::criterion::{Output, PProfProfiler};
-
 // Path to the BC1 file to benchmark with
 const TEST_FILE_PATH: &str =
     "/home/sewer/Temp/texture-stuff/bc1-raw/202x-architecture-10.01/whiterun/wrwoodlattice01.dds";
@@ -92,20 +86,6 @@ fn criterion_benchmark(c: &mut Criterion) {
     group.finish();
 }
 
-#[cfg(all(
-    any(target_os = "linux", target_os = "macos"),
-    any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")
-))]
-criterion_group! {
-    name = benches;
-    config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
-    targets = criterion_benchmark
-}
-
-#[cfg(not(all(
-    any(target_os = "linux", target_os = "macos"),
-    any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")
-)))]
 criterion_group! {
     name = benches;
     config = Criterion::default();

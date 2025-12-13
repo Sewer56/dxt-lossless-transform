@@ -4,23 +4,23 @@ inherits = "release"
 debug = true
 codegen-units = 1
 lto = true
-strip = false  # No stripping!!
+strip = false        # No stripping!!
 
 # Optimized Release Build
 [profile.release]
 codegen-units = 1
 lto = true
-strip = true  # Automatically strip symbols from the binary.
+strip = true      # Automatically strip symbols from the binary.
 panic = "abort"
 
 [workspace]
 members = [
     # High Level Crates (API)
-    "projects/api/dxt-lossless-transform-api-common", # High level cross-crate 'stable' API 
-    "projects/api/dxt-lossless-transform-bc1-api", # High level cross-crate 'stable' API
-    "projects/api/dxt-lossless-transform-bc2-api", # High level cross-crate 'stable' API
-    "projects/api/dxt-lossless-transform-bc3-api", # High level cross-crate 'stable' API
-    "projects/api/dxt-lossless-transform-bc7-api", # High level cross-crate 'stable' API
+    "projects/api/dxt-lossless-transform-api-common",       # High level cross-crate 'stable' API 
+    "projects/api/dxt-lossless-transform-bc1-api",          # High level cross-crate 'stable' API
+    "projects/api/dxt-lossless-transform-bc2-api",          # High level cross-crate 'stable' API
+    "projects/api/dxt-lossless-transform-bc3-api",          # High level cross-crate 'stable' API
+    "projects/api/dxt-lossless-transform-bc7-api",          # High level cross-crate 'stable' API
     "projects/api/dxt-lossless-transform-file-formats-api", # High level file format API
 
     # Low Level Crates (Core)
@@ -34,7 +34,7 @@ members = [
     # Extensions
     "projects/extensions/file-formats/dxt-lossless-transform-dds", # Adds DDS support
     "projects/extensions/compressors/dxt-lossless-transform-zstd", # ZStandard size estimation
-    "projects/extensions/estimators/dxt-lossless-transform-ltu", # Lossless Transform Utils size estimation
+    "projects/extensions/estimators/dxt-lossless-transform-ltu",   # Lossless Transform Utils size estimation
 
     # CLI Tool
     "projects/tools/dxt-lossless-transform-cli",
@@ -74,3 +74,19 @@ dxt-lossless-transform-ltu = { path = "projects/extensions/estimators/dxt-lossle
 
 # CLI Tool
 dxt-lossless-transform-cli = { path = "projects/tools/dxt-lossless-transform-cli", default-features = false }
+
+# External dependencies (shared across crates)
+safe-allocator-api = { version = "0.6.0", default-features = false }
+thiserror = { version = "2.0.17", default-features = false }
+criterion = "0.8.1"
+rstest = "0.26.1"
+likely_stable = "0.1.3"
+derive-enum-all-values = "0.2.1"
+lightweight-mmap = { version = "0.7.0", default-features = false }
+tempfile = "3.17.0"
+endian-writer = "2.2"
+bitfield = { version = "0.19.1", default-features = false }
+bincode = { version = "2.0.1", default-features = false, features = ["alloc", "derive"] }
+zstd-sys = { version = "2.0.16", features = ["experimental"] }
+lossless-transform-utils = "0.1.3"
+multiversion = { version = "0.8.0", default-features = false }

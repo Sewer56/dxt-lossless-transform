@@ -15,7 +15,7 @@ impl Throughput {
     }
 
     /// Returns the raw bytes per second value.
-    #[allow(dead_code)]
+    #[cfg(feature = "debug-format")]
     pub fn bytes_per_sec(&self) -> u64 {
         self.0 .0
     }

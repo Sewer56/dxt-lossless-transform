@@ -28,8 +28,6 @@ dxt-lossless-transform-common = { workspace = true, default-features = false }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dev-dependencies]
-criterion = "0.5.1"
-rstest = "0.25.0"
+criterion = { workspace = true }
+rstest = { workspace = true }
 
-[target.'cfg(all(any(target_os = "linux", target_os = "macos"), any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))'.dev-dependencies]
-pprof = { version = "0.14", features = ["flamegraph", "criterion"] }

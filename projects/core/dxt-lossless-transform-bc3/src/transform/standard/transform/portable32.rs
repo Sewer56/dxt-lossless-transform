@@ -36,33 +36,31 @@ pub(crate) unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) 
 /// - All output buffers must not overlap with each other or the input buffer
 /// - len must be divisible by 16 (BC3 block size)
 pub(crate) unsafe fn u32_with_separate_endpoints(
-    input_ptr: *const u8,
+    mut input_ptr: *const u8,
     mut alpha_byte_out_ptr: *mut u16,
     mut alpha_bit_out_ptr: *mut u16,
     mut color_byte_out_ptr: *mut u32,
     mut index_byte_out_ptr: *mut u32,
     alpha_byte_end_ptr: *mut u16,
 ) {
-    let mut current_input_ptr = input_ptr;
-
     while alpha_byte_out_ptr < alpha_byte_end_ptr {
         // Alpha bytes (2 bytes)
-        alpha_byte_out_ptr.write_u16_at(0, current_input_ptr.read_u16_at(0));
+        alpha_byte_out_ptr.write_u16_at(0, input_ptr.read_u16_at(0));
         alpha_byte_out_ptr = alpha_byte_out_ptr.add(1); // 2 bytes forward
 
         // Alpha bits (6 bytes)
-        alpha_bit_out_ptr.write_u16_at(0, current_input_ptr.read_u16_at(2));
-        alpha_bit_out_ptr.write_u32_at(2, current_input_ptr.read_u32_at(4));
+        alpha_bit_out_ptr.write_u16_at(0, input_ptr.read_u16_at(2));
+        alpha_bit_out_ptr.write_u32_at(2, input_ptr.read_u32_at(4));
         alpha_bit_out_ptr = alpha_bit_out_ptr.add(3); // 6 bytes forward
 
         // Color bytes (4 bytes)
-        color_byte_out_ptr.write_u32_at(0, current_input_ptr.read_u32_at(8));
+        color_byte_out_ptr.write_u32_at(0, input_ptr.read_u32_at(8));
         color_byte_out_ptr = color_byte_out_ptr.add(1); // 4 bytes forward
 
         // Index bytes
-        index_byte_out_ptr.write_u32_at(0, current_input_ptr.read_u32_at(12));
+        index_byte_out_ptr.write_u32_at(0, input_ptr.read_u32_at(12));
         index_byte_out_ptr = index_byte_out_ptr.add(1); // 4 bytes forward
-        current_input_ptr = current_input_ptr.add(16); // 16 bytes forward
+        input_ptr = input_ptr.add(16); // 16 bytes forward
     }
 }
 

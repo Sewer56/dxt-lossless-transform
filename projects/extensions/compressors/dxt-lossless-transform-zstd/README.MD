@@ -3,7 +3,7 @@
 ZStandard size estimation implementation for DXT lossless transform library.
 
 This crate provides a [`ZStandardSizeEstimation`] implementation of the 
-[`SizeEstimationOperations`] trait from [`dxt-lossless-transform-api-common`].
+[`SizeEstimationOperations`] trait from `dxt-lossless-transform-api-common`.
 
 ## Usage
 

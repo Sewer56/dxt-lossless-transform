@@ -18,13 +18,11 @@ pub use std::is_x86_feature_detected;
 // External crates commonly used in tests
 pub use rstest::rstest;
 
-// Core functionality from this crate
-pub use crate::{transform_bc3, untransform_bc3, BC3TransformDetails};
-
 // Test utilities from transforms module are used internally
 // but not re-exported due to visibility constraints
 
 // Common types from dxt_lossless_transform_common
+pub use dxt_lossless_transform_common::color_565::YCoCgVariant;
 pub use dxt_lossless_transform_common::color_8888::Color8888;
 #[allow(unused_imports)] // Might be unused in some CPU architectures, and that's ok.
 pub use dxt_lossless_transform_common::cpu_detect::*;
@@ -127,6 +125,26 @@ pub(crate) fn assert_implementation_matches_reference(
 /// Common type alias for transform/split functions used across BC3 tests.
 pub(crate) type StandardTransformFn = unsafe fn(*const u8, *mut u8, usize);
 
+// -----------------------------------------
+// Shared test helpers for split alphas tests
+// -----------------------------------------
+/// Common type alias for BC3 split alphas transform functions used across tests.
+pub(crate) type SplitAlphasTransformFn =
+    unsafe fn(*const u8, *mut u8, *mut u8, *mut u16, *mut u32, *mut u32, usize);
+/// Common type alias for BC3 split alphas untransform functions used across tests.
+pub(crate) type SplitAlphasUntransformFn =
+    unsafe fn(*const u8, *const u8, *const u16, *const u32, *const u32, *mut u8, usize);
+
+// -----------------------------------------
+// Shared test helpers for split colour tests
+// -----------------------------------------
+/// Common type alias for BC3 split colour transform functions used across tests.
+pub(crate) type SplitColourTransformFn =
+    unsafe fn(*const u8, *mut u16, *mut u16, *mut u16, *mut u16, *mut u32, usize);
+/// Common type alias for BC3 split colour untransform functions used across tests.
+pub(crate) type SplitColourUntransformFn =
+    unsafe fn(*const u16, *const u16, *const u16, *const u16, *const u32, *mut u8, usize);
+
 /// Executes an unaligned transform test for split operations with input unalignment.
 /// Tests transform with deliberately misaligned input and output buffers.
 ///
@@ -163,7 +181,7 @@ pub(crate) fn run_standard_transform_unaligned_test(
             );
 
             // Step 2: Untransform using standard function with unaligned pointers
-            crate::transform::standard::unsplit_blocks(
+            crate::transform::standard::untransform(
                 transformed.as_ptr().add(1),
                 reconstructed.as_mut_ptr().add(1),
                 original.len(),
@@ -203,8 +221,8 @@ pub(crate) fn run_standard_untransform_unaligned_test(
         let mut unaligned_reconstructed = allocate_align_64(original.len() + 1);
 
         unsafe {
-            // First, transform using standard split_blocks
-            crate::transform::standard::split_blocks(
+            // First, transform using standard transform
+            crate::transform::standard::transform(
                 original.as_ptr(),
                 unaligned_transformed.as_mut_ptr().add(1),
                 original.len(),
@@ -225,6 +243,815 @@ pub(crate) fn run_standard_untransform_unaligned_test(
             impl_name,
             block_count,
         );
+    }
+}
+
+/// Executes a split alphas transform → untransform round-trip test
+/// using the specified transform function, asserting that the final data
+/// matches the original input.
+#[inline]
+pub(crate) fn run_split_alphas_transform_roundtrip_test(
+    transform_fn: SplitAlphasTransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_alphas::untransform_with_split_alphas;
+    for num_blocks in 1..=max_blocks {
+        let original = generate_bc3_test_data(num_blocks);
+        // Allocate separate arrays for split alphas data
+        let mut alpha0_data = allocate_align_64(num_blocks);
+        let mut alpha1_data = allocate_align_64(num_blocks);
+        let mut alpha_indices_data = allocate_align_64(num_blocks * 6);
+        let mut colors_data = allocate_align_64(num_blocks * 4);
+        let mut color_indices_data = allocate_align_64(num_blocks * 4);
+        let mut reconstructed = allocate_align_64(original.len());
+        unsafe {
+            // Transform using the function being tested
+            transform_fn(
+                original.as_ptr(),
+                alpha0_data.as_mut_ptr(),
+                alpha1_data.as_mut_ptr(),
+                alpha_indices_data.as_mut_ptr() as *mut u16,
+                colors_data.as_mut_ptr() as *mut u32,
+                color_indices_data.as_mut_ptr() as *mut u32,
+                num_blocks,
+            );
+            // Untransform using the generic dispatcher
+            untransform_with_split_alphas(
+                alpha0_data.as_ptr(),
+                alpha1_data.as_ptr(),
+                alpha_indices_data.as_ptr() as *const u16,
+                colors_data.as_ptr() as *const u32,
+                color_indices_data.as_ptr() as *const u32,
+                reconstructed.as_mut_ptr(),
+                num_blocks,
+            );
+        }
+        assert_eq!(
+            original.as_slice(),
+            reconstructed.as_slice(),
+            "Mismatch in {impl_name} roundtrip for {num_blocks} blocks",
+        );
+    }
+}
+
+/// Executes an unaligned untransform test for split alphas operations.
+/// Tests a transform→untransform roundtrip with deliberately misaligned buffers.
+///
+/// The `max_blocks` parameter should equal twice the number of bytes processed in one main loop
+/// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 16).
+#[inline]
+pub(crate) fn run_with_split_alphas_untransform_unaligned_test(
+    untransform_fn: SplitAlphasUntransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_alphas::transform_with_split_alphas;
+    for block_count in 1..=max_blocks {
+        // Generate test data
+        let original = generate_bc3_test_data(block_count);
+        // Create separate arrays for split alphas data
+        let mut alpha0_data = allocate_align_64(block_count);
+        let mut alpha1_data = allocate_align_64(block_count);
+        let mut alpha_indices_data = allocate_align_64(block_count * 6);
+        let mut colors_data = allocate_align_64(block_count * 4);
+        let mut color_indices_data = allocate_align_64(block_count * 4);
+        // Create unaligned reconstruction buffer
+        let mut unaligned_reconstructed = allocate_align_64(original.len() + 1);
+        unsafe {
+            // First, transform using split alphas transform
+            transform_with_split_alphas(
+                original.as_ptr(),
+                alpha0_data.as_mut_ptr(),
+                alpha1_data.as_mut_ptr(),
+                alpha_indices_data.as_mut_ptr() as *mut u16,
+                colors_data.as_mut_ptr() as *mut u32,
+                color_indices_data.as_mut_ptr() as *mut u32,
+                block_count,
+            );
+            // Then, untransform using the function being tested with unaligned output
+            untransform_fn(
+                alpha0_data.as_ptr(),
+                alpha1_data.as_ptr(),
+                alpha_indices_data.as_ptr() as *const u16,
+                colors_data.as_ptr() as *const u32,
+                color_indices_data.as_ptr() as *const u32,
+                unaligned_reconstructed.as_mut_ptr().add(1),
+                block_count,
+            );
+        }
+        // Verify the results match
+        assert_implementation_matches_reference(
+            original.as_slice(),
+            &unaligned_reconstructed.as_slice()[1..original.len() + 1],
+            impl_name,
+            block_count,
+        );
+    }
+}
+
+/// Executes a split colour transform → untransform round-trip test
+/// using the specified transform function, asserting that the final data
+/// matches the original input.
+#[inline]
+pub(crate) fn run_split_colour_transform_roundtrip_test(
+    transform_fn: SplitColourTransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_colour::untransform_with_split_colour;
+    for num_blocks in 1..=max_blocks {
+        let original = generate_bc3_test_data(num_blocks);
+        // Allocate separate arrays for split colour data
+        let mut alpha_endpoints_data = allocate_align_64(num_blocks * 2);
+        let mut alpha_indices_data = allocate_align_64(num_blocks * 6);
+        let mut color0_data = allocate_align_64(num_blocks * 2);
+        let mut color1_data = allocate_align_64(num_blocks * 2);
+        let mut color_indices_data = allocate_align_64(num_blocks * 4);
+        let mut reconstructed = allocate_align_64(original.len());
+        unsafe {
+            // Transform using the function being tested
+            transform_fn(
+                original.as_ptr(),
+                alpha_endpoints_data.as_mut_ptr() as *mut u16,
+                alpha_indices_data.as_mut_ptr() as *mut u16,
+                color0_data.as_mut_ptr() as *mut u16,
+                color1_data.as_mut_ptr() as *mut u16,
+                color_indices_data.as_mut_ptr() as *mut u32,
+                num_blocks,
+            );
+            // Untransform using the generic dispatcher
+            untransform_with_split_colour(
+                alpha_endpoints_data.as_ptr() as *const u16,
+                alpha_indices_data.as_ptr() as *const u16,
+                color0_data.as_ptr() as *const u16,
+                color1_data.as_ptr() as *const u16,
+                color_indices_data.as_ptr() as *const u32,
+                reconstructed.as_mut_ptr(),
+                num_blocks,
+            );
+        }
+        assert_eq!(
+            original.as_slice(),
+            reconstructed.as_slice(),
+            "Mismatch in {impl_name} roundtrip for {num_blocks} blocks",
+        );
+    }
+}
+
+/// Executes an unaligned untransform test for split colour operations.
+/// Tests a transform→untransform roundtrip with deliberately misaligned buffers.
+///
+/// The `max_blocks` parameter should equal twice the number of bytes processed in one main loop
+/// iteration of the SIMD implementation being tested (i.e., bytes processed × 2 ÷ 16).
+#[inline]
+pub(crate) fn run_with_split_colour_untransform_unaligned_test(
+    untransform_fn: SplitColourUntransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_colour::transform_with_split_colour;
+    for block_count in 1..=max_blocks {
+        // Generate test data
+        let original = generate_bc3_test_data(block_count);
+        // Create separate arrays for split colour data
+        let mut alpha_endpoints_data = allocate_align_64(block_count * 2);
+        let mut alpha_indices_data = allocate_align_64(block_count * 6);
+        let mut color0_data = allocate_align_64(block_count * 2);
+        let mut color1_data = allocate_align_64(block_count * 2);
+        let mut color_indices_data = allocate_align_64(block_count * 4);
+        // Create unaligned reconstruction buffer
+        let mut unaligned_reconstructed = allocate_align_64(original.len() + 1);
+        unsafe {
+            // First, transform using split colour transform
+            transform_with_split_colour(
+                original.as_ptr(),
+                alpha_endpoints_data.as_mut_ptr() as *mut u16,
+                alpha_indices_data.as_mut_ptr() as *mut u16,
+                color0_data.as_mut_ptr() as *mut u16,
+                color1_data.as_mut_ptr() as *mut u16,
+                color_indices_data.as_mut_ptr() as *mut u32,
+                block_count,
+            );
+            // Then, untransform using the function being tested with unaligned output
+            untransform_fn(
+                alpha_endpoints_data.as_ptr() as *const u16,
+                alpha_indices_data.as_ptr() as *const u16,
+                color0_data.as_ptr() as *const u16,
+                color1_data.as_ptr() as *const u16,
+                color_indices_data.as_ptr() as *const u32,
+                unaligned_reconstructed.as_mut_ptr().add(1),
+                block_count,
+            );
+        }
+        // Verify the results match
+        assert_implementation_matches_reference(
+            original.as_slice(),
+            &unaligned_reconstructed.as_slice()[1..original.len() + 1],
+            impl_name,
+            block_count,
+        );
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Shared test helpers for BC3 with_recorrelate tests
+// -------------------------------------------------------------------------------------------------
+
+/// Common type alias for BC3 transform functions with decorrelation used across tests.
+pub(crate) type WithDecorrelateTransformFn =
+    unsafe fn(*const u8, *mut u16, *mut u16, *mut u32, *mut u32, usize);
+
+/// Common type alias for BC3 untransform functions with recorrelation used across tests.
+pub(crate) type WithRecorrelateUntransformFn =
+    unsafe fn(*const u16, *const u16, *const u32, *const u32, *mut u8, usize);
+
+/// Executes a decorrelate transform → untransform round-trip on 1‥=max_blocks BC3 blocks
+/// using the specified transform function and YCoCg variant, asserting that the final data
+/// matches the original input.
+#[inline]
+pub(crate) fn run_with_decorrelate_transform_roundtrip_test(
+    transform_fn: WithDecorrelateTransformFn,
+    variant: YCoCgVariant,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_recorrelate::untransform::untransform_with_recorrelate;
+
+    for num_blocks in 1..=max_blocks {
+        let original = generate_bc3_test_data(num_blocks);
+        let len = original.len();
+
+        // Allocate combined buffer for separated data (like BC2 does)
+        let mut transformed = allocate_align_64(len);
+        let mut reconstructed = allocate_align_64(len);
+
+        unsafe {
+            // Transform with decorrelation using combined buffer layout
+            transform_fn(
+                original.as_ptr(),
+                transformed.as_mut_ptr() as *mut u16, // alpha_endpoints at start
+                transformed.as_mut_ptr().add(len / 8) as *mut u16, // alpha_indices at len/8
+                transformed.as_mut_ptr().add(len / 2) as *mut u32, // colors at len/2
+                transformed.as_mut_ptr().add(len / 2 + len / 4) as *mut u32, // color_indices at 3*len/4
+                num_blocks,
+            );
+
+            // Untransform with recorrelation using public dispatcher
+            untransform_with_recorrelate(
+                transformed.as_ptr(),
+                reconstructed.as_mut_ptr(),
+                len,
+                variant,
+            );
+        }
+
+        assert_eq!(
+            original.as_slice(),
+            reconstructed.as_slice(),
+            "Mismatch in {impl_name} roundtrip for {num_blocks} blocks with {variant:?}",
+        );
+    }
+}
+
+/// Executes a recorrelate untransform round-trip test by first applying the matching
+/// transform with decorrelation, then the specified untransform function, asserting
+/// that the final data matches the original input.
+#[inline]
+pub(crate) fn run_with_recorrelate_untransform_roundtrip_test(
+    untransform_fn: WithRecorrelateUntransformFn,
+    variant: YCoCgVariant,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_recorrelate::transform::transform_with_decorrelate;
+
+    for num_blocks in 1..=max_blocks {
+        let original = generate_bc3_test_data(num_blocks);
+        let len = original.len();
+
+        // Allocate buffers
+        let mut reconstructed = allocate_align_64(len);
+
+        unsafe {
+            // First transform with decorrelation using public dispatcher
+            let mut transformed = allocate_align_64(len);
+            transform_with_decorrelate(original.as_ptr(), transformed.as_mut_ptr(), len, variant);
+
+            // Extract separated pointers from the combined buffer
+            let alpha_endpoints_ptr = transformed.as_ptr() as *const u16;
+            let alpha_indices_ptr = transformed.as_ptr().add(len / 8) as *const u16;
+            let colors_ptr = transformed.as_ptr().add(len / 2) as *const u32;
+            let color_indices_ptr = transformed.as_ptr().add(len / 2 + len / 4) as *const u32;
+
+            // Then untransform with recorrelation using individual function
+            untransform_fn(
+                alpha_endpoints_ptr,
+                alpha_indices_ptr,
+                colors_ptr,
+                color_indices_ptr,
+                reconstructed.as_mut_ptr(),
+                num_blocks,
+            );
+        }
+
+        assert_eq!(
+            original.as_slice(),
+            reconstructed.as_slice(),
+            "Mismatch in {impl_name} roundtrip for {num_blocks} blocks with {variant:?}",
+        );
+    }
+}
+
+// -----------------------------------------
+// Shared test helpers for combination variant tests
+// -----------------------------------------
+
+/// Common type alias for BC3 split alphas and colour transform functions used across tests.
+pub(crate) type SplitAlphasAndColourTransformFn =
+    unsafe fn(*const u8, *mut u8, *mut u8, *mut u16, *mut u16, *mut u16, *mut u32, usize);
+
+/// Common type alias for BC3 split alphas and colour untransform functions used across tests.
+pub(crate) type SplitAlphasAndColourUntransformFn =
+    unsafe fn(*const u8, *const u8, *const u16, *const u16, *const u16, *const u32, *mut u8, usize);
+
+/// Common type alias for BC3 split alphas and recorrelate transform functions used across tests.
+pub(crate) type SplitAlphasAndRecorrTransformFn =
+    unsafe fn(*const u8, *mut u8, *mut u8, *mut u16, *mut u32, *mut u32, usize, YCoCgVariant);
+
+/// Common type alias for BC3 split alphas and recorrelate untransform functions used across tests.
+pub(crate) type SplitAlphasAndRecorrUntransformFn = unsafe fn(
+    *const u8,
+    *const u8,
+    *const u16,
+    *const u32,
+    *const u32,
+    *mut u8,
+    usize,
+    YCoCgVariant,
+);
+
+/// Common type alias for BC3 split colour and recorrelate transform functions used across tests.
+pub(crate) type SplitColourAndRecorrTransformFn =
+    unsafe fn(*const u8, *mut u16, *mut u16, *mut u16, *mut u16, *mut u32, usize, YCoCgVariant);
+
+/// Common type alias for BC3 split colour and recorrelate untransform functions used across tests.
+pub(crate) type SplitColourAndRecorrUntransformFn = unsafe fn(
+    *const u16,
+    *const u16,
+    *const u16,
+    *const u16,
+    *const u32,
+    *mut u8,
+    usize,
+    YCoCgVariant,
+);
+
+/// Common type alias for BC3 split alphas, colour and recorrelate transform functions used across tests.
+pub(crate) type SplitAlphasColourAndRecorrTransformFn = unsafe fn(
+    *const u8,
+    *mut u8,
+    *mut u8,
+    *mut u16,
+    *mut u16,
+    *mut u16,
+    *mut u32,
+    usize,
+    YCoCgVariant,
+);
+
+/// Common type alias for BC3 split alphas, colour and recorrelate untransform functions used across tests.
+pub(crate) type SplitAlphasColourAndRecorrUntransformFn = unsafe fn(
+    *const u8,
+    *const u8,
+    *const u16,
+    *const u16,
+    *const u16,
+    *const u32,
+    *mut u8,
+    usize,
+    YCoCgVariant,
+);
+
+/// Executes a split alphas and colour transform → untransform round-trip on 1‥=max_blocks BC3 blocks
+/// using the specified transform function, asserting that the final data matches the original input.
+#[inline]
+pub(crate) fn run_split_alphas_and_colour_transform_roundtrip_test(
+    transform_fn: SplitAlphasAndColourTransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_alphas_and_colour::untransform_with_split_alphas_and_colour;
+    for num_blocks in 1..=max_blocks {
+        let original = generate_bc3_test_data(num_blocks);
+        // Allocate separate arrays for split alphas and colour data
+        let mut alpha0_data = allocate_align_64(num_blocks);
+        let mut alpha1_data = allocate_align_64(num_blocks);
+        let mut alpha_indices_data = allocate_align_64(num_blocks * 6);
+        let mut color0_data = allocate_align_64(num_blocks * 2);
+        let mut color1_data = allocate_align_64(num_blocks * 2);
+        let mut color_indices_data = allocate_align_64(num_blocks * 4);
+        let mut reconstructed = allocate_align_64(original.len());
+        unsafe {
+            // Transform using the function being tested
+            transform_fn(
+                original.as_ptr(),
+                alpha0_data.as_mut_ptr(),
+                alpha1_data.as_mut_ptr(),
+                alpha_indices_data.as_mut_ptr() as *mut u16,
+                color0_data.as_mut_ptr() as *mut u16,
+                color1_data.as_mut_ptr() as *mut u16,
+                color_indices_data.as_mut_ptr() as *mut u32,
+                num_blocks,
+            );
+            // Untransform using the generic dispatcher
+            untransform_with_split_alphas_and_colour(
+                alpha0_data.as_ptr(),
+                alpha1_data.as_ptr(),
+                alpha_indices_data.as_ptr() as *const u16,
+                color0_data.as_ptr() as *const u16,
+                color1_data.as_ptr() as *const u16,
+                color_indices_data.as_ptr() as *const u32,
+                reconstructed.as_mut_ptr(),
+                num_blocks,
+            );
+        }
+        assert_eq!(
+            original.as_slice(),
+            reconstructed.as_slice(),
+            "Mismatch in {impl_name} roundtrip for {num_blocks} blocks",
+        );
+    }
+}
+
+/// Executes an unaligned untransform test for split alphas and colour operations.
+#[inline]
+pub(crate) fn run_with_split_alphas_and_colour_untransform_unaligned_test(
+    untransform_fn: SplitAlphasAndColourUntransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_alphas_and_colour::transform_with_split_alphas_and_colour;
+    for num_blocks in 1..=max_blocks {
+        let original = generate_bc3_test_data(num_blocks);
+        let mut alpha0_data = allocate_align_64(num_blocks);
+        let mut alpha1_data = allocate_align_64(num_blocks);
+        let mut alpha_indices_data = allocate_align_64(num_blocks * 6);
+        let mut color0_data = allocate_align_64(num_blocks * 2);
+        let mut color1_data = allocate_align_64(num_blocks * 2);
+        let mut color_indices_data = allocate_align_64(num_blocks * 4);
+        let mut reconstructed = allocate_align_64(original.len() + 1);
+
+        unsafe {
+            // Transform first
+            transform_with_split_alphas_and_colour(
+                original.as_ptr(),
+                alpha0_data.as_mut_ptr(),
+                alpha1_data.as_mut_ptr(),
+                alpha_indices_data.as_mut_ptr() as *mut u16,
+                color0_data.as_mut_ptr() as *mut u16,
+                color1_data.as_mut_ptr() as *mut u16,
+                color_indices_data.as_mut_ptr() as *mut u32,
+                num_blocks,
+            );
+            // Untransform with unaligned output only
+            untransform_fn(
+                alpha0_data.as_ptr(),
+                alpha1_data.as_ptr(),
+                alpha_indices_data.as_ptr() as *const u16,
+                color0_data.as_ptr() as *const u16,
+                color1_data.as_ptr() as *const u16,
+                color_indices_data.as_ptr() as *const u32,
+                reconstructed.as_mut_ptr().add(1),
+                num_blocks,
+            );
+        }
+        assert_eq!(
+            original.as_slice(),
+            &reconstructed.as_slice()[1..original.len() + 1],
+            "Mismatch in {impl_name} unaligned test for {num_blocks} blocks",
+        );
+    }
+}
+
+/// Executes a split alphas and recorrelate transform → untransform round-trip test.
+#[inline]
+pub(crate) fn run_split_alphas_and_recorr_transform_roundtrip_test(
+    transform_fn: SplitAlphasAndRecorrTransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_alphas_and_recorr::untransform_with_split_alphas_and_recorr;
+    for variant in [
+        YCoCgVariant::Variant1,
+        YCoCgVariant::Variant2,
+        YCoCgVariant::Variant3,
+    ] {
+        for num_blocks in 1..=max_blocks {
+            let original = generate_bc3_test_data(num_blocks);
+            let mut alpha0_data = allocate_align_64(num_blocks);
+            let mut alpha1_data = allocate_align_64(num_blocks);
+            let mut alpha_indices_data = allocate_align_64(num_blocks * 6);
+            let mut decorrelated_colors_data = allocate_align_64(num_blocks * 4);
+            let mut color_indices_data = allocate_align_64(num_blocks * 4);
+            let mut reconstructed = allocate_align_64(original.len());
+            unsafe {
+                transform_fn(
+                    original.as_ptr(),
+                    alpha0_data.as_mut_ptr(),
+                    alpha1_data.as_mut_ptr(),
+                    alpha_indices_data.as_mut_ptr() as *mut u16,
+                    decorrelated_colors_data.as_mut_ptr() as *mut u32,
+                    color_indices_data.as_mut_ptr() as *mut u32,
+                    num_blocks,
+                    variant,
+                );
+                untransform_with_split_alphas_and_recorr(
+                    alpha0_data.as_ptr(),
+                    alpha1_data.as_ptr(),
+                    alpha_indices_data.as_ptr() as *const u16,
+                    decorrelated_colors_data.as_ptr() as *const u32,
+                    color_indices_data.as_ptr() as *const u32,
+                    reconstructed.as_mut_ptr(),
+                    num_blocks,
+                    variant,
+                );
+            }
+            assert_eq!(
+                original.as_slice(),
+                reconstructed.as_slice(),
+                "Mismatch in {impl_name} roundtrip for {num_blocks} blocks with {variant:?}",
+            );
+        }
+    }
+}
+
+/// Executes an unaligned untransform test for split alphas and recorrelate operations.
+#[inline]
+pub(crate) fn run_with_split_alphas_and_recorr_untransform_unaligned_test(
+    untransform_fn: SplitAlphasAndRecorrUntransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_alphas_and_recorr::transform_with_split_alphas_and_recorr;
+    for variant in [
+        YCoCgVariant::Variant1,
+        YCoCgVariant::Variant2,
+        YCoCgVariant::Variant3,
+    ] {
+        for num_blocks in 1..=max_blocks {
+            let original = generate_bc3_test_data(num_blocks);
+            let mut alpha0_data = allocate_align_64(num_blocks);
+            let mut alpha1_data = allocate_align_64(num_blocks);
+            let mut alpha_indices_data = allocate_align_64(num_blocks * 6);
+            let mut decorrelated_colors_data = allocate_align_64(num_blocks * 4);
+            let mut color_indices_data = allocate_align_64(num_blocks * 4);
+            let mut reconstructed = allocate_align_64(original.len() + 1);
+
+            unsafe {
+                transform_with_split_alphas_and_recorr(
+                    original.as_ptr(),
+                    alpha0_data.as_mut_ptr(),
+                    alpha1_data.as_mut_ptr(),
+                    alpha_indices_data.as_mut_ptr() as *mut u16,
+                    decorrelated_colors_data.as_mut_ptr() as *mut u32,
+                    color_indices_data.as_mut_ptr() as *mut u32,
+                    num_blocks,
+                    variant,
+                );
+                untransform_fn(
+                    alpha0_data.as_ptr(),
+                    alpha1_data.as_ptr(),
+                    alpha_indices_data.as_ptr() as *const u16,
+                    decorrelated_colors_data.as_ptr() as *const u32,
+                    color_indices_data.as_ptr() as *const u32,
+                    reconstructed.as_mut_ptr().add(1),
+                    num_blocks,
+                    variant,
+                );
+            }
+            assert_eq!(
+                original.as_slice(),
+                &reconstructed.as_slice()[1..original.len() + 1],
+                "Mismatch in {impl_name} unaligned test for {num_blocks} blocks with {variant:?}",
+            );
+        }
+    }
+}
+
+/// Executes a split colour and recorrelate transform → untransform round-trip test.
+#[inline]
+pub(crate) fn run_split_colour_and_recorr_transform_roundtrip_test(
+    transform_fn: SplitColourAndRecorrTransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_colour_and_recorr::untransform_with_split_colour_and_recorr;
+    for variant in [
+        YCoCgVariant::Variant1,
+        YCoCgVariant::Variant2,
+        YCoCgVariant::Variant3,
+    ] {
+        for num_blocks in 1..=max_blocks {
+            let original = generate_bc3_test_data(num_blocks);
+            let mut alpha_endpoints_data = allocate_align_64(num_blocks * 2);
+            let mut alpha_indices_data = allocate_align_64(num_blocks * 6);
+            let mut decorrelated_color0_data = allocate_align_64(num_blocks * 2);
+            let mut decorrelated_color1_data = allocate_align_64(num_blocks * 2);
+            let mut color_indices_data = allocate_align_64(num_blocks * 4);
+            let mut reconstructed = allocate_align_64(original.len());
+            unsafe {
+                transform_fn(
+                    original.as_ptr(),
+                    alpha_endpoints_data.as_mut_ptr() as *mut u16,
+                    alpha_indices_data.as_mut_ptr() as *mut u16,
+                    decorrelated_color0_data.as_mut_ptr() as *mut u16,
+                    decorrelated_color1_data.as_mut_ptr() as *mut u16,
+                    color_indices_data.as_mut_ptr() as *mut u32,
+                    num_blocks,
+                    variant,
+                );
+                untransform_with_split_colour_and_recorr(
+                    alpha_endpoints_data.as_ptr() as *const u16,
+                    alpha_indices_data.as_ptr() as *const u16,
+                    decorrelated_color0_data.as_ptr() as *const u16,
+                    decorrelated_color1_data.as_ptr() as *const u16,
+                    color_indices_data.as_ptr() as *const u32,
+                    reconstructed.as_mut_ptr(),
+                    num_blocks,
+                    variant,
+                );
+            }
+            assert_eq!(
+                original.as_slice(),
+                reconstructed.as_slice(),
+                "Mismatch in {impl_name} roundtrip for {num_blocks} blocks with {variant:?}",
+            );
+        }
+    }
+}
+
+/// Executes an unaligned untransform test for split colour and recorrelate operations.
+#[inline]
+pub(crate) fn run_with_split_colour_and_recorr_untransform_unaligned_test(
+    untransform_fn: SplitColourAndRecorrUntransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_colour_and_recorr::transform_with_split_colour_and_recorr;
+    for variant in [
+        YCoCgVariant::Variant1,
+        YCoCgVariant::Variant2,
+        YCoCgVariant::Variant3,
+    ] {
+        for num_blocks in 1..=max_blocks {
+            let original = generate_bc3_test_data(num_blocks);
+            let mut alpha_endpoints_data = allocate_align_64(num_blocks * 2);
+            let mut alpha_indices_data = allocate_align_64(num_blocks * 6);
+            let mut decorrelated_color0_data = allocate_align_64(num_blocks * 2);
+            let mut decorrelated_color1_data = allocate_align_64(num_blocks * 2);
+            let mut color_indices_data = allocate_align_64(num_blocks * 4);
+            let mut reconstructed = allocate_align_64(original.len() + 1);
+
+            unsafe {
+                transform_with_split_colour_and_recorr(
+                    original.as_ptr(),
+                    alpha_endpoints_data.as_mut_ptr() as *mut u16,
+                    alpha_indices_data.as_mut_ptr() as *mut u16,
+                    decorrelated_color0_data.as_mut_ptr() as *mut u16,
+                    decorrelated_color1_data.as_mut_ptr() as *mut u16,
+                    color_indices_data.as_mut_ptr() as *mut u32,
+                    num_blocks,
+                    variant,
+                );
+                untransform_fn(
+                    alpha_endpoints_data.as_ptr() as *const u16,
+                    alpha_indices_data.as_ptr() as *const u16,
+                    decorrelated_color0_data.as_ptr() as *const u16,
+                    decorrelated_color1_data.as_ptr() as *const u16,
+                    color_indices_data.as_ptr() as *const u32,
+                    reconstructed.as_mut_ptr().add(1),
+                    num_blocks,
+                    variant,
+                );
+            }
+            assert_eq!(
+                original.as_slice(),
+                &reconstructed.as_slice()[1..original.len() + 1],
+                "Mismatch in {impl_name} unaligned test for {num_blocks} blocks with {variant:?}",
+            );
+        }
+    }
+}
+
+/// Executes a split alphas, colour and recorrelate transform → untransform round-trip test.
+#[inline]
+pub(crate) fn run_split_alphas_colour_and_recorr_transform_roundtrip_test(
+    transform_fn: SplitAlphasColourAndRecorrTransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_alphas_colour_and_recorr::untransform_with_split_alphas_colour_and_recorr;
+    for variant in [
+        YCoCgVariant::Variant1,
+        YCoCgVariant::Variant2,
+        YCoCgVariant::Variant3,
+    ] {
+        for num_blocks in 1..=max_blocks {
+            let original = generate_bc3_test_data(num_blocks);
+            let mut alpha0_data = allocate_align_64(num_blocks);
+            let mut alpha1_data = allocate_align_64(num_blocks);
+            let mut alpha_indices_data = allocate_align_64(num_blocks * 6);
+            let mut decorrelated_color0_data = allocate_align_64(num_blocks * 2);
+            let mut decorrelated_color1_data = allocate_align_64(num_blocks * 2);
+            let mut color_indices_data = allocate_align_64(num_blocks * 4);
+            let mut reconstructed = allocate_align_64(original.len());
+            unsafe {
+                transform_fn(
+                    original.as_ptr(),
+                    alpha0_data.as_mut_ptr(),
+                    alpha1_data.as_mut_ptr(),
+                    alpha_indices_data.as_mut_ptr() as *mut u16,
+                    decorrelated_color0_data.as_mut_ptr() as *mut u16,
+                    decorrelated_color1_data.as_mut_ptr() as *mut u16,
+                    color_indices_data.as_mut_ptr() as *mut u32,
+                    num_blocks,
+                    variant,
+                );
+                untransform_with_split_alphas_colour_and_recorr(
+                    alpha0_data.as_ptr(),
+                    alpha1_data.as_ptr(),
+                    alpha_indices_data.as_ptr() as *const u16,
+                    decorrelated_color0_data.as_ptr() as *const u16,
+                    decorrelated_color1_data.as_ptr() as *const u16,
+                    color_indices_data.as_ptr() as *const u32,
+                    reconstructed.as_mut_ptr(),
+                    num_blocks,
+                    variant,
+                );
+            }
+            assert_eq!(
+                original.as_slice(),
+                reconstructed.as_slice(),
+                "Mismatch in {impl_name} roundtrip for {num_blocks} blocks with {variant:?}",
+            );
+        }
+    }
+}
+
+/// Executes an unaligned untransform test for split alphas, colour and recorrelate operations.
+#[inline]
+pub(crate) fn run_with_split_alphas_colour_and_recorr_untransform_unaligned_test(
+    untransform_fn: SplitAlphasColourAndRecorrUntransformFn,
+    max_blocks: usize,
+    impl_name: &str,
+) {
+    use crate::transform::with_split_alphas_colour_and_recorr::transform_with_split_alphas_colour_and_recorr;
+    for variant in [
+        YCoCgVariant::Variant1,
+        YCoCgVariant::Variant2,
+        YCoCgVariant::Variant3,
+    ] {
+        for num_blocks in 1..=max_blocks {
+            let original = generate_bc3_test_data(num_blocks);
+            let mut alpha0_data = allocate_align_64(num_blocks);
+            let mut alpha1_data = allocate_align_64(num_blocks);
+            let mut alpha_indices_data = allocate_align_64(num_blocks * 6);
+            let mut decorrelated_color0_data = allocate_align_64(num_blocks * 2);
+            let mut decorrelated_color1_data = allocate_align_64(num_blocks * 2);
+            let mut color_indices_data = allocate_align_64(num_blocks * 4);
+            let mut reconstructed = allocate_align_64(original.len() + 1);
+
+            unsafe {
+                transform_with_split_alphas_colour_and_recorr(
+                    original.as_ptr(),
+                    alpha0_data.as_mut_ptr(),
+                    alpha1_data.as_mut_ptr(),
+                    alpha_indices_data.as_mut_ptr() as *mut u16,
+                    decorrelated_color0_data.as_mut_ptr() as *mut u16,
+                    decorrelated_color1_data.as_mut_ptr() as *mut u16,
+                    color_indices_data.as_mut_ptr() as *mut u32,
+                    num_blocks,
+                    variant,
+                );
+                untransform_fn(
+                    alpha0_data.as_ptr(),
+                    alpha1_data.as_ptr(),
+                    alpha_indices_data.as_ptr() as *const u16,
+                    decorrelated_color0_data.as_ptr() as *const u16,
+                    decorrelated_color1_data.as_ptr() as *const u16,
+                    color_indices_data.as_ptr() as *const u32,
+                    reconstructed.as_mut_ptr().add(1),
+                    num_blocks,
+                    variant,
+                );
+            }
+            assert_eq!(
+                original.as_slice(),
+                &reconstructed.as_slice()[1..original.len() + 1],
+                "Mismatch in {impl_name} unaligned test for {num_blocks} blocks with {variant:?}",
+            );
+        }
     }
 }
 

@@ -1,6 +1,11 @@
 use crate::transform::standard::untransform::portable32::u32_untransform_with_separate_pointers;
 use core::arch::asm;
 
+#[cfg(target_arch = "x86")]
+use core::arch::x86::*;
+#[cfg(target_arch = "x86_64")]
+use core::arch::x86_64::*;
+
 #[allow(clippy::unusual_byte_groupings)]
 static ALPHA_PERMUTE_MASK: [u32; 8] = [0, 1, 4, 5, 2, 3, 6, 7u32];
 
@@ -45,12 +50,12 @@ pub(crate) unsafe fn avx2_shuffle_with_components(
     let alpha_ptr_aligned_end = alpha_ptr.add(aligned_len / 2);
     // End pointer for the loop based on aligned length
 
+    // Load permutation masks using intrinsics (PIC-compatible)
+    let alpha_perm_mask = _mm256_loadu_si256(ALPHA_PERMUTE_MASK.as_ptr() as *const __m256i);
+    let indcol_perm_mask = _mm256_loadu_si256(INDCOL_PERMUTE_MASK.as_ptr() as *const __m256i);
+
     if aligned_len > 0 {
         asm!(
-            // Load permutation indices for vpermd, to rearrange blocks.
-            "vmovdqu {ymm8}, [rip + {alpha_perm}]",
-            "vmovdqu {ymm9}, [rip + {indcol_perm}]",
-
             ".p2align 5",
             "2:",
 
@@ -179,11 +184,9 @@ pub(crate) unsafe fn avx2_shuffle_with_components(
             ymm5 = out(ymm_reg) _,
             ymm6 = out(ymm_reg) _,
             ymm7 = out(ymm_reg) _,
-            // x64-only, alpha and index/colour permutes.
-            ymm8 = out(ymm_reg) _,
-            ymm9 = out(ymm_reg) _,
-            alpha_perm = sym ALPHA_PERMUTE_MASK,
-            indcol_perm = sym INDCOL_PERMUTE_MASK,
+            // Permutation masks passed as inputs (PIC-compatible)
+            ymm8 = in(ymm_reg) alpha_perm_mask,
+            ymm9 = in(ymm_reg) indcol_perm_mask,
             options(nostack)
         );
     }
@@ -238,12 +241,12 @@ pub(crate) unsafe fn avx2_shuffle_with_components(
     let alpha_ptr_aligned_end = alpha_ptr.add(aligned_len / 2);
     // End pointer for the loop based on aligned length
 
+    // Load permutation masks using intrinsics (PIC-compatible)
+    let alpha_perm_mask = _mm256_loadu_si256(ALPHA_PERMUTE_MASK.as_ptr() as *const __m256i);
+    let indcol_perm_mask = _mm256_loadu_si256(INDCOL_PERMUTE_MASK.as_ptr() as *const __m256i);
+
     if aligned_len > 0 {
         asm!(
-            // Load permutation indices for vpermd, to rearrange blocks.
-            "vmovdqu {ymm6}, [{alpha_perm}]",
-            "vmovdqu {ymm7}, [{indcol_perm}]",
-
             ".p2align 5",
             "2:",
 
@@ -360,10 +363,9 @@ pub(crate) unsafe fn avx2_shuffle_with_components(
             ymm3 = out(ymm_reg) _,
             ymm4 = out(ymm_reg) _,
             ymm5 = out(ymm_reg) _,
-            ymm6 = out(ymm_reg) _,
-            ymm7 = out(ymm_reg) _,
-            alpha_perm = sym ALPHA_PERMUTE_MASK,
-            indcol_perm = sym INDCOL_PERMUTE_MASK,
+            // Permutation masks passed as inputs (PIC-compatible)
+            ymm6 = in(ymm_reg) alpha_perm_mask,
+            ymm7 = in(ymm_reg) indcol_perm_mask,
             options(nostack)
         );
     }

@@ -4,12 +4,6 @@ use dxt_lossless_transform_bc3::experimental::normalize_blocks::normalize::*;
 use safe_allocator_api::RawAlloc;
 use std::fs;
 
-#[cfg(all(
-    any(target_os = "linux", target_os = "macos"),
-    any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")
-))]
-use pprof::criterion::{Output, PProfProfiler};
-
 // Path to the BC3 file to benchmark with
 // You may need to update this path to point to a valid BC3 texture file on your system
 const TEST_FILE_PATH: &str =
@@ -142,20 +136,6 @@ fn criterion_benchmark(c: &mut Criterion) {
     group.finish();
 }
 
-#[cfg(all(
-    any(target_os = "linux", target_os = "macos"),
-    any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")
-))]
-criterion_group! {
-    name = benches;
-    config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
-    targets = criterion_benchmark
-}
-
-#[cfg(not(all(
-    any(target_os = "linux", target_os = "macos"),
-    any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")
-)))]
 criterion_group! {
     name = benches;
     config = Criterion::default();

@@ -13,8 +13,8 @@
 //! represent reasonable defaults for performance-oriented code.
 
 use core::alloc::LayoutError;
-use safe_allocator_api::allocator_api::*;
 use safe_allocator_api::RawAlloc;
+use safe_allocator_api::*;
 use thiserror::Error;
 
 /// An error that happened in memory allocation within the library.

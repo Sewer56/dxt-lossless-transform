@@ -1,10 +1,11 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
-use criterion::{black_box, BenchmarkId};
+use criterion::BenchmarkId;
 use dxt_lossless_transform_common::transforms::split_565_color_endpoints::bench::{
     sse2_shift_impl, sse2_shuf_impl, sse2_shuf_unroll2_impl,
 };
 use safe_allocator_api::RawAlloc;
+use std::hint::black_box;
 
 // Placeholder for future SSE2 implementation
 fn bench_sse2_shift(b: &mut criterion::Bencher, input: &RawAlloc, output: &mut RawAlloc) {

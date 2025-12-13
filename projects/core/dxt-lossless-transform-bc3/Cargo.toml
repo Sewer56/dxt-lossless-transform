@@ -21,7 +21,7 @@ pgo = []
 # Use CPU features selected at compile time.
 no-runtime-cpu-detection = ["dxt-lossless-transform-common/no-runtime-cpu-detection"]
 # Use nightly compiler features (AVX512)
-nightly = ["dxt-lossless-transform-common/nightly"]
+nightly = ["dxt-lossless-transform-common/nightly", "dxt-lossless-transform-api-common/nightly"]
 # Benchmarking feature to expose internal APIs
 bench = []
 # Experimental features, not ready for prime time. Use at your own risk!
@@ -30,17 +30,16 @@ experimental = []
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 dxt-lossless-transform-common = { workspace = true, default-features = false }
-likely_stable = "0.1.3"
-derive-enum-all-values = "0.2.1"
+dxt-lossless-transform-api-common = { workspace = true, default-features = false }
+thiserror = { workspace = true }
+likely_stable = { workspace = true }
+derive-enum-all-values = { workspace = true }
 ptr-utils = { version = "0.1.0", default-features = false, features = ["std"] }
 
 [dev-dependencies]
-criterion = "0.5.1"
-rstest = "0.25.0"
-safe-allocator-api = "0.4.0"
-
-[target.'cfg(all(any(target_os = "linux", target_os = "macos"), any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))'.dev-dependencies]
-pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
+criterion = { workspace = true }
+rstest = { workspace = true }
+safe-allocator-api = { workspace = true }
 
 # Benchmark Stuff
 [[bench]]

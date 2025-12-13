@@ -36,7 +36,7 @@ where
 
     // Use the file-formats-debug function and convert the error
     extract_blocks_from_file_format(file_path, &all_handlers(), filter, transform_format_fn)
-        .map_err(TransformError::FileOperationError)
+        .map_err(TransformError::FileOperation)
 }
 
 /// Handles errors from debug operations by printing to stdout.
@@ -48,7 +48,7 @@ pub(crate) fn handle_debug_error(
 ) {
     if let Err(e) = result {
         // Check if this is a "No file format handler can process the file" error
-        if let TransformError::FileOperationError(
+        if let TransformError::FileOperation(
             dxt_lossless_transform_file_formats_api::file_io::FileOperationError::Transform(
                 transform_error,
             ),

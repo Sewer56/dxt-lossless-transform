@@ -2,19 +2,19 @@
 
 mod bc1;
 mod bc2;
-#[allow(dead_code)]
-mod bc3; // code not ready, placeholder
-#[allow(dead_code)]
-mod bc4; // code not ready, placeholder
-#[allow(dead_code)]
-mod bc5; // code not ready, placeholder
-#[allow(dead_code)]
-mod bc7; // code not ready, placeholder
-#[allow(dead_code)]
+#[allow(dead_code)] // BC3 embed support ready but not yet integrated into public API.
+mod bc3;
+#[allow(dead_code)] // BC4 embed support ready but not yet integrated into public API.
+mod bc4;
+#[allow(dead_code)] // BC5 embed support ready but not yet integrated into public API.
+mod bc5;
+#[allow(dead_code)] // BC7 embed support ready but not yet integrated into public API.
+mod bc7;
+#[allow(dead_code)] // BGR888 embed support ready but not yet integrated into public API.
 mod bgr888;
-#[allow(dead_code)]
+#[allow(dead_code)] // BGRA8888 embed support ready but not yet integrated into public API.
 mod bgra8888;
-#[allow(dead_code)]
+#[allow(dead_code)] // RGBA8888 embed support ready but not yet integrated into public API.
 mod rgba8888;
 
 pub(crate) use bc1::EmbeddableBc1Details;

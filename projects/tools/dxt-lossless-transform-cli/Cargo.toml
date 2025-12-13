@@ -16,6 +16,8 @@ debug-bc7 = ["debug-format"]
 debug-bc1 = ["debug-format", "dxt-lossless-transform-bc1/experimental"]
 # Debugging BC2 behaviour
 debug-bc2 = ["debug-format", "dxt-lossless-transform-bc2"]
+# Debugging BC3 behaviour
+debug-bc3 = ["debug-format", "dxt-lossless-transform-bc3/experimental"]
 # Debugging endianness compatibility
 debug-endian = ["tempfile", "dxt-lossless-transform-file-formats-debug", "dxt-lossless-transform-dds/debug"]
 # Common debugging utilities for file format analysis
@@ -27,10 +29,11 @@ nightly = ["dxt-lossless-transform-bc1/nightly", "dxt-lossless-transform-common/
 [dependencies]
 argh = "0.1.13"
 rayon = { version = "1.10.0", optional = true }
-lightweight-mmap = "0.7.0"
+lightweight-mmap = { workspace = true, features = ["std", "mmap"] }
 dxt-lossless-transform-dds = { workspace = true, default-features = true }
 dxt-lossless-transform-bc1 = { workspace = true, default-features = true }
 dxt-lossless-transform-bc2 = { workspace = true, default-features = true, optional = true }
+dxt-lossless-transform-bc3 = { workspace = true, default-features = true, optional = true }
 dxt-lossless-transform-common = { workspace = true, default-features = true }
 dxt-lossless-transform-api-common = { workspace = true, default-features = true }
 dxt-lossless-transform-bc1-api = { workspace = true, default-features = true }
@@ -39,17 +42,17 @@ dxt-lossless-transform-file-formats-api = { workspace = true, default-features =
 dxt-lossless-transform-file-formats-debug = { workspace = true, default-features = true, optional = true }
 dxt-lossless-transform-ltu = { workspace = true, default-features = true }
 dxt-lossless-transform-zstd = { workspace = true, default-features = true }
-safe-allocator-api = { version = "0.4.0" }
-thiserror = "2.0.12"
+safe-allocator-api = { workspace = true, features = ["std"] }
+thiserror = { workspace = true, features = ["std"] }
 bytesize = { version = "2.0.1" }
 
 # Debug only
-zstd-sys = { optional = true, version = "2.0.15", features = ["experimental"] } # 1.5.7
+zstd-sys = { workspace = true, optional = true }
 thiserror-no-std = { optional = true, version = "2.0.2" }
 xxhash-rust = { optional = true, version = "0.8.12", features = ["xxh3"] }
-bincode = { optional = true, version = "2.0.1" }
+bincode = { workspace = true, optional = true }
 serde = { optional = true, version = "1.0.215", features = ["derive"] }
 dirs = { optional = true, version = "6.0.0" }
-derive-enum-all-values = { optional = true, version = "0.2.0" }
-lossless-transform-utils = { optional = true, version = "0.1.0" }
-tempfile = { optional = true, version = "3.17.0" }
+derive-enum-all-values = { workspace = true, optional = true }
+lossless-transform-utils = { workspace = true, optional = true }
+tempfile = { workspace = true, optional = true }

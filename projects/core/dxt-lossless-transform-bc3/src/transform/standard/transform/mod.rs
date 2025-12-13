@@ -9,7 +9,7 @@ pub mod avx512;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
-unsafe fn split_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+unsafe fn transform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         // Runtime feature detection
@@ -44,8 +44,9 @@ unsafe fn split_blocks_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 }
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[allow(dead_code)] // Public API not yet exposed; kept for future use.
 #[inline(always)]
-unsafe fn split_blocks_with_separate_pointers_x86(
+unsafe fn transform_with_separate_pointers_x86(
     input_ptr: *const u8,
     alpha_byte_ptr: *mut u16,
     alpha_bit_ptr: *mut u16,
@@ -132,12 +133,12 @@ unsafe fn split_blocks_with_separate_pointers_x86(
 /// - len must be divisible by 16
 /// - It is recommended that input_ptr and output_ptr are at least 16-byte aligned (recommended 32-byte align)
 #[inline]
-pub unsafe fn split_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+pub unsafe fn transform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     debug_assert!(len.is_multiple_of(16));
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
-        split_blocks_x86(input_ptr, output_ptr, len)
+        transform_x86(input_ptr, output_ptr, len)
     }
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
@@ -168,8 +169,9 @@ pub unsafe fn split_blocks(input_ptr: *const u8, output_ptr: *mut u8, len: usize
 /// - `len` must be divisible by 16 (BC3 block size)
 /// - It is recommended that all pointers are at least 16-byte aligned (recommended 32-byte align)
 /// - The component buffers must not overlap with each other or the input buffer
+#[allow(dead_code)] // Public API not yet exposed; kept for future use.
 #[inline]
-pub unsafe fn split_blocks_with_separate_pointers(
+pub unsafe fn transform_with_separate_pointers(
     input_ptr: *const u8,
     alpha_byte_ptr: *mut u16,
     alpha_bit_ptr: *mut u16,
@@ -181,7 +183,7 @@ pub unsafe fn split_blocks_with_separate_pointers(
 
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
-        split_blocks_with_separate_pointers_x86(
+        transform_with_separate_pointers_x86(
             input_ptr,
             alpha_byte_ptr,
             alpha_bit_ptr,

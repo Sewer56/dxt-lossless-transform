@@ -1,0 +1,70 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Auto Test on Save",
+      "type": "shell",
+      "command": "cargo install cargo-watch --quiet && cargo +nightly watch -x \"test --all-features\" -w api/ -w core/ -w extensions/ -w tools/",
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Auto Coverage on Save",
+      "type": "shell",
+      "command": "cargo install cargo-watch --quiet && cargo install cargo-tarpaulin --quiet && cargo +nightly watch -x \"tarpaulin --all-features --skip-clean --out Xml --out Html --engine llvm --target-dir target/coverage-build\" -w api/ -w core/ -w extensions/ -w tools/",
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Generate Code Coverage",
+      "type": "shell",
+      "command": "cargo install cargo-tarpaulin --quiet && cargo +nightly tarpaulin --all-features --out Xml --out Html --engine llvm --target-dir target/coverage-build",
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Fix Clippy Lints",
+      "type": "shell",
+      "command": "cargo clippy --fix --allow-dirty --allow-staged",
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Benchmarks",
+      "type": "shell",
+      "command": "cargo bench",
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Big Endian Test Watch",
+      "type": "shell",
+      "command": "cargo watch -w api/ -w core/ -w extensions/ -w tools/ -- cross +nightly test --all-features --target powerpc64-unknown-linux-gnu",
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": [],
+      "options": {
+        "env": {
+          "RUST_BACKTRACE": "1"
+        }
+      }
+    }
+  ]
+}

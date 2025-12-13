@@ -1,0 +1,16 @@
+{
+  "rust-analyzer.check.command": "clippy",
+  "editor.formatOnSave": true,
+  "coverage-gutters.coverageFileNames": [
+    "cobertura.xml"
+  ],
+  "coverage-gutters.coverageReportFileName": "tarpaulin-report.html",
+  "lldb.displayFormat": "auto",
+  "lldb.showDisassembly": "auto",
+  "lldb.dereferencePointers": true,
+  "lldb.consoleMode": "commands",
+  "rust-analyzer.server.extraEnv": {
+    "RUSTFLAGS": "-Ctarget-feature=+avx2"
+  },
+  "rust-analyzer.cargo.features": "all"
+}

@@ -20,21 +20,10 @@ unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
             {
                 avx512::avx512_untransform(input_ptr, output_ptr, len);
             }
-            // On 32-bit x86, use 32-bit optimized path with VL/VBMI selection
+            // On 32-bit x86, use 32-bit optimized path
             #[cfg(target_arch = "x86")]
             {
-                use dxt_lossless_transform_common::cpu_detect::has_avx512vl;
-
-                #[cfg(target_feature = "avx512vl")]
-                let is_vl_supported = true;
-                #[cfg(not(target_feature = "avx512vl"))]
-                let is_vl_supported = has_avx512vl();
-
-                if is_vl_supported {
-                    avx512::avx512_untransform_32_vl(input_ptr, output_ptr, len);
-                } else {
-                    avx512::avx512_untransform_32_vbmi(input_ptr, output_ptr, len);
-                }
+                avx512::avx512_untransform_32(input_ptr, output_ptr, len);
             }
             return;
         }
@@ -48,17 +37,10 @@ unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
             {
                 avx512::avx512_untransform(input_ptr, output_ptr, len);
             }
-            // On 32-bit x86, use 32-bit optimized path with VL/VBMI selection
+            // On 32-bit x86, use 32-bit optimized path
             #[cfg(target_arch = "x86")]
             {
-                #[cfg(target_feature = "avx512vl")]
-                {
-                    avx512::avx512_untransform_32_vl(input_ptr, output_ptr, len);
-                }
-                #[cfg(not(target_feature = "avx512vl"))]
-                {
-                    avx512::avx512_untransform_32_vbmi(input_ptr, output_ptr, len);
-                }
+                avx512::avx512_untransform_32(input_ptr, output_ptr, len);
             }
             return;
         }

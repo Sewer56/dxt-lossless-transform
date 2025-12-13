@@ -35,11 +35,6 @@ pub unsafe fn avx512_untransform(input_ptr: *const u8, output_ptr: *mut u8, len:
 }
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub unsafe fn avx512_untransform_32_vbmi(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    super::avx512::avx512_untransform_32_vbmi(input_ptr, output_ptr, len)
-}
-
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub unsafe fn avx512_untransform_32_vl(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    super::avx512::avx512_untransform_32_vl(input_ptr, output_ptr, len)
+pub unsafe fn avx512_untransform_32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
+    super::avx512::avx512_untransform_32(input_ptr, output_ptr, len)
 }

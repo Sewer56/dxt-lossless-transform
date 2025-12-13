@@ -9,7 +9,6 @@ pub mod sse2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx2;
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx512;
 
@@ -36,7 +35,6 @@ pub(crate) unsafe fn permd_untransform_unroll_2(
     super::avx2::permd_untransform_unroll_2(input_ptr, output_ptr, len)
 }
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub(crate) unsafe fn permute_512_untransform_unroll_2(
     input_ptr: *const u8,

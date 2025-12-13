@@ -2,7 +2,6 @@ use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx512;
 mod generic;
@@ -67,7 +66,6 @@ unsafe fn transform_with_decorrelate_x86(
 
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        #[cfg(feature = "nightly")]
         if has_avx512f() && has_avx512bw() {
             avx512::transform_with_decorrelate(
                 input_ptr,
@@ -104,7 +102,6 @@ unsafe fn transform_with_decorrelate_x86(
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512bw") {
             avx512::transform_with_decorrelate(
                 input_ptr,

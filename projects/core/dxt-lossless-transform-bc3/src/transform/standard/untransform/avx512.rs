@@ -4,7 +4,6 @@
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
-use std::is_x86_feature_detected;
 
 use crate::transform::standard::untransform::portable::u32_untransform_with_separate_pointers;
 
@@ -15,12 +14,6 @@ use crate::transform::standard::untransform::portable::u32_untransform_with_sepa
 /// - output_ptr must be valid for writes of len bytes
 #[target_feature(enable = "avx512vbmi")]
 pub(crate) unsafe fn avx512_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    // Non-64bit has an optimized path, and vl + non-vl variant,
-    // however it turns out it's negigible in speed difference with 64-bit path, and sometimes slower even.
-    // Somehow L1 cache reads are way faster than expected.
-    //#[cfg(not(target_arch = "x86_64"))]
-    //avx512_untransform_32(input_ptr, output_ptr, len);
-
     debug_assert!(len.is_multiple_of(16));
     // Process as many 64-byte blocks as possible
     let current_output_ptr = output_ptr;
@@ -39,27 +32,6 @@ pub(crate) unsafe fn avx512_untransform(input_ptr: *const u8, output_ptr: *mut u
         current_output_ptr,
         len,
     );
-}
-
-/// # Safety
-///
-/// - Same safety requirements as the scalar version:
-/// - input_ptr must be valid for reads of len bytes
-/// - output_ptr must be valid for writes of len bytes
-#[target_feature(enable = "avx512vbmi")]
-#[allow(dead_code)] // 32-bit optimized variant; only used in tests. Trades blows with 64-bit path.
-pub(crate) unsafe fn avx512_untransform_32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    #[cfg(target_feature = "avx512vl")]
-    let is_vl_supported = true;
-
-    #[cfg(not(target_feature = "avx512vl"))]
-    let is_vl_supported = is_x86_feature_detected!("avx512vl");
-
-    if is_vl_supported {
-        avx512_untransform_32_vl(input_ptr, output_ptr, len);
-    } else {
-        avx512_untransform_32_vbmi(input_ptr, output_ptr, len);
-    }
 }
 
 /// # Safety

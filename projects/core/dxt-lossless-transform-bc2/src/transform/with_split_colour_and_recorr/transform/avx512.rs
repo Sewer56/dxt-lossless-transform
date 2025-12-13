@@ -96,7 +96,6 @@ const PERM_COLOR1_EPI16: [i16; 32] = [
     31 + 32,
 ];
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
@@ -233,7 +232,6 @@ unsafe fn transform_impl<const VARIANT: u8>(
 }
 
 // Assembly wrapper functions for variant-specific optimizations
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
@@ -256,7 +254,6 @@ pub(crate) unsafe fn transform_decorr_var1(
     )
 }
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
@@ -279,7 +276,6 @@ pub(crate) unsafe fn transform_decorr_var2(
     )
 }
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]

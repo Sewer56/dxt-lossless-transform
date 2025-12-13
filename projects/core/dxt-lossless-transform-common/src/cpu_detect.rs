@@ -9,14 +9,12 @@
 
 /// Checks if the CPU supports AVX512F (AVX-512 Foundation) instructions.
 ///
-/// This function is only available when compiling with the `nightly` feature enabled.
 /// AVX-512F provides 512-bit wide vectors and operations which can significantly
 /// accelerate compression transforms when available.
 ///
 /// # Returns
 /// `true` if the CPU supports AVX512F instructions, `false` otherwise.
 #[inline]
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub fn has_avx512f() -> bool {
     cpufeatures::new!(cpuid_avx512, "avx512f");
@@ -25,14 +23,12 @@ pub fn has_avx512f() -> bool {
 
 /// Checks if the CPU supports AVX512VBMI (AVX-512 Vector Byte Manipulation Instructions) instructions.
 ///
-/// This function is only available when compiling with the `nightly` feature enabled.
 /// AVX512VBMI extends AVX-512 with additional byte manipulation instructions, which can
 /// be beneficial for certain block formats.
 ///
 /// # Returns
 /// `true` if the CPU supports AVX512VBMI instructions, `false` otherwise.
 #[inline]
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub fn has_avx512vbmi() -> bool {
     cpufeatures::new!(cpuid_avx512vbmi, "avx512vbmi");
@@ -41,14 +37,12 @@ pub fn has_avx512vbmi() -> bool {
 
 /// Checks if the CPU supports AVX512VL (AVX-512 Vector Length) instructions.
 ///
-/// This function is only available when compiling with the `nightly` feature enabled.
 /// AVX512VL extends AVX-512 with additional vector length instructions, giving AVX-512
 /// instructions to smaller register sizes. This can be beneficial for certain block formats.
 ///
 /// # Returns
 /// `true` if the CPU supports AVX512VL instructions, `false` otherwise.
 #[inline]
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub fn has_avx512vl() -> bool {
     cpufeatures::new!(cpuid_avx512vl, "avx512vl");
@@ -57,14 +51,12 @@ pub fn has_avx512vl() -> bool {
 
 /// Checks if the CPU supports AVX512BW (AVX-512 Byte and Word) instructions.
 ///
-/// This function is only available when compiling with the `nightly` feature enabled.
 /// AVX512BW extends AVX-512 with byte and word operations, enabling more efficient
 /// processing of 8-bit and 16-bit data types. This can be beneficial for color processing.
 ///
 /// # Returns
 /// `true` if the CPU supports AVX512BW instructions, `false` otherwise.
 #[inline]
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub fn has_avx512bw() -> bool {
     cpufeatures::new!(cpuid_avx512bw, "avx512bw");

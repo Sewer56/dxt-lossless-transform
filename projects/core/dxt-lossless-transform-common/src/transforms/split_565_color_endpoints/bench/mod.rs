@@ -15,7 +15,6 @@ mod ssse3;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx512;
 
@@ -146,13 +145,11 @@ pub unsafe fn avx2_shuf_impl_unroll_2(
 }
 
 // AVX512 implementations
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub unsafe fn avx512_impl_unroll2(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     avx512::avx512_impl_unroll2(colors, colors_out, colors_len_bytes)
 }
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub unsafe fn avx512_impl(colors: *const u8, colors_out: *mut u8, colors_len_bytes: usize) {
     super::avx512::avx512_impl(colors, colors_out, colors_len_bytes)

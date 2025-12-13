@@ -18,7 +18,6 @@ use core::arch::x86_64::*;
 /// The input register must contain valid [`Color565`] data.
 ///
 /// [`Color565`]: crate::color_565::Color565
-#[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]
@@ -73,7 +72,6 @@ pub unsafe fn recorrelate_ycocg_r_var1_avx512(colors_raw: __m512i) -> __m512i {
 /// The input register must contain valid [`Color565`] data.
 ///
 /// [`Color565`]: crate::color_565::Color565
-#[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]
@@ -136,7 +134,6 @@ pub unsafe fn recorrelate_ycocg_r_var2_avx512(colors_raw: __m512i) -> __m512i {
 /// The input register must contain valid [`Color565`] data.
 ///
 /// [`Color565`]: crate::color_565::Color565
-#[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]

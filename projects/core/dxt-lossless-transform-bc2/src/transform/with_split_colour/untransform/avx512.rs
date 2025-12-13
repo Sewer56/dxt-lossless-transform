@@ -7,7 +7,6 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 
 /// AVX512 implementation for split‐colour untransform for BC2.
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]

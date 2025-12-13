@@ -14,6 +14,5 @@ thiserror = { workspace = true }
 [features]
 default = ["std"]
 std = ["dxt-lossless-transform-api-common/std", "dxt-lossless-transform-common/std", "thiserror/std"]
-# Use nightly compiler features (AVX512)
+# Use nightly compiler features (allocator_api)
 nightly = ["dxt-lossless-transform-api-common/nightly", "dxt-lossless-transform-common/nightly"]
-

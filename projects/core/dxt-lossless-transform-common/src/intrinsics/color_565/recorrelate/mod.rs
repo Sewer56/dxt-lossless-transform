@@ -5,24 +5,12 @@
 //! registers containing multiple color values, offering high-performance batch processing.
 //!
 //! # Available Functions
-#![cfg_attr(feature = "nightly", doc = "")]
-#![cfg_attr(
-    feature = "nightly",
-    doc = "## AVX512 Functions (requires `nightly` feature)"
-)]
-#![cfg_attr(feature = "nightly", doc = "")]
-#![cfg_attr(
-    feature = "nightly",
-    doc = "- [`avx512::recorrelate_ycocg_r_var1_avx512`] - Applies YCoCg-R variant 1 recorrelation"
-)]
-#![cfg_attr(
-    feature = "nightly",
-    doc = "- [`avx512::recorrelate_ycocg_r_var2_avx512`] - Applies YCoCg-R variant 2 recorrelation"
-)]
-#![cfg_attr(
-    feature = "nightly",
-    doc = "- [`avx512::recorrelate_ycocg_r_var3_avx512`] - Applies YCoCg-R variant 3 recorrelation"
-)]
+//!
+//! ## AVX512 Functions
+//!
+//! - [`avx512::recorrelate_ycocg_r_var1_avx512`] - Applies YCoCg-R variant 1 recorrelation
+//! - [`avx512::recorrelate_ycocg_r_var2_avx512`] - Applies YCoCg-R variant 2 recorrelation
+//! - [`avx512::recorrelate_ycocg_r_var3_avx512`] - Applies YCoCg-R variant 3 recorrelation
 //!
 //! ## AVX2 Functions
 //!
@@ -39,7 +27,6 @@
 //! [`Color565`]: crate::color_565::Color565
 //! [`__m512i`]: core::arch::x86_64::__m512i
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx512;
 

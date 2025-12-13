@@ -1,6 +1,5 @@
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 mod avx512;
 
@@ -59,7 +58,6 @@ unsafe fn untransform_with_split_colour_and_recorr_x86(
 
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        #[cfg(feature = "nightly")]
         if has_avx512f() && has_avx512bw() {
             avx512::untransform_with_split_colour_and_recorr(
                 color0_ptr,
@@ -99,7 +97,6 @@ unsafe fn untransform_with_split_colour_and_recorr_x86(
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512bw") {
             avx512::untransform_with_split_colour_and_recorr(
                 color0_ptr,

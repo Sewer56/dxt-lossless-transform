@@ -20,8 +20,7 @@ std = ["dxt-lossless-transform-common/std"]
 pgo = []
 # Use CPU features selected at compile time.
 no-runtime-cpu-detection = ["dxt-lossless-transform-common/no-runtime-cpu-detection"]
-# Use nightly compiler features (AVX512)
-nightly = ["dxt-lossless-transform-common/nightly"]
+
 
 [dependencies]
 dxt-lossless-transform-common = { workspace = true, default-features = false }

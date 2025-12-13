@@ -6,7 +6,6 @@ mod sse2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx512;
 
@@ -15,7 +14,6 @@ mod avx512;
 unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        #[cfg(feature = "nightly")]
         #[cfg(target_arch = "x86_64")]
         // disabled due to non-guaranteed performance on 32-bit
         if dxt_lossless_transform_common::cpu_detect::has_avx512f() {
@@ -36,7 +34,6 @@ unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        #[cfg(feature = "nightly")]
         #[cfg(target_arch = "x86_64")]
         // disabled due to non-guaranteed performance on 32-bit
         if cfg!(target_feature = "avx512f") {
@@ -102,7 +99,6 @@ pub mod bench {
         super::avx2::avx2_shuffle(input_ptr, output_ptr, len)
     }
 
-    #[cfg(feature = "nightly")]
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     pub unsafe fn avx512_shuffle(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
         super::avx512::avx512_shuffle(input_ptr, output_ptr, len)

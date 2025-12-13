@@ -3,7 +3,6 @@ pub mod portable;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod sse2;
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx512;
 
@@ -15,20 +14,52 @@ pub mod bench;
 unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        #[cfg(feature = "nightly")]
-        #[cfg(target_arch = "x86_64")]
         if dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
-            avx512::avx512_untransform(input_ptr, output_ptr, len);
+            // On x86_64, use the 64-bit optimized path
+            #[cfg(target_arch = "x86_64")]
+            {
+                avx512::avx512_untransform(input_ptr, output_ptr, len);
+            }
+            // On 32-bit x86, use 32-bit optimized path with VL/VBMI selection
+            #[cfg(target_arch = "x86")]
+            {
+                use dxt_lossless_transform_common::cpu_detect::has_avx512vl;
+
+                #[cfg(target_feature = "avx512vl")]
+                let is_vl_supported = true;
+                #[cfg(not(target_feature = "avx512vl"))]
+                let is_vl_supported = has_avx512vl();
+
+                if is_vl_supported {
+                    avx512::avx512_untransform_32_vl(input_ptr, output_ptr, len);
+                } else {
+                    avx512::avx512_untransform_32_vbmi(input_ptr, output_ptr, len);
+                }
+            }
             return;
         }
     }
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        #[cfg(target_arch = "x86_64")]
-        #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512vbmi") {
-            avx512::avx512_untransform(input_ptr, output_ptr, len);
+            // On x86_64, use the 64-bit optimized path
+            #[cfg(target_arch = "x86_64")]
+            {
+                avx512::avx512_untransform(input_ptr, output_ptr, len);
+            }
+            // On 32-bit x86, use 32-bit optimized path with VL/VBMI selection
+            #[cfg(target_arch = "x86")]
+            {
+                #[cfg(target_feature = "avx512vl")]
+                {
+                    avx512::avx512_untransform_32_vl(input_ptr, output_ptr, len);
+                }
+                #[cfg(not(target_feature = "avx512vl"))]
+                {
+                    avx512::avx512_untransform_32_vbmi(input_ptr, output_ptr, len);
+                }
+            }
             return;
         }
     }
@@ -83,7 +114,6 @@ unsafe fn untransform_with_separate_pointers_x86(
 ) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        #[cfg(feature = "nightly")]
         #[cfg(target_arch = "x86_64")]
         if dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
             avx512::avx512_untransform_separate_components(
@@ -101,7 +131,6 @@ unsafe fn untransform_with_separate_pointers_x86(
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
         #[cfg(target_arch = "x86_64")]
-        #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512vbmi") {
             avx512::avx512_untransform_separate_components(
                 alpha_byte_ptr,

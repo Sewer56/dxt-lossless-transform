@@ -188,7 +188,6 @@ pub(crate) unsafe fn avx512_shuffle_with_components_intrinsics(
 /// - colors_ptr must be valid for reads of len / 4 bytes
 /// - indices_ptr must be valid for reads of len / 4 bytes
 #[allow(unused_assignments)]
-#[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[allow(clippy::zero_prefixed_literal)]
 #[allow(clippy::identity_op)]

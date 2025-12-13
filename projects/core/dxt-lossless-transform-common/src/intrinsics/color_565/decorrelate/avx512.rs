@@ -36,7 +36,6 @@ use core::arch::x86_64::*;
 /// This function requires AVX512F and AVX512BW support. Caller must ensure the target CPU supports AVX512.
 ///
 /// [`Color565`]: crate::color_565::Color565
-#[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]
@@ -114,7 +113,6 @@ pub unsafe fn decorrelate_ycocg_r_var1_avx512(colors_raw: __m512i) -> __m512i {
 /// This function requires AVX512F and AVX512BW support. Caller must ensure the target CPU supports AVX512.
 ///
 /// [`Color565`]: crate::color_565::Color565
-#[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]
@@ -198,7 +196,6 @@ pub unsafe fn decorrelate_ycocg_r_var2_avx512(colors_raw: __m512i) -> __m512i {
 /// This function requires AVX512F and AVX512BW support. Caller must ensure the target CPU supports AVX512.
 ///
 /// [`Color565`]: crate::color_565::Color565
-#[cfg(feature = "nightly")]
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]

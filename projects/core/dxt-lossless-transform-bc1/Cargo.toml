@@ -20,8 +20,7 @@ std = ["dxt-lossless-transform-api-common/std", "dxt-lossless-transform-common/s
 pgo = []
 # Use CPU features selected at compile time.
 no-runtime-cpu-detection = ["dxt-lossless-transform-common/no-runtime-cpu-detection"]
-# Use nightly compiler features (AVX512)
-nightly = ["dxt-lossless-transform-common/nightly", "safe-allocator-api/nightly", "dxt-lossless-transform-api-common/nightly"]
+
 # Code only required for benchmarks.
 bench = []
 # Experimental features, not ready for prime time. Use at your own risk!

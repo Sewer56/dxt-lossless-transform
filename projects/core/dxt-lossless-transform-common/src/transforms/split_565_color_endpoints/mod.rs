@@ -29,7 +29,6 @@ mod sse2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;
 
-#[cfg(feature = "nightly")]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx512;
 
@@ -51,7 +50,6 @@ unsafe fn split_color_endpoints_x86(
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         // Runtime feature detection
-        #[cfg(feature = "nightly")]
         if crate::cpu_detect::has_avx512vbmi() {
             avx512::avx512_impl(colors, colors_out, colors_len_bytes);
             return;
@@ -70,7 +68,6 @@ unsafe fn split_color_endpoints_x86(
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        #[cfg(feature = "nightly")]
         if cfg!(target_feature = "avx512vbmi") {
             avx512::avx512_impl(colors, colors_out, colors_len_bytes);
             return;

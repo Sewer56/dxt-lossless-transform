@@ -13,6 +13,16 @@
     # Required because Rust's bundled LLD doesn't know about Nix's multilib sysroot paths.
     # clang_multi has the correct 32-bit library paths (glibc_multi) baked into its driver.
     CARGO_TARGET_I686_UNKNOWN_LINUX_GNU_LINKER = "${pkgs.clang_multi}/bin/clang";
+
+    # Disable LTO for C/C++ code compiled by the `cc` crate for i686.
+    # Some crates (like `alloca`) add -flto when CC=clang, but binutils ld can't
+    # process LLVM IR bitcode. Using -fno-lto ensures native object files.
+    CFLAGS_i686_unknown_linux_gnu = "-fno-lto";
+    CXXFLAGS_i686_unknown_linux_gnu = "-fno-lto";
+
+    # Add 32-bit library paths for linking (needed for libstdc++, libgcc_s).
+    # Required for fuzz targets and other C++ code that links against libstdc++.
+    CARGO_TARGET_I686_UNKNOWN_LINUX_GNU_RUSTFLAGS = "-L ${pkgs.pkgsi686Linux.stdenv.cc.cc.lib}/lib";
   };
 
   # Essential build dependencies

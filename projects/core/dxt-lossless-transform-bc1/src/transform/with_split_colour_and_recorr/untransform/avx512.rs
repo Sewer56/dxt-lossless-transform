@@ -6,7 +6,7 @@ use core::arch::x86::*;
 
 use core::hint::unreachable_unchecked;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
-use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx512::*;
+use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx512bw::*;
 
 // Shared constants for all variants
 #[allow(clippy::identity_op)]
@@ -251,16 +251,16 @@ unsafe fn untransform_recorr<const VARIANT: u8>(
         // Apply YCoCg-R recorrelation using the specified variant
         let (recorrelated_color0s, recorrelated_color1s) = match VARIANT {
             1 => (
-                recorrelate_ycocg_r_var1_avx512(color0s),
-                recorrelate_ycocg_r_var1_avx512(color1s),
+                recorrelate_ycocg_r_var1_avx512bw(color0s),
+                recorrelate_ycocg_r_var1_avx512bw(color1s),
             ),
             2 => (
-                recorrelate_ycocg_r_var2_avx512(color0s),
-                recorrelate_ycocg_r_var2_avx512(color1s),
+                recorrelate_ycocg_r_var2_avx512bw(color0s),
+                recorrelate_ycocg_r_var2_avx512bw(color1s),
             ),
             3 => (
-                recorrelate_ycocg_r_var3_avx512(color0s),
-                recorrelate_ycocg_r_var3_avx512(color1s),
+                recorrelate_ycocg_r_var3_avx512bw(color0s),
+                recorrelate_ycocg_r_var3_avx512bw(color1s),
             ),
             _ => unreachable_unchecked(),
         };

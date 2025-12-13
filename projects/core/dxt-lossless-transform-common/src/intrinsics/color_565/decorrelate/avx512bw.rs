@@ -5,9 +5,9 @@
 //!
 //! # Functions
 //!
-//! - [`decorrelate_ycocg_r_var1_avx512`] - Applies YCoCg-R variant 1 decorrelation (g_low at bit 5)
-//! - [`decorrelate_ycocg_r_var2_avx512`] - Applies YCoCg-R variant 2 decorrelation (g_low at bit 15)  
-//! - [`decorrelate_ycocg_r_var3_avx512`] - Applies YCoCg-R variant 3 decorrelation (g_low at bit 0)
+//! - [`decorrelate_ycocg_r_var1_avx512bw`] - Applies YCoCg-R variant 1 decorrelation (g_low at bit 5)
+//! - [`decorrelate_ycocg_r_var2_avx512bw`] - Applies YCoCg-R variant 2 decorrelation (g_low at bit 15)  
+//! - [`decorrelate_ycocg_r_var3_avx512bw`] - Applies YCoCg-R variant 3 decorrelation (g_low at bit 0)
 //!
 //! Each function processes 32 [`Color565`] values simultaneously using AVX512 instructions.
 //!
@@ -39,7 +39,7 @@ use core::arch::x86_64::*;
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]
-pub unsafe fn decorrelate_ycocg_r_var1_avx512(colors_raw: __m512i) -> __m512i {
+pub unsafe fn decorrelate_ycocg_r_var1_avx512bw(colors_raw: __m512i) -> __m512i {
     // === Constants from assembly ===
     let mask_31 = _mm512_set1_epi32(0x001F001F); // .LCPI21_1: mask for 5-bit values (31,31)
     let mask_g_low = _mm512_set1_epi32(0x00200020); // .LCPI21_2: mask for g_low bit position 5 (32,32)
@@ -116,7 +116,7 @@ pub unsafe fn decorrelate_ycocg_r_var1_avx512(colors_raw: __m512i) -> __m512i {
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]
-pub unsafe fn decorrelate_ycocg_r_var2_avx512(colors_raw: __m512i) -> __m512i {
+pub unsafe fn decorrelate_ycocg_r_var2_avx512bw(colors_raw: __m512i) -> __m512i {
     // === Constants from assembly ===
     let mask_31 = _mm512_set1_epi32(0x001F001F); // .LCPI22_1: mask for 5-bit values (31,31)
     let mask_g_low = _mm512_set1_epi32(-2147450880i32); // .LCPI22_2: mask for g_low at bit 15 (0x80008000)
@@ -199,7 +199,7 @@ pub unsafe fn decorrelate_ycocg_r_var2_avx512(colors_raw: __m512i) -> __m512i {
 #[target_feature(enable = "avx512f")]
 #[target_feature(enable = "avx512bw")]
 #[inline]
-pub unsafe fn decorrelate_ycocg_r_var3_avx512(colors_raw: __m512i) -> __m512i {
+pub unsafe fn decorrelate_ycocg_r_var3_avx512bw(colors_raw: __m512i) -> __m512i {
     // === Constants from assembly ===
     let mask_31 = _mm512_set1_epi16(31); // .LCPI24_2: mask for 5-bit values (0x001F)
     let mask_1 = _mm512_set1_epi32(0x00010001); // .LCPI24_3: pattern 1,1 for g_low
@@ -308,17 +308,17 @@ mod tests {
 
     #[rstest]
     #[case(
-        decorrelate_ycocg_r_var1_avx512,
+        decorrelate_ycocg_r_var1_avx512bw,
         Color565::decorrelate_ycocg_r_var1_ptr,
         "variant 1"
     )]
     #[case(
-        decorrelate_ycocg_r_var2_avx512,
+        decorrelate_ycocg_r_var2_avx512bw,
         Color565::decorrelate_ycocg_r_var2_ptr,
         "variant 2"
     )]
     #[case(
-        decorrelate_ycocg_r_var3_avx512,
+        decorrelate_ycocg_r_var3_avx512bw,
         Color565::decorrelate_ycocg_r_var3_ptr,
         "variant 3"
     )]

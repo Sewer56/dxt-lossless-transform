@@ -5,9 +5,9 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 use core::hint::unreachable_unchecked;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
-use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx512::{
-    recorrelate_ycocg_r_var1_avx512, recorrelate_ycocg_r_var2_avx512,
-    recorrelate_ycocg_r_var3_avx512,
+use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx512bw::{
+    recorrelate_ycocg_r_var1_avx512bw, recorrelate_ycocg_r_var2_avx512bw,
+    recorrelate_ycocg_r_var3_avx512bw,
 };
 
 /// AVX512 implementation for split-colour and recorrelate untransform for BC2.
@@ -322,16 +322,16 @@ unsafe fn untransform_split_colour_recorr<const VARIANT: u8>(
 
         // Apply YCoCg recorrelation to colors
         let recorr_color0 = match VARIANT {
-            1 => recorrelate_ycocg_r_var1_avx512(color0),
-            2 => recorrelate_ycocg_r_var2_avx512(color0),
-            3 => recorrelate_ycocg_r_var3_avx512(color0),
+            1 => recorrelate_ycocg_r_var1_avx512bw(color0),
+            2 => recorrelate_ycocg_r_var2_avx512bw(color0),
+            3 => recorrelate_ycocg_r_var3_avx512bw(color0),
             _ => unreachable_unchecked(),
         };
 
         let recorr_color1 = match VARIANT {
-            1 => recorrelate_ycocg_r_var1_avx512(color1),
-            2 => recorrelate_ycocg_r_var2_avx512(color1),
-            3 => recorrelate_ycocg_r_var3_avx512(color1),
+            1 => recorrelate_ycocg_r_var1_avx512bw(color1),
+            2 => recorrelate_ycocg_r_var2_avx512bw(color1),
+            3 => recorrelate_ycocg_r_var3_avx512bw(color1),
             _ => unreachable_unchecked(),
         };
 

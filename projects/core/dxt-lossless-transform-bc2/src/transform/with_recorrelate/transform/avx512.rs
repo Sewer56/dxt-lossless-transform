@@ -5,9 +5,9 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 use core::hint::unreachable_unchecked;
 use dxt_lossless_transform_common::color_565::YCoCgVariant;
-use dxt_lossless_transform_common::intrinsics::color_565::decorrelate::avx512::{
-    decorrelate_ycocg_r_var1_avx512, decorrelate_ycocg_r_var2_avx512,
-    decorrelate_ycocg_r_var3_avx512,
+use dxt_lossless_transform_common::intrinsics::color_565::decorrelate::avx512bw::{
+    decorrelate_ycocg_r_var1_avx512bw, decorrelate_ycocg_r_var2_avx512bw,
+    decorrelate_ycocg_r_var3_avx512bw,
 };
 
 const PERM_ALPHA_BYTES: [i8; 8] = [0, 2, 4, 6, 8, 10, 12, 14]; // For vpermt2q to gather alpha values
@@ -73,9 +73,9 @@ unsafe fn transform_decorr<const VARIANT: u8>(
 
         // Decorrelate colors
         let colors_decorr = match VARIANT {
-            1 => decorrelate_ycocg_r_var1_avx512(colours_only),
-            2 => decorrelate_ycocg_r_var2_avx512(colours_only),
-            3 => decorrelate_ycocg_r_var3_avx512(colours_only),
+            1 => decorrelate_ycocg_r_var1_avx512bw(colours_only),
+            2 => decorrelate_ycocg_r_var2_avx512bw(colours_only),
+            3 => decorrelate_ycocg_r_var3_avx512bw(colours_only),
             _ => unreachable_unchecked(),
         };
 

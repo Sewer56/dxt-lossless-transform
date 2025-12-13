@@ -6,11 +6,11 @@
 //!
 //! # Available Functions
 //!
-//! ## AVX512 Functions
+//! ## AVX512BW Functions
 //!
-//! - [`avx512::decorrelate_ycocg_r_var1_avx512`] - Applies YCoCg-R variant 1 decorrelation
-//! - [`avx512::decorrelate_ycocg_r_var2_avx512`] - Applies YCoCg-R variant 2 decorrelation
-//! - [`avx512::decorrelate_ycocg_r_var3_avx512`] - Applies YCoCg-R variant 3 decorrelation
+//! - [`avx512bw::decorrelate_ycocg_r_var1_avx512bw`] - Applies YCoCg-R variant 1 decorrelation
+//! - [`avx512bw::decorrelate_ycocg_r_var2_avx512bw`] - Applies YCoCg-R variant 2 decorrelation
+//! - [`avx512bw::decorrelate_ycocg_r_var3_avx512bw`] - Applies YCoCg-R variant 3 decorrelation
 //!
 //! ## AVX2 Functions
 //!
@@ -28,7 +28,7 @@
 //! [`__m512i`]: core::arch::x86_64::__m512i
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod avx512;
+pub mod avx512bw;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod avx2;

@@ -8,11 +8,18 @@
   env = {
     # Needed for zstandard (native C/C++ library)
     LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
+
+    # Use multilib clang as linker for i686 target.
+    # Required because Rust's bundled LLD doesn't know about Nix's multilib sysroot paths.
+    # clang_multi has the correct 32-bit library paths (glibc_multi) baked into its driver.
+    CARGO_TARGET_I686_UNKNOWN_LINUX_GNU_LINKER = "${pkgs.clang_multi}/bin/clang";
   };
 
   # Essential build dependencies
   packages = with pkgs; [
-    clang # zstd
+    # clang with multilib support (both 32-bit and 64-bit)
+    # This properly handles -m32 compilation with correct headers/libs
+    clang_multi
   ];
 
   # Rust language configuration with nightly toolchain
@@ -90,6 +97,7 @@
     echo ""
     echo "Cross-compilation targets configured:"
     echo "  x86_64-unknown-linux-gnu"
+    echo "  i686-unknown-linux-gnu (32-bit)"
     echo "  powerpc64-unknown-linux-gnu (big-endian)"
   '';
 

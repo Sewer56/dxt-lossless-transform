@@ -160,7 +160,7 @@ mod tests {
         #[case] variant: YCoCgVariant,
         #[case] max_blocks: usize,
     ) {
-        if !has_avx512f() || !has_avx512bw() {
+        if !has_avx512bw() {
             return;
         }
 

@@ -332,7 +332,7 @@ mod tests {
     #[case(YCoCgVariant::Variant2)]
     #[case(YCoCgVariant::Variant3)]
     fn can_untransform_unaligned(#[case] decorr_variant: YCoCgVariant) {
-        if !has_avx512f() || !has_avx512bw() {
+        if !has_avx512bw() {
             return;
         }
 

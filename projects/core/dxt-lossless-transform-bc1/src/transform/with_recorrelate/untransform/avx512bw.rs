@@ -160,7 +160,7 @@ mod tests {
         #[case] function: WithRecorrelateUntransformFn,
         #[case] decorr_variant: YCoCgVariant,
     ) {
-        if !(has_avx512f() && has_avx512bw()) {
+        if !has_avx512bw() {
             return;
         }
 

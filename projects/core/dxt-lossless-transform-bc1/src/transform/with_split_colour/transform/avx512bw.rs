@@ -166,7 +166,7 @@ mod tests {
 
     #[rstest]
     fn avx512_transform_roundtrip() {
-        if !has_avx512f() || !has_avx512bw() {
+        if !has_avx512bw() {
             return;
         }
 

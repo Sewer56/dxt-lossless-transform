@@ -80,7 +80,7 @@ unsafe fn transform_with_split_colour_and_recorr_x86(
 
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        if has_avx512f() && has_avx512bw() {
+        if has_avx512bw() {
             avx512::transform_with_split_colour_and_decorr(
                 input_ptr,
                 color0_ptr,
@@ -118,7 +118,7 @@ unsafe fn transform_with_split_colour_and_recorr_x86(
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512bw") {
+        if cfg!(target_feature = "avx512bw") {
             avx512::transform_with_split_colour_and_decorr(
                 input_ptr,
                 color0_ptr,

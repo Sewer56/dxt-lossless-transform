@@ -66,7 +66,7 @@ unsafe fn transform_with_decorrelate_x86(
 
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        if has_avx512f() && has_avx512bw() {
+        if has_avx512bw() {
             avx512bw::transform_with_decorrelate(
                 input_ptr,
                 colors_out,
@@ -102,7 +102,7 @@ unsafe fn transform_with_decorrelate_x86(
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        if cfg!(target_feature = "avx512f") && cfg!(target_feature = "avx512bw") {
+        if cfg!(target_feature = "avx512bw") {
             avx512bw::transform_with_decorrelate(
                 input_ptr,
                 colors_out,

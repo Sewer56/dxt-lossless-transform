@@ -91,7 +91,7 @@ pub mod transform {
         // AVX512 functions
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         pub unsafe fn permute_512_unroll_2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-            crate::transform::standard::transform::bench::avx512::permute_512_unroll_2(
+            crate::transform::standard::transform::bench::avx512f::permute_512_unroll_2(
                 input_ptr, output_ptr, len,
             )
         }
@@ -103,7 +103,7 @@ pub mod transform {
             indices_ptr: *mut u32,
             len: usize,
         ) {
-            crate::transform::standard::transform::bench::avx512::permute_512_unroll_2_with_separate_pointers(
+            crate::transform::standard::transform::bench::avx512f::permute_512_unroll_2_with_separate_pointers(
                 input_ptr, colors_ptr, indices_ptr, len
             )
         }
@@ -299,7 +299,7 @@ pub mod untransform {
             output_ptr: *mut u8,
             len: usize,
         ) {
-            crate::transform::standard::untransform::bench::avx512::permute_512_untransform_unroll_2_intrinsics(input_ptr, output_ptr, len)
+            crate::transform::standard::untransform::bench::avx512f::permute_512_untransform_unroll_2_intrinsics(input_ptr, output_ptr, len)
         }
 
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
@@ -309,7 +309,7 @@ pub mod untransform {
             indices_ptr: *const u8,
             colors_ptr: *const u8,
         ) {
-            crate::transform::standard::untransform::bench::avx512::permute_512_untransform_unroll_2_with_components_intrinsics(
+            crate::transform::standard::untransform::bench::avx512f::permute_512_untransform_unroll_2_with_components_intrinsics(
                 output_ptr, len, indices_ptr, colors_ptr
             )
         }

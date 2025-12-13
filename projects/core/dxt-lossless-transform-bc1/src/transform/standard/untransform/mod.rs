@@ -7,7 +7,7 @@ mod sse2;
 mod avx2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-mod avx512;
+mod avx512f;
 
 #[cfg(feature = "bench")]
 pub mod bench;
@@ -18,7 +18,7 @@ unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
         if dxt_lossless_transform_common::cpu_detect::has_avx512f() {
-            avx512::permute_512_untransform_unroll_2(input_ptr, output_ptr, len);
+            avx512f::permute_512_untransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
@@ -36,7 +36,7 @@ unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
         if cfg!(target_feature = "avx512f") {
-            avx512::permute_512_untransform_unroll_2(input_ptr, output_ptr, len);
+            avx512f::permute_512_untransform_unroll_2(input_ptr, output_ptr, len);
             return;
         }
 
@@ -92,7 +92,7 @@ unsafe fn untransform_with_separate_pointers_x86(
     {
         use dxt_lossless_transform_common::cpu_detect::*;
         if has_avx512f() {
-            avx512::permute_512_untransform_unroll_2_with_components(
+            avx512f::permute_512_untransform_unroll_2_with_components(
                 output_ptr,
                 len,
                 indices_ptr as *const u8,
@@ -125,7 +125,7 @@ unsafe fn untransform_with_separate_pointers_x86(
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
         if cfg!(target_feature = "avx512f") {
-            avx512::permute_512_untransform_unroll_2_with_components(
+            avx512f::permute_512_untransform_unroll_2_with_components(
                 output_ptr,
                 len,
                 indices_ptr as *const u8,

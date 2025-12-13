@@ -8,7 +8,7 @@ pub(crate) mod sse2;
 pub(crate) mod avx2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub(crate) mod avx512;
+pub(crate) mod avx512f;
 
 pub(crate) mod portable32;
 pub(crate) mod portable64;
@@ -34,5 +34,5 @@ pub(crate) unsafe fn u32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) 
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub(crate) unsafe fn permute_512(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    super::avx512::permute_512(input_ptr, output_ptr, len)
+    super::avx512f::permute_512(input_ptr, output_ptr, len)
 }

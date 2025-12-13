@@ -83,6 +83,7 @@ When building the `dxt-lossless-transform-cli` project, enable all features exce
 
 **CRITICAL: After making any code changes, ALWAYS perform these verification steps in order:**
 
+0. **Verify Everything Compiles**: Run `cargo build --all-features --all-targets` to ensure there are no compilation errors
 1. **Run Tests**: Execute `cargo test --all-features` to ensure all functionality works correctly
 2. **Check Lints**: Run `cargo clippy --workspace --all-features -- -D warnings` to catch any warnings or issues
 3. **Verify Documentation**: Run `cargo doc --workspace --all-features` to check for documentation errors

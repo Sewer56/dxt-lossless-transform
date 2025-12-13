@@ -560,26 +560,26 @@ pub(crate) unsafe fn avx512_untransform_separate_components_32(
         // Same code as above, but no unroll.
         // Each zmm register stores 4 blocks.
 
-        // The alpha bytes, (4 blocks * 2 bytes == 8 bytes)
+        // The alpha bytes for 4 blocks (2 bytes * 4 blocks == 8 bytes) | (8 bytes unused/leftover)
         let alpha_bytes_0 =
-            _mm512_castsi128_si512(_mm_loadu_si128(alpha_byte_in_ptr as *const __m128i)); // 32 blocks, 8 regs
+            _mm512_castsi128_si512(_mm_loadu_si128(alpha_byte_in_ptr as *const __m128i));
         alpha_byte_in_ptr = alpha_byte_in_ptr.add(8);
 
-        // The colors and indices (4 blocks * 4 bytes == 16 bytes)
-        let colors_0 = _mm512_castsi128_si512(_mm_loadu_si128(color_byte_in_ptr as *const __m128i)); // 16 blocks, 4 regs
+        // The colors and indices for 4 blocks (4 blocks * 4 bytes == 16 bytes)
+        let colors_0 = _mm512_castsi128_si512(_mm_loadu_si128(color_byte_in_ptr as *const __m128i));
         color_byte_in_ptr = color_byte_in_ptr.add(16);
 
         let indices_0 =
-            _mm512_castsi128_si512(_mm_loadu_si128(index_byte_in_ptr as *const __m128i)); // 16 blocks, 4 regs
+            _mm512_castsi128_si512(_mm_loadu_si128(index_byte_in_ptr as *const __m128i));
         index_byte_in_ptr = index_byte_in_ptr.add(16);
 
-        // The alpha bits (4 blocks * 6 bytes == 24 bytes)
+        // The alpha bits for 4 blocks (4 blocks * 6 bytes == 24 bytes) | do 32 byte read
         let alpha_bit_0 =
-            _mm512_castsi256_si512(_mm256_loadu_si256(alpha_bit_in_ptr as *const __m256i)); // 8 blocks, 2 regs
+            _mm512_castsi256_si512(_mm256_loadu_si256(alpha_bit_in_ptr as *const __m256i));
         alpha_bit_in_ptr = alpha_bit_in_ptr.add(24);
 
-        // Now let's reassemble the 32 blocks
-        // 64 / 16 == 4 blocks per register, so 8 registers of blocks needed because we got 32 blocks
+        // 64 / 16 == 4 blocks per register.
+        // Now let's reassemble the 4 blocks
         let mut blocks_0 =
             _mm512_permutex2var_epi8(alpha_bytes_0, blocks_0_perm_alphabits, alpha_bit_0);
         blocks_0 = _mm512_permutex2var_epi8(blocks_0, blocks_0_perm_colours, colors_0);

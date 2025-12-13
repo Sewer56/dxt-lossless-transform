@@ -31,7 +31,7 @@
 //! **Critical Safety Note**: Embed functions should never blindly overwrite headers.
 //! Callers must validate the file format first - never trust file extensions alone.
 //!
-//! [`dxt-lossless-transform-dds`]: https://github.com/Sewer56/dxt-lossless-transform/tree/main/projects/extensions/dxt-lossless-transform-dds
+//! [`dxt-lossless-transform-dds`]: https://github.com/Sewer56/dxt-lossless-transform/tree/main/src/extensions/file-formats/dxt-lossless-transform-dds
 //!
 //! # The Header Format
 //!

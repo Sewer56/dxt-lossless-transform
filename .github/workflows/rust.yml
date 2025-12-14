@@ -154,7 +154,7 @@ jobs:
       - name: Build CLI
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
-          crate-name: "dxt-lossless-transform-cli"
+          artifact-prefix: "cli"
           rust-project-path: "src/tools/dxt-lossless-transform-cli"
           workspace-path: "src"
           target: ${{ matrix.target }}
@@ -193,7 +193,7 @@ jobs:
       - name: Build C API (DDS)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
-          crate-name: "dxt-lossless-transform-dds"
+          artifact-prefix: "dds"
           rust-project-path: "src/extensions/file-formats/dxt-lossless-transform-dds"
           workspace-path: "src"
           target: ${{ matrix.target }}
@@ -203,12 +203,13 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: true
           build-library: true
+          upload-symbols-separately: false
           rust-toolchain: "nightly-2025-12-08"
 
       - name: Build C API (Common)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
-          crate-name: "dxt-lossless-transform-api-common"
+          artifact-prefix: "common"
           rust-project-path: "src/api/dxt-lossless-transform-api-common"
           workspace-path: "src"
           target: ${{ matrix.target }}
@@ -218,12 +219,13 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false # Cache setup is inherited from first call.
           build-library: true
+          upload-symbols-separately: false
           rust-toolchain: "nightly-2025-12-08"
 
-      - name: Build C API (BC1)
+      - name: Build C API (BC1 API)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
-          crate-name: "dxt-lossless-transform-bc1-api"
+          artifact-prefix: "bc1-api"
           rust-project-path: "src/api/dxt-lossless-transform-bc1-api"
           workspace-path: "src"
           target: ${{ matrix.target }}
@@ -233,12 +235,13 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false # Cache setup is inherited from first call.
           build-library: true
+          upload-symbols-separately: false
           rust-toolchain: "nightly-2025-12-08"
 
       - name: Build C API (BC1 Core)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
-          crate-name: "dxt-lossless-transform-bc1"
+          artifact-prefix: "bc1-core"
           rust-project-path: "src/core/dxt-lossless-transform-bc1"
           workspace-path: "src"
           target: ${{ matrix.target }}
@@ -248,12 +251,45 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false # Cache setup is inherited from first call.
           build-library: true
+          upload-symbols-separately: false
+          rust-toolchain: "nightly-2025-12-08"
+
+      - name: Build C API (BC2 API)
+        uses: Reloaded-Project/devops-rust-lightweight-binary@v1
+        with:
+          artifact-prefix: "bc2-api"
+          rust-project-path: "src/api/dxt-lossless-transform-bc2-api"
+          workspace-path: "src"
+          target: ${{ matrix.target }}
+          use-cross: ${{ matrix.use-cross }}
+          features: "c-exports"
+          additional-rustc-args: "--all-features"
+          codecov-token: ${{ secrets.CODECOV_TOKEN }}
+          use-cache: false # Cache setup is inherited from first call.
+          build-library: true
+          upload-symbols-separately: false
+          rust-toolchain: "nightly-2025-12-08"
+
+      - name: Build C API (BC2 Core)
+        uses: Reloaded-Project/devops-rust-lightweight-binary@v1
+        with:
+          artifact-prefix: "bc2-core"
+          rust-project-path: "src/core/dxt-lossless-transform-bc2"
+          workspace-path: "src"
+          target: ${{ matrix.target }}
+          use-cross: ${{ matrix.use-cross }}
+          features: "c-exports"
+          additional-rustc-args: "--all-features"
+          codecov-token: ${{ secrets.CODECOV_TOKEN }}
+          use-cache: false # Cache setup is inherited from first call.
+          build-library: true
+          upload-symbols-separately: false
           rust-toolchain: "nightly-2025-12-08"
 
       - name: Build C API (LTU)
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
-          crate-name: "dxt-lossless-transform-ltu"
+          artifact-prefix: "ltu"
           rust-project-path: "src/extensions/estimators/dxt-lossless-transform-ltu"
           workspace-path: "src"
           target: ${{ matrix.target }}
@@ -263,6 +299,7 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           use-cache: false # Cache setup is inherited from first call.
           build-library: true
+          upload-symbols-separately: false
           rust-toolchain: "nightly-2025-12-08"
 
   build-c-cpp-headers:
@@ -340,6 +377,42 @@ jobs:
           rust-project-path: 'src/core/dxt-lossless-transform-bc1/'
           config-file: ../../../.github/cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-bc1.hpp
+          artifact-prefix: ""
+          use-cache: false # Cache setup is inherited from first call.
+
+      - name: C bindings - BC2 API
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'src/api/dxt-lossless-transform-bc2-api/'
+          config-file: ../../../.github/cbindgen_c.toml
+          output-header-file: dxt-lossless-transform-bc2-api.h
+          artifact-prefix: ""
+          use-cache: false # Cache setup is inherited from first call.
+
+      - name: C++ bindings - BC2 API
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'src/api/dxt-lossless-transform-bc2-api/'
+          config-file: ../../../.github/cbindgen_cpp.toml
+          output-header-file: dxt-lossless-transform-bc2-api.hpp
+          artifact-prefix: ""
+          use-cache: false # Cache setup is inherited from first call.
+
+      - name: C bindings - BC2 Core
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'src/core/dxt-lossless-transform-bc2/'
+          config-file: ../../../.github/cbindgen_c.toml
+          output-header-file: dxt-lossless-transform-bc2.h
+          artifact-prefix: ""
+          use-cache: false # Cache setup is inherited from first call.
+
+      - name: C++ bindings - BC2 Core
+        uses: Reloaded-Project/devops-rust-cbindgen@v1
+        with:
+          rust-project-path: 'src/core/dxt-lossless-transform-bc2/'
+          config-file: ../../../.github/cbindgen_cpp.toml
+          output-header-file: dxt-lossless-transform-bc2.hpp
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 

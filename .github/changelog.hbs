@@ -2,11 +2,24 @@
 
 <!-- Add your release notes here -->
 
-Available Downloads:
+## Available Downloads
 
-- Command Line (CLI) Program: `linux-x64.7z`, `windows-x64.7z` etc.
-- Symbols for CLI: `Symbols.7z`
-- C Library: `C-Library.7z`
+```
+cli.7z                      Command-line tool for lossless DXT transforms
+cli-symbols.7z              Debug symbols for CLI
+
+c-libs.7z                   C/C++ libraries, headers, and debug symbols
+├── dds-<platform>/           DDS file format support
+├── common-<platform>/        Common API library
+├── bc1-api-<platform>/       BC1 high-level API (use this OR bc1-core)
+├── bc1-core-<platform>/      BC1 low-level API (use this OR bc1-api)
+├── bc2-api-<platform>/       BC2 high-level API (use this OR bc2-core)
+├── bc2-core-<platform>/      BC2 low-level API (use this OR bc2-api)
+├── ltu-<platform>/           Compression ratio estimator
+└── *.h / *.hpp               C/C++ header files
+```
+
+Platforms: `linux-x64`, `linux-x86`, `linux-arm64`, `windows-x64`, `windows-x86`, `macos-x64`, `macos-arm64`, `android-arm64`, `android-arm`, `android-x64`
 
 ## Complete Changelog
 

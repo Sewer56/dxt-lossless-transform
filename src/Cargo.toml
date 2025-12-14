@@ -1,17 +1,23 @@
 # Profile Build
 [profile.profile]
 inherits = "release"
+strip = false           # symbols are needed for good profile data
 debug = true
-codegen-units = 1
-lto = true
-strip = false        # No stripping!!
+split-debuginfo = "off" # Some tools on Linux expect embedded symbols, e.g. cargo flamegraph. Keep them together.
+
+# Benchmark Build
+[profile.bench]
+inherits = "profile"
 
 # Optimized Release Build
 [profile.release]
 codegen-units = 1
 lto = true
-strip = true      # Automatically strip symbols from the binary.
-panic = "abort"
+strip = true
+panic = "abort"            # Automatically strip symbols from the binary
+# Ensure that on Linux, you get separate .dwp files , in same vein you get .pdb on Windows.
+debug = "full"
+split-debuginfo = "packed"
 
 [workspace]
 members = [

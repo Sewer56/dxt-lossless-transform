@@ -80,6 +80,7 @@ jobs:
       - name: Run Tests
         uses: Reloaded-Project/devops-rust-test-and-coverage@v1
         with:
+          rust-project-path: src
           target: ${{ matrix.target }}
           use-cross: ${{ matrix.use-cross }}
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
@@ -120,6 +121,7 @@ jobs:
         run: RUSTFLAGS="" cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Validate Cross-Endian Transformations
+        working-directory: src
         run: cargo run --bin dxt-lossless-transform-cli --features debug-endian -- debug-endian
 
   build-cli:
@@ -273,7 +275,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
           rust-project-path: 'src/api/dxt-lossless-transform-api-common/'
-          config-file: ../../.github/cbindgen_c.toml
+          config-file: ../../../.github/cbindgen_c.toml
           output-header-file: dxt-lossless-transform-api-common.h
           artifact-prefix: ""
           use-cache: true
@@ -282,7 +284,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
           rust-project-path: 'src/api/dxt-lossless-transform-api-common/'
-          config-file: ../../.github/cbindgen_cpp.toml
+          config-file: ../../../.github/cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-api-common.hpp
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
@@ -291,7 +293,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
           rust-project-path: 'src/extensions/file-formats/dxt-lossless-transform-dds/'
-          config-file: ../../../.github/cbindgen_c.toml
+          config-file: ../../../../.github/cbindgen_c.toml
           output-header-file: dxt-lossless-transform-dds.h
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
@@ -300,7 +302,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
           rust-project-path: 'src/extensions/file-formats/dxt-lossless-transform-dds/'
-          config-file: ../../../.github/cbindgen_cpp.toml
+          config-file: ../../../../.github/cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-dds.hpp
           artifact-prefix: ""
           use-cache: false
@@ -309,7 +311,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
           rust-project-path: 'src/api/dxt-lossless-transform-bc1-api/'
-          config-file: ../../.github/cbindgen_c.toml
+          config-file: ../../../.github/cbindgen_c.toml
           output-header-file: dxt-lossless-transform-bc1-api.h
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
@@ -318,7 +320,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
           rust-project-path: 'src/api/dxt-lossless-transform-bc1-api/'
-          config-file: ../../.github/cbindgen_cpp.toml
+          config-file: ../../../.github/cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-bc1-api.hpp
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
@@ -327,7 +329,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
           rust-project-path: 'src/core/dxt-lossless-transform-bc1/'
-          config-file: ../../.github/cbindgen_c.toml
+          config-file: ../../../.github/cbindgen_c.toml
           output-header-file: dxt-lossless-transform-bc1.h
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
@@ -336,7 +338,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
           rust-project-path: 'src/core/dxt-lossless-transform-bc1/'
-          config-file: ../../.github/cbindgen_cpp.toml
+          config-file: ../../../.github/cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-bc1.hpp
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
@@ -345,7 +347,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
           rust-project-path: 'src/extensions/estimators/dxt-lossless-transform-ltu/'
-          config-file: ../../../.github/cbindgen_c.toml
+          config-file: ../../../../.github/cbindgen_c.toml
           output-header-file: dxt-lossless-transform-ltu.h
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
@@ -354,7 +356,7 @@ jobs:
         uses: Reloaded-Project/devops-rust-cbindgen@v1
         with:
           rust-project-path: 'src/extensions/estimators/dxt-lossless-transform-ltu/'
-          config-file: ../../../.github/cbindgen_cpp.toml
+          config-file: ../../../../.github/cbindgen_cpp.toml
           output-header-file: dxt-lossless-transform-ltu.hpp
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.

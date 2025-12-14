@@ -41,7 +41,7 @@ updates:
       include: "scope"
     # Allow automatic rebasing when conflicts occur
     rebase-strategy: "auto"
-  
+
   # Monitor GitHub Actions for dependency updates
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -53,24 +53,3 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
-  
-  # Enable version updates for Git submodules
-  - package-ecosystem: "gitsubmodule"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Etc/UTC"
-    # Limit the number of open pull requests for version updates
-    open-pull-requests-limit: 3
-    # Add labels to categorize the PRs
-    labels:
-      - "dependencies"
-      - "submodule"
-    # Customize commit messages
-    commit-message:
-      prefix: "Updated:"
-      include: "scope"
-    # Allow automatic rebasing when conflicts occur
-    rebase-strategy: "auto" 

@@ -6,7 +6,7 @@ cli:
     - "cli-": ""
 
 # All C/C++ Libraries and Headers grouped together
-c-libs:
+c-libraries:
   patterns:
     - "dds-*"
     - "common-*"
@@ -15,9 +15,11 @@ c-libs:
     - "bc2-api-*"
     - "bc2-core-*"
     - "ltu-*"
-    - "C-Bindings-*"
+    - "*.h"
+    - "*.hpp"
   flattens:
-    - "C-Bindings-*"
+    - "*.h"
+    - "*.hpp"
 
 # CLI debug symbols (separate archive)
 cli-symbols:

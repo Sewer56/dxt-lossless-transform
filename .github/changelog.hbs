@@ -8,7 +8,7 @@
 cli.7z                      Command-line tool for lossless DXT transforms
 cli-symbols.7z              Debug symbols for CLI
 
-c-libs.7z                   C/C++ libraries, headers, and debug symbols
+c-libraries.7z              C/C++ libraries, headers, and debug symbols
 ├── dds-<platform>/           DDS file format support
 ├── common-<platform>/        Common API library
 ├── bc1-api-<platform>/       BC1 high-level API (use this OR bc1-core)
@@ -16,7 +16,13 @@ c-libs.7z                   C/C++ libraries, headers, and debug symbols
 ├── bc2-api-<platform>/       BC2 high-level API (use this OR bc2-core)
 ├── bc2-core-<platform>/      BC2 low-level API (use this OR bc2-api)
 ├── ltu-<platform>/           Compression ratio estimator
-└── *.h / *.hpp               C/C++ header files
+├── common.h / common.hpp     Common API headers
+├── dds.h / dds.hpp           DDS headers
+├── bc1-api.h / bc1-api.hpp   BC1 API headers
+├── bc1-core.h / bc1-core.hpp BC1 Core headers
+├── bc2-api.h / bc2-api.hpp   BC2 API headers
+├── bc2-core.h / bc2-core.hpp BC2 Core headers
+└── ltu.h / ltu.hpp           LTU headers
 ```
 
 Platforms: `linux-x64`, `linux-x86`, `linux-arm64`, `windows-x64`, `windows-x86`, `macos-x64`, `macos-arm64`, `android-arm64`, `android-arm`, `android-x64`

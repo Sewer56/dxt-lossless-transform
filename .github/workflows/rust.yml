@@ -313,7 +313,7 @@ jobs:
         with:
           rust-project-path: 'src/api/dxt-lossless-transform-api-common/'
           config-file: ../../../.github/cbindgen_c.toml
-          output-header-file: dxt-lossless-transform-api-common.h
+          output-header-file: common.h
           artifact-prefix: ""
           use-cache: true
 
@@ -322,7 +322,7 @@ jobs:
         with:
           rust-project-path: 'src/api/dxt-lossless-transform-api-common/'
           config-file: ../../../.github/cbindgen_cpp.toml
-          output-header-file: dxt-lossless-transform-api-common.hpp
+          output-header-file: common.hpp
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 
@@ -331,7 +331,7 @@ jobs:
         with:
           rust-project-path: 'src/extensions/file-formats/dxt-lossless-transform-dds/'
           config-file: ../../../../.github/cbindgen_c.toml
-          output-header-file: dxt-lossless-transform-dds.h
+          output-header-file: dds.h
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 
@@ -340,7 +340,7 @@ jobs:
         with:
           rust-project-path: 'src/extensions/file-formats/dxt-lossless-transform-dds/'
           config-file: ../../../../.github/cbindgen_cpp.toml
-          output-header-file: dxt-lossless-transform-dds.hpp
+          output-header-file: dds.hpp
           artifact-prefix: ""
           use-cache: false
 
@@ -349,7 +349,7 @@ jobs:
         with:
           rust-project-path: 'src/api/dxt-lossless-transform-bc1-api/'
           config-file: ../../../.github/cbindgen_c.toml
-          output-header-file: dxt-lossless-transform-bc1-api.h
+          output-header-file: bc1-api.h
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 
@@ -358,7 +358,7 @@ jobs:
         with:
           rust-project-path: 'src/api/dxt-lossless-transform-bc1-api/'
           config-file: ../../../.github/cbindgen_cpp.toml
-          output-header-file: dxt-lossless-transform-bc1-api.hpp
+          output-header-file: bc1-api.hpp
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 
@@ -367,7 +367,7 @@ jobs:
         with:
           rust-project-path: 'src/core/dxt-lossless-transform-bc1/'
           config-file: ../../../.github/cbindgen_c.toml
-          output-header-file: dxt-lossless-transform-bc1.h
+          output-header-file: bc1-core.h
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 
@@ -376,7 +376,7 @@ jobs:
         with:
           rust-project-path: 'src/core/dxt-lossless-transform-bc1/'
           config-file: ../../../.github/cbindgen_cpp.toml
-          output-header-file: dxt-lossless-transform-bc1.hpp
+          output-header-file: bc1-core.hpp
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 
@@ -385,7 +385,7 @@ jobs:
         with:
           rust-project-path: 'src/api/dxt-lossless-transform-bc2-api/'
           config-file: ../../../.github/cbindgen_c.toml
-          output-header-file: dxt-lossless-transform-bc2-api.h
+          output-header-file: bc2-api.h
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 
@@ -394,7 +394,7 @@ jobs:
         with:
           rust-project-path: 'src/api/dxt-lossless-transform-bc2-api/'
           config-file: ../../../.github/cbindgen_cpp.toml
-          output-header-file: dxt-lossless-transform-bc2-api.hpp
+          output-header-file: bc2-api.hpp
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 
@@ -403,7 +403,7 @@ jobs:
         with:
           rust-project-path: 'src/core/dxt-lossless-transform-bc2/'
           config-file: ../../../.github/cbindgen_c.toml
-          output-header-file: dxt-lossless-transform-bc2.h
+          output-header-file: bc2-core.h
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 
@@ -412,7 +412,7 @@ jobs:
         with:
           rust-project-path: 'src/core/dxt-lossless-transform-bc2/'
           config-file: ../../../.github/cbindgen_cpp.toml
-          output-header-file: dxt-lossless-transform-bc2.hpp
+          output-header-file: bc2-core.hpp
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 
@@ -421,7 +421,7 @@ jobs:
         with:
           rust-project-path: 'src/extensions/estimators/dxt-lossless-transform-ltu/'
           config-file: ../../../../.github/cbindgen_c.toml
-          output-header-file: dxt-lossless-transform-ltu.h
+          output-header-file: ltu.h
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 
@@ -430,7 +430,7 @@ jobs:
         with:
           rust-project-path: 'src/extensions/estimators/dxt-lossless-transform-ltu/'
           config-file: ../../../../.github/cbindgen_cpp.toml
-          output-header-file: dxt-lossless-transform-ltu.hpp
+          output-header-file: ltu.hpp
           artifact-prefix: ""
           use-cache: false # Cache setup is inherited from first call.
 

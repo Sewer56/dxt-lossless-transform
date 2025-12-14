@@ -125,9 +125,6 @@ For information on how to work with this codebase, see the [Developer Manual](ht
 Licensed under [GPL v3 (with Reloaded FAQ)](https://github.com/Sewer56/dxt-lossless-transform/blob/main/LICENSE).  
 [Learn more about Reloaded's general choice of licensing for projects.][reloaded-license].  
 
-[codecov]: https://about.codecov.io/
-[crates-io-key]: https://crates.io/settings/tokens
-[nuget-key]: https://www.nuget.org/account/apikeys
-[docs]: https://dxt-lossless-transform.github.io/dxt-lossless-transform
 [reloaded-license]: https://reloaded-project.github.io/License/GPLv3/about.html
 [dxt-lossless-transform-bc3-api]: https://github.com/Sewer56/dxt-lossless-transform/tree/main/projects/dxt-lossless-transform-bc3-api
+[YCoCg-R]: https://en.wikipedia.org/wiki/YCoCg#The_lifting-based_YCoCg-R_variation

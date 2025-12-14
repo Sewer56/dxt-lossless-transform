@@ -141,10 +141,6 @@ We welcome contributions! See the [Contributing Guide](https://reloaded-project.
 
 Licensed under [GPL v3 (with Reloaded FAQ)](./LICENSE).
 
-[codecov]: https://about.codecov.io/
-[crates-io-key]: https://crates.io/settings/tokens
-[nuget-key]: https://www.nuget.org/account/apikeys
-[docs]: https://dxt-lossless-transform.github.io/dxt-lossless-transform
 [dxt-lossless-transform-common]: src/core/dxt-lossless-transform-common/README.MD
 [dxt-lossless-transform-bc1]: src/core/dxt-lossless-transform-bc1/README.MD
 [dxt-lossless-transform-bc2]: src/core/dxt-lossless-transform-bc2/README.MD

@@ -1,0 +1,29 @@
+# CLI (symbols kept separate via cli-symbols group below)
+cli:
+  patterns: "cli-*"
+  excludes: "cli-*.symbols"
+  renames:
+    - "cli-": ""
+
+# All C/C++ Libraries and Headers grouped together
+c-libraries:
+  patterns:
+    - "dds-*"
+    - "common-*"
+    - "bc1-api-*"
+    - "bc1-core-*"
+    - "bc2-api-*"
+    - "bc2-core-*"
+    - "ltu-*"
+    - "*.h"
+    - "*.hpp"
+  flattens:
+    - "*.h"
+    - "*.hpp"
+
+# CLI debug symbols (separate archive)
+cli-symbols:
+  patterns: "cli-*.symbols"
+  renames:
+    - "cli-": ""
+    - ".symbols": ""

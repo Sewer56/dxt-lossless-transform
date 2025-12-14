@@ -1,0 +1,18 @@
+ignore:
+  - "tests"
+  - "benches"
+  - "examples"
+  - "src/tools/dxt-lossless-transform-cli"
+
+comment:
+  layout: "reach, diff, flags, files"
+  require_changes: true
+
+github_checks:
+  annotations: false
+
+coverage:
+  status:
+    project:
+      default:
+        threshold: 5%

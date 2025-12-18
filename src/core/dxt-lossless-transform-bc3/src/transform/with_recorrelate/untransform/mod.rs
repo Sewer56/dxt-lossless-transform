@@ -6,10 +6,7 @@ pub(crate) mod generic;
 mod sse2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-mod avx2;
-
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-mod avx512;
+mod avx512vbmi;
 
 /// Transform BC3 data from separated alpha/color/index format back to standard interleaved format
 /// while applying YCoCg recorrelation.
@@ -77,21 +74,8 @@ unsafe fn untransform_with_recorrelate_x86(
 
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        if has_avx512bw() {
-            avx512::untransform_with_recorrelate(
-                alpha_endpoints_ptr,
-                alpha_indices_ptr,
-                colors_ptr,
-                color_indices_ptr,
-                output_ptr,
-                num_blocks,
-                recorrelation_mode,
-            );
-            return;
-        }
-
-        if has_avx2() {
-            avx2::untransform_with_recorrelate(
+        if has_avx512vbmi() {
+            avx512vbmi::untransform_with_recorrelate(
                 alpha_endpoints_ptr,
                 alpha_indices_ptr,
                 colors_ptr,
@@ -119,22 +103,8 @@ unsafe fn untransform_with_recorrelate_x86(
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        if cfg!(target_feature = "avx512bw") {
-            avx512::untransform_with_recorrelate(
-                alpha_endpoints_ptr,
-                alpha_indices_ptr,
-                colors_ptr,
-                color_indices_ptr,
-                output_ptr,
-                num_blocks,
-                recorrelation_mode,
-            );
-            return;
-        }
-
-        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-        if cfg!(target_feature = "avx2") {
-            avx2::untransform_with_recorrelate(
+        if cfg!(target_feature = "avx512vbmi") {
+            avx512vbmi::untransform_with_recorrelate(
                 alpha_endpoints_ptr,
                 alpha_indices_ptr,
                 colors_ptr,

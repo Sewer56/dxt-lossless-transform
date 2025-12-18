@@ -3,10 +3,8 @@ use dxt_lossless_transform_common::color_565::YCoCgVariant;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-mod avx512;
+mod avx512vbmi;
 pub(crate) mod generic;
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-mod sse2;
 
 /// Split BC3 blocks from standard interleaved format to separate alpha/color/index format,
 /// applying YCoCg-R decorrelation to color endpoints.
@@ -75,8 +73,8 @@ unsafe fn transform_with_decorrelate_x86(
 
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
-        if has_avx512bw() {
-            avx512::transform_with_decorrelate(
+        if has_avx512vbmi() {
+            avx512vbmi::transform_with_decorrelate(
                 input_ptr,
                 alpha_endpoints_out,
                 alpha_indices_out,
@@ -100,25 +98,12 @@ unsafe fn transform_with_decorrelate_x86(
             );
             return;
         }
-
-        if has_sse2() {
-            sse2::transform_with_decorrelate(
-                input_ptr,
-                alpha_endpoints_out,
-                alpha_indices_out,
-                colors_out,
-                color_indices_out,
-                num_blocks,
-                decorrelation_mode,
-            );
-            return;
-        }
     }
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
-        if cfg!(target_feature = "avx512bw") {
-            avx512::transform_with_decorrelate(
+        if cfg!(target_feature = "avx512vbmi") {
+            avx512vbmi::transform_with_decorrelate(
                 input_ptr,
                 alpha_endpoints_out,
                 alpha_indices_out,
@@ -133,20 +118,6 @@ unsafe fn transform_with_decorrelate_x86(
         #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         if cfg!(target_feature = "avx2") {
             avx2::transform_with_decorrelate(
-                input_ptr,
-                alpha_endpoints_out,
-                alpha_indices_out,
-                colors_out,
-                color_indices_out,
-                num_blocks,
-                decorrelation_mode,
-            );
-            return;
-        }
-
-        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-        if cfg!(target_feature = "sse2") {
-            sse2::transform_with_decorrelate(
                 input_ptr,
                 alpha_endpoints_out,
                 alpha_indices_out,

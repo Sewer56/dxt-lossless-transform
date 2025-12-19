@@ -116,7 +116,6 @@ unsafe fn untransform_with_recorrelate_x86(
             return;
         }
 
-        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         if cfg!(target_feature = "sse2") {
             sse2::untransform_with_recorrelate(
                 alpha_endpoints_ptr,

@@ -4,6 +4,64 @@
 
 mod generic;
 
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+mod avx2;
+
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+#[inline(always)]
+unsafe fn transform_with_split_alphas_x86(
+    input_ptr: *const u8,
+    alpha0_out: *mut u8,
+    alpha1_out: *mut u8,
+    alpha_indices_out: *mut u16,
+    colors_out: *mut u32,
+    color_indices_out: *mut u32,
+    block_count: usize,
+) {
+    #[cfg(not(feature = "no-runtime-cpu-detection"))]
+    {
+        if dxt_lossless_transform_common::cpu_detect::has_avx2() {
+            avx2::transform_with_split_alphas(
+                input_ptr,
+                alpha0_out,
+                alpha1_out,
+                alpha_indices_out,
+                colors_out,
+                color_indices_out,
+                block_count,
+            );
+            return;
+        }
+    }
+
+    #[cfg(feature = "no-runtime-cpu-detection")]
+    {
+        if cfg!(target_feature = "avx2") {
+            avx2::transform_with_split_alphas(
+                input_ptr,
+                alpha0_out,
+                alpha1_out,
+                alpha_indices_out,
+                colors_out,
+                color_indices_out,
+                block_count,
+            );
+            return;
+        }
+    }
+
+    // Fallback to generic implementation
+    generic::transform_with_split_alphas(
+        input_ptr,
+        alpha0_out,
+        alpha1_out,
+        alpha_indices_out,
+        colors_out,
+        color_indices_out,
+        block_count,
+    );
+}
+
 /// Split standard interleaved BC3 blocks into separate alpha0, alpha1, alpha_indices, colors, and color_indices buffers.
 ///
 /// # Safety
@@ -26,15 +84,29 @@ pub(crate) unsafe fn transform_with_split_alphas(
     color_indices_out: *mut u32,
     block_count: usize,
 ) {
-    // For now, we only have the generic implementation
-    // In the future, SIMD implementations can be added following the same pattern as BC2
-    generic::transform_with_split_alphas(
-        input_ptr,
-        alpha0_out,
-        alpha1_out,
-        alpha_indices_out,
-        colors_out,
-        color_indices_out,
-        block_count,
-    );
+    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+    {
+        transform_with_split_alphas_x86(
+            input_ptr,
+            alpha0_out,
+            alpha1_out,
+            alpha_indices_out,
+            colors_out,
+            color_indices_out,
+            block_count,
+        );
+    }
+
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
+    {
+        generic::transform_with_split_alphas(
+            input_ptr,
+            alpha0_out,
+            alpha1_out,
+            alpha_indices_out,
+            colors_out,
+            color_indices_out,
+            block_count,
+        );
+    }
 }

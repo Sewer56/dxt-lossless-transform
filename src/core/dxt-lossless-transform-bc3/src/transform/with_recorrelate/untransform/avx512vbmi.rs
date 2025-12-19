@@ -165,7 +165,7 @@ unsafe fn untransform_recorr_var3(
 }
 
 /// 64-bit optimized AVX512VBMI implementation processing 32 blocks per iteration.
-#[cfg(any(target_arch = "x86_64", feature = "bench", test))]
+#[cfg(target_arch = "x86_64")]
 #[allow(clippy::erasing_op)]
 #[allow(clippy::identity_op)]
 #[target_feature(enable = "avx512vbmi")]
@@ -548,10 +548,9 @@ unsafe fn untransform_recorr_64<const VARIANT: u8>(
 }
 
 /// 32-bit optimized AVX512VBMI implementation processing 4 blocks per iteration.
-#[cfg(any(target_arch = "x86", feature = "bench", test))]
+#[cfg(target_arch = "x86")]
 #[allow(clippy::erasing_op)]
 #[allow(clippy::identity_op)]
-#[allow(dead_code)] // Used only on x86, not x86_64
 #[target_feature(enable = "avx512vbmi")]
 unsafe fn untransform_recorr_32<const VARIANT: u8>(
     mut alpha_endpoints_in: *const u16,

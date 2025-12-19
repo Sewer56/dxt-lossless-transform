@@ -121,7 +121,6 @@ unsafe fn transform_with_decorrelate_x86(
             return;
         }
 
-        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         if cfg!(target_feature = "avx2") {
             avx2::transform_with_decorrelate(
                 input_ptr,
@@ -134,7 +133,6 @@ unsafe fn transform_with_decorrelate_x86(
             return;
         }
 
-        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         if cfg!(target_feature = "sse2") {
             sse2::transform_with_decorrelate(
                 input_ptr,

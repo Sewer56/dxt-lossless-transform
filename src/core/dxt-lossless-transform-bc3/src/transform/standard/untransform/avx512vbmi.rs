@@ -98,10 +98,18 @@ pub(crate) unsafe fn avx512_untransform_separate_components(
     len: usize,
 ) {
     debug_assert!(len.is_multiple_of(16));
-    const BYTES_PER_ITERATION: usize = 512;
-    // We drop some alpha bits, which may lead to an overrun so we should technically subtract,
-    // however it's impossible to get a read over the buffer here, as the colours and indices follow
-    // right after; in actual transformed file. Therefore, we can just work with aligned len just fine.
+    const BLOCKS_PER_ITERATION: usize = 32;
+    const BYTES_PER_ITERATION: usize = BLOCKS_PER_ITERATION * 16;
+    // SAFETY: Alpha indices are 6 bytes/block. For 32 blocks we need 192 bytes,
+    // but SIMD uses 64-byte loads at overlapping offsets, reading up to 208 bytes.
+    // The final load extends 16 bytes past the alpha_indices boundary.
+    //
+    // This is safe because transformed data is laid out contiguously as:
+    //   [alpha_endpoints | alpha_indices | colors | color_indices]
+    // Over-read bytes land in the colors section, not outside the buffer.
+    //
+    // Rounding down to BLOCKS_PER_ITERATION ensures each loop iteration starts
+    // at a valid offset with sufficient data. Remaining blocks use scalar code.
     let aligned_len = len - (len % BYTES_PER_ITERATION);
     let alpha_byte_end_ptr = alpha_byte_in_ptr.add(aligned_len / 16 * 2);
 
@@ -501,10 +509,17 @@ pub(crate) unsafe fn avx512_untransform_separate_components_32(
     len: usize,
 ) {
     debug_assert!(len.is_multiple_of(16));
-    const BYTES_PER_ITERATION: usize = 64;
-    // We drop some alpha bits, which may lead to an overrun so we should technically subtract,
-    // however it's impossible to get a read over the buffer here, as the colours and indices follow
-    // right after; so we can just work with aligned len just fine.
+    const BLOCKS_PER_ITERATION: usize = 4;
+    const BYTES_PER_ITERATION: usize = BLOCKS_PER_ITERATION * 16;
+    // SAFETY: Alpha indices are 6 bytes/block. For 4 blocks we need 24 bytes,
+    // but a 256-bit SIMD load reads 32 bytes, extending 8 bytes past alpha_indices.
+    //
+    // This is safe because transformed data is laid out contiguously as:
+    //   [alpha_endpoints | alpha_indices | colors | color_indices]
+    // Over-read bytes land in the colors section, not outside the buffer.
+    //
+    // Rounding down to BLOCKS_PER_ITERATION ensures each loop iteration starts
+    // at a valid offset with sufficient data. Remaining blocks use scalar code.
     let aligned_len = len - (len % BYTES_PER_ITERATION);
     let alpha_byte_end_ptr = alpha_byte_in_ptr.add(aligned_len / 16 * 2);
 

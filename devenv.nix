@@ -121,19 +121,4 @@
     cargo --version
     dev-full-check
   '';
-
-  # Git hooks for code quality
-  git-hooks.hooks = {
-    # Rust formatting
-    rustfmt.enable = true;
-
-    # Clippy linting
-    clippy = {
-      enable = true;
-      settings = {
-        allFeatures = true;
-        denyWarnings = true;
-      };
-    };
-  };
 }

@@ -12,7 +12,7 @@ pub unsafe fn u32_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: us
 }
 
 pub unsafe fn u32_untransform_v2(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    super::portable::u32_untransform_v2(input_ptr, output_ptr, len)
+    super::portable32::u32_untransform_v2(input_ptr, output_ptr, len)
 }
 
 pub unsafe fn u64_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {

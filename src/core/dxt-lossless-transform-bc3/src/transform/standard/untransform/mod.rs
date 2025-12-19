@@ -1,4 +1,4 @@
-pub mod portable;
+pub mod portable32;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub mod sse2;
@@ -55,7 +55,7 @@ unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 
     #[cfg(not(target_arch = "x86_64"))]
     {
-        portable::u32_untransform_v2(input_ptr, output_ptr, len);
+        portable32::u32_untransform_v2(input_ptr, output_ptr, len);
     }
 }
 
@@ -79,6 +79,6 @@ pub unsafe fn untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
     {
-        portable::u32_untransform_v2(input_ptr, output_ptr, len)
+        portable32::u32_untransform_v2(input_ptr, output_ptr, len)
     }
 }

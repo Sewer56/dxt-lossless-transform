@@ -4,106 +4,192 @@
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
+use core::hint::unreachable_unchecked;
 
-use crate::transform::standard::untransform::portable32::u32_untransform_with_separate_pointers;
+use dxt_lossless_transform_common::color_565::YCoCgVariant;
+use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx512bw::{
+    recorrelate_ycocg_r_var1_avx512bw, recorrelate_ycocg_r_var2_avx512bw,
+    recorrelate_ycocg_r_var3_avx512bw,
+};
 
+/// AVX512VBMI implementation of BC3 untransform with YCoCg-R recorrelation.
+///
 /// # Safety
 ///
-/// - Same safety requirements as the scalar version:
-/// - input_ptr must be valid for reads of len bytes
-/// - output_ptr must be valid for writes of len bytes
-#[cfg(any(target_arch = "x86_64", feature = "bench", test))]
-#[target_feature(enable = "avx512vbmi")]
-pub(crate) unsafe fn avx512_untransform(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len.is_multiple_of(16));
-    // Process as many 64-byte blocks as possible
-    let current_output_ptr = output_ptr;
-
-    // Set up input pointers for each section
-    let alpha_byte_in_ptr = input_ptr;
-    let alpha_bit_in_ptr = input_ptr.add(len / 16 * 2);
-    let color_byte_in_ptr = input_ptr.add(len / 16 * 8);
-    let index_byte_in_ptr = input_ptr.add(len / 16 * 12);
-
-    avx512_untransform_separate_components(
-        alpha_byte_in_ptr,
-        alpha_bit_in_ptr,
-        color_byte_in_ptr,
-        index_byte_in_ptr,
-        current_output_ptr,
-        len,
-    );
+/// - alpha_endpoints_in must be valid for reads of num_blocks * 2 bytes
+/// - alpha_indices_in must be valid for reads of num_blocks * 6 bytes
+/// - colors_in must be valid for reads of num_blocks * 4 bytes
+/// - color_indices_in must be valid for reads of num_blocks * 4 bytes
+/// - output_ptr must be valid for writes of num_blocks * 16 bytes
+/// - recorrelation_mode must be a valid [`YCoCgVariant`]
+#[inline]
+pub(crate) unsafe fn untransform_with_recorrelate(
+    alpha_endpoints_in: *const u16,
+    alpha_indices_in: *const u16,
+    colors_in: *const u32,
+    color_indices_in: *const u32,
+    output_ptr: *mut u8,
+    num_blocks: usize,
+    recorrelation_mode: YCoCgVariant,
+) {
+    match recorrelation_mode {
+        YCoCgVariant::Variant1 => {
+            untransform_recorr_var1(
+                alpha_endpoints_in,
+                alpha_indices_in,
+                colors_in,
+                color_indices_in,
+                output_ptr,
+                num_blocks,
+            );
+        }
+        YCoCgVariant::Variant2 => {
+            untransform_recorr_var2(
+                alpha_endpoints_in,
+                alpha_indices_in,
+                colors_in,
+                color_indices_in,
+                output_ptr,
+                num_blocks,
+            );
+        }
+        YCoCgVariant::Variant3 => {
+            untransform_recorr_var3(
+                alpha_endpoints_in,
+                alpha_indices_in,
+                colors_in,
+                color_indices_in,
+                output_ptr,
+                num_blocks,
+            );
+        }
+        YCoCgVariant::None => unreachable_unchecked(),
+    }
 }
 
-/// # Safety
-///
-/// - Same safety requirements as the scalar version:
-/// - input_ptr must be valid for reads of len bytes
-/// - output_ptr must be valid for writes of len bytes
-#[cfg(any(target_arch = "x86", feature = "bench", test))]
-#[target_feature(enable = "avx512vbmi")]
-pub(crate) unsafe fn avx512_untransform_32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
-    debug_assert!(len.is_multiple_of(16));
-
-    // Process as many 64-byte blocks as possible
-    let current_output_ptr = output_ptr;
-
-    // Set up input pointers for each section
-    let alpha_byte_in_ptr = input_ptr;
-    let alpha_bit_in_ptr = input_ptr.add(len / 16 * 2);
-    let color_byte_in_ptr = input_ptr.add(len / 16 * 8);
-    let index_byte_in_ptr = input_ptr.add(len / 16 * 12);
-
-    avx512_untransform_separate_components_32(
-        alpha_byte_in_ptr,
-        alpha_bit_in_ptr,
-        color_byte_in_ptr,
-        index_byte_in_ptr,
-        current_output_ptr,
-        len,
-    );
+// Wrapper functions for assembly inspection using `cargo asm`
+unsafe fn untransform_recorr_var1(
+    alpha_endpoints_in: *const u16,
+    alpha_indices_in: *const u16,
+    colors_in: *const u32,
+    color_indices_in: *const u32,
+    output_ptr: *mut u8,
+    num_blocks: usize,
+) {
+    #[cfg(target_arch = "x86_64")]
+    {
+        untransform_recorr_64::<1>(
+            alpha_endpoints_in,
+            alpha_indices_in,
+            colors_in,
+            color_indices_in,
+            output_ptr,
+            num_blocks,
+        )
+    }
+    #[cfg(target_arch = "x86")]
+    {
+        untransform_recorr_32::<1>(
+            alpha_endpoints_in,
+            alpha_indices_in,
+            colors_in,
+            color_indices_in,
+            output_ptr,
+            num_blocks,
+        )
+    }
 }
 
-/// Untransforms BC3 block data from separated components using AVX512 instructions.
-///
-/// # Arguments
-///
-/// * `alpha_byte_in_ptr` - Pointer to the input buffer containing alpha endpoint pairs (2 bytes per block).
-/// * `alpha_bit_in_ptr` - Pointer to the input buffer containing packed alpha indices (6 bytes per block).
-/// * `color_byte_in_ptr` - Pointer to the input buffer containing color endpoint pairs (packed RGB565, 4 bytes per block) and unused padding (4 bytes per block). Loaded as `__m128i`.
-/// * `index_byte_in_ptr` - Pointer to the input buffer containing color indices (4 bytes per block) and unused padding (4 bytes per block). Loaded as `__m128i`.
-/// * `current_output_ptr` - Pointer to the output buffer where the reconstructed BC3 blocks (16 bytes per block) will be written.
-/// * `len` - The total number of bytes to write to the output buffer. Must be a multiple of 16.
-///
-/// # Safety
-///
-/// - All input pointers must be valid for reads corresponding to `len` bytes of output.
-///   - `alpha_byte_in_ptr` needs `len / 16 * 2` readable bytes.
-///   - `alpha_bit_in_ptr` needs `len / 16 * 6` readable bytes.
-///   - `color_byte_in_ptr` needs `len / 16 * 8` readable bytes.
-///   - `index_byte_in_ptr` needs `len / 16 * 8` readable bytes.
-/// - `current_output_ptr` must be valid for writes for `len` bytes.
-/// - `len` must be a multiple of 16 (the size of a BC3 block).
-/// - Pointers do not need to be aligned; unaligned loads/reads are used.
-#[cfg(any(target_arch = "x86_64", feature = "bench", test))]
+unsafe fn untransform_recorr_var2(
+    alpha_endpoints_in: *const u16,
+    alpha_indices_in: *const u16,
+    colors_in: *const u32,
+    color_indices_in: *const u32,
+    output_ptr: *mut u8,
+    num_blocks: usize,
+) {
+    #[cfg(target_arch = "x86_64")]
+    {
+        untransform_recorr_64::<2>(
+            alpha_endpoints_in,
+            alpha_indices_in,
+            colors_in,
+            color_indices_in,
+            output_ptr,
+            num_blocks,
+        )
+    }
+    #[cfg(target_arch = "x86")]
+    {
+        untransform_recorr_32::<2>(
+            alpha_endpoints_in,
+            alpha_indices_in,
+            colors_in,
+            color_indices_in,
+            output_ptr,
+            num_blocks,
+        )
+    }
+}
+
+unsafe fn untransform_recorr_var3(
+    alpha_endpoints_in: *const u16,
+    alpha_indices_in: *const u16,
+    colors_in: *const u32,
+    color_indices_in: *const u32,
+    output_ptr: *mut u8,
+    num_blocks: usize,
+) {
+    #[cfg(target_arch = "x86_64")]
+    {
+        untransform_recorr_64::<3>(
+            alpha_endpoints_in,
+            alpha_indices_in,
+            colors_in,
+            color_indices_in,
+            output_ptr,
+            num_blocks,
+        )
+    }
+    #[cfg(target_arch = "x86")]
+    {
+        untransform_recorr_32::<3>(
+            alpha_endpoints_in,
+            alpha_indices_in,
+            colors_in,
+            color_indices_in,
+            output_ptr,
+            num_blocks,
+        )
+    }
+}
+
+/// 64-bit optimized AVX512VBMI implementation processing 32 blocks per iteration.
+#[cfg(target_arch = "x86_64")]
 #[allow(clippy::erasing_op)]
 #[allow(clippy::identity_op)]
 #[target_feature(enable = "avx512vbmi")]
-pub(crate) unsafe fn avx512_untransform_separate_components(
-    mut alpha_byte_in_ptr: *const u8,
-    mut alpha_bit_in_ptr: *const u8,
-    mut color_byte_in_ptr: *const u8,
-    mut index_byte_in_ptr: *const u8,
-    mut current_output_ptr: *mut u8,
-    len: usize,
+unsafe fn untransform_recorr_64<const VARIANT: u8>(
+    mut alpha_endpoints_in: *const u16,
+    mut alpha_indices_in: *const u16,
+    mut colors_in: *const u32,
+    mut color_indices_in: *const u32,
+    output_ptr: *mut u8,
+    num_blocks: usize,
 ) {
-    debug_assert!(len.is_multiple_of(16));
-    const BYTES_PER_ITERATION: usize = 512;
+    const BYTES_PER_ITERATION: usize = 512; // 32 blocks * 16 bytes
+
     // We drop some alpha bits, which may lead to an overrun so we should technically subtract,
     // however it's impossible to get a read over the buffer here, as the colours and indices follow
     // right after; in actual transformed file. Therefore, we can just work with aligned len just fine.
-    let aligned_len = len - (len % BYTES_PER_ITERATION);
-    let alpha_byte_end_ptr = alpha_byte_in_ptr.add(aligned_len / 16 * 2);
+    let aligned_blocks = (num_blocks / 32) * 32;
+    let alpha_endpoints_end = alpha_endpoints_in.add(aligned_blocks);
+
+    // Convert pointers to byte pointers for reading
+    let mut alpha_byte_in_ptr = alpha_endpoints_in as *const u8;
+    let mut alpha_bit_in_ptr = alpha_indices_in as *const u8;
+    let mut color_byte_in_ptr = colors_in as *const u8;
+    let mut index_byte_in_ptr = color_indices_in as *const u8;
 
     // Add the alpha bits to the alpha bytes register
     #[rustfmt::skip]
@@ -348,54 +434,44 @@ pub(crate) unsafe fn avx512_untransform_separate_components(
         11,10, 9,8, 7,6,5,4,3,2,1,0 // existing bytes 0
     );
 
-    while alpha_byte_in_ptr < alpha_byte_end_ptr {
-        // Okay, so we can read 64 bytes of alpha bytes (2 byte) at a time.
-        // This means 32-blocks read in single read. (1x)
-        //
-        // For colours and indices, this is 4 bytes at a time.
-        // So 16-blocks per read. (2x)
-        //
-        // For alpha bits (6 bytes), the math does not divide evenly (64 / 6) == ~10.6.
-        // So we have to round this down to 8 blocks. (4x)
-        // 8 blocks * 48 bits == 384 bits total. 48 bytes per read.
-        //
-        // What does this mean? To maximize throughput, we read 4x of alpha bits (largest item),
-        // then blend with other registers to reproduce the original blocks.
+    let mut current_output_ptr = output_ptr;
 
-        // Read in the individual components.
-        // In AVX512 we got 32 registers, we're going to cook with them all!
-
-        // [4]  9 input registers <- from memory (4 always active)
-        // [16] 8+4+4 permutation registers <- from memory (16 always active)
-        // [4]  8 output registers <- to memory (4 always active)
-        // So around 33 registers used total, but only 24 registers 'active' at any given point.
-        // Therefore this fits in the 32 reg limit nicely for AVX512 on x86-64.
-
+    while (alpha_byte_in_ptr as *const u16) < alpha_endpoints_end {
         // The alpha bytes for 32 blocks
-        let alpha_bytes_0 = _mm512_loadu_si512(alpha_byte_in_ptr as *const __m512i); // 32 blocks, 8 regs
+        let alpha_bytes_0 = _mm512_loadu_si512(alpha_byte_in_ptr as *const __m512i);
         alpha_byte_in_ptr = alpha_byte_in_ptr.add(64);
 
-        // The colors and indices for 32 blocks (16 blocks per read)
-        let colors_0 = _mm512_loadu_si512(color_byte_in_ptr as *const __m512i); // 16 blocks, 4 regs
-        let colors_1 = _mm512_loadu_si512(color_byte_in_ptr.add(64) as *const __m512i); // 16 blocks, 4 regs
+        // The colors for 32 blocks (16 blocks per read) - apply recorrelation
+        let colors_0_raw = _mm512_loadu_si512(color_byte_in_ptr as *const __m512i);
+        let colors_1_raw = _mm512_loadu_si512(color_byte_in_ptr.add(64) as *const __m512i);
+
+        // Apply recorrelation to colors
+        let colors_0 = match VARIANT {
+            1 => recorrelate_ycocg_r_var1_avx512bw(colors_0_raw),
+            2 => recorrelate_ycocg_r_var2_avx512bw(colors_0_raw),
+            3 => recorrelate_ycocg_r_var3_avx512bw(colors_0_raw),
+            _ => unreachable_unchecked(),
+        };
+        let colors_1 = match VARIANT {
+            1 => recorrelate_ycocg_r_var1_avx512bw(colors_1_raw),
+            2 => recorrelate_ycocg_r_var2_avx512bw(colors_1_raw),
+            3 => recorrelate_ycocg_r_var3_avx512bw(colors_1_raw),
+            _ => unreachable_unchecked(),
+        };
         color_byte_in_ptr = color_byte_in_ptr.add(128);
 
-        let indices_0 = _mm512_loadu_si512(index_byte_in_ptr as *const __m512i); // 16 blocks, 4 regs
-        let indices_1 = _mm512_loadu_si512(index_byte_in_ptr.add(64) as *const __m512i); // 16 blocks, 4 regs
+        let indices_0 = _mm512_loadu_si512(index_byte_in_ptr as *const __m512i);
+        let indices_1 = _mm512_loadu_si512(index_byte_in_ptr.add(64) as *const __m512i);
         index_byte_in_ptr = index_byte_in_ptr.add(128);
 
         // The alpha bits for 32 blocks (8 blocks per read)
-        let alpha_bit_0 = _mm512_loadu_si512(alpha_bit_in_ptr as *const __m512i); // 8 blocks, 2 regs
-        let alpha_bit_1 = _mm512_loadu_si512(alpha_bit_in_ptr.add(48) as *const __m512i); // 8 blocks, 2 regs
-        let alpha_bit_2 = _mm512_loadu_si512(alpha_bit_in_ptr.add(96) as *const __m512i); // 8 blocks, 2 regs
-        let alpha_bit_3 = _mm512_loadu_si512(alpha_bit_in_ptr.add(144) as *const __m512i); // 8 blocks, 2 regs
+        let alpha_bit_0 = _mm512_loadu_si512(alpha_bit_in_ptr as *const __m512i);
+        let alpha_bit_1 = _mm512_loadu_si512(alpha_bit_in_ptr.add(48) as *const __m512i);
+        let alpha_bit_2 = _mm512_loadu_si512(alpha_bit_in_ptr.add(96) as *const __m512i);
+        let alpha_bit_3 = _mm512_loadu_si512(alpha_bit_in_ptr.add(144) as *const __m512i);
         alpha_bit_in_ptr = alpha_bit_in_ptr.add(192);
 
-        // 9 regs used, let's use another 8
-        // and another few for the permutations
-
-        // Now let's reassemble the 32 blocks
-        // 64 / 16 == 4 blocks per register, so 8 registers of blocks needed because we got 32 blocks
+        // Reassemble the 32 blocks
         let mut blocks_0 =
             _mm512_permutex2var_epi8(alpha_bytes_0, blocks_0_perm_alphabits, alpha_bit_0);
         blocks_0 = _mm512_permutex2var_epi8(blocks_0, blocks_0_perm_colours, colors_0);
@@ -436,7 +512,7 @@ pub(crate) unsafe fn avx512_untransform_separate_components(
         blocks_7 = _mm512_permutex2var_epi8(blocks_7, blocks_3_perm_colours, colors_1);
         blocks_7 = _mm512_permutex2var_epi8(blocks_7, blocks_3_perm_indices, indices_1);
 
-        // Now compiler will swap out `alpha_bit_1` into register of `alpha_bit_0`, hopefully.
+        // Store all 32 blocks
         _mm512_storeu_si512(current_output_ptr as *mut __m512i, blocks_0);
         _mm512_storeu_si512(current_output_ptr.add(64) as *mut __m512i, blocks_1);
         _mm512_storeu_si512(current_output_ptr.add(128) as *mut __m512i, blocks_2);
@@ -446,67 +522,62 @@ pub(crate) unsafe fn avx512_untransform_separate_components(
         _mm512_storeu_si512(current_output_ptr.add(384) as *mut __m512i, blocks_6);
         _mm512_storeu_si512(current_output_ptr.add(448) as *mut __m512i, blocks_7);
 
-        // The colors and indices for 8 blocks
         current_output_ptr = current_output_ptr.add(BYTES_PER_ITERATION);
     }
 
-    // Convert pointers to the types expected by u32_untransform_with_separate_pointers
-    let alpha_byte_in_ptr_u16 = alpha_byte_in_ptr as *const u16;
-    let alpha_bit_in_ptr_u16 = alpha_bit_in_ptr as *const u16;
-    let color_byte_in_ptr_u32 = color_byte_in_ptr as *const u32;
-    let index_byte_in_ptr_u32 = index_byte_in_ptr as *const u32;
+    // Update pointers for remaining blocks
+    alpha_endpoints_in = alpha_byte_in_ptr as *const u16;
+    alpha_indices_in = alpha_bit_in_ptr as *const u16;
+    colors_in = color_byte_in_ptr as *const u32;
+    color_indices_in = index_byte_in_ptr as *const u32;
 
-    u32_untransform_with_separate_pointers(
-        alpha_byte_in_ptr_u16,
-        alpha_bit_in_ptr_u16,
-        color_byte_in_ptr_u32,
-        index_byte_in_ptr_u32,
-        current_output_ptr,
-        len - aligned_len,
-    );
+    // Process remaining blocks with generic implementation
+    let remaining_blocks = num_blocks - aligned_blocks;
+    if remaining_blocks > 0 {
+        super::generic::untransform_with_recorrelate_generic(
+            alpha_endpoints_in,
+            alpha_indices_in,
+            colors_in,
+            color_indices_in,
+            current_output_ptr,
+            remaining_blocks,
+            match VARIANT {
+                1 => YCoCgVariant::Variant1,
+                2 => YCoCgVariant::Variant2,
+                3 => YCoCgVariant::Variant3,
+                _ => unreachable_unchecked(),
+            },
+        );
+    }
 }
 
-/// Untransforms BC3 block data from separated components using AVX512 instructions.
-/// [32-bit optimized variant]
-///
-/// # Arguments
-///
-/// * `alpha_byte_in_ptr` - Pointer to the input buffer containing alpha endpoint pairs (2 bytes per block).
-/// * `alpha_bit_in_ptr` - Pointer to the input buffer containing packed alpha indices (6 bytes per block).
-/// * `color_byte_in_ptr` - Pointer to the input buffer containing color endpoint pairs (packed RGB565, 4 bytes per block) and unused padding (4 bytes per block). Loaded as `__m128i`.
-/// * `index_byte_in_ptr` - Pointer to the input buffer containing color indices (4 bytes per block) and unused padding (4 bytes per block). Loaded as `__m128i`.
-/// * `current_output_ptr` - Pointer to the output buffer where the reconstructed BC3 blocks (16 bytes per block) will be written.
-/// * `len` - The total number of bytes to write to the output buffer. Must be a multiple of 16.
-///
-/// # Safety
-///
-/// - All input pointers must be valid for reads corresponding to `len` bytes of output.
-///   - `alpha_byte_in_ptr` needs `len / 16 * 2` readable bytes.
-///   - `alpha_bit_in_ptr` needs `len / 16 * 6` readable bytes.
-///   - `color_byte_in_ptr` needs `len / 16 * 8` readable bytes.
-///   - `index_byte_in_ptr` needs `len / 16 * 8` readable bytes.
-/// - `current_output_ptr` must be valid for writes for `len` bytes.
-/// - `len` must be a multiple of 16 (the size of a BC3 block).
-/// - Pointers do not need to be aligned; unaligned loads/reads are used.
-#[cfg(any(target_arch = "x86", feature = "bench", test))]
+/// 32-bit optimized AVX512VBMI implementation processing 4 blocks per iteration.
+#[cfg(target_arch = "x86")]
 #[allow(clippy::erasing_op)]
 #[allow(clippy::identity_op)]
 #[target_feature(enable = "avx512vbmi")]
-pub(crate) unsafe fn avx512_untransform_separate_components_32(
-    mut alpha_byte_in_ptr: *const u8,
-    mut alpha_bit_in_ptr: *const u8,
-    mut color_byte_in_ptr: *const u8,
-    mut index_byte_in_ptr: *const u8,
-    mut current_output_ptr: *mut u8,
-    len: usize,
+unsafe fn untransform_recorr_32<const VARIANT: u8>(
+    mut alpha_endpoints_in: *const u16,
+    mut alpha_indices_in: *const u16,
+    mut colors_in: *const u32,
+    mut color_indices_in: *const u32,
+    output_ptr: *mut u8,
+    num_blocks: usize,
 ) {
-    debug_assert!(len.is_multiple_of(16));
-    const BYTES_PER_ITERATION: usize = 64;
+    const BYTES_PER_ITERATION: usize = 64; // 4 blocks * 16 bytes
+
     // We drop some alpha bits, which may lead to an overrun so we should technically subtract,
     // however it's impossible to get a read over the buffer here, as the colours and indices follow
-    // right after; so we can just work with aligned len just fine.
-    let aligned_len = len - (len % BYTES_PER_ITERATION);
-    let alpha_byte_end_ptr = alpha_byte_in_ptr.add(aligned_len / 16 * 2);
+    // right after; in actual transformed file. Therefore, we can just work with aligned len just fine.
+
+    let aligned_blocks = (num_blocks / 4) * 4;
+    let alpha_endpoints_end = alpha_endpoints_in.add(aligned_blocks);
+
+    // Convert pointers to byte pointers for reading
+    let mut alpha_byte_in_ptr = alpha_endpoints_in as *const u8;
+    let mut alpha_bit_in_ptr = alpha_indices_in as *const u8;
+    let mut color_byte_in_ptr = colors_in as *const u8;
+    let mut index_byte_in_ptr = color_indices_in as *const u8;
 
     // Add the alpha bits to the alpha bytes register
     #[rustfmt::skip]
@@ -555,57 +626,68 @@ pub(crate) unsafe fn avx512_untransform_separate_components_32(
         11,10, 9,8, 7,6,5,4,3,2,1,0 // existing bytes 0
     );
 
-    while alpha_byte_in_ptr < alpha_byte_end_ptr {
-        // This is a variant of the 64-bit version that minimizes register usage for x86.
-        // Same code as above, but no unroll.
-        // Each zmm register stores 4 blocks.
+    let mut current_output_ptr = output_ptr;
 
-        // The alpha bytes for 4 blocks (2 bytes * 4 blocks == 8 bytes) | (8 bytes unused/leftover)
+    while (alpha_byte_in_ptr as *const u16) < alpha_endpoints_end {
+        // The alpha bytes for 4 blocks (2 bytes * 4 blocks == 8 bytes)
         let alpha_bytes_0 =
             _mm512_castsi128_si512(_mm_loadu_si128(alpha_byte_in_ptr as *const __m128i));
         alpha_byte_in_ptr = alpha_byte_in_ptr.add(8);
 
-        // The colors and indices for 4 blocks (4 blocks * 4 bytes == 16 bytes)
-        let colors_0 = _mm512_castsi128_si512(_mm_loadu_si128(color_byte_in_ptr as *const __m128i));
+        // The colors for 4 blocks (4 blocks * 4 bytes == 16 bytes) - apply recorrelation
+        let colors_0_raw =
+            _mm512_castsi128_si512(_mm_loadu_si128(color_byte_in_ptr as *const __m128i));
+        let colors_0 = match VARIANT {
+            1 => recorrelate_ycocg_r_var1_avx512bw(colors_0_raw),
+            2 => recorrelate_ycocg_r_var2_avx512bw(colors_0_raw),
+            3 => recorrelate_ycocg_r_var3_avx512bw(colors_0_raw),
+            _ => unreachable_unchecked(),
+        };
         color_byte_in_ptr = color_byte_in_ptr.add(16);
 
         let indices_0 =
             _mm512_castsi128_si512(_mm_loadu_si128(index_byte_in_ptr as *const __m128i));
         index_byte_in_ptr = index_byte_in_ptr.add(16);
 
-        // The alpha bits for 4 blocks (4 blocks * 6 bytes == 24 bytes) | do 32 byte read
+        // The alpha bits for 4 blocks (4 blocks * 6 bytes == 24 bytes)
         let alpha_bit_0 =
             _mm512_castsi256_si512(_mm256_loadu_si256(alpha_bit_in_ptr as *const __m256i));
         alpha_bit_in_ptr = alpha_bit_in_ptr.add(24);
 
-        // 64 / 16 == 4 blocks per register.
-        // Now let's reassemble the 4 blocks
+        // Reassemble the 4 blocks
         let mut blocks_0 =
             _mm512_permutex2var_epi8(alpha_bytes_0, blocks_0_perm_alphabits, alpha_bit_0);
         blocks_0 = _mm512_permutex2var_epi8(blocks_0, blocks_0_perm_colours, colors_0);
         blocks_0 = _mm512_permutex2var_epi8(blocks_0, blocks_0_perm_indices, indices_0);
 
-        // Now compiler will swap out `alpha_bit_1` into register of `alpha_bit_0`, hopefully.
         _mm512_storeu_si512(current_output_ptr as *mut __m512i, blocks_0);
-
-        // The colors and indices for 8 blocks
         current_output_ptr = current_output_ptr.add(BYTES_PER_ITERATION);
     }
 
-    // Convert pointers to the types expected by u32_untransform_with_separate_pointers
-    let alpha_byte_in_ptr_u16 = alpha_byte_in_ptr as *const u16;
-    let alpha_bit_in_ptr_u16 = alpha_bit_in_ptr as *const u16;
-    let color_byte_in_ptr_u32 = color_byte_in_ptr as *const u32;
-    let index_byte_in_ptr_u32 = index_byte_in_ptr as *const u32;
+    // Update pointers for remaining blocks
+    alpha_endpoints_in = alpha_byte_in_ptr as *const u16;
+    alpha_indices_in = alpha_bit_in_ptr as *const u16;
+    colors_in = color_byte_in_ptr as *const u32;
+    color_indices_in = index_byte_in_ptr as *const u32;
 
-    u32_untransform_with_separate_pointers(
-        alpha_byte_in_ptr_u16,
-        alpha_bit_in_ptr_u16,
-        color_byte_in_ptr_u32,
-        index_byte_in_ptr_u32,
-        current_output_ptr,
-        len - aligned_len,
-    );
+    // Process remaining blocks with generic implementation
+    let remaining_blocks = num_blocks - aligned_blocks;
+    if remaining_blocks > 0 {
+        super::generic::untransform_with_recorrelate_generic(
+            alpha_endpoints_in,
+            alpha_indices_in,
+            colors_in,
+            color_indices_in,
+            current_output_ptr,
+            remaining_blocks,
+            match VARIANT {
+                1 => YCoCgVariant::Variant1,
+                2 => YCoCgVariant::Variant2,
+                3 => YCoCgVariant::Variant3,
+                _ => unreachable_unchecked(),
+            },
+        );
+    }
 }
 
 #[cfg(test)]
@@ -614,17 +696,17 @@ mod tests {
     use crate::test_prelude::*;
 
     #[rstest]
-    #[case(avx512_untransform, "avx512", 64)] // main processes 512 bytes (32 blocks), so max_blocks = 512 × 2 ÷ 16 = 64
-    #[case(avx512_untransform_32, "avx512_32", 8)] // _32 variant processes 64 bytes (4 blocks), so max_blocks = 64 × 2 ÷ 16 = 8
-    fn test_avx512_unaligned(
-        #[case] untransform_fn: StandardTransformFn,
-        #[case] impl_name: &str,
+    #[case(untransform_recorr_var1, YCoCgVariant::Variant1, 64)]
+    #[case(untransform_recorr_var2, YCoCgVariant::Variant2, 64)]
+    #[case(untransform_recorr_var3, YCoCgVariant::Variant3, 64)]
+    fn avx512vbmi_untransform_roundtrip(
+        #[case] func: WithRecorrelateUntransformFn,
+        #[case] variant: YCoCgVariant,
         #[case] max_blocks: usize,
     ) {
         if !has_avx512vbmi() {
             return;
         }
-
-        run_standard_untransform_unaligned_test(untransform_fn, max_blocks, impl_name);
+        run_with_recorrelate_untransform_roundtrip_test(func, variant, max_blocks, "AVX512VBMI");
     }
 }

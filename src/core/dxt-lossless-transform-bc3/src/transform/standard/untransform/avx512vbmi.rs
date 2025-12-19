@@ -101,7 +101,7 @@ pub(crate) unsafe fn avx512_untransform_separate_components(
     const BYTES_PER_ITERATION: usize = 512;
     // We drop some alpha bits, which may lead to an overrun so we should technically subtract,
     // however it's impossible to get a read over the buffer here, as the colours and indices follow
-    // right after; so we can just work with aligned len just fine.
+    // right after; in actual transformed file. Therefore, we can just work with aligned len just fine.
     let aligned_len = len - (len % BYTES_PER_ITERATION);
     let alpha_byte_end_ptr = alpha_byte_in_ptr.add(aligned_len / 16 * 2);
 

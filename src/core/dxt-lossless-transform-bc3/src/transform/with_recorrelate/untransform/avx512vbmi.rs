@@ -178,6 +178,10 @@ unsafe fn untransform_recorr_64<const VARIANT: u8>(
     num_blocks: usize,
 ) {
     const BYTES_PER_ITERATION: usize = 512; // 32 blocks * 16 bytes
+
+    // We drop some alpha bits, which may lead to an overrun so we should technically subtract,
+    // however it's impossible to get a read over the buffer here, as the colours and indices follow
+    // right after; in actual transformed file. Therefore, we can just work with aligned len just fine.
     let aligned_blocks = (num_blocks / 32) * 32;
     let alpha_endpoints_end = alpha_endpoints_in.add(aligned_blocks);
 
@@ -561,6 +565,11 @@ unsafe fn untransform_recorr_32<const VARIANT: u8>(
     num_blocks: usize,
 ) {
     const BYTES_PER_ITERATION: usize = 64; // 4 blocks * 16 bytes
+
+    // We drop some alpha bits, which may lead to an overrun so we should technically subtract,
+    // however it's impossible to get a read over the buffer here, as the colours and indices follow
+    // right after; in actual transformed file. Therefore, we can just work with aligned len just fine.
+
     let aligned_blocks = (num_blocks / 4) * 4;
     let alpha_endpoints_end = alpha_endpoints_in.add(aligned_blocks);
 

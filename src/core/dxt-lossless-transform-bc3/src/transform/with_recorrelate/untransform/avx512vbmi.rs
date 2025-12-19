@@ -177,12 +177,20 @@ unsafe fn untransform_recorr_64<const VARIANT: u8>(
     output_ptr: *mut u8,
     num_blocks: usize,
 ) {
-    const BYTES_PER_ITERATION: usize = 512; // 32 blocks * 16 bytes
+    const BLOCKS_PER_ITERATION: usize = 32;
+    const BYTES_PER_ITERATION: usize = BLOCKS_PER_ITERATION * 16;
 
-    // We drop some alpha bits, which may lead to an overrun so we should technically subtract,
-    // however it's impossible to get a read over the buffer here, as the colours and indices follow
-    // right after; in actual transformed file. Therefore, we can just work with aligned len just fine.
-    let aligned_blocks = (num_blocks / 32) * 32;
+    // SAFETY: Alpha indices are 6 bytes/block. For 32 blocks we need 192 bytes,
+    // but SIMD uses 64-byte loads at overlapping offsets, reading up to 208 bytes.
+    // The final load extends 16 bytes past the alpha_indices boundary.
+    //
+    // This is safe because transformed data is laid out contiguously as:
+    //   [alpha_endpoints | alpha_indices | colors | color_indices]
+    // Over-read bytes land in the colors section, not outside the buffer.
+    //
+    // Rounding down to BLOCKS_PER_ITERATION ensures each loop iteration starts
+    // at a valid offset with sufficient data. Remaining blocks use generic code.
+    let aligned_blocks = (num_blocks / BLOCKS_PER_ITERATION) * BLOCKS_PER_ITERATION;
     let alpha_endpoints_end = alpha_endpoints_in.add(aligned_blocks);
 
     // Convert pointers to byte pointers for reading
@@ -564,13 +572,19 @@ unsafe fn untransform_recorr_32<const VARIANT: u8>(
     output_ptr: *mut u8,
     num_blocks: usize,
 ) {
-    const BYTES_PER_ITERATION: usize = 64; // 4 blocks * 16 bytes
+    const BLOCKS_PER_ITERATION: usize = 4;
+    const BYTES_PER_ITERATION: usize = BLOCKS_PER_ITERATION * 16;
 
-    // We drop some alpha bits, which may lead to an overrun so we should technically subtract,
-    // however it's impossible to get a read over the buffer here, as the colours and indices follow
-    // right after; in actual transformed file. Therefore, we can just work with aligned len just fine.
-
-    let aligned_blocks = (num_blocks / 4) * 4;
+    // SAFETY: Alpha indices are 6 bytes/block. For 4 blocks we need 24 bytes,
+    // but a 256-bit SIMD load reads 32 bytes, extending 8 bytes past alpha_indices.
+    //
+    // This is safe because transformed data is laid out contiguously as:
+    //   [alpha_endpoints | alpha_indices | colors | color_indices]
+    // Over-read bytes land in the colors section, not outside the buffer.
+    //
+    // Rounding down to BLOCKS_PER_ITERATION ensures each loop iteration starts
+    // at a valid offset with sufficient data. Remaining blocks use generic code.
+    let aligned_blocks = (num_blocks / BLOCKS_PER_ITERATION) * BLOCKS_PER_ITERATION;
     let alpha_endpoints_end = alpha_endpoints_in.add(aligned_blocks);
 
     // Convert pointers to byte pointers for reading

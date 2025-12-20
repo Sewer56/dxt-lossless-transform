@@ -98,14 +98,23 @@ pub(crate) unsafe fn u32_avx2_with_separate_pointers(
         }
 
         // Write out all alpha bytes first (2 bytes each), for all 8 blocks
-        write_alpha_endpoints_u16(alpha_byte_out_ptr, current_input_ptr, 0);
-        write_alpha_endpoints_u16(alpha_byte_out_ptr.add(1), current_input_ptr, 16);
-        write_alpha_endpoints_u16(alpha_byte_out_ptr.add(2), current_input_ptr, 32);
-        write_alpha_endpoints_u16(alpha_byte_out_ptr.add(3), current_input_ptr, 48);
-        write_alpha_endpoints_u16(alpha_byte_out_ptr.add(4), current_input_ptr, 64);
-        write_alpha_endpoints_u16(alpha_byte_out_ptr.add(5), current_input_ptr, 80);
-        write_alpha_endpoints_u16(alpha_byte_out_ptr.add(6), current_input_ptr, 96);
-        write_alpha_endpoints_u16(alpha_byte_out_ptr.add(7), current_input_ptr, 112);
+        // Combine 4 u16s into a u64 to reduce write operations
+        write_alpha_endpoints_u64(
+            alpha_byte_out_ptr as *mut u64,
+            current_input_ptr,
+            0,
+            16,
+            32,
+            48,
+        );
+        write_alpha_endpoints_u64(
+            (alpha_byte_out_ptr as *mut u64).add(1),
+            current_input_ptr,
+            64,
+            80,
+            96,
+            112,
+        );
         alpha_byte_out_ptr = alpha_byte_out_ptr.add(8);
 
         // Resolved and optimized out at compile time!
@@ -168,8 +177,25 @@ pub(crate) unsafe fn u32_avx2_with_separate_pointers(
 }
 
 #[inline(always)]
-unsafe fn write_alpha_endpoints_u16(out_ptr: *mut u16, in_ptr: *const u8, offset: usize) {
-    out_ptr.write_unaligned((in_ptr.add(offset) as *const u16).read_unaligned());
+unsafe fn write_alpha_endpoints_u64(
+    out_ptr: *mut u64,
+    in_ptr: *const u8,
+    offset0: usize,
+    offset1: usize,
+    offset2: usize,
+    offset3: usize,
+) {
+    // Read 4 scattered u16 values
+    let alpha_0 = (in_ptr.add(offset0) as *const u16).read_unaligned() as u64;
+    let alpha_1 = (in_ptr.add(offset1) as *const u16).read_unaligned() as u64;
+    let alpha_2 = (in_ptr.add(offset2) as *const u16).read_unaligned() as u64;
+    let alpha_3 = (in_ptr.add(offset3) as *const u16).read_unaligned() as u64;
+
+    // Combine into a single u64 via shifts and OR
+    let combined = alpha_0 | (alpha_1 << 16) | (alpha_2 << 32) | (alpha_3 << 48);
+
+    // Write as a single u64
+    out_ptr.write_unaligned(combined);
 }
 
 #[inline(always)]

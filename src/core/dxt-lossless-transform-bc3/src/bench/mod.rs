@@ -83,6 +83,27 @@ pub mod transform {
                 block_count,
             )
         }
+
+        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+        pub unsafe fn avx512_transform_with_split_alphas(
+            input_ptr: *const u8,
+            alpha0_out: *mut u8,
+            alpha1_out: *mut u8,
+            alpha_indices_out: *mut u16,
+            colors_out: *mut u32,
+            color_indices_out: *mut u32,
+            block_count: usize,
+        ) {
+            crate::transform::with_split_alphas::transform::avx512vbmi::transform_with_split_alphas(
+                input_ptr,
+                alpha0_out,
+                alpha1_out,
+                alpha_indices_out,
+                colors_out,
+                color_indices_out,
+                block_count,
+            )
+        }
     }
 }
 

@@ -5,6 +5,8 @@ use safe_allocator_api::RawAlloc;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx2;
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+mod avx512vbmi;
 mod generic;
 
 pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
@@ -48,6 +50,17 @@ fn criterion_benchmark(c: &mut Criterion) {
     // Run architecture-specific benchmarks
     #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
+        if has_avx512vbmi() {
+            avx512vbmi::run_benchmarks(
+                &mut group,
+                &input,
+                &mut output,
+                size,
+                block_count,
+                important_benches_only,
+            );
+        }
+
         if has_avx2() {
             avx2::run_benchmarks(
                 &mut group,

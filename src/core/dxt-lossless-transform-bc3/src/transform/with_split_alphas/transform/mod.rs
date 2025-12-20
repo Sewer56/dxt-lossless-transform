@@ -8,7 +8,7 @@ pub(crate) mod generic;
 pub(crate) mod avx2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-mod avx512vbmi;
+pub(crate) mod avx512vbmi;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]

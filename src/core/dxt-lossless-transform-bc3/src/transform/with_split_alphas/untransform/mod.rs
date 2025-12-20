@@ -2,10 +2,10 @@
 //!
 //! For the inverse of `transform_with_split_alphas`, see the corresponding transform module.
 
-mod generic;
+pub(crate) mod generic;
 
 #[cfg(target_arch = "x86_64")]
-mod sse2;
+pub(crate) mod sse2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]

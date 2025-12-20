@@ -64,14 +64,16 @@ unsafe fn transform_decorr<const VARIANT: u8>(
         };
 
         // Write out all alpha endpoints (2 bytes each), for all 8 blocks
-        write_alpha_endpoints_u16(alpha_endpoints_out, input_ptr, 0);
-        write_alpha_endpoints_u16(alpha_endpoints_out.add(1), input_ptr, 16);
-        write_alpha_endpoints_u16(alpha_endpoints_out.add(2), input_ptr, 32);
-        write_alpha_endpoints_u16(alpha_endpoints_out.add(3), input_ptr, 48);
-        write_alpha_endpoints_u16(alpha_endpoints_out.add(4), input_ptr, 64);
-        write_alpha_endpoints_u16(alpha_endpoints_out.add(5), input_ptr, 80);
-        write_alpha_endpoints_u16(alpha_endpoints_out.add(6), input_ptr, 96);
-        write_alpha_endpoints_u16(alpha_endpoints_out.add(7), input_ptr, 112);
+        // Combine 4 u16s into a u64 to reduce write operations
+        write_alpha_endpoints_u64(alpha_endpoints_out as *mut u64, input_ptr, 0, 16, 32, 48);
+        write_alpha_endpoints_u64(
+            (alpha_endpoints_out as *mut u64).add(1),
+            input_ptr,
+            64,
+            80,
+            96,
+            112,
+        );
         alpha_endpoints_out = alpha_endpoints_out.add(8);
 
         // Write out all alpha indices components (6 bytes per block = 48 bytes total for 8 blocks)
@@ -143,8 +145,25 @@ unsafe fn transform_decorr<const VARIANT: u8>(
 }
 
 #[inline(always)]
-unsafe fn write_alpha_endpoints_u16(out_ptr: *mut u16, in_ptr: *const u8, offset: usize) {
-    out_ptr.write_unaligned((in_ptr.add(offset) as *const u16).read_unaligned());
+unsafe fn write_alpha_endpoints_u64(
+    out_ptr: *mut u64,
+    in_ptr: *const u8,
+    offset0: usize,
+    offset1: usize,
+    offset2: usize,
+    offset3: usize,
+) {
+    // Read 4 scattered u16 values
+    let alpha_0 = (in_ptr.add(offset0) as *const u16).read_unaligned() as u64;
+    let alpha_1 = (in_ptr.add(offset1) as *const u16).read_unaligned() as u64;
+    let alpha_2 = (in_ptr.add(offset2) as *const u16).read_unaligned() as u64;
+    let alpha_3 = (in_ptr.add(offset3) as *const u16).read_unaligned() as u64;
+
+    // Combine into a single u64 via shifts and OR
+    let combined = alpha_0 | (alpha_1 << 16) | (alpha_2 << 32) | (alpha_3 << 48);
+
+    // Write as a single u64
+    out_ptr.write_unaligned(combined);
 }
 
 #[inline(always)]

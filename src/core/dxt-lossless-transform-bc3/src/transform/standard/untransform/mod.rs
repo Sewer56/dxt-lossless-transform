@@ -6,8 +6,11 @@ pub mod sse2_32;
 #[cfg(any(target_arch = "x86_64", all(target_arch = "x86", feature = "bench")))]
 pub mod sse2_64;
 
-#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-pub mod avx512vbmi;
+#[cfg(any(target_arch = "x86", all(target_arch = "x86_64", feature = "bench")))]
+pub mod avx512vbmi_32;
+
+#[cfg(any(target_arch = "x86_64", all(target_arch = "x86", feature = "bench")))]
+pub mod avx512vbmi_64;
 
 #[cfg(feature = "bench")]
 pub mod bench;
@@ -21,12 +24,12 @@ unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
             // On x86_64, use the 64-bit optimized path
             #[cfg(target_arch = "x86_64")]
             {
-                avx512vbmi::avx512_untransform(input_ptr, output_ptr, len);
+                avx512vbmi_64::avx512_untransform(input_ptr, output_ptr, len);
             }
             // On 32-bit x86, use 32-bit optimized path
             #[cfg(target_arch = "x86")]
             {
-                avx512vbmi::avx512_untransform_32(input_ptr, output_ptr, len);
+                avx512vbmi_32::avx512_untransform_32(input_ptr, output_ptr, len);
             }
             return;
         }
@@ -38,12 +41,12 @@ unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
             // On x86_64, use the 64-bit optimized path
             #[cfg(target_arch = "x86_64")]
             {
-                avx512vbmi::avx512_untransform(input_ptr, output_ptr, len);
+                avx512vbmi_64::avx512_untransform(input_ptr, output_ptr, len);
             }
             // On 32-bit x86, use 32-bit optimized path
             #[cfg(target_arch = "x86")]
             {
-                avx512vbmi::avx512_untransform_32(input_ptr, output_ptr, len);
+                avx512vbmi_32::avx512_untransform_32(input_ptr, output_ptr, len);
             }
             return;
         }

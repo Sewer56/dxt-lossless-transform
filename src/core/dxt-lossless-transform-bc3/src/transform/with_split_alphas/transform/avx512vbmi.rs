@@ -40,28 +40,14 @@ pub(crate) unsafe fn transform_with_split_alphas(
     let remaining_blocks = (len - aligned_len) / 16;
     let input_aligned_end_ptr = input_ptr.add(aligned_len);
 
-    // Permute mask to extract alpha0 bytes (offset 0 from each of 8 blocks)
-    // Each block is 16 bytes, so alpha0 is at offsets: 0, 16, 32, 48, 64, 80, 96, 112
-    // We extract 8 bytes into the low part of the result
+    // Permute mask to extract both alpha0 and alpha1 bytes into a single XMM register
+    // - Low 64 bits (positions 0-7): alpha0 bytes from each of 8 blocks
+    // - High 64 bits (positions 8-15): alpha1 bytes from each of 8 blocks
     #[rustfmt::skip]
-    let alpha0_permute_mask: __m512i = _mm512_set_epi8(
+    let alpha_bytes_permute_mask: __m512i = _mm512_set_epi8(
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0 + (16 * 7), // block 7 alpha0
-        0 + (16 * 6), // block 6 alpha0
-        0 + (16 * 5), // block 5 alpha0
-        0 + (16 * 4), // block 4 alpha0
-        0 + (16 * 3), // block 3 alpha0
-        0 + (16 * 2), // block 2 alpha0
-        0 + (16 * 1), // block 1 alpha0
-        0 + (16 * 0), // block 0 alpha0
-    );
-
-    // Permute mask to extract alpha1 bytes (offset 1 from each of 8 blocks)
-    #[rustfmt::skip]
-    let alpha1_permute_mask: __m512i = _mm512_set_epi8(
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        // Positions 8-15: alpha1 bytes (high 64 bits of XMM)
         1 + (16 * 7), // block 7 alpha1
         1 + (16 * 6), // block 6 alpha1
         1 + (16 * 5), // block 5 alpha1
@@ -70,6 +56,15 @@ pub(crate) unsafe fn transform_with_split_alphas(
         1 + (16 * 2), // block 2 alpha1
         1 + (16 * 1), // block 1 alpha1
         1 + (16 * 0), // block 0 alpha1
+        // Positions 0-7: alpha0 bytes (low 64 bits of XMM)
+        0 + (16 * 7), // block 7 alpha0
+        0 + (16 * 6), // block 6 alpha0
+        0 + (16 * 5), // block 5 alpha0
+        0 + (16 * 4), // block 4 alpha0
+        0 + (16 * 3), // block 3 alpha0
+        0 + (16 * 2), // block 2 alpha0
+        0 + (16 * 1), // block 1 alpha0
+        0 + (16 * 0), // block 0 alpha0
     );
 
     // Permute mask to extract alpha indices (offsets 2-7 from each of 8 blocks)
@@ -212,24 +207,22 @@ pub(crate) unsafe fn transform_with_split_alphas(
         input_ptr = input_ptr.add(128);
 
         // Extract each component using byte permutation
-        let alpha0_bytes = _mm512_permutex2var_epi8(block_0, alpha0_permute_mask, block_1);
-        let alpha1_bytes = _mm512_permutex2var_epi8(block_0, alpha1_permute_mask, block_1);
+        let alpha_bytes = _mm512_permutex2var_epi8(block_0, alpha_bytes_permute_mask, block_1);
         let alpha_indices = _mm512_permutex2var_epi8(block_0, alpha_indices_permute_mask, block_1);
         let colors = _mm512_permutex2var_epi8(block_0, colors_permute_mask, block_1);
         let color_indices = _mm512_permutex2var_epi8(block_0, color_indices_permute_mask, block_1);
 
+        // Store alpha0 and alpha1 from combined XMM register
+        // - Low 64 bits: alpha0 bytes
+        // - High 64 bits: alpha1 bytes
+        let alpha_xmm = _mm512_castsi512_si128(alpha_bytes);
+
         // Store alpha0 (8 bytes) - use storel to write low 64 bits
-        _mm_storel_epi64(
-            alpha0_out as *mut __m128i,
-            _mm512_castsi512_si128(alpha0_bytes),
-        );
+        _mm_storel_epi64(alpha0_out as *mut __m128i, alpha_xmm);
         alpha0_out = alpha0_out.add(8);
 
-        // Store alpha1 (8 bytes) - use storel to write low 64 bits
-        _mm_storel_epi64(
-            alpha1_out as *mut __m128i,
-            _mm512_castsi512_si128(alpha1_bytes),
-        );
+        // Store alpha1 (8 bytes) - use storeh_pd to write high 64 bits
+        _mm_storeh_pd(alpha1_out as *mut f64, _mm_castsi128_pd(alpha_xmm));
         alpha1_out = alpha1_out.add(8);
 
         // Store alpha indices (48 bytes) - use full ZMM store (with overflow guard from aligned_len)

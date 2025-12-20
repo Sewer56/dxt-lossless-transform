@@ -106,7 +106,7 @@ pub(crate) unsafe fn u32_untransform_sse2(input_ptr: *const u8, output_ptr: *mut
 
 #[cfg(any(target_arch = "x86", feature = "bench"))]
 #[inline(always)]
-unsafe fn shift_u32_u16(value: u32, shift: usize) -> u16 {
+fn shift_u32_u16(value: u32, shift: usize) -> u16 {
     (value >> shift) as u16
 }
 
@@ -264,13 +264,13 @@ unsafe fn write_u64(ptr: *mut u8, offset: usize, value: u64) {
 
 #[cfg(any(target_arch = "x86_64", feature = "bench"))]
 #[inline(always)]
-unsafe fn shift_u64_u16(value: u64, shift: usize) -> u16 {
+fn shift_u64_u16(value: u64, shift: usize) -> u16 {
     (value >> shift) as u16
 }
 
 #[cfg(any(target_arch = "x86_64", feature = "bench"))]
 #[inline(always)]
-unsafe fn shift_u64_u32(value: u64, shift: usize) -> u32 {
+fn shift_u64_u32(value: u64, shift: usize) -> u32 {
     (value >> shift) as u32
 }
 

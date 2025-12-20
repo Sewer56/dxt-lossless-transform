@@ -8,6 +8,9 @@ pub(crate) mod generic;
 pub(crate) mod avx2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+pub(crate) mod avx512vbmi;
+
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]
 unsafe fn transform_with_split_alphas_x86(
     input_ptr: *const u8,
@@ -20,6 +23,19 @@ unsafe fn transform_with_split_alphas_x86(
 ) {
     #[cfg(not(feature = "no-runtime-cpu-detection"))]
     {
+        if dxt_lossless_transform_common::cpu_detect::has_avx512vbmi() {
+            avx512vbmi::transform_with_split_alphas(
+                input_ptr,
+                alpha0_out,
+                alpha1_out,
+                alpha_indices_out,
+                colors_out,
+                color_indices_out,
+                block_count,
+            );
+            return;
+        }
+
         if dxt_lossless_transform_common::cpu_detect::has_avx2() {
             avx2::transform_with_split_alphas(
                 input_ptr,
@@ -36,6 +52,19 @@ unsafe fn transform_with_split_alphas_x86(
 
     #[cfg(feature = "no-runtime-cpu-detection")]
     {
+        if cfg!(target_feature = "avx512vbmi") {
+            avx512vbmi::transform_with_split_alphas(
+                input_ptr,
+                alpha0_out,
+                alpha1_out,
+                alpha_indices_out,
+                colors_out,
+                color_indices_out,
+                block_count,
+            );
+            return;
+        }
+
         if cfg!(target_feature = "avx2") {
             avx2::transform_with_split_alphas(
                 input_ptr,

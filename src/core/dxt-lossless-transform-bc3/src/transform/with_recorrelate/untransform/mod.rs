@@ -8,6 +8,12 @@ mod sse2;
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod avx512vbmi;
 
+#[cfg(target_arch = "x86")]
+mod avx512vbmi_32;
+
+#[cfg(target_arch = "x86_64")]
+mod avx512vbmi_64;
+
 /// Transform BC3 data from separated alpha/color/index format back to standard interleaved format
 /// while applying YCoCg recorrelation.
 ///

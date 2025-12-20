@@ -68,26 +68,34 @@ pub(crate) unsafe fn transform_with_split_alphas(
             mask,
         );
 
-        // Write out alpha0 bytes (1 byte each at offset 0), for all 8 blocks
-        write_alpha0(current_alpha0_out, current_input_ptr, 0);
-        write_alpha0(current_alpha0_out.add(1), current_input_ptr, 16);
-        write_alpha0(current_alpha0_out.add(2), current_input_ptr, 32);
-        write_alpha0(current_alpha0_out.add(3), current_input_ptr, 48);
-        write_alpha0(current_alpha0_out.add(4), current_input_ptr, 64);
-        write_alpha0(current_alpha0_out.add(5), current_input_ptr, 80);
-        write_alpha0(current_alpha0_out.add(6), current_input_ptr, 96);
-        write_alpha0(current_alpha0_out.add(7), current_input_ptr, 112);
+        // Write out alpha0 bytes as a single u64 (8 bytes from offsets 0, 16, 32, 48, 64, 80, 96, 112)
+        write_alpha_bytes_u64(
+            current_alpha0_out as *mut u64,
+            current_input_ptr,
+            0,
+            16,
+            32,
+            48,
+            64,
+            80,
+            96,
+            112,
+        );
         current_alpha0_out = current_alpha0_out.add(8);
 
-        // Write out alpha1 bytes (1 byte each at offset 1), for all 8 blocks
-        write_alpha1(current_alpha1_out, current_input_ptr, 1);
-        write_alpha1(current_alpha1_out.add(1), current_input_ptr, 17);
-        write_alpha1(current_alpha1_out.add(2), current_input_ptr, 33);
-        write_alpha1(current_alpha1_out.add(3), current_input_ptr, 49);
-        write_alpha1(current_alpha1_out.add(4), current_input_ptr, 65);
-        write_alpha1(current_alpha1_out.add(5), current_input_ptr, 81);
-        write_alpha1(current_alpha1_out.add(6), current_input_ptr, 97);
-        write_alpha1(current_alpha1_out.add(7), current_input_ptr, 113);
+        // Write out alpha1 bytes as a single u64 (8 bytes from offsets 1, 17, 33, 49, 65, 81, 97, 113)
+        write_alpha_bytes_u64(
+            current_alpha1_out as *mut u64,
+            current_input_ptr,
+            1,
+            17,
+            33,
+            49,
+            65,
+            81,
+            97,
+            113,
+        );
         current_alpha1_out = current_alpha1_out.add(8);
 
         // Write out all alpha indices components (6 bytes per block), for all 8 blocks
@@ -151,13 +159,41 @@ pub(crate) unsafe fn transform_with_split_alphas(
 }
 
 #[inline(always)]
-unsafe fn write_alpha0(out_ptr: *mut u8, in_ptr: *const u8, offset: usize) {
-    out_ptr.write_unaligned(in_ptr.add(offset).read_unaligned());
-}
+#[allow(clippy::too_many_arguments)]
+unsafe fn write_alpha_bytes_u64(
+    out_ptr: *mut u64,
+    in_ptr: *const u8,
+    offset0: usize,
+    offset1: usize,
+    offset2: usize,
+    offset3: usize,
+    offset4: usize,
+    offset5: usize,
+    offset6: usize,
+    offset7: usize,
+) {
+    // Read 8 scattered u8 values
+    let b0 = in_ptr.add(offset0).read() as u64;
+    let b1 = in_ptr.add(offset1).read() as u64;
+    let b2 = in_ptr.add(offset2).read() as u64;
+    let b3 = in_ptr.add(offset3).read() as u64;
+    let b4 = in_ptr.add(offset4).read() as u64;
+    let b5 = in_ptr.add(offset5).read() as u64;
+    let b6 = in_ptr.add(offset6).read() as u64;
+    let b7 = in_ptr.add(offset7).read() as u64;
 
-#[inline(always)]
-unsafe fn write_alpha1(out_ptr: *mut u8, in_ptr: *const u8, offset: usize) {
-    out_ptr.write_unaligned(in_ptr.add(offset).read_unaligned());
+    // Combine into a single u64 via shifts and OR
+    let combined = b0
+        | (b1 << 8)
+        | (b2 << 16)
+        | (b3 << 24)
+        | (b4 << 32)
+        | (b5 << 40)
+        | (b6 << 48)
+        | (b7 << 56);
+
+    // Write as a single u64
+    out_ptr.write_unaligned(combined);
 }
 
 #[inline(always)]

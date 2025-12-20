@@ -39,6 +39,51 @@ pub mod transform {
             )
         }
     }
+
+    pub mod with_split_alphas {
+        //! Split alphas transform benchmark functions
+
+        pub unsafe fn generic_transform_with_split_alphas(
+            input_ptr: *const u8,
+            alpha0_out: *mut u8,
+            alpha1_out: *mut u8,
+            alpha_indices_out: *mut u16,
+            colors_out: *mut u32,
+            color_indices_out: *mut u32,
+            block_count: usize,
+        ) {
+            crate::transform::with_split_alphas::transform::generic::transform_with_split_alphas(
+                input_ptr,
+                alpha0_out,
+                alpha1_out,
+                alpha_indices_out,
+                colors_out,
+                color_indices_out,
+                block_count,
+            )
+        }
+
+        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+        pub unsafe fn avx2_transform_with_split_alphas(
+            input_ptr: *const u8,
+            alpha0_out: *mut u8,
+            alpha1_out: *mut u8,
+            alpha_indices_out: *mut u16,
+            colors_out: *mut u32,
+            color_indices_out: *mut u32,
+            block_count: usize,
+        ) {
+            crate::transform::with_split_alphas::transform::avx2::transform_with_split_alphas(
+                input_ptr,
+                alpha0_out,
+                alpha1_out,
+                alpha_indices_out,
+                colors_out,
+                color_indices_out,
+                block_count,
+            )
+        }
+    }
 }
 
 pub mod untransform {
@@ -94,6 +139,51 @@ pub mod untransform {
         pub unsafe fn avx512_untransform_32(input_ptr: *const u8, output_ptr: *mut u8, len: usize) {
             crate::transform::standard::untransform::bench::avx512_untransform_32(
                 input_ptr, output_ptr, len,
+            )
+        }
+    }
+
+    pub mod with_split_alphas {
+        //! Split alphas untransform benchmark functions
+
+        pub unsafe fn generic_untransform_with_split_alphas(
+            alpha0_ptr: *const u8,
+            alpha1_ptr: *const u8,
+            alpha_indices_ptr: *const u16,
+            colors_ptr: *const u32,
+            color_indices_ptr: *const u32,
+            output_ptr: *mut u8,
+            block_count: usize,
+        ) {
+            crate::transform::with_split_alphas::untransform::generic::untransform_with_split_alphas(
+                alpha0_ptr,
+                alpha1_ptr,
+                alpha_indices_ptr,
+                colors_ptr,
+                color_indices_ptr,
+                output_ptr,
+                block_count,
+            )
+        }
+
+        #[cfg(target_arch = "x86_64")]
+        pub unsafe fn sse2_untransform_with_split_alphas(
+            alpha0_ptr: *const u8,
+            alpha1_ptr: *const u8,
+            alpha_indices_ptr: *const u16,
+            colors_ptr: *const u32,
+            color_indices_ptr: *const u32,
+            output_ptr: *mut u8,
+            block_count: usize,
+        ) {
+            crate::transform::with_split_alphas::untransform::sse2::untransform_with_split_alphas_sse2(
+                alpha0_ptr,
+                alpha1_ptr,
+                alpha_indices_ptr,
+                colors_ptr,
+                color_indices_ptr,
+                output_ptr,
+                block_count,
             )
         }
     }

@@ -64,5 +64,17 @@ path = "benches/normalize_blocks/main.rs"
 harness = false
 required-features = ["experimental"]
 
+[[bench]]
+name = "transform_with_split_alphas"
+path = "benches/transform_with_split_alphas/main.rs"
+harness = false
+required-features = ["bench"]
+
+[[bench]]
+name = "untransform_with_split_alphas"
+path = "benches/untransform_with_split_alphas/main.rs"
+harness = false
+required-features = ["bench"]
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }

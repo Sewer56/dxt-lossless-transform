@@ -2,10 +2,10 @@
 //!
 //! For the inverse of `untransform_with_split_alphas`, see the corresponding untransform module.
 
-mod generic;
+pub(crate) mod generic;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-mod avx2;
+pub(crate) mod avx2;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 #[inline(always)]

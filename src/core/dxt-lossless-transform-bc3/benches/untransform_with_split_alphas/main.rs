@@ -4,7 +4,7 @@ use dxt_lossless_transform_common::cpu_detect::*;
 use safe_allocator_api::RawAlloc;
 
 mod generic;
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 mod sse2;
 
 pub(crate) fn allocate_align_64(num_bytes: usize) -> RawAlloc {
@@ -46,7 +46,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     group.measurement_time(Duration::from_secs(10));
 
     // Run architecture-specific benchmarks
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     {
         if has_sse2() {
             sse2::run_benchmarks(

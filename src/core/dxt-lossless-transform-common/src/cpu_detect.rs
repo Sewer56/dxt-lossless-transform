@@ -99,9 +99,18 @@ pub fn has_avx2() -> bool {
 ///
 /// # Returns
 /// `true` if the CPU supports SSE2 instructions, `false` otherwise.
+/// Always returns `true` on x86_64 since SSE2 is part of the baseline.
 #[inline]
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 pub fn has_sse2() -> bool {
-    cpufeatures::new!(cpuid_sse2, "sse2");
-    cpuid_sse2::get()
+    // SSE2 is required by x86_64, so always available
+    #[cfg(target_arch = "x86_64")]
+    {
+        true
+    }
+    #[cfg(target_arch = "x86")]
+    {
+        cpufeatures::new!(cpuid_sse2, "sse2");
+        cpuid_sse2::get()
+    }
 }

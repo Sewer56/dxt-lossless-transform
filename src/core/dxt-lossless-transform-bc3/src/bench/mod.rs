@@ -187,7 +187,7 @@ pub mod untransform {
             )
         }
 
-        #[cfg(target_arch = "x86_64")]
+        #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
         pub unsafe fn sse2_untransform_with_split_alphas(
             alpha0_ptr: *const u8,
             alpha1_ptr: *const u8,

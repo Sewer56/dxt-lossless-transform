@@ -47,14 +47,30 @@ unsafe fn untransform_x86(input_ptr: *const u8, output_ptr: *mut u8, len: usize)
     }
 
     // SSE2 is required by x86-64, so no check needed
-    // On i686, this is slower, so skipped.
     #[cfg(target_arch = "x86_64")]
     {
         sse2::u64_untransform_sse2(input_ptr, output_ptr, len);
     }
 
-    #[cfg(not(target_arch = "x86_64"))]
+    // On i686, SSE2 is not guaranteed, so we need runtime detection
+    #[cfg(target_arch = "x86")]
     {
+        #[cfg(not(feature = "no-runtime-cpu-detection"))]
+        {
+            if dxt_lossless_transform_common::cpu_detect::has_sse2() {
+                sse2::u32_untransform_sse2(input_ptr, output_ptr, len);
+                return;
+            }
+        }
+
+        #[cfg(feature = "no-runtime-cpu-detection")]
+        {
+            if cfg!(target_feature = "sse2") {
+                sse2::u32_untransform_sse2(input_ptr, output_ptr, len);
+                return;
+            }
+        }
+
         portable32::u32_untransform_v2(input_ptr, output_ptr, len);
     }
 }

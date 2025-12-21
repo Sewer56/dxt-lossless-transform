@@ -160,7 +160,6 @@ pub(crate) unsafe fn avx512_untransform_separate_components_32(
         blocks_0 = _mm512_permutex2var_epi8(blocks_0, blocks_0_perm_colours, colors_0);
         blocks_0 = _mm512_permutex2var_epi8(blocks_0, blocks_0_perm_indices, indices_0);
 
-        // Now compiler will swap out `alpha_bit_1` into register of `alpha_bit_0`, hopefully.
         _mm512_storeu_si512(current_output_ptr as *mut __m512i, blocks_0);
 
         // The colors and indices for 8 blocks

@@ -43,11 +43,11 @@ High-performance Rust library for lossless DXT texture compression with extensiv
 # Post-Change Verification
 
 ```bash
-cargo build --workspace --all-features --all-targets
-cargo test --workspace --all-features
-cargo clippy --workspace --all-features -- -D warnings
-cargo doc --workspace --all-features
-cargo fmt --all
+cargo build --workspace --all-features --all-targets --quiet
+cargo test --workspace --all-features --quiet
+cargo clippy --workspace --all-features --quiet -- -D warnings
+cargo doc --workspace --all-features --quiet
+cargo fmt --all --quiet
 ```
 
 All must pass before submitting.

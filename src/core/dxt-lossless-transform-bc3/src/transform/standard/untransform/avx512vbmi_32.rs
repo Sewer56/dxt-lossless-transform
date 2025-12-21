@@ -52,8 +52,8 @@ pub(crate) unsafe fn avx512_untransform_32(input_ptr: *const u8, output_ptr: *mu
 /// - All input pointers must be valid for reads corresponding to `len` bytes of output.
 ///   - `alpha_byte_in_ptr` needs `len / 16 * 2` readable bytes.
 ///   - `alpha_bit_in_ptr` needs `len / 16 * 6` readable bytes.
-///   - `color_byte_in_ptr` needs `len / 16 * 8` readable bytes.
-///   - `index_byte_in_ptr` needs `len / 16 * 8` readable bytes.
+///   - `color_byte_in_ptr` needs `len / 16 * 4` readable bytes.
+///   - `index_byte_in_ptr` needs `len / 16 * 4` readable bytes.
 /// - `current_output_ptr` must be valid for writes for `len` bytes.
 /// - `len` must be a multiple of 16 (the size of a BC3 block).
 /// - Pointers do not need to be aligned; unaligned loads/reads are used.

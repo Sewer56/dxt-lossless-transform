@@ -16,6 +16,7 @@ use dxt_lossless_transform_common::intrinsics::color_565::recorrelate::avx512bw:
 #[allow(clippy::erasing_op)]
 #[allow(clippy::identity_op)]
 #[target_feature(enable = "avx512vbmi")]
+#[target_feature(enable = "avx512bw")]
 pub(crate) unsafe fn untransform_recorr_64<const VARIANT: u8>(
     mut alpha_endpoints_in: *const u16,
     mut alpha_indices_in: *const u16,

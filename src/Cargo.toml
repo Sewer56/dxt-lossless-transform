@@ -85,7 +85,7 @@ dxt-lossless-transform-cli = { path = "tools/dxt-lossless-transform-cli", defaul
 safe-allocator-api = { version = "0.6.0", default-features = false }
 thiserror = { version = "2.0.18", default-features = false }
 criterion = "0.8.2"
-rstest = "0.26.1"
+rstest = "0.27.0"
 likely_stable = "0.1.3"
 derive-enum-all-values = "0.2.1"
 lightweight-mmap = { version = "0.7.0", default-features = false }

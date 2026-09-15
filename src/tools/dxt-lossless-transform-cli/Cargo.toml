@@ -51,7 +51,7 @@ thiserror-no-std = { optional = true, version = "2.0.2" }
 xxhash-rust = { optional = true, version = "0.8.12", features = ["xxh3"] }
 bincode = { workspace = true, optional = true }
 serde = { optional = true, version = "1.0.215", features = ["derive"] }
-dirs = { optional = true, version = "6.0.0" }
+dirs = { optional = true, version = "7.0.0" }
 derive-enum-all-values = { workspace = true, optional = true }
 lossless-transform-utils = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }

@@ -91,7 +91,7 @@ derive-enum-all-values = "0.2.1"
 lightweight-mmap = { version = "0.7.0", default-features = false }
 tempfile = "3.27.0"
 endian-writer = "2.2"
-bitfield = { version = "0.19.1", default-features = false }
+bitfield = { version = "0.20.0", default-features = false }
 bincode = { version = "2.0.1", default-features = false, features = ["alloc", "derive"] }
 zstd-sys = { version = "2.0.16", features = ["experimental"] }
 lossless-transform-utils = "0.1.3"
